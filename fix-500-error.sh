@@ -124,3 +124,4 @@ echo "Common next steps:"
 echo "1. Check your database connection in .env"
 echo "2. Verify your web server configuration"
 echo "3. Check for any custom error pages"
+

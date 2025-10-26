@@ -77,3 +77,4 @@ echo "✅ Caches cleared"
 echo ""
 echo "🎉 Simple cache table fix completed!"
 echo "===================================="
+

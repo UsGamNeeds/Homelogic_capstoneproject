@@ -170,3 +170,4 @@ echo "1. Check your database connection in .env"
 echo "2. Verify your web server configuration"
 echo "3. Check for any custom error pages"
 echo "4. Ensure the 'current' symlink points to the correct release"
+
