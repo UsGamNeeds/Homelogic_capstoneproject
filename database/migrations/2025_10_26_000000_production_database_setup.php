@@ -12,9 +12,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Disable foreign key checks for MySQL
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        
         // Drop all existing tables first to ensure clean state
         $this->dropAllTables();
         
@@ -28,9 +25,6 @@ return new class extends Migration
         $this->createVitalSignsTable();
         $this->createAppointmentsTable();
         $this->createOtherTables();
-        
-        // Re-enable foreign key checks
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
     }
 
     /**
@@ -43,16 +37,35 @@ return new class extends Migration
 
     private function dropAllTables(): void
     {
-        // For MySQL, get table names differently
-        $tables = DB::select('SHOW TABLES');
-        $databaseName = DB::getDatabaseName();
-        $tableColumn = 'Tables_in_' . $databaseName;
+        $driver = DB::getDriverName();
         
-        foreach ($tables as $table) {
-            $tableName = $table->$tableColumn;
-            if ($tableName !== 'migrations') {
-                DB::statement('DROP TABLE IF EXISTS ' . $tableName);
+        if ($driver === 'mysql') {
+            // MySQL syntax
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+            
+            $tables = DB::select('SHOW TABLES');
+            $databaseName = DB::getDatabaseName();
+            $tableColumn = 'Tables_in_' . $databaseName;
+            
+            foreach ($tables as $table) {
+                $tableName = $table->$tableColumn;
+                if ($tableName !== 'migrations') {
+                    DB::statement('DROP TABLE IF EXISTS ' . $tableName);
+                }
             }
+            
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        } else {
+            // SQLite syntax
+            DB::statement('PRAGMA foreign_keys = OFF');
+            
+            $tables = DB::select("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('migrations', 'sqlite_sequence')");
+            
+            foreach ($tables as $table) {
+                DB::statement('DROP TABLE IF EXISTS ' . $table->name);
+            }
+            
+            DB::statement('PRAGMA foreign_keys = ON');
         }
     }
 

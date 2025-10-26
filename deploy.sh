@@ -28,6 +28,13 @@ npm run build
 echo "🗄️ Running database migrations..."
 php artisan migrate --force
 
+# Seed production data (only on first deployment)
+if [ ! -f .deployed ]; then
+    echo "🌱 Seeding production database..."
+    php artisan db:seed --class=ProductionSeeder --force
+    touch .deployed
+fi
+
 # Clear and cache configuration
 echo "⚡ Optimizing application..."
 php artisan config:cache
