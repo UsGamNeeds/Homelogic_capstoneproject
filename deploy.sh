@@ -4,6 +4,10 @@
 echo "📦 Installing Composer dependencies..."
 composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 
+# Run Filament upgrade after Composer install
+echo "🔧 Running Filament upgrade..."
+php artisan filament:upgrade --force
+
 # Install/update NPM dependencies and build assets
 echo "🎨 Building frontend assets..."
 npm ci
