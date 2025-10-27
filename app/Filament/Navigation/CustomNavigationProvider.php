@@ -59,23 +59,63 @@ class CustomNavigationProvider
                 NavigationItem::make('Reports')
                     ->icon('heroicon-o-chart-bar-square')
                     ->url('#')
-                    ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.*reports*'))
+                    ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.*reports*') || request()->routeIs('filament.admin.pages.*charts*'))
                     ->sort(-400)
                     ->childItems([
+                        NavigationItem::make('Chart Reports')
+                            ->icon('heroicon-o-document-chart-bar')
+                            ->url(route('filament.admin.pages.chart-reports'))
+                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.chart-reports')),
+                        
+                        NavigationItem::make('Resident Charts')
+                            ->icon('heroicon-o-chart-bar')
+                            ->url(route('filament.admin.pages.resident-charts'))
+                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.resident-charts')),
+                        
+                        NavigationItem::make('Vitals Charts')
+                            ->icon('heroicon-o-chart-bar')
+                            ->url(route('filament.admin.pages.vitals-charts'))
+                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.vitals-charts')),
+                        
+                        NavigationItem::make('Vitals Reports')
+                            ->icon('heroicon-o-heart')
+                            ->url(route('filament.admin.pages.vitals-reports'))
+                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.vitals-reports')),
+                        
+                        NavigationItem::make('Assessment Charts')
+                            ->icon('heroicon-o-chart-bar')
+                            ->url(route('filament.admin.pages.assessment-charts'))
+                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.assessment-charts')),
+                        
                         NavigationItem::make('Medication History')
                             ->icon('heroicon-o-cube')
                             ->url(route('filament.admin.pages.medication-history'))
                             ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.medication-history')),
+                        
+                        NavigationItem::make('Medication Reports')
+                            ->icon('heroicon-o-cube')
+                            ->url(route('filament.admin.pages.medication-reports'))
+                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.medication-reports')),
+                        
+                        NavigationItem::make('Appointments Charts')
+                            ->icon('heroicon-o-chart-bar')
+                            ->url(route('filament.admin.pages.appointments-charts'))
+                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.appointments-charts')),
                         
                         NavigationItem::make('Vitals History')
                             ->icon('heroicon-o-heart')
                             ->url(route('filament.admin.pages.vitals-history'))
                             ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.vitals-history')),
                         
-                        NavigationItem::make('Reports')
-                            ->icon('heroicon-o-document-text')
-                            ->url(route('filament.admin.pages.reports'))
-                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.reports')),
+                        NavigationItem::make('Sleep Charts')
+                            ->icon('heroicon-o-chart-bar')
+                            ->url(route('filament.admin.pages.sleep-charts'))
+                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.sleep-charts')),
+                        
+                        NavigationItem::make('Staff Charts')
+                            ->icon('heroicon-o-chart-bar')
+                            ->url(route('filament.admin.pages.staff-charts'))
+                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.staff-charts')),
                     ]),
 
                 // Staff (with dropdown)
