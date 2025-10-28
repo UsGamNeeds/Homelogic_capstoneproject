@@ -74,10 +74,22 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('first_name')->nullable();
+            $table->string('middle_names')->nullable();
+            $table->string('last_name')->nullable();
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('phone')->nullable();
+            $table->string('phone_number')->nullable();
+            $table->date('date_of_birth')->nullable();
+            $table->string('marital_status')->nullable();
+            $table->string('sex')->nullable();
+            $table->string('position')->nullable();
+            $table->string('credentials')->nullable();
+            $table->text('credential_details')->nullable();
+            $table->date('date_employed')->nullable();
+            $table->string('supervisor_name')->nullable();
+            $table->string('provider_name')->nullable();
             $table->string('role')->default('admin');
             $table->foreignId('assigned_branch_id')->nullable()->constrained('branches')->onDelete('set null');
             $table->boolean('is_active')->default(true);
