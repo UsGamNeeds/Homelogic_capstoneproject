@@ -95,7 +95,7 @@ class ComprehensiveSeeder extends Seeder
                 'assigned_branch_id' => $branch->id,
                 'is_active' => true,
                 'hire_date' => now()->subMonths(6),
-                'phone' => '(206) 555-0101',
+                'phone_number' => '(206) 555-0101',
                 'notes' => 'Experienced caregiver with 5 years in senior care',
             ],
             [
@@ -106,7 +106,7 @@ class ComprehensiveSeeder extends Seeder
                 'assigned_branch_id' => $branch->id,
                 'is_active' => true,
                 'hire_date' => now()->subMonths(3),
-                'phone' => '(206) 555-0102',
+                'phone_number' => '(206) 555-0102',
                 'notes' => 'New caregiver, excellent with dementia patients',
             ],
             [
@@ -117,7 +117,7 @@ class ComprehensiveSeeder extends Seeder
                 'assigned_branch_id' => $branch->id,
                 'is_active' => true,
                 'hire_date' => now()->subMonths(12),
-                'phone' => '(206) 555-0103',
+                'phone_number' => '(206) 555-0103',
                 'notes' => 'Registered Nurse with geriatric specialization',
             ],
             [
@@ -128,7 +128,7 @@ class ComprehensiveSeeder extends Seeder
                 'assigned_branch_id' => $branch->id,
                 'is_active' => true,
                 'hire_date' => now()->subMonths(8),
-                'phone' => '(206) 555-0104',
+                'phone_number' => '(206) 555-0104',
                 'notes' => 'Licensed Practical Nurse, medication specialist',
             ],
         ];
