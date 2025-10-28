@@ -23,6 +23,7 @@ class SleepRecordResource extends Resource
     protected static ?string $modelLabel = 'Sleep Record';
     protected static ?string $pluralModelLabel = 'Sleep Records';
     protected static ?string $navigationGroup = 'Resident Care';
+    protected static bool $shouldRegisterNavigation = false;
     protected static ?int $navigationSort = 60;
 
     public static function getEloquentQuery(): Builder

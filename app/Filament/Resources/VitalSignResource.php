@@ -44,6 +44,7 @@ class VitalSignResource extends Resource
     protected static ?string $modelLabel = 'Vital Sign';
     protected static ?string $pluralModelLabel = 'Vital Signs';
     protected static ?string $navigationGroup = 'Resident Care';
+    protected static bool $shouldRegisterNavigation = false;
     
 
     public static function form(Form $form): Form

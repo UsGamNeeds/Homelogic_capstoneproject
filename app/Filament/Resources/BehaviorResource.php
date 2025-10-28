@@ -19,6 +19,7 @@ class BehaviorResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationGroup = 'Resident Care';
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function shouldRegisterNavigation(): bool
     {
