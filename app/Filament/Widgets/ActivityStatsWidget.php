@@ -18,7 +18,7 @@ class ActivityStatsWidget extends BaseWidget
         try {
             return [
                 Stat::make('Pending Assessments', $this->safeCount(function() {
-                    return Assessment::where('completion_percentage', '<', 100);
+                    return Assessment::whereNotIn('status', ['approved', 'archived']);
                 }))
                     ->description('Awaiting completion')
                     ->descriptionIcon('heroicon-m-document-text')
