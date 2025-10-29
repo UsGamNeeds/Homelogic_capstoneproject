@@ -72,10 +72,26 @@ class Assessment extends Model
     // Accessors
     public function getCompletionPercentageAttribute()
     {
-        $totalSections = $this->sections()->count();
-        $completedSections = $this->sections()->where('is_completed', true)->count();
+        // Calculate based on answered questions for more accurate partial progress
+        $totalQuestions = $this->sections()
+            ->with('questions')
+            ->get()
+            ->flatMap(fn($section) => $section->questions)
+            ->count();
+            
+        if ($totalQuestions === 0) {
+            return 0;
+        }
         
-        return $totalSections > 0 ? round(($completedSections / $totalSections) * 100, 2) : 0;
+        $answeredQuestions = $this->sections()
+            ->with('questions')
+            ->get()
+            ->flatMap(fn($section) => $section->questions)
+            ->whereNotNull('response_value')
+            ->where('response_value', '!=', '')
+            ->count();
+        
+        return round(($answeredQuestions / $totalQuestions) * 100, 2);
     }
 
     public function getIsCompletedAttribute()

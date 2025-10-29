@@ -578,17 +578,11 @@ class AssessmentForm extends Page implements HasForms
             ]);
         }
 
-        // Update completion percentage based on answered questions
+        // Refresh assessment to get latest data
         $this->assessment->refresh();
-        $this->updateCompletionPercentage();
-    }
-    
-    protected function updateCompletionPercentage(): void
-    {
-        if (!$this->assessment) {
-            return;
-        }
-
+        
+        // Recalculate completion based on answered questions (not just completed sections)
+        // The accessor uses section completion, but we can calculate based on questions
         $totalQuestions = $this->assessment->sections()
             ->with('questions')
             ->get()
@@ -602,9 +596,6 @@ class AssessmentForm extends Page implements HasForms
             ->whereNotNull('response_value')
             ->where('response_value', '!=', '')
             ->count();
-
-        // Note: completion_percentage is an accessor, so we can't directly update it
-        // But we can update section completion which affects the accessor calculation
     }
 
     public function getAssessment(): ?Assessment
