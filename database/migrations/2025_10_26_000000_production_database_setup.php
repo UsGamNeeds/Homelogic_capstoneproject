@@ -271,6 +271,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('generic_name')->nullable();
+            $table->text('description')->nullable();
             $table->string('dosage_form')->nullable();
             $table->string('strength')->nullable();
             $table->text('indications')->nullable();
@@ -278,6 +279,7 @@ return new class extends Migration
             $table->text('side_effects')->nullable();
             $table->text('interactions')->nullable();
             $table->text('dosage_instructions')->nullable();
+            $table->text('storage_instructions')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
