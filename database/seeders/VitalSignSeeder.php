@@ -82,7 +82,7 @@ class VitalSignSeeder extends Seeder
                 $systolic = (int) round($baseSystolic * (1 + (rand(-10, 10) / 100)));
                 $diastolic = (int) round($baseDiastolic * (1 + (rand(-10, 10) / 100)));
                 $pulse = (int) round($basePulse * (1 + (rand(-10, 10) / 100)));
-                $plotTemperature = round($baseTemperature + (rand(-30, 50) / 10), 1); // ±3.0 to 5.0 degrees
+                $temperature = round($baseTemperature + (rand(-30, 50) / 10), 1); // ±3.0 to 5.0 degrees
                 $oxygenSaturation = (int) round($baseOxygen + rand(-2, 3));
 
                 // Occasional outliers (5% chance of abnormal reading)
