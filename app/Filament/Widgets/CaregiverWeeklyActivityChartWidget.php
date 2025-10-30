@@ -2,22 +2,18 @@
 
 namespace App\Filament\Widgets;
 
-use Filament\Widgets\Widget;
+use Filament\Widgets\ChartWidget;
 use App\Models\Resident;
 use App\Models\VitalSign;
 use App\Models\Assessment;
 use Carbon\Carbon;
 
-class CaregiverDataVisualizationWidget extends Widget
+class CaregiverWeeklyActivityChartWidget extends ChartWidget
 {
-    protected static string $view = 'filament.widgets.caregiver-data-visualization-widget';
+    protected static ?string $heading = 'Weekly Activity';
     protected static ?int $sort = 2;
-    protected int | string | array $columnSpan = [
-        'md' => 1,
-        'xl' => 1,
-    ];
-
-    public function getChartData(): array
+    
+    protected function getData(): array
     {
         $userId = auth()->id();
         $today = Carbon::today();
@@ -39,7 +35,12 @@ class CaregiverDataVisualizationWidget extends Widget
         
         // Group by day
         $vitalSignsByDay = $vitalSigns->groupBy(function($item) {
-            return $item->measurement_date->format('Y-m-d');
+            if (!$item->measurement_date) {
+                return null;
+            }
+            return $item->measurement_date instanceof Carbon 
+                ? $item->measurement_date->format('Y-m-d')
+                : Carbon::parse($item->measurement_date)->format('Y-m-d');
         });
         
         // Create chart data
@@ -66,61 +67,37 @@ class CaregiverDataVisualizationWidget extends Widget
             $dateStr = $date->format('Y-m-d');
             
             $dayAssessments = $assessments->filter(function($item) use ($dateStr) {
-                return $item->created_at->format('Y-m-d') === $dateStr;
+                $createdAt = $item->created_at instanceof Carbon 
+                    ? $item->created_at
+                    : Carbon::parse($item->created_at);
+                return $createdAt->format('Y-m-d') === $dateStr;
             });
             
             $assessmentData[] = $dayAssessments->count();
         }
         
-        // Resident health status
-        $residentHealthStatus = [];
-        foreach ($assignedResidents as $resident) {
-            $latestVitals = VitalSign::where('resident_id', $resident->id)
-                ->orderBy('measurement_date', 'desc')
-                ->first();
-            
-            $status = 'good';
-            if ($latestVitals) {
-                // Simple health status logic
-                if ($latestVitals->systolic > 140 || 
-                    $latestVitals->diastolic > 90 ||
-                    $latestVitals->pulse > 100) {
-                    $status = 'attention';
-                } elseif ($latestVitals->systolic < 90 || 
-                         $latestVitals->diastolic < 60 ||
-                         $latestVitals->pulse < 50) {
-                    $status = 'caution';
-                }
-            }
-            
-            $residentHealthStatus[] = [
-                'name' => $resident->name,
-                'status' => $status,
-                'last_vitals' => $latestVitals ? $latestVitals->measurement_date->diffForHumans() : 'No recent data'
-            ];
-        }
-        
         return [
-            'labels' => $labels,
             'datasets' => [
                 [
                     'label' => 'Vital Signs',
                     'data' => $chartData,
-                    'borderColor' => '#3B82F6', // blue-500
+                    'borderColor' => '#3B82F6',
                     'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
-                    'tension' => 0.3,
-                    'fill' => false,
                 ],
                 [
                     'label' => 'Assessments',
                     'data' => $assessmentData,
-                    'borderColor' => '#10B981', // emerald-500
+                    'borderColor' => '#10B981',
                     'backgroundColor' => 'rgba(16, 185, 129, 0.1)',
-                    'tension' => 0.3,
-                    'fill' => false,
                 ],
             ],
-            'residentHealthStatus' => $residentHealthStatus,
+            'labels' => $labels,
         ];
     }
+    
+    protected function getType(): string
+    {
+        return 'line';
+    }
 }
+

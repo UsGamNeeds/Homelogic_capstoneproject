@@ -10,7 +10,10 @@ class MyResidentsWidget extends Widget
 {
     protected static string $view = 'filament.widgets.my-residents-widget';
     protected static ?int $sort = 3;
-    protected int | string | array $columnSpan = 1;
+    protected int | string | array $columnSpan = [
+        'md' => 1,
+        'xl' => 1,
+    ];
 
     public function getResidents(): array
     {

@@ -2,21 +2,21 @@
 
 namespace App\Filament\Pages;
 
-use Filament\Pages\Page;
+use Filament\Pages\Dashboard as BaseDashboard;
 use App\Models\Resident;
 use App\Models\Appointment;
 use App\Models\Assessment;
 use App\Models\VitalSign;
 use App\Models\LeaveRequest;
-use App\Models\Assignment;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use App\Filament\Widgets\CaregiverOverviewStatsWidget;
+use App\Filament\Widgets\CaregiverWeeklyActivityChartWidget;
 
-class CaregiverDashboard extends Page
+class CaregiverDashboard extends BaseDashboard
 {
     protected static ?string $navigationIcon = 'heroicon-o-home';
-    protected static string $view = 'filament.pages.caregiver-dashboard';
     protected static ?string $title = 'Caregiver Dashboard';
     protected static ?string $navigationLabel = 'Dashboard';
     protected static ?int $navigationSort = -1000;
@@ -38,6 +38,14 @@ class CaregiverDashboard extends Page
     public static function shouldRegisterNavigation(): bool
     {
         return false; // Hidden from navigation, accessed via Dashboard redirect
+    }
+
+    public function getWidgets(): array
+    {
+        return [
+            CaregiverOverviewStatsWidget::class,
+            CaregiverWeeklyActivityChartWidget::class,
+        ];
     }
 
     public function getStats(): array

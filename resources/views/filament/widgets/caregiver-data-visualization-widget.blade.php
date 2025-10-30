@@ -66,6 +66,7 @@
         </div>
 
         <!-- Chart Script -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const ctx = document.getElementById('vitalTrendsChart');

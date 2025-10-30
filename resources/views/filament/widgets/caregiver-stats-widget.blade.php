@@ -7,7 +7,7 @@
         </div>
 
         <!-- Clean Stats Grid with Two Colors -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <!-- My Residents Card - Blue -->
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-blue-500 hover:border-blue-600 dark:border-blue-400 dark:hover:border-blue-300">
                 <div class="p-6">
