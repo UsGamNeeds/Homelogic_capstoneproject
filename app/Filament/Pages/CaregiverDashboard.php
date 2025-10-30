@@ -275,13 +275,23 @@ class CaregiverDashboard extends Page
             ->whereHas('resident.assignments', function($q) use ($userId) {
                 $q->where('caregiver_id', $userId)->where('is_active', true);
             })
-            ->where(function ($q) use ($now) {
-                $q->whereDate('appointment_date', '>=', $now->toDateString());
+            ->when(Schema::hasColumn('appointments', 'appointment_date'), function ($q) use ($now) {
+                $q->whereDate('appointment_date', '>=', $now->toDateString())
+                  ->orderBy('appointment_date');
+            }, function ($q) {
+                // Fallback if production DB uses a different column name
+                if (Schema::hasColumn('appointments', 'date')) {
+                    $q->whereDate('date', '>=', now()->toDateString())
+                      ->orderBy('date');
+                }
             })
-            ->orderBy('appointment_date')
             // Some databases may not have an appointment_time column; order by time only when present
             ->when(Schema::hasColumn('appointments', 'appointment_time'), function ($q) {
                 $q->orderBy('appointment_time');
+            })
+            ->when(!Schema::hasColumn('appointments', 'appointment_date') && !Schema::hasColumn('appointments', 'date'), function ($q) {
+                // Ultimate fallback ordering
+                $q->latest('created_at');
             })
             ->limit($limit)
             ->get();
