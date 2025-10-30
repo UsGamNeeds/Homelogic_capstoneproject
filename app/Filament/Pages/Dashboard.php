@@ -25,7 +25,8 @@ class Dashboard extends Page
         if (Auth::check()) {
             $user = Auth::user();
             if ($user->hasRole('administrator') || $user->hasRole('super_admin') || $user->role === 'administrator' || $user->role === 'admin') {
-                $this->redirect(route('filament.admin.pages.admin-dashboard'));
+                // Admins can stay on the general dashboard or we could create an admin-specific one
+                // For now, just stay on this dashboard
             } elseif (
                 $user->hasRole('caregiver') ||
                 $user->role === 'caregiver' ||
@@ -35,9 +36,6 @@ class Dashboard extends Page
                 $user->role === 'licensed_nurse'
             ) {
                 $this->redirect(route('filament.admin.pages.caregiver-dashboard'));
-            } else {
-                // Default fallback - redirect to admin dashboard
-                $this->redirect(route('filament.admin.pages.admin-dashboard'));
             }
         } else {
             // Not authenticated, redirect to login

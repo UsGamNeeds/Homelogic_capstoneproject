@@ -16,6 +16,7 @@ class AdminDashboard extends BaseDashboard
     protected static ?string $navigationLabel = 'Dashboard';
     protected static ?int $navigationSort = -1000;
     protected static ?string $navigationGroup = 'Dashboard';
+    protected static string $routePath = 'admin-dashboard';
 
     public static function canAccess(): bool
     {
