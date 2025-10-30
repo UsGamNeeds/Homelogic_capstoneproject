@@ -12,7 +12,7 @@ class BehaviorCategorySeeder extends Seeder
      */
     public function run(): void
     {
-        // Create basic behavior categories with only id and timestamps
+        // Create basic behavior categories
         $categoryNames = [
             'Aggressive Behavior',
             'Wandering',
@@ -27,10 +27,15 @@ class BehaviorCategorySeeder extends Seeder
         ];
 
         foreach ($categoryNames as $name) {
-            BehaviorCategory::create([
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            BehaviorCategory::firstOrCreate(
+                ['name' => $name],
+                [
+                    'description' => null,
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
         }
 
         $this->command->info('BehaviorCategorySeeder completed successfully!');

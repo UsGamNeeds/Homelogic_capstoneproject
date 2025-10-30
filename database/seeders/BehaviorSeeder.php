@@ -59,9 +59,24 @@ class BehaviorSeeder extends Seeder
             $behaviorCount = rand(2, 6);
             
             for ($i = 0; $i < $behaviorCount; $i++) {
-                $occurredAt = Carbon::now()->subDays(rand(1, 90));
-                
+                $occurredAt = Carbon::now()->subDays(rand(1, 90))->setTime(rand(6, 21), rand(0, 59));
+
+                $category = $categories->random();
+                $reportedBy = $users->random();
+                $severity = $severityLevels[array_rand($severityLevels)];
+                $intervention = $interventions[array_rand($interventions)];
+
                 Behavior::create([
+                    'resident_id' => $resident->id,
+                    'branch_id' => $resident->branch_id,
+                    'behavior_category_id' => $category->id,
+                    'behavior_type' => $category->name,
+                    'description' => 'Observed ' . strtolower($category->name) . ' behavior. Trigger: ' . $triggers[array_rand($triggers)],
+                    'occurred_at' => $occurredAt,
+                    'severity' => $severity,
+                    'intervention' => $intervention,
+                    'outcome' => 'Resident calmed after intervention.',
+                    'reported_by' => $reportedBy->id,
                     'created_at' => $occurredAt,
                     'updated_at' => $occurredAt,
                 ]);

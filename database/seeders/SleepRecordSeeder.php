@@ -102,6 +102,12 @@ class SleepRecordSeeder extends Seeder
         SleepRecord::create([
             'resident_id' => $resident->id,
             'branch_id' => $branch->id,
+            // legacy required columns
+            'date' => $date->toDateString(),
+            'sleep_start' => $sleepTime,
+            'sleep_end' => $wakeTime,
+            'sleep_duration_minutes' => (int) round($totalSleepHours * 60),
+            // new alias columns for convenience
             'sleep_date' => $date,
             'sleep_time' => $sleepTime,
             'wake_time' => $wakeTime,

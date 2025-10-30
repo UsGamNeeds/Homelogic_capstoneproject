@@ -52,9 +52,22 @@ class IncidentSeeder extends Seeder
             $incidentCount = rand(1, 4);
             
             for ($i = 0; $i < $incidentCount; $i++) {
-                $occurredAt = Carbon::now()->subDays(rand(1, 180));
-                
+                $occurredAt = Carbon::now()->subDays(rand(1, 180))->setTime(rand(6, 21), rand(0, 59));
+
+                $type = $incidentTypes[array_rand($incidentTypes)];
+                $severity = $severityLevels[array_rand($severityLevels)];
+                $reportedBy = $users->random();
+
                 Incident::create([
+                    'resident_id' => $resident->id,
+                    'branch_id' => $resident->branch_id,
+                    'incident_type' => $type,
+                    'description' => ucfirst($type) . ' incident involving resident. Immediate action taken and documented.',
+                    'incident_date' => $occurredAt,
+                    'severity' => $severity,
+                    'action_taken' => 'Staff responded and documented the incident.',
+                    'follow_up' => 'Monitor resident and review safety protocols.',
+                    'reported_by' => $reportedBy->id,
                     'created_at' => $occurredAt,
                     'updated_at' => $occurredAt,
                 ]);

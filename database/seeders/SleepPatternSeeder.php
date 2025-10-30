@@ -81,6 +81,8 @@ class SleepPatternSeeder extends Seeder
 
         return SleepPattern::create([
             'resident_id' => $resident->id,
+            'branch_id' => $resident->branch_id,
+            'date' => Carbon::create($monthData['year'], $monthData['month'], 1),
             'month' => $monthData['month'],
             'year' => $monthData['year'],
             'total_sleep_hours' => $totalSleepHours,
