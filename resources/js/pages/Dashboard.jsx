@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
-import { Users, Calendar, Activity, UserCheck } from 'lucide-react';
+import { Users, Calendar, Activity, UserCheck, ClipboardList, AlertCircle } from 'lucide-react';
 
 export default function Dashboard() {
     const { data: stats, isLoading, error } = useQuery({
@@ -23,7 +23,54 @@ export default function Dashboard() {
         retry: false,
     });
 
-    const statCards = [
+    // Check if caregiver dashboard or admin dashboard
+    const isCaregiver = stats?.user_type === 'caregiver';
+    
+    // Define different stat cards based on user type
+    const statCards = isCaregiver ? [
+        {
+            title: 'My Residents',
+            value: stats?.assigned_residents || 0,
+            icon: Users,
+            color: 'bg-blue-500',
+            description: 'Assigned to me',
+        },
+        {
+            title: "Today's Appointments",
+            value: stats?.todays_appointments || 0,
+            icon: Calendar,
+            color: 'bg-green-500',
+            description: 'Scheduled meetings',
+        },
+        {
+            title: 'Pending Assessments',
+            value: stats?.pending_assessments || 0,
+            icon: ClipboardList,
+            color: 'bg-yellow-500',
+            description: 'Awaiting completion',
+        },
+        {
+            title: 'Vitals Recorded',
+            value: stats?.today_vitals || 0,
+            icon: Activity,
+            color: 'bg-purple-500',
+            description: 'Today',
+        },
+        {
+            title: 'Leave Requests',
+            value: stats?.pending_leave_requests || 0,
+            icon: AlertCircle,
+            color: 'bg-indigo-500',
+            description: 'Pending approval',
+        },
+        {
+            title: 'Weekly Appointments',
+            value: stats?.week_appointments || 0,
+            icon: Calendar,
+            color: 'bg-emerald-500',
+            description: 'Next 7 days',
+        },
+    ] : [
         {
             title: 'Total Residents',
             value: stats?.total_residents || 0,
@@ -52,7 +99,9 @@ export default function Dashboard() {
 
     return (
         <div style={{ padding: '20px' }}>
-            <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-6">
+                {isCaregiver ? 'Caregiver Dashboard' : 'Dashboard'}
+            </h1>
             
             {error && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
@@ -69,7 +118,7 @@ export default function Dashboard() {
                 </div>
             )}
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className={`grid grid-cols-1 md:grid-cols-2 ${isCaregiver ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6`}>
                 {statCards.map((card, index) => {
                     const Icon = card.icon;
                     return (
@@ -78,6 +127,9 @@ export default function Dashboard() {
                                 <div>
                                     <p className="text-gray-600 text-sm font-medium">{card.title}</p>
                                     <p className="text-3xl font-bold text-gray-900 mt-2">{card.value}</p>
+                                    {card.description && (
+                                        <p className="text-gray-500 text-xs mt-1">{card.description}</p>
+                                    )}
                                 </div>
                                 <div className={`${card.color} p-3 rounded-lg`}>
                                     <Icon className="w-6 h-6 text-white" />
