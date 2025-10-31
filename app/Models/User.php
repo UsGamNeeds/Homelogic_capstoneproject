@@ -9,6 +9,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable implements FilamentUser
 {
@@ -46,6 +47,13 @@ class User extends Authenticatable implements FilamentUser
     ];
 
     /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = ['profile_image_url'];
+
+    /**
      * The attributes that should be hidden for serialization.
      *
      * @var list<string>
@@ -78,6 +86,26 @@ class User extends Authenticatable implements FilamentUser
     public function canAccessPanel(Panel $panel): bool
     {
         return true;
+    }
+
+    /**
+     * Get the full URL for the profile image
+     */
+    public function getProfileImageUrlAttribute()
+    {
+        if (!$this->attributes['profile_image'] ?? null) {
+            return null;
+        }
+
+        $value = $this->attributes['profile_image'];
+
+        // If already a full URL, return as is
+        if (filter_var($value, FILTER_VALIDATE_URL)) {
+            return $value;
+        }
+
+        // Return the storage URL
+        return Storage::disk('public')->url($value);
     }
 
     // Relationships

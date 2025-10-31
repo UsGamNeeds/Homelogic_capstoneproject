@@ -142,18 +142,18 @@ export default function UsersPage() {
                             <div key={user.id} className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex items-center space-x-3">
-                                        {user.profile_image ? (
+                                        {user.profile_image_url ? (
                                             <img
-                                                src={user.profile_image}
+                                                src={user.profile_image_url}
                                                 alt={user.name}
-                                                className="w-12 h-12 rounded-full object-cover"
+                                                className="w-12 h-12 rounded-full object-cover border-2 border-[#2D5016]"
                                                 onError={(e) => {
                                                     e.target.style.display = 'none';
                                                     e.target.nextElementSibling.style.display = 'flex';
                                                 }}
                                             />
                                         ) : null}
-                                        <div className={`w-12 h-12 rounded-full bg-[#2D5016] flex items-center justify-center ${user.profile_image ? 'hidden' : ''}`}>
+                                        <div className={`w-12 h-12 rounded-full bg-[#2D5016] flex items-center justify-center ${user.profile_image_url ? 'hidden' : ''}`}>
                                             <span className="text-white font-medium text-lg">
                                                 {user.name?.charAt(0)?.toUpperCase() || 'U'}
                                             </span>
@@ -889,9 +889,9 @@ function UserProfileViewer({ user, onClose, onEdit, onToggleActive }) {
                     <div className="flex items-start justify-between mb-6">
                         <div className="flex items-center space-x-6">
                             {/* Profile Picture */}
-                            {user.profile_image ? (
+                            {user.profile_image_url ? (
                                 <img
-                                    src={user.profile_image.startsWith('http') ? user.profile_image : `/storage/${user.profile_image}`}
+                                    src={user.profile_image_url}
                                     alt={user.name}
                                     className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
                                     onError={(e) => {
@@ -900,7 +900,7 @@ function UserProfileViewer({ user, onClose, onEdit, onToggleActive }) {
                                     }}
                                 />
                             ) : null}
-                            <div className={`w-32 h-32 rounded-full bg-white flex items-center justify-center border-4 border-white shadow-lg ${user.profile_image ? 'hidden' : ''}`}>
+                            <div className={`w-32 h-32 rounded-full bg-white flex items-center justify-center border-4 border-white shadow-lg ${user.profile_image_url ? 'hidden' : ''}`}>
                                 <span className="text-[#2D5016] font-bold text-5xl">
                                     {user.name?.charAt(0)?.toUpperCase() || 'U'}
                                 </span>
