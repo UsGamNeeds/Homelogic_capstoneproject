@@ -58,9 +58,24 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogo(asset('images/logo.jpeg'))
             ->brandLogoHeight('3rem')
             ->maxContentWidth('full')
+            ->userMenuItems([]) // Disable default user menu items
             ->renderHook(
                 'panels::topbar.end',
                 fn (): string => view('filament.components.user-menu'),
+            )
+            ->renderHook(
+                'panels::topbar.start',
+                fn (): string => '<style>
+                    /* Hide Filament default user menu component */
+                    [data-filament-name="account-widget"],
+                    [wire\\:key*="account-widget"],
+                    .fi-account-menu,
+                    [x-data*="accountMenu"],
+                    .fi-topbar-actions > button:last-child,
+                    .fi-topbar-actions > div:last-child button {
+                        display: none !important;
+                    }
+                </style>',
             )
             ->middleware([
                 EncryptCookies::class,
