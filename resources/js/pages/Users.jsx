@@ -43,6 +43,25 @@ export default function UsersPage() {
         onSuccess: () => queryClient.invalidateQueries(['users']),
     });
 
+    const toggleActiveMutation = useMutation({
+        mutationFn: async ({ id, isActive }) => {
+            const response = await api.put(`/users/${id}`, { is_active: isActive });
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['users']);
+        },
+    });
+
+    const handleToggleActive = (user, newStatus) => {
+        toggleActiveMutation.mutate({ id: user.id, isActive: newStatus });
+    };
+
+    const handleEditFromProfile = (user) => {
+        setEditing(user);
+        setShowForm(true);
+    };
+
     // Reset to page 1 when filters change
     React.useEffect(() => {
         setCurrentPage(1);
@@ -250,6 +269,8 @@ export default function UsersPage() {
                 <UserProfileViewer
                     user={viewingProfile}
                     onClose={() => setViewingProfile(null)}
+                    onEdit={handleEditFromProfile}
+                    onToggleActive={handleToggleActive}
                 />
             )}
         </div>
@@ -856,7 +877,8 @@ function UserForm({ record, branches, roles, onClose, onSuccess }) {
 }
 
 // User Profile Viewer Component
-function UserProfileViewer({ user, onClose }) {
+function UserProfileViewer({ user, onClose, onEdit, onToggleActive }) {
+    const [isDeactivating, setIsDeactivating] = React.useState(false);
     return (
         <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto" style={{ backgroundColor: 'rgba(0, 0, 0, 0.1)' }}>
             <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-y-auto my-8">
@@ -1063,14 +1085,52 @@ function UserProfileViewer({ user, onClose }) {
                         </div>
                     )}
 
-                    {/* Close Button */}
-                    <div className="mt-8 flex justify-end">
-                        <button
-                            onClick={onClose}
-                            className="px-6 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors"
-                        >
-                            Close
-                        </button>
+                    {/* Action Buttons */}
+                    <div className="mt-8 flex justify-between items-center">
+                        <div className="flex items-center space-x-4">
+                            <span className="text-sm text-gray-600">Account Status:</span>
+                            <label className="flex items-center cursor-pointer">
+                                <div className="relative">
+                                    <input
+                                        type="checkbox"
+                                        checked={user.is_active}
+                                        onChange={(e) => {
+                                            if (window.confirm(
+                                                user.is_active
+                                                    ? 'Are you sure you want to deactivate this user?'
+                                                    : 'Are you sure you want to activate this user?'
+                                            )) {
+                                                onToggleActive(user, !user.is_active);
+                                            }
+                                        }}
+                                        disabled={isDeactivating}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-14 h-7 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#2D5016] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#2D5016]"></div>
+                                </div>
+                                <span className="ml-3 text-sm font-medium text-gray-700">
+                                    {user.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                            </label>
+                        </div>
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={onClose}
+                                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                                Close
+                            </button>
+                            <button
+                                onClick={() => {
+                                    onClose();
+                                    if (onEdit) onEdit(user);
+                                }}
+                                className="px-6 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center space-x-2"
+                            >
+                                <Edit className="w-4 h-4" />
+                                <span>Edit User</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
