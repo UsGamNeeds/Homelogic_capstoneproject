@@ -56,6 +56,8 @@ const navigation = [
             { name: 'Vital Ranges', path: '/administration/vital-ranges' },
             { name: 'Leave Requests', path: '/administration/leave-requests' },
             { name: 'Roles & Permissions', path: '/administration/roles' },
+            { name: 'Users', path: '/administration/users' },
+            { name: 'Employee Documents', path: '/administration/employee-documents' },
         ]
     },
 ];

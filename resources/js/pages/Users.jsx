@@ -1,0 +1,862 @@
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '../services/api';
+import { Users, Plus, Edit, Trash2, Search, Filter, Upload, X } from 'lucide-react';
+
+export default function UsersPage() {
+    const queryClient = useQueryClient();
+    const [search, setSearch] = useState('');
+    const [branchFilter, setBranchFilter] = useState('');
+    const [activeFilter, setActiveFilter] = useState('all');
+    const [showForm, setShowForm] = useState(false);
+    const [editing, setEditing] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const { data, isLoading } = useQuery({
+        queryKey: ['users', search, branchFilter, activeFilter, currentPage],
+        queryFn: async () => {
+            const params = {
+                per_page: 20,
+                page: currentPage,
+            };
+            if (search) params.search = search;
+            if (branchFilter) params.branch_id = branchFilter;
+            if (activeFilter === 'active') params.active_only = 'true';
+            const response = await api.get('/users', { params });
+            return response.data;
+        },
+    });
+
+    const { data: branchesData } = useQuery({
+        queryKey: ['branches-options'],
+        queryFn: async () => (await api.get('/branches', { params: { per_page: 100 } })).data,
+    });
+
+    const { data: rolesData } = useQuery({
+        queryKey: ['roles-options'],
+        queryFn: async () => (await api.get('/roles', { params: { per_page: 100 } })).data,
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: async (id) => api.delete(`/users/${id}`),
+        onSuccess: () => queryClient.invalidateQueries(['users']),
+    });
+
+    // Reset to page 1 when filters change
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [search, branchFilter, activeFilter]);
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-6">
+                <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
+                <button
+                    onClick={() => {
+                        setEditing(null);
+                        setShowForm(true);
+                    }}
+                    className="px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center space-x-2"
+                >
+                    <Plus className="w-4 h-4" />
+                    <span>Add User</span>
+                </button>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6 mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">All Users</h2>
+                <p className="text-gray-600 mb-4">Search and manage users in the system.</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Search Bar */}
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Search by name or email..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                        />
+                    </div>
+
+                    {/* Branch Filter */}
+                    <div className="relative">
+                        <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <select
+                            value={branchFilter}
+                            onChange={(e) => setBranchFilter(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent appearance-none bg-white"
+                        >
+                            <option value="">All Branches</option>
+                            {branchesData?.data?.map(branch => (
+                                <option key={branch.id} value={branch.id}>{branch.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Active Filter */}
+                    <div className="relative">
+                        <select
+                            value={activeFilter}
+                            onChange={(e) => setActiveFilter(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent appearance-none bg-white"
+                        >
+                            <option value="all">All Users</option>
+                            <option value="active">Active Only</option>
+                            <option value="inactive">Inactive Only</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {isLoading ? (
+                <div className="text-center py-12">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D5016]"></div>
+                    <p className="mt-4 text-gray-600">Loading users...</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {data?.data?.length > 0 ? (
+                        data.data.map((user) => (
+                            <div key={user.id} className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className="flex items-center space-x-3">
+                                        {user.profile_image ? (
+                                            <img
+                                                src={user.profile_image}
+                                                alt={user.name}
+                                                className="w-12 h-12 rounded-full object-cover"
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    e.target.nextElementSibling.style.display = 'flex';
+                                                }}
+                                            />
+                                        ) : null}
+                                        <div className={`w-12 h-12 rounded-full bg-[#2D5016] flex items-center justify-center ${user.profile_image ? 'hidden' : ''}`}>
+                                            <span className="text-white font-medium text-lg">
+                                                {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                                            </span>
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="text-lg font-semibold text-gray-900">
+                                                {user.name || user.email}
+                                            </h3>
+                                            <p className="text-sm text-gray-500">{user.email}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex space-x-2">
+                                        <button
+                                            onClick={() => {
+                                                setEditing(user);
+                                                setShowForm(true);
+                                            }}
+                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                            title="Edit"
+                                        >
+                                            <Edit className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                if (window.confirm('Are you sure you want to delete this user?')) {
+                                                    deleteMutation.mutate(user.id);
+                                                }
+                                            }}
+                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                            title="Delete"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="space-y-2 text-sm">
+                                    {user.position && (
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Position:</span>
+                                            <span className="font-medium text-gray-900">{user.position}</span>
+                                        </div>
+                                    )}
+                                    {user.assigned_branch && (
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Branch:</span>
+                                            <span className="font-medium text-gray-900">{user.assigned_branch.name}</span>
+                                        </div>
+                                    )}
+                                    {user.roles && user.roles.length > 0 && (
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Roles:</span>
+                                            <span className="font-medium text-gray-900">
+                                                {user.roles.map(r => r.name).join(', ')}
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Status:</span>
+                                        <span className={`font-medium ${user.is_active ? 'text-green-600' : 'text-red-600'}`}>
+                                            {user.is_active ? 'Active' : 'Inactive'}
+                                        </span>
+                                    </div>
+                                    {user.phone_number && (
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Phone:</span>
+                                            <span className="font-medium text-gray-900">{user.phone_number}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="col-span-full bg-white rounded-lg shadow p-12 text-center">
+                            <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                            <p className="text-gray-600 text-lg font-medium">No users found</p>
+                            <p className="text-gray-500 text-sm mt-2">
+                                {search ? 'No users match your search.' : 'No users found in the system.'}
+                            </p>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Pagination */}
+            {data && data.last_page > 1 && (
+                <div className="mt-6 flex justify-center space-x-2">
+                    <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    >
+                        Previous
+                    </button>
+                    <span className="px-4 py-2 text-gray-700">
+                        Page {currentPage} of {data.last_page}
+                    </span>
+                    <button
+                        onClick={() => setCurrentPage(p => Math.min(data.last_page, p + 1))}
+                        disabled={currentPage === data.last_page}
+                        className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    >
+                        Next
+                    </button>
+                </div>
+            )}
+
+            {/* Create/Edit Form Modal */}
+            {showForm && (
+                <UserForm
+                    record={editing}
+                    branches={branchesData?.data || []}
+                    roles={rolesData?.data || []}
+                    onClose={() => {
+                        setShowForm(false);
+                        setEditing(null);
+                    }}
+                    onSuccess={() => {
+                        setShowForm(false);
+                        setEditing(null);
+                        queryClient.invalidateQueries(['users']);
+                    }}
+                />
+            )}
+        </div>
+    );
+}
+
+// User Form Component
+function UserForm({ record, branches, roles, onClose, onSuccess }) {
+    const [formData, setFormData] = useState({
+        first_name: record?.first_name || '',
+        middle_names: record?.middle_names || '',
+        last_name: record?.last_name || '',
+        email: record?.email || '',
+        password: '',
+        phone_number: record?.phone_number || '',
+        date_of_birth: record?.date_of_birth || '',
+        marital_status: record?.marital_status || '',
+        sex: record?.sex || '',
+        position: record?.position || '',
+        credentials: record?.credentials || '',
+        credential_details: record?.credential_details || '',
+        date_employed: record?.date_employed || '',
+        supervisor_name: record?.supervisor_name || '',
+        provider_name: record?.provider_name || '',
+        role: record?.role || '',
+        assigned_branch_id: record?.assigned_branch_id || '',
+        is_active: record?.is_active ?? true,
+        notes: record?.notes || '',
+    });
+
+    const [profileImage, setProfileImage] = useState(null);
+    const [profileImagePreview, setProfileImagePreview] = useState(null);
+
+    // Set profile image preview when editing
+    React.useEffect(() => {
+        if (record?.profile_image) {
+            // If it's a full URL, use it directly, otherwise construct the storage URL
+            const imageUrl = record.profile_image.startsWith('http') 
+                ? record.profile_image 
+                : `/storage/${record.profile_image}`;
+            setProfileImagePreview(imageUrl);
+        } else {
+            setProfileImagePreview(null);
+        }
+    }, [record]);
+    const [errors, setErrors] = useState({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                setErrors({ profile_image: ['Please select an image file'] });
+                return;
+            }
+            
+            // Validate file size (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
+                setErrors({ profile_image: ['Image size must be less than 5MB'] });
+                return;
+            }
+            
+            setProfileImage(file);
+            
+            // Create preview
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setProfileImagePreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+            
+            // Clear any previous errors
+            if (errors.profile_image) {
+                setErrors({ ...errors, profile_image: null });
+            }
+        }
+    };
+
+    const handleRemoveImage = () => {
+        setProfileImage(null);
+        setProfileImagePreview(null);
+        // Reset file input
+        const fileInput = document.getElementById('profile_image');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setErrors({});
+        setIsSubmitting(true);
+
+        try {
+            // Auto-generate name from first, middle, last name
+            const nameParts = [
+                formData.first_name,
+                formData.middle_names,
+                formData.last_name
+            ].filter(Boolean);
+            const name = nameParts.join(' ') || formData.email;
+
+            const formDataToSend = new FormData();
+            
+            // Add all form fields
+            formDataToSend.append('name', name);
+            formDataToSend.append('first_name', formData.first_name);
+            formDataToSend.append('middle_names', formData.middle_names || '');
+            formDataToSend.append('last_name', formData.last_name);
+            formDataToSend.append('email', formData.email);
+            formDataToSend.append('phone_number', formData.phone_number || '');
+            formDataToSend.append('date_of_birth', formData.date_of_birth || '');
+            formDataToSend.append('marital_status', formData.marital_status || '');
+            formDataToSend.append('sex', formData.sex || '');
+            formDataToSend.append('position', formData.position || '');
+            formDataToSend.append('credentials', formData.credentials || '');
+            formDataToSend.append('credential_details', formData.credential_details || '');
+            formDataToSend.append('date_employed', formData.date_employed || '');
+            formDataToSend.append('supervisor_name', formData.supervisor_name || '');
+            formDataToSend.append('provider_name', formData.provider_name || '');
+            formDataToSend.append('role', formData.role || '');
+            formDataToSend.append('assigned_branch_id', formData.assigned_branch_id ? formData.assigned_branch_id : '');
+            formDataToSend.append('is_active', formData.is_active ? '1' : '0');
+            formDataToSend.append('notes', formData.notes || '');
+            
+            // Add password if provided
+            if (formData.password) {
+                formDataToSend.append('password', formData.password);
+            }
+            
+            // Add profile image if selected
+            if (profileImage) {
+                formDataToSend.append('profile_image', profileImage);
+            }
+
+            if (record) {
+                // Don't send password if it's empty (for updates)
+                if (!formData.password) {
+                    // Remove password from FormData if it wasn't set
+                }
+                await api.put(`/users/${record.id}`, formDataToSend);
+            } else {
+                if (!formData.password) {
+                    setErrors({ password: ['Password is required for new users'] });
+                    setIsSubmitting(false);
+                    return;
+                }
+                await api.post('/users', formDataToSend);
+            }
+            onSuccess();
+        } catch (error) {
+            if (error.response?.data?.errors) {
+                setErrors(error.response.data.errors);
+            } else {
+                setErrors({ general: error.response?.data?.message || 'Failed to save user' });
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto" style={{ backgroundColor: 'rgba(0, 0, 0, 0.1)' }}>
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto my-8">
+                <div className="p-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-2xl font-bold text-gray-900">
+                            {record ? 'Edit User' : 'Add User'}
+                        </h2>
+                        <button
+                            onClick={onClose}
+                            className="text-gray-400 hover:text-gray-600 text-2xl"
+                        >
+                            ×
+                        </button>
+                    </div>
+
+                    {errors.general && (
+                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-sm text-red-800">{errors.general}</p>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Personal Information Section */}
+                        <div className="border-b border-gray-200 pb-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Email *
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                        required
+                                        placeholder="staff@serenityafh.com"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">This will be used for login</p>
+                                    {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email[0]}</p>}
+                                </div>
+
+                                <div className="col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Profile Picture
+                                    </label>
+                                    <div className="space-y-3">
+                                        {profileImagePreview && (
+                                            <div className="relative inline-block">
+                                                <img
+                                                    src={profileImagePreview}
+                                                    alt="Profile preview"
+                                                    className="h-32 w-32 rounded-full object-cover border-4 border-gray-200"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRemoveImage}
+                                                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                                    title="Remove image"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )}
+                                        <div className="flex items-center space-x-3">
+                                            <label
+                                                htmlFor="profile_image"
+                                                className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                                            >
+                                                <Upload className="w-4 h-4 text-gray-500" />
+                                                <span className="text-sm text-gray-700">
+                                                    {profileImagePreview ? 'Change Picture' : 'Upload Picture'}
+                                                </span>
+                                            </label>
+                                            <input
+                                                id="profile_image"
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                                className="hidden"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-gray-500">
+                                            Upload a profile picture (max 5MB). Supported formats: JPG, PNG, GIF
+                                        </p>
+                                        {errors.profile_image && <p className="text-xs text-red-600 mt-1">{errors.profile_image[0]}</p>}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        First Name *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.first_name}
+                                        onChange={(e) => setFormData({...formData, first_name: e.target.value})}
+                                        required
+                                        placeholder="Enter first name"
+                                        maxLength={255}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    />
+                                    {errors.first_name && <p className="text-xs text-red-600 mt-1">{errors.first_name[0]}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Middle Names
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.middle_names}
+                                        onChange={(e) => setFormData({...formData, middle_names: e.target.value})}
+                                        placeholder="Enter middle names (optional)"
+                                        maxLength={255}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Last Name *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.last_name}
+                                        onChange={(e) => setFormData({...formData, last_name: e.target.value})}
+                                        required
+                                        placeholder="Enter last name"
+                                        maxLength={255}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    />
+                                    {errors.last_name && <p className="text-xs text-red-600 mt-1">{errors.last_name[0]}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Phone Number *
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        value={formData.phone_number}
+                                        onChange={(e) => setFormData({...formData, phone_number: e.target.value})}
+                                        required
+                                        placeholder="+1 (425) 555-0123"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Include country code for international format</p>
+                                    {errors.phone_number && <p className="text-xs text-red-600 mt-1">{errors.phone_number[0]}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Date of Birth *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={formData.date_of_birth}
+                                        onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
+                                        required
+                                        max={new Date(Date.now() - 18 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Format: MM/DD/YYYY - Must be 18+ years old</p>
+                                    {errors.date_of_birth && <p className="text-xs text-red-600 mt-1">{errors.date_of_birth[0]}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Marital Status
+                                    </label>
+                                    <select
+                                        value={formData.marital_status}
+                                        onChange={(e) => setFormData({...formData, marital_status: e.target.value})}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    >
+                                        <option value="">Choose marital status</option>
+                                        <option value="single">Single</option>
+                                        <option value="married">Married</option>
+                                        <option value="divorced">Divorced</option>
+                                        <option value="widowed">Widowed</option>
+                                        <option value="separated">Separated</option>
+                                    </select>
+                                </div>
+
+                                <div className="col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Sex *
+                                    </label>
+                                    <div className="flex space-x-6">
+                                        <label className="flex items-center space-x-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="sex"
+                                                value="male"
+                                                checked={formData.sex === 'male'}
+                                                onChange={(e) => setFormData({...formData, sex: e.target.value})}
+                                                required
+                                                className="w-4 h-4 text-[#2D5016] border-gray-300 focus:ring-[#2D5016]"
+                                            />
+                                            <span className="text-sm text-gray-700">Male</span>
+                                        </label>
+                                        <label className="flex items-center space-x-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="sex"
+                                                value="female"
+                                                checked={formData.sex === 'female'}
+                                                onChange={(e) => setFormData({...formData, sex: e.target.value})}
+                                                required
+                                                className="w-4 h-4 text-[#2D5016] border-gray-300 focus:ring-[#2D5016]"
+                                            />
+                                            <span className="text-sm text-gray-700">Female</span>
+                                        </label>
+                                        <label className="flex items-center space-x-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="sex"
+                                                value="other"
+                                                checked={formData.sex === 'other'}
+                                                onChange={(e) => setFormData({...formData, sex: e.target.value})}
+                                                required
+                                                className="w-4 h-4 text-[#2D5016] border-gray-300 focus:ring-[#2D5016]"
+                                            />
+                                            <span className="text-sm text-gray-700">Other</span>
+                                        </label>
+                                    </div>
+                                    {errors.sex && <p className="text-xs text-red-600 mt-1">{errors.sex[0]}</p>}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Employment Details Section */}
+                        <div className="border-b border-gray-200 pb-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Employment Details</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Position *
+                                    </label>
+                                    <select
+                                        value={formData.position}
+                                        onChange={(e) => setFormData({...formData, position: e.target.value})}
+                                        required
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    >
+                                        <option value="">Choose position</option>
+                                        <option value="caregiver">Caregiver</option>
+                                        <option value="nurse">Nurse</option>
+                                        <option value="supervisor">Supervisor</option>
+                                        <option value="administrator">Administrator</option>
+                                        <option value="manager">Manager</option>
+                                        <option value="support_staff">Support Staff</option>
+                                    </select>
+                                    {errors.position && <p className="text-xs text-red-600 mt-1">{errors.position[0]}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Credentials
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.credentials}
+                                        onChange={(e) => setFormData({...formData, credentials: e.target.value})}
+                                        placeholder="e.g., RN, LPN, CNA, etc."
+                                        maxLength={255}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Credential Details
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.credential_details}
+                                        onChange={(e) => setFormData({...formData, credential_details: e.target.value})}
+                                        placeholder="Additional credential information (optional)"
+                                        maxLength={255}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Date Employed *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={formData.date_employed}
+                                        onChange={(e) => setFormData({...formData, date_employed: e.target.value})}
+                                        required
+                                        max={new Date().toISOString().split('T')[0]}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Format: MM/DD/YYYY - Cannot be in the future</p>
+                                    {errors.date_employed && <p className="text-xs text-red-600 mt-1">{errors.date_employed[0]}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Supervisor Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.supervisor_name}
+                                        onChange={(e) => setFormData({...formData, supervisor_name: e.target.value})}
+                                        placeholder="Enter supervisor name"
+                                        maxLength={255}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Provider Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.provider_name}
+                                        onChange={(e) => setFormData({...formData, provider_name: e.target.value})}
+                                        placeholder="Enter provider name"
+                                        maxLength={255}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Role *
+                                    </label>
+                                    <select
+                                        value={formData.role}
+                                        onChange={(e) => setFormData({...formData, role: e.target.value})}
+                                        required
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    >
+                                        <option value="">Choose role</option>
+                                        <option value="care_giver">Care Giver</option>
+                                        <option value="registered_nurse">Registered Nurse</option>
+                                        <option value="licensed_nurse">Licensed Nurse</option>
+                                        <option value="administrator">Administrator</option>
+                                        <option value="manager">Manager</option>
+                                        <option value="support_staff">Support Staff</option>
+                                    </select>
+                                    {errors.role && <p className="text-xs text-red-600 mt-1">{errors.role[0]}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Assigned Branch
+                                    </label>
+                                    <select
+                                        value={formData.assigned_branch_id}
+                                        onChange={(e) => setFormData({...formData, assigned_branch_id: e.target.value})}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    >
+                                        <option value="">Select branch assignment</option>
+                                        {branches.map(branch => (
+                                            <option key={branch.id} value={branch.id}>{branch.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="col-span-2">
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.is_active}
+                                            onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
+                                            className="w-4 h-4 text-[#2D5016] border-gray-300 rounded focus:ring-[#2D5016]"
+                                        />
+                                        <span className="text-sm font-medium text-gray-700">Active Employee</span>
+                                    </label>
+                                    <p className="text-xs text-gray-500 mt-1">Enable this staff member for work assignments</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Account Security Section */}
+                        <div className="border-b border-gray-200 pb-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Security</h3>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Password {record ? '(leave blank to keep current)' : '*'}
+                                </label>
+                                <input
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                    required={!record}
+                                    placeholder="Enter secure password"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Minimum 8 characters, include numbers and special characters</p>
+                                {errors.password && <p className="text-xs text-red-600 mt-1">{errors.password[0]}</p>}
+                            </div>
+                        </div>
+
+                        {/* Additional Information Section */}
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Information</h3>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Notes
+                                </label>
+                                <textarea
+                                    value={formData.notes}
+                                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                                    rows={3}
+                                    placeholder="Any additional notes about this staff member..."
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-end space-x-3 pt-4 border-t">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isSubmitting ? 'Saving...' : (record ? 'Update' : 'Create')}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    );
+}
+

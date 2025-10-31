@@ -18,6 +18,8 @@ use App\Http\Controllers\Api\SleepRecordController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DrugController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\EmployeeDocumentController;
 
 Route::prefix('v1')->group(function () {
     // Auth routes
@@ -71,6 +73,12 @@ Route::prefix('v1')->group(function () {
     // Roles & permissions
     Route::apiResource('roles', RoleController::class)->middleware('auth:sanctum');
     Route::get('/permissions', [RoleController::class, 'permissions'])->middleware('auth:sanctum');
+
+    // Users
+    Route::apiResource('users', UserController::class)->middleware('auth:sanctum');
+
+    // Employee Documents
+    Route::apiResource('employee-documents', EmployeeDocumentController::class)->middleware('auth:sanctum');
 
     // Charts
     Route::prefix('charts')->middleware('auth:sanctum')->group(function () {

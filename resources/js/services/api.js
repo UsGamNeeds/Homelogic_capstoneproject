@@ -22,6 +22,11 @@ api.interceptors.request.use((config) => {
         config.headers['Authorization'] = `Bearer ${authToken}`;
     }
     
+    // For FormData (file uploads), let browser set Content-Type automatically
+    if (config.data instanceof FormData) {
+        delete config.headers['Content-Type'];
+    }
+    
     return config;
 });
 

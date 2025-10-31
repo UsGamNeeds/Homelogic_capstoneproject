@@ -20,6 +20,8 @@ import Branches from './pages/Branches';
 import VitalRanges from './pages/VitalRanges';
 import LeaveRequests from './pages/LeaveRequests';
 import Roles from './pages/Roles';
+import Users from './pages/Users';
+import EmployeeDocuments from './pages/EmployeeDocuments';
 
 // Report sub-pages
 import ChartReports from './pages/reports/ChartReports';
@@ -75,6 +77,8 @@ function App() {
                 <Route path="administration/vital-ranges" element={<VitalRanges />} />
                 <Route path="administration/leave-requests" element={<LeaveRequests />} />
                 <Route path="administration/roles" element={<Roles />} />
+                <Route path="administration/users" element={<Users />} />
+                <Route path="administration/employee-documents" element={<EmployeeDocuments />} />
             </Route>
         </Routes>
     );
