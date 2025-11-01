@@ -268,32 +268,128 @@ export default function Dashboard() {
                             })}
                         </div>
 
-                        {/* Main Content Grid */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            {/* Left Column - Charts (2/3 width on large screens) */}
-                            <div className="lg:col-span-2 space-y-6">
-                                {/* Weekly Activity Chart */}
-                                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                                    <div className="px-6 py-4 border-b border-gray-200">
-                                        <h2 className="text-xl font-bold text-[#2D5016]">Weekly Activity</h2>
-                                    </div>
-                                    <div className="p-6">
-                                        {stats?.weekly_activity && <WeeklyActivityChart data={stats.weekly_activity} />}
+                        {/* Weekly Activity Chart - Full Width */}
+                        <div className="mb-6">
+                            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                                <div className="px-6 py-4 border-b border-gray-200">
+                                    <h2 className="text-xl font-bold text-[#2D5016]">Weekly Activity</h2>
+                                </div>
+                                <div className="p-6">
+                                    {stats?.weekly_activity && <WeeklyActivityChart data={stats.weekly_activity} />}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Two Column Layout */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                            {/* Upcoming Appointments */}
+                            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                                <div className="px-6 py-4 border-b border-gray-200">
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="text-lg font-bold text-[#2D5016]">Upcoming Appointments</h2>
+                                        <button
+                                            onClick={() => navigate('/appointments')}
+                                            className="text-sm text-[#2D5016] hover:text-[#1a3009] font-medium"
+                                        >
+                                            View all →
+                                        </button>
                                     </div>
                                 </div>
+                                <div className="p-4">
+                                    {stats?.upcoming_appointments_list?.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {stats.upcoming_appointments_list.map((apt, idx) => (
+                                                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                                                    <div className="flex items-center space-x-3 flex-1">
+                                                        <Calendar className="w-5 h-5 text-[#2D5016] flex-shrink-0" />
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-semibold text-[#2D5016] truncate">
+                                                                {apt.resident_name}
+                                                            </p>
+                                                            <p className="text-xs text-gray-600 truncate">
+                                                                {apt.time} - {apt.description}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
+                                                        apt.status === 'confirmed' || apt.status === 'scheduled' 
+                                                            ? 'bg-green-100 text-green-700'
+                                                            : apt.status === 'pending'
+                                                            ? 'bg-amber-100 text-amber-700'
+                                                            : 'bg-gray-100 text-gray-700'
+                                                    }`}>
+                                                        {apt.status.replace('_', ' ')}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8">
+                                            <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                                            <p className="text-sm text-gray-500">No upcoming appointments</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
 
-                                {/* Resident Vitals Trend Chart */}
-                                {stats?.resident_list && stats.resident_list.length > 0 && (
+                            {/* My Residents */}
+                            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                                <div className="px-6 py-4 border-b border-gray-200">
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="text-lg font-bold text-[#2D5016]">My Residents</h2>
+                                        <button
+                                            onClick={() => navigate('/administration/residents')}
+                                            className="text-sm text-[#2D5016] hover:text-[#1a3009] font-medium"
+                                        >
+                                            View all →
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="p-4">
+                                    {stats?.resident_list?.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {stats.resident_list.map((resident, idx) => (
+                                                <div key={idx} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">
+                                                    <div className="w-10 h-10 bg-[#2D5016] rounded-full flex items-center justify-center flex-shrink-0">
+                                                        <span className="text-white text-sm font-bold">
+                                                            {resident.name.split(' ').map(n => n[0]).join('')}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-semibold text-[#2D5016] truncate">
+                                                            {resident.name}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">
+                                                            Room: {resident.room}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8">
+                                            <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                                            <p className="text-sm text-gray-500">No residents assigned</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Lower Section Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* Resident Vitals Trend Chart */}
+                            {stats?.resident_list && stats.resident_list.length > 0 && (
+                                <div className="lg:col-span-2">
                                     <ResidentVitalsTrendSection 
                                         residents={stats.resident_list}
                                         defaultTrend={stats.resident_vitals_trend}
                                     />
-                                )}
-                            </div>
+                                </div>
+                            )}
 
-                            {/* Right Column - Lists (1/3 width on large screens) */}
-                            <div className="space-y-6">
-                                {/* Medication Reminders */}
+                            {/* Medication Reminders */}
+                            <div>
                                 <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                                     <div className="px-6 py-4 border-b border-gray-200">
                                         <div className="flex items-center justify-between">
@@ -337,99 +433,6 @@ export default function Dashboard() {
                                             <div className="text-center py-8">
                                                 <Pill className="w-12 h-12 text-gray-300 mx-auto mb-2" />
                                                 <p className="text-sm text-gray-500">No upcoming medications</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Upcoming Appointments */}
-                                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                                    <div className="px-6 py-4 border-b border-gray-200">
-                                        <div className="flex items-center justify-between">
-                                            <h2 className="text-lg font-bold text-[#2D5016]">Upcoming Appointments</h2>
-                                            <button
-                                                onClick={() => navigate('/appointments')}
-                                                className="text-sm text-[#2D5016] hover:text-[#1a3009] font-medium"
-                                            >
-                                                View all →
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="p-4">
-                                        {stats?.upcoming_appointments_list?.length > 0 ? (
-                                            <div className="space-y-3">
-                                                {stats.upcoming_appointments_list.map((apt, idx) => (
-                                                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                                                        <div className="flex items-center space-x-3 flex-1">
-                                                            <Calendar className="w-5 h-5 text-[#2D5016] flex-shrink-0" />
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-sm font-semibold text-[#2D5016] truncate">
-                                                                    {apt.resident_name}
-                                                                </p>
-                                                                <p className="text-xs text-gray-600 truncate">
-                                                                    {apt.time} - {apt.description}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                        <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
-                                                            apt.status === 'confirmed' || apt.status === 'scheduled' 
-                                                                ? 'bg-green-100 text-green-700'
-                                                                : apt.status === 'pending'
-                                                                ? 'bg-amber-100 text-amber-700'
-                                                                : 'bg-gray-100 text-gray-700'
-                                                        }`}>
-                                                            {apt.status.replace('_', ' ')}
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="text-center py-8">
-                                                <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                                                <p className="text-sm text-gray-500">No upcoming appointments</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* My Residents */}
-                                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                                    <div className="px-6 py-4 border-b border-gray-200">
-                                        <div className="flex items-center justify-between">
-                                            <h2 className="text-lg font-bold text-[#2D5016]">My Residents</h2>
-                                            <button
-                                                onClick={() => navigate('/administration/residents')}
-                                                className="text-sm text-[#2D5016] hover:text-[#1a3009] font-medium"
-                                            >
-                                                View all →
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="p-4">
-                                        {stats?.resident_list?.length > 0 ? (
-                                            <div className="space-y-3">
-                                                {stats.resident_list.map((resident, idx) => (
-                                                    <div key={idx} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">
-                                                        <div className="w-10 h-10 bg-[#2D5016] rounded-full flex items-center justify-center flex-shrink-0">
-                                                            <span className="text-white text-sm font-bold">
-                                                                {resident.name.split(' ').map(n => n[0]).join('')}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-semibold text-[#2D5016] truncate">
-                                                                {resident.name}
-                                                            </p>
-                                                            <p className="text-xs text-gray-500">
-                                                                Room: {resident.room}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="text-center py-8">
-                                                <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                                                <p className="text-sm text-gray-500">No residents assigned</p>
                                             </div>
                                         )}
                                     </div>
