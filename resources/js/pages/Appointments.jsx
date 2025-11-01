@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { CheckCircle, XCircle, Calendar, Plus, User, Stethoscope, MapPin } from 'lucide-react';
+import Card from '../components/Card';
+import SectionCard from '../components/SectionCard';
 
 export default function Appointments() {
     const queryClient = useQueryClient();
@@ -84,11 +86,11 @@ export default function Appointments() {
         <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-6">Appointments</h1>
             
-            <div className="bg-white rounded-lg shadow p-6 mb-6">
-                <div className="flex items-start justify-between">
+            <SectionCard>
+                <div className="flex items-start justify-between mb-6">
                     <div>
                         <h2 className="text-xl font-semibold text-gray-900 mb-2">Appointment Management</h2>
-                        <p className="text-gray-600 mb-6">View, filter, update, and create resident appointments.</p>
+                        <p className="text-gray-600">View, filter, update, and create resident appointments.</p>
                     </div>
                     <button
                         onClick={() => setShowForm(true)}
@@ -145,7 +147,7 @@ export default function Appointments() {
                         </div>
                     </div>
                 </div>
-            </div>
+            </SectionCard>
 
             {isLoading ? (
                 <div className="text-center py-12">
@@ -157,9 +159,26 @@ export default function Appointments() {
                     {data?.data?.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {data.data.map((appointment) => (
-                        <div key={appointment.id} className="bg-white rounded-lg shadow p-6 flex flex-col">
-                            <div className="flex-1">
-                                <div className="flex items-center space-x-3 mb-3">
+                            <Card
+                                key={appointment.id}
+                                gradient={
+                                    appointment.status === 'scheduled' ? 'from-blue-500 to-blue-600' :
+                                    appointment.status === 'completed' ? 'from-green-500 to-green-600' :
+                                    'from-red-500 to-red-600'
+                                }
+                                iconBg={
+                                    appointment.status === 'scheduled' ? 'bg-blue-100' :
+                                    appointment.status === 'completed' ? 'bg-green-100' :
+                                    'bg-red-100'
+                                }
+                                iconColor={
+                                    appointment.status === 'scheduled' ? 'text-blue-600' :
+                                    appointment.status === 'completed' ? 'text-green-600' :
+                                    'text-red-600'
+                                }
+                                icon={<Calendar />}
+                            >
+                                <div className="flex items-center justify-between mb-3">
                                     <h3 className="text-lg font-semibold text-gray-900">
                                         {appointment.appointment_type?.name || 'Appointment'}
                                     </h3>
@@ -171,6 +190,7 @@ export default function Appointments() {
                                         {appointment.status}
                                     </span>
                                 </div>
+                                
                                 <p className="text-gray-700 mb-1">
                                     <span className="font-medium">{appointment.resident?.first_name} {appointment.resident?.last_name}</span>
                                 </p>
@@ -182,26 +202,26 @@ export default function Appointments() {
                                 <p className="text-gray-500 text-sm">
                                     {new Date(appointment.appointment_date).toLocaleString()}
                                 </p>
-                            </div>
-                            {appointment.status === 'scheduled' && (
-                                <div className="flex space-x-2 mt-4 pt-4 border-t">
-                                    <button
-                                        onClick={() => handleStatusUpdate(appointment.id, 'completed')}
-                                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
-                                    >
-                                        <CheckCircle className="w-4 h-4" />
-                                        <span>Complete</span>
-                                    </button>
-                                    <button
-                                        onClick={() => handleStatusUpdate(appointment.id, 'cancelled')}
-                                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center space-x-2"
-                                    >
-                                        <XCircle className="w-4 h-4" />
-                                        <span>Cancel</span>
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                                
+                                {appointment.status === 'scheduled' && (
+                                    <div className="flex space-x-2 mt-4 pt-4 border-t">
+                                        <button
+                                            onClick={() => handleStatusUpdate(appointment.id, 'completed')}
+                                            className="flex-1 px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2"
+                                        >
+                                            <CheckCircle className="w-4 h-4" />
+                                            <span>Complete</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleStatusUpdate(appointment.id, 'cancelled')}
+                                            className="flex-1 px-4 py-2 bg-[#8B4513] text-white rounded-lg hover:bg-[#6b3410] transition-colors flex items-center justify-center space-x-2"
+                                        >
+                                            <XCircle className="w-4 h-4" />
+                                            <span>Cancel</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </Card>
                         ))}
                         </div>
                     ) : (
