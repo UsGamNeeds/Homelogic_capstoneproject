@@ -1,12 +1,36 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { Line, Chart } from 'react-chartjs-2';
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+    Filler
+} from 'chart.js';
 import api from '../services/api';
 import { 
     Users, Calendar, Activity, UserCheck, ClipboardList, AlertCircle, 
     TrendingUp, Clock, CheckCircle, FileText, Heart, Pill, Moon,
-    ArrowRight, Sparkles
+    ArrowRight, Sparkles, MoreVertical
 } from 'lucide-react';
+
+// Register Chart.js components
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+    Filler
+);
 
 export default function Dashboard() {
     const navigate = useNavigate();
@@ -244,116 +268,162 @@ export default function Dashboard() {
                             })}
                         </div>
 
-                        {/* Quick Actions Section */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Today's Tasks */}
-                            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                                <div className="bg-gradient-to-r from-[#2D5016] to-[#4a7a2a] px-6 py-4">
-                                    <div className="flex items-center space-x-3">
-                                        <CheckCircle className="w-6 h-6 text-white" />
-                                        <h2 className="text-xl font-bold text-white">Quick Actions</h2>
+                        {/* Main Content Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* Left Column - Charts (2/3 width on large screens) */}
+                            <div className="lg:col-span-2 space-y-6">
+                                {/* Weekly Activity Chart */}
+                                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                                    <div className="px-6 py-4 border-b border-gray-200">
+                                        <h2 className="text-xl font-bold text-[#2D5016]">Weekly Activity</h2>
                                     </div>
-                                </div>
-                                <div className="p-6">
-                                    <div className="space-y-3">
-                                        <button
-                                            onClick={() => navigate('/assessments')}
-                                            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-amber-100 rounded-xl hover:shadow-md transition-all duration-300 group border border-amber-200"
-                                        >
-                                            <div className="flex items-center space-x-3">
-                                                <ClipboardList className="w-5 h-5 text-amber-600" />
-                                                <span className="text-gray-900 font-medium">Complete Assessments</span>
-                                            </div>
-                                            <ArrowRight className="w-5 h-5 text-amber-600 transform group-hover:translate-x-1 transition-transform" />
-                                        </button>
-                                        
-                                        <button
-                                            onClick={() => navigate('/vitals')}
-                                            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl hover:shadow-md transition-all duration-300 group border border-purple-200"
-                                        >
-                                            <div className="flex items-center space-x-3">
-                                                <Heart className="w-5 h-5 text-purple-600" />
-                                                <span className="text-gray-900 font-medium">Record Vital Signs</span>
-                                            </div>
-                                            <ArrowRight className="w-5 h-5 text-purple-600 transform group-hover:translate-x-1 transition-transform" />
-                                        </button>
-                                        
-                                        <button
-                                            onClick={() => navigate('/medications')}
-                                            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-red-50 to-red-100 rounded-xl hover:shadow-md transition-all duration-300 group border border-red-200"
-                                        >
-                                            <div className="flex items-center space-x-3">
-                                                <Pill className="w-5 h-5 text-red-600" />
-                                                <span className="text-gray-900 font-medium">Administer Medications</span>
-                                            </div>
-                                            <ArrowRight className="w-5 h-5 text-red-600 transform group-hover:translate-x-1 transition-transform" />
-                                        </button>
-                                        
-                                        <button
-                                            onClick={() => navigate('/sleep')}
-                                            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-xl hover:shadow-md transition-all duration-300 group border border-indigo-200"
-                                        >
-                                            <div className="flex items-center space-x-3">
-                                                <Moon className="w-5 h-5 text-indigo-600" />
-                                                <span className="text-gray-900 font-medium">Log Sleep Records</span>
-                                            </div>
-                                            <ArrowRight className="w-5 h-5 text-indigo-600 transform group-hover:translate-x-1 transition-transform" />
-                                        </button>
+                                    <div className="p-6">
+                                        {stats?.weekly_activity && <WeeklyActivityChart data={stats.weekly_activity} />}
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Recent Activity */}
-                            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                                <div className="bg-gradient-to-r from-[#2D5016] to-[#4a7a2a] px-6 py-4">
-                                    <div className="flex items-center space-x-3">
-                                        <TrendingUp className="w-6 h-6 text-white" />
-                                        <h2 className="text-xl font-bold text-white">System Overview</h2>
+                            {/* Right Column - Lists (1/3 width on large screens) */}
+                            <div className="space-y-6">
+                                {/* Medication Reminders */}
+                                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                                    <div className="px-6 py-4 border-b border-gray-200">
+                                        <div className="flex items-center justify-between">
+                                            <h2 className="text-lg font-bold text-[#2D5016]">Medication Reminders</h2>
+                                            <span className="text-xs text-gray-500">Next Hour</span>
+                                        </div>
+                                    </div>
+                                    <div className="p-4">
+                                        {stats?.medication_reminders?.length > 0 ? (
+                                            <div className="space-y-3">
+                                                {stats.medication_reminders.map((reminder, idx) => (
+                                                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                                                        <div className="flex items-center space-x-3 flex-1">
+                                                            <div className="w-10 h-10 bg-[#2D5016] rounded-full flex items-center justify-center flex-shrink-0">
+                                                                <span className="text-white text-sm font-bold">
+                                                                    {reminder.resident_name.split(' ').map(n => n[0]).join('')}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-semibold text-[#2D5016] truncate">
+                                                                    {reminder.resident_name}
+                                                                </p>
+                                                                <p className="text-xs text-gray-600 truncate">
+                                                                    {reminder.medication_name}
+                                                                </p>
+                                                                <p className="text-xs text-gray-500">
+                                                                    Due: {reminder.due_time}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => navigate('/medications')}
+                                                            className="ml-2 px-4 py-1.5 bg-[#8B4513] hover:bg-[#6b3410] text-white text-xs font-medium rounded-lg transition-colors whitespace-nowrap"
+                                                        >
+                                                            Log
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-8">
+                                                <Pill className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                                                <p className="text-sm text-gray-500">No upcoming medications</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                                <div className="p-6">
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-200">
-                                            <div className="flex items-center space-x-3">
-                                                <div className="p-2 bg-blue-500 rounded-lg">
-                                                    <Users className="w-5 h-5 text-white" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm text-gray-600">Total Residents</p>
-                                                    <p className="text-2xl font-bold text-[#2D5016]">
-                                                        {stats?.total_residents || 0}
-                                                    </p>
-                                                </div>
-                                            </div>
+
+                                {/* Upcoming Appointments */}
+                                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                                    <div className="px-6 py-4 border-b border-gray-200">
+                                        <div className="flex items-center justify-between">
+                                            <h2 className="text-lg font-bold text-[#2D5016]">Upcoming Appointments</h2>
+                                            <button
+                                                onClick={() => navigate('/appointments')}
+                                                className="text-sm text-[#2D5016] hover:text-[#1a3009] font-medium"
+                                            >
+                                                View all →
+                                            </button>
                                         </div>
-                                        
-                                        <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-xl border border-emerald-200">
-                                            <div className="flex items-center space-x-3">
-                                                <div className="p-2 bg-emerald-500 rounded-lg">
-                                                    <Calendar className="w-5 h-5 text-white" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm text-gray-600">Upcoming Appointments</p>
-                                                    <p className="text-2xl font-bold text-[#2D5016]">
-                                                        {stats?.upcoming_appointments || stats?.week_appointments || 0}
-                                                    </p>
-                                                </div>
+                                    </div>
+                                    <div className="p-4">
+                                        {stats?.upcoming_appointments_list?.length > 0 ? (
+                                            <div className="space-y-3">
+                                                {stats.upcoming_appointments_list.map((apt, idx) => (
+                                                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                                                        <div className="flex items-center space-x-3 flex-1">
+                                                            <Calendar className="w-5 h-5 text-[#2D5016] flex-shrink-0" />
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-semibold text-[#2D5016] truncate">
+                                                                    {apt.resident_name}
+                                                                </p>
+                                                                <p className="text-xs text-gray-600 truncate">
+                                                                    {apt.time} - {apt.description}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
+                                                            apt.status === 'confirmed' || apt.status === 'scheduled' 
+                                                                ? 'bg-green-100 text-green-700'
+                                                                : apt.status === 'pending'
+                                                                ? 'bg-amber-100 text-amber-700'
+                                                                : 'bg-gray-100 text-gray-700'
+                                                        }`}>
+                                                            {apt.status.replace('_', ' ')}
+                                                        </span>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        </div>
-                                        
-                                        <div className="flex items-center justify-between p-4 bg-orange-50 rounded-xl border border-orange-200">
-                                            <div className="flex items-center space-x-3">
-                                                <div className="p-2 bg-orange-500 rounded-lg">
-                                                    <UserCheck className="w-5 h-5 text-white" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm text-gray-600">Active Staff</p>
-                                                    <p className="text-2xl font-bold text-[#2D5016]">
-                                                        {stats?.total_staff || 0}
-                                                    </p>
-                                                </div>
+                                        ) : (
+                                            <div className="text-center py-8">
+                                                <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                                                <p className="text-sm text-gray-500">No upcoming appointments</p>
                                             </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* My Residents */}
+                                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                                    <div className="px-6 py-4 border-b border-gray-200">
+                                        <div className="flex items-center justify-between">
+                                            <h2 className="text-lg font-bold text-[#2D5016]">My Residents</h2>
+                                            <button
+                                                onClick={() => navigate('/administration/residents')}
+                                                className="text-sm text-[#2D5016] hover:text-[#1a3009] font-medium"
+                                            >
+                                                View all →
+                                            </button>
                                         </div>
+                                    </div>
+                                    <div className="p-4">
+                                        {stats?.resident_list?.length > 0 ? (
+                                            <div className="space-y-3">
+                                                {stats.resident_list.map((resident, idx) => (
+                                                    <div key={idx} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">
+                                                        <div className="w-10 h-10 bg-[#2D5016] rounded-full flex items-center justify-center flex-shrink-0">
+                                                            <span className="text-white text-sm font-bold">
+                                                                {resident.name.split(' ').map(n => n[0]).join('')}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-semibold text-[#2D5016] truncate">
+                                                                {resident.name}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">
+                                                                Room: {resident.room}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-8">
+                                                <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                                                <p className="text-sm text-gray-500">No residents assigned</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -361,6 +431,117 @@ export default function Dashboard() {
                     </>
                 )}
             </div>
+        </div>
+    );
+}
+
+// Weekly Activity Chart Component
+function WeeklyActivityChart({ data }) {
+    const chartData = {
+        labels: data.map(item => item.day),
+        datasets: [
+            {
+                label: 'Assessments',
+                data: data.map(item => item.assessments),
+                borderColor: '#FFA726', // Amber/orange
+                backgroundColor: 'rgba(255, 167, 38, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#FFA726',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+            },
+            {
+                label: 'Vitals Recorded',
+                data: data.map(item => item.vitals),
+                borderColor: '#66BB6A', // Green
+                backgroundColor: 'rgba(102, 187, 106, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#66BB6A',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+            },
+        ],
+    };
+
+    const options = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'bottom',
+                labels: {
+                    usePointStyle: true,
+                    padding: 20,
+                    font: {
+                        size: 12,
+                        weight: '500',
+                    },
+                    color: '#2D5016',
+                },
+            },
+            tooltip: {
+                backgroundColor: 'rgba(45, 80, 22, 0.9)',
+                padding: 12,
+                titleFont: {
+                    size: 13,
+                    weight: '600',
+                },
+                bodyFont: {
+                    size: 12,
+                },
+                callbacks: {
+                    label: function(context) {
+                        return `${context.dataset.label}: ${context.parsed.y}`;
+                    }
+                }
+            },
+        },
+        scales: {
+            x: {
+                display: true,
+                grid: {
+                    display: true,
+                    drawBorder: false,
+                    color: 'rgba(0, 0, 0, 0.05)',
+                },
+                ticks: {
+                    font: {
+                        size: 11,
+                        weight: '500',
+                    },
+                    color: '#8B4513',
+                },
+            },
+            y: {
+                display: true,
+                beginAtZero: true,
+                grid: {
+                    display: true,
+                    drawBorder: false,
+                    color: 'rgba(0, 0, 0, 0.05)',
+                },
+                ticks: {
+                    stepSize: 8,
+                    font: {
+                        size: 11,
+                        weight: '500',
+                    },
+                    color: '#8B4513',
+                },
+            },
+        },
+    };
+
+    return (
+        <div style={{ height: '300px' }}>
+            <Line data={chartData} options={options} />
         </div>
     );
 }

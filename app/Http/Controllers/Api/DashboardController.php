@@ -7,7 +7,11 @@ use App\Models\Resident;
 use App\Models\Appointment;
 use App\Models\VitalSign;
 use App\Models\User;
+use App\Models\Medication;
+use App\Models\Assessment;
+use App\Models\MedicationAdministration;
 use Illuminate\Http\JsonResponse;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
@@ -71,6 +75,18 @@ class DashboardController extends Controller
             $q->where('caregiver_id', $userId)->where('is_active', true);
         })->whereBetween('appointment_date', [today(), today()->addDays(7)])->count();
         
+        // Weekly activity data for charts
+        $weeklyActivity = $this->getWeeklyActivity($userId);
+        
+        // Medication reminders for next hour
+        $medicationReminders = $this->getMedicationReminders($userId);
+        
+        // Upcoming appointments with details
+        $upcomingAppointmentsList = $this->getUpcomingAppointments($userId);
+        
+        // Resident list
+        $residentList = $this->getResidentList($userId);
+        
         return response()->json([
             'assigned_residents' => $assignedResidents,
             'todays_appointments' => $todayAppointments,
@@ -79,7 +95,144 @@ class DashboardController extends Controller
             'pending_leave_requests' => $pendingLeaveRequests,
             'week_appointments' => $weekAppointments,
             'user_type' => 'caregiver',
+            'weekly_activity' => $weeklyActivity,
+            'medication_reminders' => $medicationReminders,
+            'upcoming_appointments_list' => $upcomingAppointmentsList,
+            'resident_list' => $residentList,
         ]);
+    }
+    
+    private function getWeeklyActivity($userId): array
+    {
+        $now = now();
+        $weekStart = $now->copy()->startOfWeek();
+        $days = [];
+        
+        for ($i = 0; $i < 7; $i++) {
+            $day = $weekStart->copy()->addDays($i);
+            $days[] = [
+                'date' => $day->format('Y-m-d'),
+                'day' => $day->format('D'),
+                'assessments' => Assessment::whereHas('resident.assignments', function($q) use ($userId) {
+                    $q->where('caregiver_id', $userId)->where('is_active', true);
+                })->whereDate('assessment_date', $day->toDateString())->count(),
+                'vitals' => VitalSign::whereHas('resident.assignments', function($q) use ($userId) {
+                    $q->where('caregiver_id', $userId)->where('is_active', true);
+                })->whereDate('measurement_date', $day->toDateString())->count(),
+            ];
+        }
+        
+        return $days;
+    }
+    
+    private function getMedicationReminders($userId): array
+    {
+        $now = now();
+        $nextHour = $now->copy()->addHour();
+        
+        $medications = Medication::with(['resident', 'drug'])
+            ->whereHas('resident.assignments', function($q) use ($userId) {
+                $q->where('caregiver_id', $userId)->where('is_active', true);
+            })
+            ->where('is_active', true)
+            ->where(function($q) use ($now) {
+                $q->where(function($subQ) use ($now) {
+                    $subQ->whereNull('start_date')->orWhere('start_date', '<=', $now);
+                })
+                ->where(function($subQ) use ($now) {
+                    $subQ->whereNull('end_date')->orWhere('end_date', '>=', $now);
+                });
+            })
+            ->get();
+        
+        $reminders = [];
+        
+        foreach ($medications as $medication) {
+            // Get scheduled times for today
+            $times = [];
+            for ($i = 1; $i <= 4; $i++) {
+                if ($medication->{"time_{$i}"}) {
+                    $time = Carbon::parse($medication->{"time_{$i}"})->format('H:i');
+                    $times[] = $time;
+                }
+            }
+            
+            foreach ($times as $time) {
+                $timeToday = Carbon::today()->setTimeFromTimeString($time);
+                
+                // Check if time is in next hour and not already administered
+                if ($timeToday >= $now && $timeToday <= $nextHour) {
+                    $alreadyAdministered = MedicationAdministration::where('medication_id', $medication->id)
+                        ->whereDate('administered_at', today())
+                        ->whereTime('administered_at', $time)
+                        ->where('status', 'completed')
+                        ->exists();
+                    
+                    if (!$alreadyAdministered) {
+                        $reminders[] = [
+                            'medication_id' => $medication->id,
+                            'resident_name' => "{$medication->resident->first_name} {$medication->resident->last_name}",
+                            'medication_name' => $medication->drug?->name ?? $medication->name,
+                            'medication_dosage' => $medication->instructions ?? '',
+                            'due_time' => Carbon::parse($time)->format('g:i A'),
+                            'room' => $medication->resident->room_number ?? 'N/A',
+                        ];
+                    }
+                }
+            }
+        }
+        
+        // Sort by time
+        usort($reminders, function($a, $b) {
+            return strcmp($a['due_time'], $b['due_time']);
+        });
+        
+        return array_slice($reminders, 0, 5); // Limit to 5 reminders
+    }
+    
+    private function getUpcomingAppointments($userId): array
+    {
+        return Appointment::with(['resident', 'appointmentType'])
+            ->whereHas('resident.assignments', function($q) use ($userId) {
+                $q->where('caregiver_id', $userId)->where('is_active', true);
+            })
+            ->where('appointment_date', '>=', now())
+            ->where('status', '!=', 'cancelled')
+            ->orderBy('appointment_date')
+            ->limit(5)
+            ->get()
+            ->map(function($appointment) {
+                return [
+                    'id' => $appointment->id,
+                    'resident_name' => "{$appointment->resident->first_name} {$appointment->resident->last_name}",
+                    'time' => $appointment->appointment_time 
+                        ? Carbon::parse($appointment->appointment_time)->format('g:i A')
+                        : 'TBD',
+                    'description' => $appointment->appointmentType?->name ?? $appointment->description,
+                    'status' => $appointment->status,
+                    'date' => $appointment->appointment_date->format('M d, Y'),
+                ];
+            })
+            ->toArray();
+    }
+    
+    private function getResidentList($userId): array
+    {
+        return Resident::whereHas('assignments', function($q) use ($userId) {
+                $q->where('caregiver_id', $userId)->where('is_active', true);
+            })
+            ->with('assignments')
+            ->orderBy('first_name')
+            ->limit(10)
+            ->get()
+            ->map(function($resident) {
+                return [
+                    'id' => $resident->id,
+                    'name' => "{$resident->first_name} {$resident->last_name}",
+                    'room' => $resident->room_number ?? 'N/A',
+                ];
+            })
+            ->toArray();
     }
 }
 
