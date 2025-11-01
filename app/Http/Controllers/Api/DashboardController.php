@@ -128,7 +128,7 @@ class DashboardController extends Controller
     private function getMedicationReminders($userId): array
     {
         $now = now();
-        $nextHour = $now->copy()->addHour();
+        $next24Hours = $now->copy()->addHours(24);
         
         $medications = Medication::with(['resident', 'drug'])
             ->whereHas('resident.assignments', function($q) use ($userId) {
@@ -160,8 +160,8 @@ class DashboardController extends Controller
             foreach ($times as $time) {
                 $timeToday = Carbon::today()->setTimeFromTimeString($time);
                 
-                // Check if time is in next hour and not already administered
-                if ($timeToday >= $now && $timeToday <= $nextHour) {
+                // Check if time is in next 24 hours and not already administered
+                if ($timeToday >= $now && $timeToday <= $next24Hours) {
                     $alreadyAdministered = MedicationAdministration::where('medication_id', $medication->id)
                         ->whereDate('administered_at', today())
                         ->whereTime('administered_at', $time)

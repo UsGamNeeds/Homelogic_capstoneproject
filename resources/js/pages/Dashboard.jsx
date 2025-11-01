@@ -290,7 +290,7 @@ export default function Dashboard() {
                                     <div className="px-6 py-4 border-b border-gray-200">
                                         <div className="flex items-center justify-between">
                                             <h2 className="text-lg font-bold text-[#2D5016]">Medication Reminders</h2>
-                                            <span className="text-xs text-gray-500">Next Hour</span>
+                                            <span className="text-xs text-gray-500">Next 24 Hours</span>
                                         </div>
                                     </div>
                                     <div className="p-4">
