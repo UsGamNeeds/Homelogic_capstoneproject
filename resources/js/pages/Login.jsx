@@ -14,12 +14,7 @@ export default function Login() {
     React.useEffect(() => {
         const token = localStorage.getItem('auth_token');
         if (token) {
-            const role = localStorage.getItem('user_role') || '';
-            if (role === 'administrator' || role === 'admin') {
-                window.location.href = '/admin';
-            } else {
-                navigate('/dashboard', { replace: true });
-            }
+            navigate('/dashboard', { replace: true });
         }
     }, [navigate]);
 
@@ -42,18 +37,8 @@ export default function Login() {
                     localStorage.setItem('user_role', response.data.user.role || '');
                 }
                 
-                // Redirect based on user role
-                const role = response.data.user?.role || '';
-                if (role === 'administrator' || role === 'admin') {
-                    // Redirect to admin panel for administrators
-                    window.location.href = '/admin';
-                } else if (role === 'caregiver' || role === 'care_giver') {
-                    // Redirect to React app for caregivers
-                    navigate('/dashboard');
-                } else {
-                    // Default: redirect to React dashboard
-                    navigate('/dashboard');
-                }
+                // Redirect all users to React dashboard
+                navigate('/dashboard');
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Invalid credentials. Please try again.');
