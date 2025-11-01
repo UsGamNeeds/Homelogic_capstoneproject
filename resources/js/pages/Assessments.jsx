@@ -266,19 +266,6 @@ export default function Assessments() {
                                     </div>
                                 )}
 
-                                {assessment.scores && Object.keys(assessment.scores).length > 0 && (
-                                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                                        <p className="text-xs font-medium text-gray-700 mb-2">Scores:</p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {Object.entries(assessment.scores).map(([key, value]) => (
-                                                <span key={key} className="inline-flex items-center px-2 py-1 bg-white border border-gray-300 rounded text-xs">
-                                                    {key}: {value}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
                                 <div className="flex space-x-2 mt-4">
                                     <button
                                         onClick={() => {
