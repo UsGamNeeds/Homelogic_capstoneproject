@@ -96,21 +96,25 @@ export default function Sleep() {
 
     return (
         <div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4 mb-4 md:mb-6">
-                <button
-                    onClick={() => {
-                        setEditingRecord(null);
-                        setShowForm(true);
-                    }}
-                    className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
-                >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Sleep Record</span>
-                </button>
-            </div>
-
             {/* Filters */}
             <div className="bg-white rounded-lg shadow p-6 mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">Sleep Records Management</h2>
+                        <p className="text-gray-600">View and track resident sleep records.</p>
+                    </div>
+                    <button
+                        onClick={() => {
+                            setEditingRecord(null);
+                            setShowForm(true);
+                        }}
+                        className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>Add Sleep Record</span>
+                    </button>
+                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Date Range:</label>

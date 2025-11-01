@@ -25,11 +25,17 @@ export default function Roles() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4 mb-4 md:mb-6">
-        <button onClick={() => { setEditing(null); setShowForm(true); }} className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center justify-center space-x-2 text-sm md:text-base text-sm md:text-base">
-          <Plus className="w-4 h-4" />
-          <span>Add Role</span>
-        </button>
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Roles & Permissions Management</h2>
+            <p className="text-gray-600">View and manage user roles and permissions.</p>
+          </div>
+          <button onClick={() => { setEditing(null); setShowForm(true); }} className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base">
+            <Plus className="w-4 h-4" />
+            <span>Add Role</span>
+          </button>
+        </div>
       </div>
 
       {isLoading ? (

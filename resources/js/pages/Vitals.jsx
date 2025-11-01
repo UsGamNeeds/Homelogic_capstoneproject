@@ -43,22 +43,23 @@ export default function Vitals() {
 
     return (
         <div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4 mb-4 md:mb-6">
-                <button
-                    onClick={() => {
-                        setEditing(null);
-                        setShowForm(true);
-                    }}
-                    className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
-                >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Vitals</span>
-                </button>
-            </div>
-            
             <div className="bg-white rounded-lg shadow p-6 mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">Vital Signs Management</h2>
-                <p className="text-gray-600 mb-6">View and track resident vital signs.</p>
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">Vital Signs Management</h2>
+                        <p className="text-gray-600">View and track resident vital signs.</p>
+                    </div>
+                    <button
+                        onClick={() => {
+                            setEditing(null);
+                            setShowForm(true);
+                        }}
+                        className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>Add Vitals</span>
+                    </button>
+                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>

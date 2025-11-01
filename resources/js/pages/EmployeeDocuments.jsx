@@ -82,22 +82,23 @@ export default function EmployeeDocuments() {
 
     return (
         <div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4 mb-4 md:mb-6">
-                <button
-                    onClick={() => {
-                        setEditing(null);
-                        setShowForm(true);
-                    }}
-                    className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
-                >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Document</span>
-                </button>
-            </div>
-
             <div className="bg-white rounded-lg shadow p-6 mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">All Documents</h2>
-                <p className="text-gray-600 mb-4">Search and manage employee documents.</p>
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">All Documents</h2>
+                        <p className="text-gray-600">Search and manage employee documents.</p>
+                    </div>
+                    <button
+                        onClick={() => {
+                            setEditing(null);
+                            setShowForm(true);
+                        }}
+                        className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>Add Document</span>
+                    </button>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                     {/* Search Bar */}

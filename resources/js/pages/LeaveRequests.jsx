@@ -31,14 +31,18 @@ export default function LeaveRequests() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4 mb-4 md:mb-6">
-        <button onClick={() => { setEditing(null); setShowForm(true); }} className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center justify-center space-x-2 text-sm md:text-base text-sm md:text-base">
-          <Plus className="w-4 h-4" />
-          <span>New Request</span>
-        </button>
-      </div>
-
       <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Leave Requests Management</h2>
+            <p className="text-gray-600">View and manage staff leave requests.</p>
+          </div>
+          <button onClick={() => { setEditing(null); setShowForm(true); }} className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base">
+            <Plus className="w-4 h-4" />
+            <span>New Request</span>
+          </button>
+        </div>
+        
         <div className="flex flex-wrap gap-2">
           {['all', 'pending', 'approved', 'rejected'].map((s) => (
             <button key={s} onClick={() => setStatusFilter(s)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${statusFilter === s ? 'bg-[#2D5016] text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}>{s}</button>

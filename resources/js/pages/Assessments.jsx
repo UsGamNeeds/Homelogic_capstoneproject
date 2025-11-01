@@ -89,23 +89,22 @@ export default function Assessments() {
 
     return (
         <div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4 mb-4 md:mb-6">
-                <button
-                    onClick={() => {
-                        setEditing(null);
-                        setShowForm(true);
-                    }}
-                    className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
-                >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Assessment</span>
-                </button>
-            </div>
-
             <SectionCard>
-                <div className="mb-6">
-                    <h2 className="text-xl font-semibold text-gray-900 mb-2">Assessment Management</h2>
-                    <p className="text-gray-600">View and manage resident assessments.</p>
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">Assessment Management</h2>
+                        <p className="text-gray-600">View and manage resident assessments.</p>
+                    </div>
+                    <button
+                        onClick={() => {
+                            setEditing(null);
+                            setShowForm(true);
+                        }}
+                        className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>Add Assessment</span>
+                    </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
