@@ -51,8 +51,6 @@ export default function Reports() {
 
     return (
         <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">Reports</h1>
-            
             <div className="bg-white rounded-lg shadow p-6 mb-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-2">Report Management</h2>
                 <p className="text-gray-600 mb-6">Generate and view various reports.</p>

@@ -31,8 +31,7 @@ export default function LeaveRequests() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 md:mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Leave Requests</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4 mb-4 md:mb-6">
         <button onClick={() => { setEditing(null); setShowForm(true); }} className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center justify-center space-x-2 text-sm md:text-base text-sm md:text-base">
           <Plus className="w-4 h-4" />
           <span>New Request</span>

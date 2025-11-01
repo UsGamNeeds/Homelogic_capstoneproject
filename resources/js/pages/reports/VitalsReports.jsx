@@ -38,8 +38,6 @@ export default function VitalsReports() {
 
     return (
         <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">Vitals Reports</h1>
-
             <div className="bg-white rounded-lg shadow p-6 mb-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Report Filters</h2>
                 <div className="grid grid-cols-2 gap-4 max-w-md">

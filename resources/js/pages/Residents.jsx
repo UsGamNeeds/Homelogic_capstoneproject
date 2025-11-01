@@ -42,8 +42,7 @@ export default function Residents() {
 
     return (
         <div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 md:mb-6">
-                <h1 className="text-3xl font-bold text-gray-900">Residents</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4 mb-4 md:mb-6">
                 <button
                     onClick={() => {
                         setEditing(null);

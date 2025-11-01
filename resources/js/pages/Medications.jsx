@@ -101,7 +101,15 @@ export default function Medications() {
 
     return (
         <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">Medications</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4 mb-4 md:mb-6">
+                <button
+                    onClick={() => { setEditing(null); setShowForm(true); }}
+                    className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
+                >
+                    <Plus className="w-4 h-4" />
+                    <span>Add Medication</span>
+                </button>
+            </div>
             
             <div className="bg-white rounded-lg shadow p-6 mb-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-2">Medication Management</h2>
@@ -157,16 +165,6 @@ export default function Medications() {
                             ))}
                         </select>
                     </div>
-                </div>
-                
-                <div className="mt-4">
-                    <button
-                        onClick={() => { setEditing(null); setShowForm(true); }}
-                        className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
-                        >
-                            <Plus className="w-4 h-4" />
-                            <span>Add Medication</span>
-                        </button>
                 </div>
             </div>
 

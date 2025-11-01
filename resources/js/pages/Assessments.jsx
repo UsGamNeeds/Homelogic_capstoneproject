@@ -89,8 +89,7 @@ export default function Assessments() {
 
     return (
         <div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 md:mb-6">
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Assessments</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4 mb-4 md:mb-6">
                 <button
                     onClick={() => {
                         setEditing(null);
