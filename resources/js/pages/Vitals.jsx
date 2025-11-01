@@ -5,7 +5,7 @@ import { Activity, Calendar, User, Heart, Plus, Thermometer, Droplet, Edit, Tras
 
 export default function Vitals() {
     const queryClient = useQueryClient();
-    const [dateFilter, setDateFilter] = useState('today');
+    const [dateFilter, setDateFilter] = useState('all');
     const [residentFilter, setResidentFilter] = useState('');
     const [showForm, setShowForm] = useState(false);
     const [editing, setEditing] = useState(null);
