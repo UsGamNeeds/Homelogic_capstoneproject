@@ -107,12 +107,12 @@ export default function Medications() {
                 <h2 className="text-xl font-semibold text-gray-900 mb-2">Medication Management</h2>
                 <p className="text-gray-600 mb-6">View and track resident medications.</p>
                 
-                <div className="flex flex-wrap gap-6 items-end">
-                    <div className="flex-1 min-w-[300px]">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-2">Search:</label>
                         <input
                             type="text"
-                            placeholder="Search by medication name, resident, or instructions..."
+                            placeholder="Search by medication name, resident..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
@@ -122,7 +122,7 @@ export default function Medications() {
                         <label className="block text-sm font-medium text-gray-700 mb-2">Filter:</label>
                         <button
                             onClick={() => setActiveOnly(!activeOnly)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                                 activeOnly
                                     ? 'bg-[#2D5016] text-white'
                                     : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
@@ -136,7 +136,7 @@ export default function Medications() {
                         <select
                             value={residentFilter}
                             onChange={(e) => setResidentFilter(e.target.value)}
-                            className="px-4 py-2 rounded-lg text-sm border border-gray-300"
+                            className="w-full px-4 py-2 rounded-lg text-sm border border-gray-300 focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
                         >
                             <option value="">All</option>
                             {residentsData?.data?.map(r => (
@@ -149,7 +149,7 @@ export default function Medications() {
                         <select
                             value={branchFilter}
                             onChange={(e) => setBranchFilter(e.target.value)}
-                            className="px-4 py-2 rounded-lg text-sm border border-gray-300"
+                            className="w-full px-4 py-2 rounded-lg text-sm border border-gray-300 focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
                         >
                             <option value="">All</option>
                             {branchesData?.data?.map(b => (
@@ -157,16 +157,16 @@ export default function Medications() {
                             ))}
                         </select>
                     </div>
-
-                    <div className="ml-auto">
-                        <button
-                            onClick={() => { setEditing(null); setShowForm(true); }}
-                            className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
+                </div>
+                
+                <div className="mt-4">
+                    <button
+                        onClick={() => { setEditing(null); setShowForm(true); }}
+                        className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
                         >
                             <Plus className="w-4 h-4" />
                             <span>Add Medication</span>
                         </button>
-                    </div>
                 </div>
             </div>
 
