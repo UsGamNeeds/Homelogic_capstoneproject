@@ -89,11 +89,13 @@ class GenerateNotifications extends Command
                     $appointmentType = $appointment->appointmentType?->name ?? 'General';
                     $time = $appointment->appointment_time ? Carbon::parse($appointment->appointment_time)->format('g:i A') : 'TBD';
                     
+                    $residentName = trim(($appointment->resident->first_name ?? '') . ' ' . ($appointment->resident->last_name ?? ''));
+                    
                     Notification::create([
                         'user_id' => $caregiver->id,
                         'type' => 'appointment_upcoming',
                         'title' => $title,
-                        'message' => "{$appointment->resident->name} has a {$appointmentType} appointment on " . 
+                        'message' => "{$residentName} has a {$appointmentType} appointment on " . 
                                    Carbon::parse($appointment->appointment_date)->format('M d, Y') . 
                                    " at {$time}",
                         'icon' => 'calendar',
@@ -173,11 +175,13 @@ class GenerateNotifications extends Command
                         if (!$exists) {
                             $drugName = $medication->drug?->name ?? $medication->name;
                             
+                            $residentName = trim(($medication->resident->first_name ?? '') . ' ' . ($medication->resident->last_name ?? ''));
+                            
                             Notification::create([
                                 'user_id' => $caregiver->id,
                                 'type' => 'medication_due',
                                 'title' => 'Medication Due',
-                                'message' => "Give {$drugName} to {$medication->resident->name} at {$adminTime}",
+                                'message' => "Give {$drugName} to {$residentName} at {$adminTime}",
                                 'icon' => 'pill',
                                 'icon_color' => 'text-red-600',
                                 'action_url' => '/medications',
