@@ -83,6 +83,11 @@ class ResidentController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        // Convert is_active from FormData string to boolean if present
+        if ($request->has('is_active')) {
+            $request->merge(['is_active' => filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN)]);
+        }
+
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
@@ -101,7 +106,7 @@ class ResidentController extends Controller
             'medical_conditions' => 'nullable|string',
             'physician_name' => 'nullable|string|max:255',
             'status' => 'nullable|string|max:50',
-            'is_active' => 'boolean',
+            'is_active' => 'nullable|boolean',
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
@@ -140,6 +145,11 @@ class ResidentController extends Controller
     {
         $resident = Resident::findOrFail($id);
 
+        // Convert is_active from FormData string to boolean if present
+        if ($request->has('is_active')) {
+            $request->merge(['is_active' => filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN)]);
+        }
+
         $validated = $request->validate([
             'first_name' => 'sometimes|required|string|max:255',
             'last_name' => 'sometimes|required|string|max:255',
@@ -158,7 +168,7 @@ class ResidentController extends Controller
             'medical_conditions' => 'nullable|string',
             'physician_name' => 'nullable|string|max:255',
             'status' => 'nullable|string|max:50',
-            'is_active' => 'boolean',
+            'is_active' => 'nullable|boolean',
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
