@@ -75,6 +75,19 @@ class ResidentResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Personal Information')
                     ->schema([
+                        Forms\Components\FileUpload::make('profile_image')
+                            ->label('Profile Picture')
+                            ->image()
+                            ->imageEditor()
+                            ->imageEditorAspectRatios([
+                                null,
+                                1 / 1,
+                            ])
+                            ->disk('public')
+                            ->directory('residents/profile_images')
+                            ->visibility('public')
+                            ->maxSize(2048)
+                            ->helperText('Upload a profile picture (Max 2MB). JPG, PNG, or GIF.'),
                         Forms\Components\TextInput::make('first_name')
                             ->label('First Name')
                             ->required()

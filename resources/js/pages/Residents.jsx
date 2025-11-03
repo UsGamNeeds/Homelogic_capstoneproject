@@ -118,7 +118,7 @@ export default function Residents() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {data?.data?.length > 0 ? (
+                        {data?.data?.length > 0 ? (
                         data.data
                             .filter(resident => {
                                 if (statusFilter === 'active') return resident.is_active !== false;
@@ -128,9 +128,27 @@ export default function Residents() {
                             .map((resident) => (
                         <div key={resident.id} className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
                             <div className="flex items-start justify-between mb-4">
-                                <h3 className="text-lg font-semibold text-gray-900">
-                                    {resident.first_name} {resident.middle_names ? resident.middle_names + ' ' : ''}{resident.last_name}
-                                </h3>
+                                <div className="flex items-center space-x-3 flex-1">
+                                    {resident.profile_image ? (
+                                        <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-200 flex-shrink-0">
+                                            <img 
+                                                src={`/storage/${resident.profile_image}`} 
+                                                alt={`${resident.first_name} ${resident.last_name}`}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(resident.first_name + ' ' + resident.last_name)}&background=2D5016&color=fff&size=128`;
+                                                }}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="w-16 h-16 rounded-full bg-[#2D5016] flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
+                                            {resident.first_name?.[0]?.toUpperCase() || ''}{resident.last_name?.[0]?.toUpperCase() || ''}
+                                        </div>
+                                    )}
+                                    <h3 className="text-lg font-semibold text-gray-900">
+                                        {resident.first_name} {resident.middle_names ? resident.middle_names + ' ' : ''}{resident.last_name}
+                                    </h3>
+                                </div>
                                 <div className="flex space-x-2">
                                     <button
                                         onClick={() => {
@@ -249,8 +267,35 @@ function ResidentForm({ record, branches, onClose, onSuccess }) {
         is_active: record?.is_active ?? true,
     });
 
+    const [profileImage, setProfileImage] = useState(null);
+    const [profileImagePreview, setProfileImagePreview] = useState(
+        record?.profile_image ? `/storage/${record.profile_image}` : null
+    );
+
+    // Reset preview when record changes
+    React.useEffect(() => {
+        if (record?.profile_image) {
+            setProfileImagePreview(`/storage/${record.profile_image}`);
+        } else {
+            setProfileImagePreview(null);
+        }
+        setProfileImage(null);
+    }, [record]);
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setProfileImage(file);
+            // Create preview
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setProfileImagePreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -258,15 +303,41 @@ function ResidentForm({ record, branches, onClose, onSuccess }) {
         setIsSubmitting(true);
 
         try {
-            const payload = {
-                ...formData,
-                branch_id: parseInt(formData.branch_id),
-            };
+            // Use FormData if there's an image, otherwise use JSON
+            if (profileImage) {
+                const formDataToSend = new FormData();
+                Object.keys(formData).forEach(key => {
+                    if (formData[key] !== null && formData[key] !== undefined) {
+                        formDataToSend.append(key, formData[key]);
+                    }
+                });
+                formDataToSend.append('branch_id', parseInt(formData.branch_id));
+                formDataToSend.append('profile_image', profileImage);
 
-            if (record) {
-                await api.put(`/residents/${record.id}`, payload);
+                const config = {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                };
+
+                if (record) {
+                    // For file uploads with PUT, use post with _method override
+                    formDataToSend.append('_method', 'PUT');
+                    await api.post(`/residents/${record.id}`, formDataToSend, config);
+                } else {
+                    await api.post('/residents', formDataToSend, config);
+                }
             } else {
-                await api.post('/residents', payload);
+                const payload = {
+                    ...formData,
+                    branch_id: parseInt(formData.branch_id),
+                };
+
+                if (record) {
+                    await api.put(`/residents/${record.id}`, payload);
+                } else {
+                    await api.post('/residents', payload);
+                }
             }
             onSuccess();
         } catch (error) {
@@ -306,6 +377,43 @@ function ResidentForm({ record, branches, onClose, onSuccess }) {
                         {/* Personal Information */}
                         <div>
                             <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
+                            
+                            {/* Profile Picture */}
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Profile Picture
+                                </label>
+                                <div className="flex items-center space-x-4">
+                                    {profileImagePreview && (
+                                        <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-gray-300">
+                                            <img 
+                                                src={profileImagePreview} 
+                                                alt="Profile preview" 
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                    )}
+                                    <div>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleImageChange}
+                                            className="block text-sm text-gray-500
+                                                file:mr-4 file:py-2 file:px-4
+                                                file:rounded-lg file:border-0
+                                                file:text-sm file:font-semibold
+                                                file:bg-[#2D5016] file:text-white
+                                                hover:file:bg-[#1a3009]
+                                                file:cursor-pointer"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            JPG, PNG or GIF. Max size: 2MB
+                                        </p>
+                                    </div>
+                                </div>
+                                {errors.profile_image && <p className="text-xs text-red-600 mt-1">{errors.profile_image[0]}</p>}
+                            </div>
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -38,6 +38,7 @@ class Resident extends Model
         'discharge_date',
         'status',
         'is_active',
+        'profile_image',
     ];
 
     protected $casts = [

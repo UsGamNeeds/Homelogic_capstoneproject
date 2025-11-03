@@ -102,7 +102,16 @@ class ResidentController extends Controller
             'physician_name' => 'nullable|string|max:255',
             'status' => 'nullable|string|max:50',
             'is_active' => 'boolean',
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
+
+        // Handle profile image upload
+        if ($request->hasFile('profile_image')) {
+            $image = $request->file('profile_image');
+            $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+            $imagePath = $image->storeAs('residents/profile_images', $imageName, 'public');
+            $validated['profile_image'] = $imagePath;
+        }
 
         // Auto-generate name if not provided
         if (!isset($validated['name'])) {
@@ -138,7 +147,21 @@ class ResidentController extends Controller
             'physician_name' => 'nullable|string|max:255',
             'status' => 'nullable|string|max:50',
             'is_active' => 'boolean',
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
+
+        // Handle profile image upload
+        if ($request->hasFile('profile_image')) {
+            // Delete old image if it exists
+            if ($resident->profile_image && \Storage::disk('public')->exists($resident->profile_image)) {
+                \Storage::disk('public')->delete($resident->profile_image);
+            }
+            
+            $image = $request->file('profile_image');
+            $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+            $imagePath = $image->storeAs('residents/profile_images', $imageName, 'public');
+            $validated['profile_image'] = $imagePath;
+        }
 
         // Update name if first/last name changed
         if (isset($validated['first_name']) || isset($validated['last_name']) || isset($validated['middle_names'])) {
