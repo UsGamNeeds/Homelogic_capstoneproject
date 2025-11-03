@@ -347,12 +347,33 @@ function ResidentForm({ record, branches, onClose, onSuccess }) {
             let response;
             if (profileImage) {
                 const formDataToSend = new FormData();
-                Object.keys(formData).forEach(key => {
-                    if (formData[key] !== null && formData[key] !== undefined && formData[key] !== '') {
-                        formDataToSend.append(key, formData[key]);
+                
+                // Always include required fields
+                formDataToSend.append('first_name', formData.first_name || '');
+                formDataToSend.append('last_name', formData.last_name || '');
+                formDataToSend.append('date_of_birth', formData.date_of_birth || '');
+                formDataToSend.append('branch_id', parseInt(formData.branch_id) || '');
+                formDataToSend.append('admission_date', formData.admission_date || '');
+                
+                // Include optional fields (convert empty strings to null for nullable fields)
+                const optionalFields = [
+                    'middle_names', 'gender', 'phone', 'room', 'room_number',
+                    'emergency_contact_name', 'emergency_contact_phone',
+                    'diagnosis', 'allergies', 'medical_conditions', 'physician_name', 'status'
+                ];
+                
+                optionalFields.forEach(key => {
+                    const value = formData[key];
+                    if (value !== null && value !== undefined && value !== '') {
+                        formDataToSend.append(key, value);
                     }
                 });
-                formDataToSend.append('branch_id', parseInt(formData.branch_id));
+                
+                // Handle boolean field
+                if (formData.is_active !== null && formData.is_active !== undefined) {
+                    formDataToSend.append('is_active', formData.is_active ? '1' : '0');
+                }
+                
                 formDataToSend.append('profile_image', profileImage);
 
                 // Don't set Content-Type - let browser set it automatically for FormData
@@ -405,6 +426,7 @@ function ResidentForm({ record, branches, onClose, onSuccess }) {
             console.error('Error response:', error.response);
             console.error('Error status:', error.response?.status);
             console.error('Error data:', error.response?.data);
+            console.error('Full error details:', JSON.stringify(error.response?.data, null, 2));
             setIsSubmitting(false);
             
             // Handle different error types
@@ -416,11 +438,25 @@ function ResidentForm({ record, branches, onClose, onSuccess }) {
                         window.location.href = '/app/login';
                     }, 2000);
                 } else if (error.response.status === 422) {
-                    // Validation errors
+                    // Validation errors - show detailed field errors
+                    console.log('422 Validation errors:', error.response.data);
                     if (error.response.data?.errors) {
-                        setErrors(error.response.data.errors);
+                        // Laravel validation errors format
+                        const validationErrors = error.response.data.errors;
+                        console.log('Field validation errors:', validationErrors);
+                        setErrors(validationErrors);
+                        // Also show a general message
+                        const errorMessages = Object.values(validationErrors).flat();
+                        if (errorMessages.length > 0) {
+                            setErrors({ 
+                                ...validationErrors,
+                                general: `Validation failed: ${errorMessages.join(', ')}` 
+                            });
+                        }
+                    } else if (error.response.data?.message) {
+                        setErrors({ general: error.response.data.message });
                     } else {
-                        setErrors({ general: error.response.data?.message || 'Validation failed. Please check your input.' });
+                        setErrors({ general: 'Validation failed. Please check all required fields are filled correctly.' });
                     }
                 } else if (error.response.data?.errors) {
                     setErrors(error.response.data.errors);
