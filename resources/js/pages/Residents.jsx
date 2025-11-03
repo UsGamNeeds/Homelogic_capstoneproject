@@ -300,48 +300,99 @@ function ResidentForm({ record, branches, onClose, onSuccess }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        console.log('=== FORM SUBMIT HANDLER CALLED ===');
         setErrors({});
         setSuccessMessage('');
+        
+        // Basic frontend validation
+        console.log('Checking validation...', { 
+            first_name: formData.first_name, 
+            last_name: formData.last_name, 
+            date_of_birth: formData.date_of_birth,
+            branch_id: formData.branch_id,
+            admission_date: formData.admission_date
+        });
+        
+        const validationErrors = {};
+        if (!formData.first_name || formData.first_name.trim() === '') {
+            validationErrors.first_name = ['First name is required'];
+        }
+        if (!formData.last_name || formData.last_name.trim() === '') {
+            validationErrors.last_name = ['Last name is required'];
+        }
+        if (!formData.date_of_birth) {
+            validationErrors.date_of_birth = ['Date of birth is required'];
+        }
+        if (!formData.branch_id) {
+            validationErrors.branch_id = ['Branch is required'];
+        }
+        if (!formData.admission_date) {
+            validationErrors.admission_date = ['Admission date is required'];
+        }
+        
+        if (Object.keys(validationErrors).length > 0) {
+            console.log('Validation failed:', validationErrors);
+            setErrors(validationErrors);
+            return;
+        }
+        
+        console.log('Validation passed, proceeding with submission...');
         setIsSubmitting(true);
+
+        console.log('Form submission started', { formData, profileImage: !!profileImage, record: !!record });
+        console.log('Auth token:', localStorage.getItem('auth_token') ? 'Present' : 'Missing');
 
         try {
             // Use FormData if there's an image, otherwise use JSON
+            let response;
             if (profileImage) {
                 const formDataToSend = new FormData();
                 Object.keys(formData).forEach(key => {
-                    if (formData[key] !== null && formData[key] !== undefined) {
+                    if (formData[key] !== null && formData[key] !== undefined && formData[key] !== '') {
                         formDataToSend.append(key, formData[key]);
                     }
                 });
                 formDataToSend.append('branch_id', parseInt(formData.branch_id));
                 formDataToSend.append('profile_image', profileImage);
 
-                const config = {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
-                };
+                // Don't set Content-Type - let browser set it automatically for FormData
+                const config = {};
 
                 if (record) {
                     // For file uploads with PUT, use post with _method override
                     formDataToSend.append('_method', 'PUT');
-                    await api.post(`/residents/${record.id}`, formDataToSend, config);
+                    response = await api.post(`/residents/${record.id}`, formDataToSend, config);
                 } else {
-                    await api.post('/residents', formDataToSend, config);
+                    response = await api.post('/residents', formDataToSend, config);
                 }
+                console.log('Resident saved successfully (with image):', response.data);
             } else {
-                const payload = {
-                    ...formData,
-                    branch_id: parseInt(formData.branch_id),
-                };
+                // Clean up empty strings - convert to null for optional fields
+                const payload = {};
+                Object.keys(formData).forEach(key => {
+                    const value = formData[key];
+                    if (value === '' || value === null || value === undefined) {
+                        // Keep required fields as-is, set optional ones to null
+                        if (['first_name', 'last_name', 'date_of_birth', 'branch_id', 'admission_date'].includes(key)) {
+                            payload[key] = value;
+                        } else {
+                            payload[key] = null;
+                        }
+                    } else {
+                        payload[key] = value;
+                    }
+                });
+                payload.branch_id = parseInt(formData.branch_id);
 
                 if (record) {
-                    await api.put(`/residents/${record.id}`, payload);
+                    response = await api.put(`/residents/${record.id}`, payload);
                 } else {
-                    await api.post('/residents', payload);
+                    response = await api.post('/residents', payload);
                 }
+                console.log('Resident saved successfully:', response.data);
             }
             
+            console.log('Form submission successful');
             // Show success message
             setSuccessMessage(record ? 'Resident updated successfully!' : 'Resident created successfully!');
             
@@ -351,11 +402,37 @@ function ResidentForm({ record, branches, onClose, onSuccess }) {
             }, 1500);
         } catch (error) {
             console.error('Error saving resident:', error);
+            console.error('Error response:', error.response);
+            console.error('Error status:', error.response?.status);
+            console.error('Error data:', error.response?.data);
             setIsSubmitting(false);
-            if (error.response?.data?.errors) {
-                setErrors(error.response.data.errors);
+            
+            // Handle different error types
+            if (error.response) {
+                // Server responded with error status
+                if (error.response.status === 401 || error.response.status === 403) {
+                    setErrors({ general: 'Authentication failed. Please log in again.' });
+                    setTimeout(() => {
+                        window.location.href = '/app/login';
+                    }, 2000);
+                } else if (error.response.status === 422) {
+                    // Validation errors
+                    if (error.response.data?.errors) {
+                        setErrors(error.response.data.errors);
+                    } else {
+                        setErrors({ general: error.response.data?.message || 'Validation failed. Please check your input.' });
+                    }
+                } else if (error.response.data?.errors) {
+                    setErrors(error.response.data.errors);
+                } else {
+                    setErrors({ general: error.response.data?.message || `Failed to save resident (Error ${error.response.status}). Please try again.` });
+                }
+            } else if (error.request) {
+                // Request was made but no response received
+                setErrors({ general: 'No response from server. Please check your internet connection and try again.' });
             } else {
-                setErrors({ general: error.response?.data?.message || 'Failed to save resident. Please check your input and try again.' });
+                // Something else happened
+                setErrors({ general: error.message || 'An unexpected error occurred. Please try again.' });
             }
         }
     };
@@ -666,9 +743,15 @@ function ResidentForm({ record, branches, onClose, onSuccess }) {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                             >
-                                {isSubmitting ? 'Saving...' : (record ? 'Update' : 'Create')}
+                                {isSubmitting && (
+                                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                )}
+                                <span>{isSubmitting ? 'Saving...' : (record ? 'Update' : 'Create')}</span>
                             </button>
                         </div>
                     </form>
