@@ -222,17 +222,74 @@ export default function Appointments() {
                                     </span>
                                 </div>
                                 
-                                <p className="text-gray-600 mb-1">
-                                    <span className="font-medium">{appointment.appointment_type?.name || 'Appointment'}</span>
-                                </p>
-                                {appointment.healthcare_provider && (
+                                <div className="space-y-2">
                                     <p className="text-gray-600 mb-1">
-                                        With {appointment.healthcare_provider.name}
+                                        <span className="font-medium">{appointment.appointment_type?.name || 'Appointment'}</span>
                                     </p>
-                                )}
-                                <p className="text-gray-500 text-sm">
-                                    {new Date(appointment.appointment_date).toLocaleString()}
-                                </p>
+                                    
+                                    {/* Date and Time */}
+                                    <p className="text-gray-700 text-sm">
+                                        <span className="font-medium">Date & Time:</span>{' '}
+                                        {(() => {
+                                            const date = new Date(appointment.appointment_date);
+                                            const dateStr = date.toLocaleDateString('en-US', { 
+                                                month: 'short', 
+                                                day: 'numeric', 
+                                                year: 'numeric' 
+                                            });
+                                            
+                                            if (appointment.appointment_time) {
+                                                // Time is stored as "HH:mm:ss" string format
+                                                let timeStr = appointment.appointment_time;
+                                                if (typeof timeStr === 'string') {
+                                                    // Extract hours and minutes from "HH:mm:ss" or "HH:mm"
+                                                    const timeParts = timeStr.split(':');
+                                                    if (timeParts.length >= 2) {
+                                                        const hours = parseInt(timeParts[0]) || 0;
+                                                        const minutes = timeParts[1] || '00';
+                                                        const hour12 = hours % 12 || 12;
+                                                        const ampm = hours >= 12 ? 'PM' : 'AM';
+                                                        timeStr = `${hour12}:${minutes} ${ampm}`;
+                                                    }
+                                                }
+                                                return `${dateStr} at ${timeStr}`;
+                                            }
+                                            return dateStr;
+                                        })()}
+                                    </p>
+                                    
+                                    {/* Provider */}
+                                    {(appointment.provider_name || appointment.healthcare_provider) && (
+                                        <p className="text-gray-700 text-sm">
+                                            <span className="font-medium">Provider:</span>{' '}
+                                            {appointment.provider_name || appointment.healthcare_provider?.name}
+                                        </p>
+                                    )}
+                                    
+                                    {/* Location */}
+                                    {appointment.location && (
+                                        <p className="text-gray-700 text-sm">
+                                            <span className="font-medium">Location:</span>{' '}
+                                            {appointment.location}
+                                        </p>
+                                    )}
+                                    
+                                    {/* Description */}
+                                    {appointment.description && (
+                                        <p className="text-gray-600 text-sm">
+                                            <span className="font-medium">Description:</span>{' '}
+                                            {appointment.description}
+                                        </p>
+                                    )}
+                                    
+                                    {/* Notes (for completed appointments) */}
+                                    {appointment.status === 'completed' && appointment.notes && (
+                                        <p className="text-gray-600 text-sm bg-green-50 p-2 rounded">
+                                            <span className="font-medium">Outcome:</span>{' '}
+                                            {appointment.notes}
+                                        </p>
+                                    )}
+                                </div>
                                 
                                 {appointment.status === 'scheduled' && (
                                     <div className="flex space-x-2 mt-4 pt-4 border-t">

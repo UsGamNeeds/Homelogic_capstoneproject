@@ -82,6 +82,25 @@ class AppointmentController extends Controller
             }
         }
 
+        // Format appointment_time properly - ensure it's in HH:mm format
+        if (isset($validated['appointment_time']) && !empty($validated['appointment_time'])) {
+            // If it's already in HH:mm format, add :00 for seconds
+            if (preg_match('/^\d{2}:\d{2}$/', $validated['appointment_time'])) {
+                $validated['appointment_time'] = $validated['appointment_time'] . ':00';
+            }
+            // If it's in HH:mm:ss format, keep it as is
+            // If it's in other formats, try to parse it
+            elseif (!preg_match('/^\d{2}:\d{2}:\d{2}$/', $validated['appointment_time'])) {
+                try {
+                    $time = \Carbon\Carbon::parse($validated['appointment_time'])->format('H:i:s');
+                    $validated['appointment_time'] = $time;
+                } catch (\Exception $e) {
+                    // If parsing fails, set to null
+                    $validated['appointment_time'] = null;
+                }
+            }
+        }
+
         // Auto-generate a title if missing, to satisfy NOT NULL schema in some setups
         if (!isset($validated['title']) || empty($validated['title'])) {
             $residentName = isset($resident)
