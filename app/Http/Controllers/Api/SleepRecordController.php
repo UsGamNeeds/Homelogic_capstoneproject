@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SleepRecord;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Schema;
 
 class SleepRecordController extends Controller
 {
@@ -90,6 +91,11 @@ class SleepRecordController extends Controller
             $validated['total_sleep_hours'] = round($totalHours, 2);
         }
 
+        // If database has 'date' column (old schema), also populate it
+        if (\Schema::hasColumn('sleep_records', 'date') && isset($validated['sleep_date'])) {
+            $validated['date'] = $validated['sleep_date'];
+        }
+
         $sleepRecord = SleepRecord::create($validated);
 
         return response()->json($sleepRecord->load(['resident', 'branch', 'createdBy']), 201);
@@ -124,6 +130,11 @@ class SleepRecordController extends Controller
             $validated['total_sleep_hours'] = round($totalHours, 2);
         }
 
+        // If database has 'date' column (old schema), also populate it
+        if (Schema::hasColumn('sleep_records', 'date') && isset($validated['sleep_date'])) {
+            $validated['date'] = $validated['sleep_date'];
+        }
+        
         $sleepRecord->update($validated);
 
         return response()->json($sleepRecord->load(['resident', 'branch', 'createdBy']));

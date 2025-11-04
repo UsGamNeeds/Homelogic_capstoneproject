@@ -13,6 +13,7 @@ class SleepRecord extends Model
         'resident_id',
         'branch_id',
         'sleep_date',
+        'date', // For backward compatibility with old schema
         'sleep_time',
         'wake_time',
         'total_sleep_hours',
