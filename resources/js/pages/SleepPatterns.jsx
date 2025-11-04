@@ -74,6 +74,9 @@ export default function SleepPatterns() {
                     }
                 });
                 console.log('Sleep Pattern API Response:', response.data);
+                console.log('Daily Data:', response.data?.daily_data);
+                console.log('Daily Data Length:', response.data?.daily_data?.length);
+                console.log('Pattern:', response.data?.pattern);
                 return response.data;
             } catch (err) {
                 console.error('Sleep Pattern API Error:', err);
@@ -282,6 +285,19 @@ export default function SleepPatterns() {
                         <HelpCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                         <p className="text-gray-700 text-lg font-semibold mb-2">Select a resident</p>
                         <p className="text-gray-500">Select a branch and resident to view sleep patterns</p>
+                    </div>
+                )}
+
+                {/* Debug Info - Remove in production */}
+                {process.env.NODE_ENV === 'development' && residentId && (
+                    <div className="bg-gray-100 rounded-lg p-4 mb-4 text-xs">
+                        <p><strong>Debug Info:</strong></p>
+                        <p>Resident ID: {residentId}</p>
+                        <p>Month: {month}, Year: {year}</p>
+                        <p>Loading: {isLoading ? 'Yes' : 'No'}</p>
+                        <p>Has Pattern Data: {patternData ? 'Yes' : 'No'}</p>
+                        <p>Daily Data Count: {patternData?.daily_data?.length || 0}</p>
+                        <p>Error: {error ? error.message : 'None'}</p>
                     </div>
                 )}
 
