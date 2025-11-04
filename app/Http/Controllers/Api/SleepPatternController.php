@@ -8,6 +8,7 @@ use App\Models\SleepRecord;
 use App\Models\SleepHourlyData;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 class SleepPatternController extends Controller
@@ -31,26 +32,40 @@ class SleepPatternController extends Controller
             ->with(['resident', 'hourlyData'])
             ->first();
 
-        if (!$pattern) {
-            // Calculate pattern from sleep records
-            $pattern = $this->calculatePattern($residentId, $month, $year);
-        }
-
-        // Get daily sleep records for the chart
+        // Get daily sleep records for the chart first
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
         $endDate = Carbon::create($year, $month, 1)->endOfMonth();
 
+        // Check which date column exists and use it
         $sleepRecords = SleepRecord::where('resident_id', $residentId)
-            ->whereBetween('sleep_date', [$startDate, $endDate])
-            ->orderBy('sleep_date', 'asc')
+            ->where(function($query) use ($startDate, $endDate) {
+                if (Schema::hasColumn('sleep_records', 'sleep_date')) {
+                    $query->whereBetween('sleep_date', [$startDate, $endDate]);
+                } elseif (Schema::hasColumn('sleep_records', 'date')) {
+                    $query->whereBetween('date', [$startDate, $endDate]);
+                }
+            })
+            ->orderBy(Schema::hasColumn('sleep_records', 'sleep_date') ? 'sleep_date' : 'date', 'asc')
             ->get();
 
-        // Format daily data for chart
+        // Format daily data for chart first
         $dailyData = [];
         foreach ($sleepRecords as $record) {
-            $day = Carbon::parse($record->sleep_date)->day;
-            $sleepHours = (float) $record->total_sleep_hours;
-            $awakeHours = 24 - $sleepHours;
+            // Use sleep_date if available, otherwise fall back to date column
+            $recordDate = $record->sleep_date ?? $record->date;
+            if (!$recordDate) {
+                continue;
+            }
+            
+            $day = Carbon::parse($recordDate)->day;
+            
+            // Calculate sleep hours - try new column first, then calculate from duration
+            $sleepHours = (float) ($record->total_sleep_hours ?? 0);
+            if ($sleepHours == 0 && isset($record->sleep_duration_minutes)) {
+                $sleepHours = (float) ($record->sleep_duration_minutes / 60);
+            }
+            
+            $awakeHours = max(0, 24 - $sleepHours);
             
             $dailyData[] = [
                 'day' => $day,
@@ -58,6 +73,12 @@ class SleepPatternController extends Controller
                 'awake_hours' => $awakeHours,
                 'total_hours' => 24,
             ];
+        }
+
+        // Get or create sleep pattern for this month/year
+        if (!$pattern && $sleepRecords->isNotEmpty()) {
+            // Calculate pattern from sleep records
+            $pattern = $this->calculatePattern($residentId, $month, $year, $sleepRecords);
         }
 
         // Get hourly distribution if available
@@ -79,6 +100,7 @@ class SleepPatternController extends Controller
         // Get key observations
         $keyObservations = $this->getKeyObservations($pattern, $sleepRecords);
 
+        // Always return data, even if pattern is null (but we have records)
         return response()->json([
             'pattern' => $pattern,
             'daily_data' => $dailyData,
@@ -87,27 +109,57 @@ class SleepPatternController extends Controller
         ]);
     }
 
-    private function calculatePattern($residentId, $month, $year)
+    private function calculatePattern($residentId, $month, $year, $sleepRecords = null)
     {
-        $startDate = Carbon::create($year, $month, 1)->startOfMonth();
-        $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+        // If sleep records not provided, fetch them
+        if ($sleepRecords === null) {
+            $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+            $endDate = Carbon::create($year, $month, 1)->endOfMonth();
 
-        $sleepRecords = SleepRecord::where('resident_id', $residentId)
-            ->whereBetween('sleep_date', [$startDate, $endDate])
-            ->get();
+            // Check which date column exists and use it
+            $sleepRecords = SleepRecord::where('resident_id', $residentId)
+                ->where(function($query) use ($startDate, $endDate) {
+                    if (Schema::hasColumn('sleep_records', 'sleep_date')) {
+                        $query->whereBetween('sleep_date', [$startDate, $endDate]);
+                    } elseif (Schema::hasColumn('sleep_records', 'date')) {
+                        $query->whereBetween('date', [$startDate, $endDate]);
+                    }
+                })
+                ->get();
+        }
 
         if ($sleepRecords->isEmpty()) {
             return null;
         }
 
-        $totalSleepHours = $sleepRecords->sum('total_sleep_hours');
+        $totalSleepHours = $sleepRecords->sum(function($record) {
+            $hours = (float) ($record->total_sleep_hours ?? 0);
+            // If no total_sleep_hours, calculate from sleep_duration_minutes
+            if ($hours == 0 && isset($record->sleep_duration_minutes)) {
+                $hours = (float) ($record->sleep_duration_minutes / 60);
+            }
+            return $hours;
+        });
         $totalAwakeHours = (24 * $sleepRecords->count()) - $totalSleepHours;
-        $avgSleepHours = $totalSleepHours / $sleepRecords->count();
-        $daysWithRecords = $sleepRecords->unique('sleep_date')->count();
+        $avgSleepHours = $sleepRecords->count() > 0 ? $totalSleepHours / $sleepRecords->count() : 0;
+        
+        // Get unique dates - check both sleep_date and date columns
+        $uniqueDates = $sleepRecords->map(function($record) {
+            return $record->sleep_date ?? $record->date ?? null;
+        })->filter()->unique()->count();
+        $daysWithRecords = $uniqueDates;
 
         // Get most common sleep and wake times
-        $sleepTimes = $sleepRecords->pluck('sleep_time')->filter();
-        $wakeTimes = $sleepRecords->pluck('wake_time')->filter();
+        // Handle both old and new column formats
+        $sleepTimes = $sleepRecords->map(function($record) {
+            // Try sleep_time first, then sleep_start if available
+            return $record->sleep_time ?? (Schema::hasColumn('sleep_records', 'sleep_start') ? $record->sleep_start : null);
+        })->filter();
+        
+        $wakeTimes = $sleepRecords->map(function($record) {
+            // Try wake_time first, then sleep_end if available
+            return $record->wake_time ?? (Schema::hasColumn('sleep_records', 'sleep_end') ? $record->sleep_end : null);
+        })->filter();
 
         $commonSleepTime = $this->getMostCommonTime($sleepTimes);
         $commonWakeTime = $this->getMostCommonTime($wakeTimes);
@@ -181,18 +233,31 @@ class SleepPatternController extends Controller
         $totalRecords = $sleepRecords->count();
 
         foreach ($sleepRecords as $record) {
-            $sleepTime = Carbon::parse($record->sleep_time);
-            $wakeTime = Carbon::parse($record->wake_time);
+            // Handle both sleep_time/wake_time and sleep_start/sleep_end
+            $sleepTimeStr = $record->sleep_time ?? (Schema::hasColumn('sleep_records', 'sleep_start') ? $record->sleep_start : null);
+            $wakeTimeStr = $record->wake_time ?? (Schema::hasColumn('sleep_records', 'sleep_end') ? $record->sleep_end : null);
             
-            if ($wakeTime->lessThan($sleepTime)) {
-                $wakeTime->addDay();
+            if (!$sleepTimeStr || !$wakeTimeStr) {
+                continue;
             }
 
-            $current = $sleepTime->copy();
-            while ($current->lessThan($wakeTime)) {
-                $hour = (int) $current->format('H');
-                $hourlyCounts[$hour]++;
-                $current->addHour();
+            try {
+                $sleepTime = Carbon::parse($sleepTimeStr);
+                $wakeTime = Carbon::parse($wakeTimeStr);
+                
+                if ($wakeTime->lessThan($sleepTime)) {
+                    $wakeTime->addDay();
+                }
+
+                $current = $sleepTime->copy();
+                while ($current->lessThan($wakeTime)) {
+                    $hour = (int) $current->format('H');
+                    $hourlyCounts[$hour]++;
+                    $current->addHour();
+                }
+            } catch (\Exception $e) {
+                // Skip invalid time formats
+                continue;
             }
         }
 

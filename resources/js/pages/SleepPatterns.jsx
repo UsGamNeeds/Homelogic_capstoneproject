@@ -359,7 +359,7 @@ export default function SleepPatterns() {
                                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D5016]"></div>
                                 <p className="mt-4 text-gray-600">Loading sleep pattern data...</p>
                             </div>
-                        ) : patternData?.pattern ? (
+                        ) : (patternData?.daily_data && patternData.daily_data.length > 0) ? (
                             <>
                                 {/* Main Chart */}
                                 <div className="bg-white rounded-lg shadow p-6 mb-6">
