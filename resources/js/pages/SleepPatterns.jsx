@@ -437,13 +437,17 @@ export default function SleepPatterns() {
                                         <div>
                                             <p className="text-sm text-gray-600">Most Sleep</p>
                                             <p className="text-xl font-bold text-purple-600">
-                                                {Math.max(...(patternData.daily_data?.map(d => d.sleep_hours) || [0]))} hrs
+                                                {patternData.daily_data && patternData.daily_data.length > 0
+                                                    ? Math.max(...patternData.daily_data.map(d => d.sleep_hours)).toFixed(1)
+                                                    : '0'} hrs
                                             </p>
                                         </div>
                                         <div>
                                             <p className="text-sm text-gray-600">Least Sleep</p>
                                             <p className="text-xl font-bold text-purple-600">
-                                                {Math.min(...(patternData.daily_data?.map(d => d.sleep_hours) || [0]))} hrs
+                                                {patternData.daily_data && patternData.daily_data.length > 0
+                                                    ? Math.min(...patternData.daily_data.map(d => d.sleep_hours)).toFixed(1)
+                                                    : '0'} hrs
                                             </p>
                                         </div>
                                     </div>
@@ -455,7 +459,14 @@ export default function SleepPatterns() {
                                         <p className="text-sm text-gray-600 mb-2">Common Sleep Time</p>
                                         <p className="text-2xl font-bold text-blue-600">
                                             {patternData.pattern?.common_sleep_time 
-                                                ? new Date(`2000-01-01T${patternData.pattern.common_sleep_time}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+                                                ? (() => {
+                                                    const time = patternData.pattern.common_sleep_time;
+                                                    if (typeof time === 'string') {
+                                                        const [h, m] = time.split(':');
+                                                        return `${h.padStart(2, '0')}:${m ? m.substring(0, 2) : '00'}`;
+                                                    }
+                                                    return 'N/A';
+                                                })()
                                                 : 'N/A'}
                                         </p>
                                     </div>
@@ -463,7 +474,14 @@ export default function SleepPatterns() {
                                         <p className="text-sm text-gray-600 mb-2">Common Wake Time</p>
                                         <p className="text-2xl font-bold text-orange-600">
                                             {patternData.pattern?.common_wake_time 
-                                                ? new Date(`2000-01-01T${patternData.pattern.common_wake_time}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+                                                ? (() => {
+                                                    const time = patternData.pattern.common_wake_time;
+                                                    if (typeof time === 'string') {
+                                                        const [h, m] = time.split(':');
+                                                        return `${h.padStart(2, '0')}:${m ? m.substring(0, 2) : '00'}`;
+                                                    }
+                                                    return 'N/A';
+                                                })()
                                                 : 'N/A'}
                                         </p>
                                     </div>

@@ -148,10 +148,28 @@ class SleepPatternController extends Controller
         // Group by hour:minute and count
         $timeCounts = $times->map(function ($time) {
             if (is_string($time)) {
-                return substr($time, 0, 5); // Get HH:mm format
+                // If it's already in HH:mm format, return it
+                if (preg_match('/^\d{2}:\d{2}/', $time)) {
+                    return substr($time, 0, 5); // Get HH:mm format
+                }
+                // Try to parse as datetime
+                try {
+                    return Carbon::parse($time)->format('H:i');
+                } catch (\Exception $e) {
+                    return null;
+                }
             }
-            return Carbon::parse($time)->format('H:i');
-        })->countBy();
+            // If it's a Carbon instance or datetime
+            try {
+                return Carbon::parse($time)->format('H:i');
+            } catch (\Exception $e) {
+                return null;
+            }
+        })->filter()->countBy();
+
+        if ($timeCounts->isEmpty()) {
+            return null;
+        }
 
         $mostCommon = $timeCounts->sort()->keys()->last();
         return $mostCommon ? $mostCommon . ':00' : null;
