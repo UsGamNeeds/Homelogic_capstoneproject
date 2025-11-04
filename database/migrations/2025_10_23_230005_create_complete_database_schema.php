@@ -189,6 +189,9 @@ return new class extends Migration
                 if (!Schema::hasColumn('residents', 'status')) {
                     $table->string('status')->default('active')->after('discharge_date');
                 }
+                if (!Schema::hasColumn('residents', 'profile_image')) {
+                    $table->string('profile_image')->nullable()->after('status');
+                }
             });
 
             // Add indexes if they don't exist (checking is done inside try-catch for safety)
