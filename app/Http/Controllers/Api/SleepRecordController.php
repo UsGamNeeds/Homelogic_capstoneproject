@@ -92,7 +92,7 @@ class SleepRecordController extends Controller
         }
 
         // If database has 'date' column (old schema), also populate it
-        if (\Schema::hasColumn('sleep_records', 'date') && isset($validated['sleep_date'])) {
+        if (Schema::hasColumn('sleep_records', 'date') && isset($validated['sleep_date'])) {
             $validated['date'] = $validated['sleep_date'];
         }
 
