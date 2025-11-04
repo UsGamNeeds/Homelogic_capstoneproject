@@ -388,14 +388,11 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                                         setFormData({ ...formData, resident_id: e.target.value });
                                         setErrors({ ...errors, resident_id: null });
                                     }}
-                                    disabled={!formData.branch_id}
                                     className={`w-full pl-9 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent ${
                                         errors.resident_id ? 'border-red-300' : 'border-gray-300'
-                                    } ${!formData.branch_id ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                    }`}
                                 >
-                                    <option value="">
-                                        {formData.branch_id ? 'Select resident' : 'Select a branch first'}
-                                    </option>
+                                    <option value="">Select resident</option>
                                     {(residents?.data || []).map(r => (
                                         <option key={r.id} value={r.id}>{r.first_name} {r.last_name}</option>
                                     ))}
