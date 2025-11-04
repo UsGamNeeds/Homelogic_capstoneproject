@@ -30,16 +30,51 @@ class VitalRangeResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('parameter')
                             ->label('Parameter')
-                            ->options([
-                                'systolic' => 'Systolic',
-                                'diastolic' => 'Diastolic',
-                                'temperature' => 'Temperature',
-                                'pulse' => 'Pulse',
-                                'oxygen_saturation' => 'Oxygen Saturation',
-                            ])
+                            ->options(function () {
+                                // Get existing parameters to exclude them from the list
+                                $existing = \App\Models\VitalRange::pluck('parameter')->toArray();
+                                $allOptions = [
+                                    'systolic' => 'Systolic',
+                                    'diastolic' => 'Diastolic',
+                                    'temperature' => 'Temperature',
+                                    'pulse' => 'Pulse',
+                                    'oxygen_saturation' => 'Oxygen Saturation',
+                                ];
+                                
+                                // Only show available parameters when creating (not editing)
+                                if (request()->routeIs('filament.admin.resources.vital-ranges.create')) {
+                                    return array_diff_key($allOptions, array_flip($existing));
+                                }
+                                
+                                return $allOptions;
+                            })
                             ->required()
-                            ->unique(ignoreRecord: true)
+                            ->rules([
+                                'required',
+                                function ($get) {
+                                    return function (string $attribute, $value, \Closure $fail) {
+                                        $exists = \App\Models\VitalRange::where('parameter', $value)->exists();
+                                        if ($exists) {
+                                            $fail('A vital range with this parameter already exists. Please edit the existing record instead.');
+                                        }
+                                    };
+                                },
+                            ])
                             ->searchable()
+                            ->live()
+                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                if (!$state) return;
+                                
+                                $exists = \App\Models\VitalRange::where('parameter', $state)->exists();
+                                if ($exists) {
+                                    $set('parameter', null);
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('Parameter already exists')
+                                        ->body('A vital range with this parameter already exists. Please edit the existing record instead.')
+                                        ->danger()
+                                        ->send();
+                                }
+                            })
                             ->disabled(fn ($context) => $context === 'edit'),
                         Forms\Components\TextInput::make('unit')
                             ->label('Unit')
