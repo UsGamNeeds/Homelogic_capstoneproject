@@ -71,9 +71,13 @@ export default function ViewVitals() {
     const { data: vitalsData, isLoading } = useQuery({
         queryKey: ['vitals-view', branchId, residentId, year, month, currentPage, perPage],
         queryFn: async () => {
+            // When filtering by branch, we need to fetch all data first (not paginated)
+            // because we need to filter client-side, then paginate
+            const fetchAllData = branchId && !residentId;
+            
             const params = {
-                per_page: perPage,
-                page: currentPage,
+                per_page: fetchAllData ? 1000 : perPage, // Fetch more if branch filtering
+                page: fetchAllData ? 1 : currentPage,
                 date_from: startDate,
                 date_to: endDate,
             };
@@ -87,25 +91,35 @@ export default function ViewVitals() {
             
             // Filter by branch if selected (client-side filtering since API doesn't support branch_id directly)
             if (branchId && data?.data) {
-                const allData = data.data;
+                const allData = Array.isArray(data.data) ? data.data : [];
                 const filteredData = allData.filter(vital => {
                     return vital.resident?.branch_id == branchId;
                 });
                 
-                // Recalculate pagination for filtered results
-                const total = filteredData.length;
-                const start = (currentPage - 1) * perPage;
-                const end = start + perPage;
-                const paginatedData = filteredData.slice(start, end);
-                
-                return {
-                    ...data,
-                    data: paginatedData,
-                    total: total,
-                    last_page: Math.ceil(total / perPage),
-                    per_page: perPage,
-                    current_page: currentPage,
-                };
+                // If we fetched all data, now paginate client-side
+                if (fetchAllData) {
+                    const total = filteredData.length;
+                    const start = (currentPage - 1) * perPage;
+                    const end = start + perPage;
+                    const paginatedData = filteredData.slice(start, end);
+                    
+                    return {
+                        ...data,
+                        data: paginatedData,
+                        total: total,
+                        last_page: Math.ceil(total / perPage),
+                        per_page: perPage,
+                        current_page: currentPage,
+                    };
+                } else {
+                    // If we already have paginated data, just filter and update totals
+                    return {
+                        ...data,
+                        data: filteredData,
+                        total: filteredData.length,
+                        last_page: Math.ceil(filteredData.length / perPage),
+                    };
+                }
             }
             
             return data;
