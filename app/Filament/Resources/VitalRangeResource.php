@@ -22,6 +22,32 @@ class VitalRangeResource extends Resource
     protected static ?int $navigationSort = 100;
     protected static bool $shouldRegisterNavigation = false; // Handled by CustomNavigationProvider
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Only register if user has permission AND is not a caregiver
+        if (!auth()->check()) {
+            return false;
+        }
+        
+        $user = auth()->user();
+        
+        // Caregivers should NEVER see this in navigation
+        $roleValue = strtolower(trim($user->role ?? ''));
+        $roleValueNormalized = str_replace([' ', '_'], '', $roleValue);
+        $isCaregiver = $user->hasRole('caregiver') || 
+                       $user->hasRole('care_giver') || 
+                       $roleValueNormalized === 'caregiver' ||
+                       (stripos($roleValue, 'care') !== false && stripos($roleValue, 'giver') !== false);
+        
+        if ($isCaregiver) {
+            return false;
+        }
+        
+        return $user->hasPermission('view_vital_ranges') || 
+               $user->hasRole('administrator') || 
+               $user->hasRole('super_admin');
+    }
+
     public static function canViewAny(): bool
     {
         return auth()->user()->hasPermission('view_vital_ranges') 
