@@ -118,6 +118,7 @@ class CustomNavigationProvider
 
                 // Administration (with dropdown) - Eighth item
                 // Only show if user has at least one administrative permission
+                // CAREGIVERS SHOULD NOT SEE THIS - they only have view_leave_requests which is for their own requests
                 NavigationItem::make('Administration')
                     ->icon('heroicon-o-cog-6-tooth')
                     ->url('#')
@@ -129,16 +130,27 @@ class CustomNavigationProvider
                         request()->routeIs('filament.admin.resources.roles.*') ||
                         request()->routeIs('filament.admin.resources.employee-documents.*'))
                     ->sort(80)
-                    ->visible(fn (): bool => auth()->check() && (
-                        auth()->user()->hasPermission('view_users') ||
-                        auth()->user()->hasPermission('view_facilities') ||
-                        auth()->user()->hasPermission('view_branches') ||
-                        auth()->user()->hasPermission('view_vital_ranges') ||
-                        auth()->user()->hasPermission('view_roles') ||
-                        auth()->user()->hasPermission('view_leave_requests') ||
-                        auth()->user()->hasRole('administrator') ||
-                        auth()->user()->hasRole('super_admin')
-                    ))
+                    ->visible(function (): bool {
+                        if (!auth()->check()) {
+                            return false;
+                        }
+                        
+                        $user = auth()->user();
+                        
+                        // Caregivers should NEVER see Administration menu
+                        if ($user->hasRole('caregiver') || $user->role === 'caregiver' || $user->role === 'care_giver') {
+                            return false;
+                        }
+                        
+                        // Only show if user has administrative permissions (excluding view_leave_requests which caregivers have)
+                        return $user->hasPermission('view_users') ||
+                            $user->hasPermission('view_facilities') ||
+                            $user->hasPermission('view_branches') ||
+                            $user->hasPermission('view_vital_ranges') ||
+                            $user->hasPermission('view_roles') ||
+                            $user->hasRole('administrator') ||
+                            $user->hasRole('super_admin');
+                    })
                     ->childItems([
                         // Facility Management
                         NavigationItem::make('Facilities')
@@ -171,11 +183,15 @@ class CustomNavigationProvider
                         NavigationItem::make('Leave Requests')
                             ->url(route('filament.admin.resources.leave-requests.index'))
                             ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.leave-requests.*'))
-                            ->visible(fn (): bool => auth()->check() && (
-                                auth()->user()->hasPermission('view_leave_requests') ||
-                                auth()->user()->hasRole('administrator') ||
-                                auth()->user()->hasRole('super_admin')
-                            )),
+                            ->visible(function (): bool {
+                                if (!auth()->check()) {
+                                    return false;
+                                }
+                                $user = auth()->user();
+                                // Only administrators can see Leave Requests in Administration menu
+                                // Caregivers access their own leave requests elsewhere
+                                return $user->hasRole('administrator') || $user->hasRole('super_admin');
+                            }),
                         
                         NavigationItem::make('Roles & Permissions')
                             ->url(route('filament.admin.resources.roles.index'))
