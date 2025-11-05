@@ -241,9 +241,13 @@ class CustomNavigationProvider
         // Completely replace all navigation items
         // This will override any auto-discovered items
         // Also explicitly clear any groups to prevent auto-discovered resources from showing
-        return $builder
-            ->items($items)
-            ->groups([]); // Clear all groups to prevent auto-discovered Administration resources from showing
+        
+        // IMPORTANT: Clear existing items and groups FIRST before adding new ones
+        // This ensures no auto-discovered items remain
+        $builder = $builder->items([])->groups([]);
+        
+        // Then add our custom items
+        return $builder->items($items)->groups([]);
     }
 }
 
