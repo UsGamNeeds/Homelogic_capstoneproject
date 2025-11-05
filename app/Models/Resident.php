@@ -44,6 +44,7 @@ class Resident extends Model
     protected $casts = [
         'date_of_birth' => 'date',
         'admission_date' => 'date',
+        'discharge_date' => 'date',
         'medical_conditions' => 'array',
         'allergies' => 'array',
         'medications' => 'array',
