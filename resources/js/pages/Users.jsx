@@ -57,9 +57,18 @@ export default function UsersPage() {
         toggleActiveMutation.mutate({ id: user.id, isActive: newStatus });
     };
 
-    const handleEditFromProfile = (user) => {
-        setEditing(user);
-        setShowForm(true);
+    const handleEditFromProfile = async (user) => {
+        try {
+            // Fetch full user details to ensure all fields are loaded
+            const response = await api.get(`/users/${user.id}`);
+            setEditing(response.data);
+            setShowForm(true);
+        } catch (error) {
+            console.error('Error fetching user details:', error);
+            // Fallback to using the user object from the list
+            setEditing(user);
+            setShowForm(true);
+        }
     };
 
     // Reset to page 1 when filters change
@@ -298,7 +307,7 @@ function UserForm({ record, branches, roles, onClose, onSuccess }) {
         date_employed: formatDateForInput(record?.date_employed),
         supervisor_name: record?.supervisor_name || '',
         provider_name: record?.provider_name || '',
-        role: record?.role || '',
+        role: record?.role || record?.roles?.[0]?.name || '',
         assigned_branch_id: record?.assigned_branch_id || '',
         is_active: record?.is_active ?? true,
         notes: record?.notes || '',
@@ -327,7 +336,7 @@ function UserForm({ record, branches, roles, onClose, onSuccess }) {
                 date_employed: formatDateForInput(record.date_employed),
                 supervisor_name: record.supervisor_name || '',
                 provider_name: record.provider_name || '',
-                role: record.role || '',
+                role: record.role || record.roles?.[0]?.name || '',
                 assigned_branch_id: record.assigned_branch_id || '',
                 is_active: record.is_active ?? true,
                 notes: record.notes || '',
@@ -337,8 +346,11 @@ function UserForm({ record, branches, roles, onClose, onSuccess }) {
 
     // Set profile image preview when editing
     React.useEffect(() => {
-        if (record?.profile_image) {
-            // If it's a full URL, use it directly, otherwise construct the storage URL
+        if (record?.profile_image_url) {
+            // Use the profile_image_url from the API response
+            setProfileImagePreview(record.profile_image_url);
+        } else if (record?.profile_image) {
+            // Fallback: If profile_image_url is not available, construct the URL
             const imageUrl = record.profile_image.startsWith('http') 
                 ? record.profile_image 
                 : `/storage/${record.profile_image}`;
