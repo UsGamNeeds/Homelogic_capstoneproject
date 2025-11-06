@@ -10,6 +10,7 @@ export default function Appointments() {
     const [dateFilter, setDateFilter] = useState('upcoming');
     const [statusFilter, setStatusFilter] = useState('all');
     const [residentFilter, setResidentFilter] = useState('');
+    const [branchFilter, setBranchFilter] = useState('');
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState({
         branch_id: '',
@@ -23,15 +24,18 @@ export default function Appointments() {
     });
 
     const { data, isLoading, refetch } = useQuery({
-        queryKey: ['appointments', dateFilter, statusFilter, residentFilter],
+        queryKey: ['appointments', dateFilter, statusFilter, residentFilter, branchFilter],
         queryFn: async () => {
             const params = {
                 date_filter: dateFilter,
                 status: statusFilter,
-                per_page: 15,
+                per_page: 50,
             };
             if (residentFilter) {
                 params.resident_id = residentFilter;
+            }
+            if (branchFilter) {
+                params.branch_id = branchFilter;
             }
             const response = await api.get('/appointments', { params });
             return response.data;
@@ -67,9 +71,13 @@ export default function Appointments() {
 
     // All residents for filter dropdown (not filtered by branch)
     const { data: allResidentsData } = useQuery({
-        queryKey: ['all-residents-list'],
+        queryKey: ['all-residents-list', branchFilter],
         queryFn: async () => {
-            return (await api.get('/residents', { params: { per_page: 100 } })).data;
+            const params = { per_page: 100 };
+            if (branchFilter) {
+                params.branch_id = branchFilter;
+            }
+            return (await api.get('/residents', { params })).data;
         },
     });
 
@@ -136,31 +144,101 @@ export default function Appointments() {
     };
 
     return (
-        <div>
-            <SectionCard>
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-                    <div>
-                        <h2 className="text-xl font-semibold text-gray-900 mb-2">Appointment Management</h2>
-                        <p className="text-gray-600">View, filter, update, and create resident appointments.</p>
-                    </div>
-                    <button
-                        onClick={() => setShowForm(true)}
-                        className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
-                    >
-                        <Plus className="w-4 h-4" />
-                        <span>Add Appointment</span>
-                    </button>
+        <div className="space-y-6">
+            {/* Modern Header */}
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 shadow-lg">
+                <div className="absolute top-0 right-0 -mt-8 -mr-16 opacity-10">
+                    <svg className="w-64 h-64" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V9h14v10zM5 7V5h14v2H5z"/>
+                    </svg>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative px-6 py-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-white mb-2">Appointment Management</h1>
+                            <p className="text-sky-100">View, filter, update, and create resident appointments.</p>
+                        </div>
+                        <button
+                            onClick={() => setShowForm(true)}
+                            className="hidden md:flex items-center space-x-2 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white px-4 py-2 rounded-lg transition-all duration-200"
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span>Add Appointment</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Filters Card */}
+            <SectionCard>
+                <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-semibold text-gray-900">Filter Appointments</h3>
+                        <p className="text-sm text-gray-500">Select branch and resident to view appointment history</p>
+                    </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    {/* Branch Filter */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Branch:</label>
+                        <div className="relative">
+                            <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <select
+                                value={branchFilter}
+                                onChange={(e) => {
+                                    setBranchFilter(e.target.value);
+                                    setResidentFilter(''); // Clear resident when branch changes
+                                }}
+                                className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent appearance-none bg-white"
+                            >
+                                <option value="">All Branches</option>
+                                {(branchesData?.data || branchesData || []).map(branch => (
+                                    <option key={branch.id} value={branch.id}>{branch.name}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        </div>
+                    </div>
+
+                    {/* Resident Filter */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Resident:</label>
+                        <div className="relative">
+                            <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <select
+                                value={residentFilter}
+                                onChange={(e) => setResidentFilter(e.target.value)}
+                                className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent appearance-none bg-white"
+                            >
+                                <option value="">All Residents</option>
+                                {(allResidentsData?.data || []).map(r => (
+                                    <option key={r.id} value={r.id}>
+                                        {r.first_name} {r.last_name}
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Date and Status Filters */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Date:</label>
                         <div className="flex flex-wrap gap-2">
                             <button
                                 onClick={() => setDateFilter('upcoming')}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                                     dateFilter === 'upcoming'
-                                        ? 'bg-[#2D5016] text-white'
+                                        ? 'bg-sky-500 text-white shadow-sm'
                                         : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                                 }`}
                             >
@@ -168,9 +246,9 @@ export default function Appointments() {
                             </button>
                             <button
                                 onClick={() => setDateFilter('past')}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                                     dateFilter === 'past'
-                                        ? 'bg-[#2D5016] text-white'
+                                        ? 'bg-sky-500 text-white shadow-sm'
                                         : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                                 }`}
                             >
@@ -186,9 +264,9 @@ export default function Appointments() {
                                 <button
                                     key={status}
                                     onClick={() => setStatusFilter(status)}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
+                                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all capitalize ${
                                         statusFilter === status
-                                            ? 'bg-[#2D5016] text-white'
+                                            ? 'bg-sky-500 text-white shadow-sm'
                                             : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                                     }`}
                                 >
@@ -197,66 +275,55 @@ export default function Appointments() {
                             ))}
                         </div>
                     </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Resident:</label>
-                        <div className="relative">
-                            <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                            <select
-                                value={residentFilter}
-                                onChange={(e) => setResidentFilter(e.target.value)}
-                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent appearance-none bg-white"
-                            >
-                                <option value="">All Residents</option>
-                                {(allResidentsData?.data || []).map(r => (
-                                    <option key={r.id} value={r.id}>
-                                        {r.first_name} {r.last_name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        {residentFilter && (
-                            <button
-                                onClick={() => setResidentFilter('')}
-                                className="mt-2 text-xs text-[#2D5016] hover:underline"
-                            >
-                                Clear filter
-                            </button>
-                        )}
-                    </div>
                 </div>
+
+                {/* Mobile Add Button */}
+                <button
+                    onClick={() => setShowForm(true)}
+                    className="md:hidden w-full mt-4 flex items-center justify-center space-x-2 bg-sky-500 hover:bg-sky-600 text-white px-4 py-3 rounded-lg transition-all duration-200"
+                >
+                    <Plus className="w-5 h-5" />
+                    <span>Add Appointment</span>
+                </button>
             </SectionCard>
 
-            <div className="mb-6"></div>
-
             {isLoading ? (
-                <div className="text-center py-12">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D5016]"></div>
-                    <p className="mt-4 text-gray-600">Loading appointments...</p>
+                <div className="text-center py-12 bg-white rounded-xl shadow-sm">
+                    <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-sky-500"></div>
+                    <p className="mt-4 text-gray-600 font-medium">Loading appointments...</p>
                 </div>
             ) : (
                 <div>
                     {data?.data?.length > 0 ? (
                         <div>
-                            {residentFilter && (
-                                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                    <p className="text-sm text-blue-800">
-                                        <strong>Showing appointment history for:</strong>{' '}
+                            {(residentFilter || branchFilter) && (
+                                <div className="mb-4 p-4 bg-sky-50 border border-sky-200 rounded-lg">
+                                    <p className="text-sm text-sky-900">
+                                        <strong>Filtered by:</strong>{' '}
                                         {(() => {
-                                            const resident = (allResidentsData?.data || []).find(r => r.id == residentFilter);
-                                            return resident ? `${resident.first_name} ${resident.last_name}` : 'Selected Resident';
+                                            const parts = [];
+                                            if (branchFilter) {
+                                                const branch = (branchesData?.data || branchesData || []).find(b => b.id == branchFilter);
+                                                parts.push(`Branch: ${branch?.name || 'Selected Branch'}`);
+                                            }
+                                            if (residentFilter) {
+                                                const resident = (allResidentsData?.data || []).find(r => r.id == residentFilter);
+                                                parts.push(`Resident: ${resident ? `${resident.first_name} ${resident.last_name}` : 'Selected Resident'}`);
+                                            }
+                                            return parts.join(' | ');
                                         })()}
                                     </p>
                                 </div>
                             )}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {data.data.map((appointment) => (
                             <Card
                                 key={appointment.id}
                                 borderColor={
-                                    appointment.status === 'scheduled' ? 'border-[#8B4513]' :
-                                    appointment.status === 'completed' ? 'border-[#2D5016]' :
-                                    'border-red-500'
+                                    appointment.status === 'scheduled' ? 'border-l-4 border-l-amber-500' :
+                                    appointment.status === 'completed' ? 'border-l-4 border-l-emerald-500' :
+                                    appointment.status === 'cancelled' ? 'border-l-4 border-l-red-500' :
+                                    'border-l-4 border-l-sky-500'
                                 }
                             >
                                 <div className="flex items-center justify-between mb-3">
@@ -264,11 +331,13 @@ export default function Appointments() {
                                         {appointment.resident?.first_name} {appointment.resident?.last_name}
                                     </h3>
                                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                        appointment.status === 'scheduled' ? 'bg-amber-50 text-[#8B4513] border border-[#8B4513]' :
-                                        appointment.status === 'completed' ? 'bg-green-50 text-[#2D5016] border border-[#2D5016]' :
-                                        'bg-red-50 text-red-800 border border-red-500'
+                                        appointment.status === 'scheduled' ? 'bg-amber-100 text-amber-800' :
+                                        appointment.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                                        appointment.status === 'completed' ? 'bg-emerald-100 text-emerald-800' :
+                                        appointment.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                        'bg-gray-100 text-gray-800'
                                     }`}>
-                                        {appointment.status}
+                                        {appointment.status?.charAt(0).toUpperCase() + appointment.status?.slice(1)}
                                     </span>
                                 </div>
                                 
@@ -341,18 +410,18 @@ export default function Appointments() {
                                     )}
                                 </div>
                                 
-                                {appointment.status === 'scheduled' && (
-                                    <div className="flex space-x-2 mt-4 pt-4 border-t">
+                                {(appointment.status === 'scheduled' || appointment.status === 'confirmed') && (
+                                    <div className="flex space-x-2 mt-4 pt-4 border-t border-gray-100">
                                         <button
                                             onClick={() => handleComplete(appointment.id)}
-                                            className="flex-1 px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2"
+                                            className="flex-1 px-3 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-all flex items-center justify-center space-x-2 text-sm"
                                         >
                                             <CheckCircle className="w-4 h-4" />
                                             <span>Complete</span>
                                         </button>
                                         <button
                                             onClick={() => handleCancel(appointment.id)}
-                                            className="flex-1 px-4 py-2 bg-[#8B4513] text-white rounded-lg hover:bg-[#6b3410] transition-colors flex items-center justify-center space-x-2"
+                                            className="flex-1 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all flex items-center justify-center space-x-2 text-sm"
                                         >
                                             <XCircle className="w-4 h-4" />
                                             <span>Cancel</span>
@@ -364,13 +433,16 @@ export default function Appointments() {
                             </div>
                         </div>
                     ) : (
-                        <div className="bg-white rounded-lg shadow p-12 text-center">
-                            <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                            <p className="text-gray-600 text-lg font-medium">No appointments found</p>
-                            <p className="text-gray-500 text-sm mt-2">
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                            <Calendar className="w-16 h-16 text-sky-300 mx-auto mb-4" />
+                            <p className="text-gray-900 text-lg font-semibold mb-2">No Appointments Found</p>
+                            <p className="text-gray-500 text-sm">
                                 {dateFilter === 'upcoming' 
-                                    ? 'No upcoming appointments.' 
+                                    ? 'No upcoming appointments scheduled.' 
                                     : 'No past appointments found.'}
+                            </p>
+                            <p className="text-gray-400 text-xs mt-2">
+                                Try adjusting your filters or add a new appointment.
                             </p>
                         </div>
                     )}
@@ -405,7 +477,7 @@ export default function Appointments() {
                                 rows={4}
                                 value={completionNotes}
                                 onChange={(e) => setCompletionNotes(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                                 placeholder="Enter notes about the appointment outcome..."
                             />
                         </div>
@@ -415,13 +487,13 @@ export default function Appointments() {
                                     setCompletingAppointment(null);
                                     setCompletionNotes('');
                                 }}
-                                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-all"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={() => handleStatusUpdate(completingAppointment, 'completed', completionNotes || null)}
-                                className="px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors"
+                                className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-all"
                             >
                                 Mark as Completed
                             </button>
@@ -492,13 +564,13 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                                 <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                 <select
                                     value={formData.resident_id}
-                                    onChange={(e) => {
-                                        setFormData({ ...formData, resident_id: e.target.value });
-                                        setErrors({ ...errors, resident_id: null });
-                                    }}
-                                    className={`w-full pl-9 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent ${
-                                        errors.resident_id ? 'border-red-300' : 'border-gray-300'
-                                    }`}
+                                onChange={(e) => {
+                                    setFormData({ ...formData, resident_id: e.target.value });
+                                    setErrors({ ...errors, resident_id: null });
+                                }}
+                                className={`w-full pl-9 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent ${
+                                    errors.resident_id ? 'border-red-300' : 'border-gray-300'
+                                }`}
                                 >
                                     <option value="">Select resident</option>
                                     {(residents?.data || []).map(r => (
@@ -518,7 +590,7 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                                     setErrors({ ...errors, appointment_date: null });
                                 }}
                                 required
-                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent ${
+                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent ${
                                     errors.appointment_date ? 'border-red-300' : 'border-gray-300'
                                 }`}
                             />
@@ -539,7 +611,7 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                                     type="text"
                                     value={formData.provider_name}
                                     onChange={(e) => setFormData({ ...formData, provider_name: e.target.value })}
-                                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                                     placeholder="Dr. Smith"
                                 />
                             </div>
@@ -552,7 +624,7 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                                     type="text"
                                     value={formData.location}
                                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                                     placeholder="Clinic / Room"
                                 />
                             </div>
@@ -564,7 +636,7 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                             rows={3}
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                             placeholder="Additional details..."
                         />
                     </div>
@@ -594,7 +666,7 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                         <button
                             type="submit"
                             disabled={isSubmitting || !formData.resident_id || !formData.appointment_date}
-                            className="px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? 'Creating...' : 'Create Appointment'}
                         </button>
@@ -668,7 +740,7 @@ function TimePicker({ value, onChange, className = '' }) {
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent bg-white text-left flex items-center justify-between ${className}`}
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white text-left flex items-center justify-between ${className}`}
             >
                 <span className={value ? 'text-gray-900' : 'text-gray-400'}>
                     {displayValue}
@@ -691,7 +763,7 @@ function TimePicker({ value, onChange, className = '' }) {
                                     const newHours = parseInt(e.target.value);
                                     handleTimeChange(newHours, minutes, period);
                                 }}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent text-center text-lg font-semibold"
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent text-center text-lg font-semibold"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {hourOptions.map(h => (
@@ -708,7 +780,7 @@ function TimePicker({ value, onChange, className = '' }) {
                                     const newMinutes = parseInt(e.target.value);
                                     handleTimeChange(hours, newMinutes, period);
                                 }}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent text-center text-lg font-semibold"
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent text-center text-lg font-semibold"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {minuteOptions.map(m => (
@@ -723,7 +795,7 @@ function TimePicker({ value, onChange, className = '' }) {
                                     const newPeriod = e.target.value;
                                     handleTimeChange(hours, minutes, newPeriod);
                                 }}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent text-center text-lg font-semibold"
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent text-center text-lg font-semibold"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 <option value="AM">AM</option>
