@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { CheckCircle, XCircle, Calendar, Plus, User, Stethoscope, MapPin, ChevronDown } from 'lucide-react';
 import Card from '../components/Card';
@@ -7,8 +8,11 @@ import SectionCard from '../components/SectionCard';
 
 export default function Appointments() {
     const queryClient = useQueryClient();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [residentFilter, setResidentFilter] = useState('');
     const [branchFilter, setBranchFilter] = useState('');
+    const highlightedAppointmentId = useRef(null);
+    const appointmentRowRefs = useRef({});
     const [showForm, setShowForm] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
     const [formData, setFormData] = useState({
@@ -42,6 +46,54 @@ export default function Appointments() {
         const roleNormalized = role.replace(/[\s_]/g, '');
         return roleNormalized === 'caregiver' || (role.includes('care') && role.includes('giver'));
     }, [currentUser]);
+
+    // Read URL parameters on mount and set filters
+    useEffect(() => {
+        const residentId = searchParams.get('resident_id');
+        const appointmentId = searchParams.get('appointment_id');
+        
+        if (residentId) {
+            setResidentFilter(residentId);
+            highlightedAppointmentId.current = appointmentId;
+            
+            // Clear URL parameters after reading them
+            const newSearchParams = new URLSearchParams(searchParams);
+            if (appointmentId) {
+                // Keep appointment_id until we've scrolled to it
+                newSearchParams.delete('resident_id');
+            } else {
+                newSearchParams.delete('resident_id');
+                newSearchParams.delete('appointment_id');
+            }
+            setSearchParams(newSearchParams, { replace: true });
+        }
+    }, []); // Only run on mount
+
+    // Scroll to and highlight appointment when data is loaded
+    useEffect(() => {
+        if (highlightedAppointmentId.current && data?.data && data.data.length > 0) {
+            // Wait a bit for the DOM to render
+            setTimeout(() => {
+                const appointmentId = highlightedAppointmentId.current;
+                // Try both string and number keys
+                const rowRef = appointmentRowRefs.current[appointmentId] || 
+                              appointmentRowRefs.current[parseInt(appointmentId)];
+                
+                if (rowRef) {
+                    // Scroll to the appointment row
+                    rowRef.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    // Remove highlight after 3 seconds
+                    setTimeout(() => {
+                        highlightedAppointmentId.current = null;
+                        const newSearchParams = new URLSearchParams(searchParams);
+                        newSearchParams.delete('appointment_id');
+                        setSearchParams(newSearchParams, { replace: true });
+                    }, 3000);
+                }
+            }, 200); // Slightly longer delay to ensure DOM is ready
+        }
+    }, [data, searchParams, setSearchParams]);
 
     const { data, isLoading, refetch } = useQuery({
         queryKey: ['appointments', residentFilter, branchFilter],
@@ -322,8 +374,27 @@ export default function Appointments() {
                                                 }
                                             }
 
+                                            const isHighlighted = highlightedAppointmentId.current && (
+                                                highlightedAppointmentId.current === appointment.id.toString() || 
+                                                highlightedAppointmentId.current === appointment.id
+                                            );
+                                            
                                             return (
-                                                <tr key={appointment.id} className="hover:bg-gray-50">
+                                                <tr 
+                                                    key={appointment.id} 
+                                                    ref={(el) => {
+                                                        if (el) {
+                                                            // Store ref with both string and number keys for flexibility
+                                                            appointmentRowRefs.current[appointment.id] = el;
+                                                            appointmentRowRefs.current[appointment.id.toString()] = el;
+                                                        }
+                                                    }}
+                                                    className={`hover:bg-gray-50 transition-all duration-500 ${
+                                                        isHighlighted 
+                                                            ? 'bg-green-100 border-l-4 border-[#2D5016] shadow-md' 
+                                                            : ''
+                                                    }`}
+                                                >
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <div className="text-sm font-medium text-gray-900">
                                                             {appointment.resident?.first_name} {appointment.resident?.last_name}

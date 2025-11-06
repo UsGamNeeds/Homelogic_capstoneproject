@@ -72,4 +72,22 @@ class CreateVitalRange extends CreateRecord
             throw $e;
         }
     }
+
+    protected function getFormActions(): array
+    {
+        $actions = parent::getFormActions();
+        
+        // Add confirmation to the create/save button
+        foreach ($actions as $action) {
+            if ($action instanceof Actions\CreateAction || $action->getName() === 'create') {
+                $action->requiresConfirmation()
+                    ->modalHeading('Create Vital Range')
+                    ->modalDescription('Are you sure you want to create this vital range?')
+                    ->modalSubmitActionLabel('Yes, Create');
+                break;
+            }
+        }
+        
+        return $actions;
+    }
 }

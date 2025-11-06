@@ -64,11 +64,21 @@ export default function NotificationDropdown() {
             markAsReadMutation.mutate(notification.id);
         }
 
-        // Navigate if there's an action URL
-        if (notification.action_url) {
+        // Navigate based on notification type
+        if (notification.type === 'appointment_upcoming' && notification.metadata) {
+            // For appointment notifications, navigate to appointments page with appointment and resident IDs
+            const appointmentId = notification.metadata.appointment_id;
+            const residentId = notification.metadata.resident_id;
+            if (appointmentId && residentId) {
+                navigate(`/app/appointments?resident_id=${residentId}&appointment_id=${appointmentId}`);
+            } else if (notification.action_url) {
+                navigate(notification.action_url);
+            }
+        } else if (notification.action_url) {
+            // For other notification types, use the action URL
             navigate(notification.action_url);
-            setIsOpen(false);
         }
+        setIsOpen(false);
     };
 
     const getNotificationIcon = (type) => {

@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use App\Models\Appointment;
+use App\Models\Medication;
 use App\Observers\AppointmentObserver;
+use App\Observers\MedicationObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,5 +24,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Appointment::observe(AppointmentObserver::class);
+        Medication::observe(MedicationObserver::class);
     }
 }
