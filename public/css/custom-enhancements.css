@@ -1,0 +1,126 @@
+/* Evergreen Oasis Care - Custom UI Enhancements */
+/* Applied after Tailwind compilation */
+
+/* Floating action button for mobile */
+.fab {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 3.5rem;
+    height: 3.5rem;
+    background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 50;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+}
+
+.fab:hover {
+    transform: scale(1.1);
+    box-shadow: 0 8px 24px rgba(14, 165, 233, 0.6);
+}
+
+.fab:active {
+    transform: scale(0.95);
+}
+
+/* Mobile menu overlay */
+.fab-menu {
+    position: fixed;
+    bottom: 5.5rem;
+    right: 1.5rem;
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    padding: 0.5rem;
+    z-index: 49;
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+.fab-menu.active {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    pointer-events: all;
+}
+
+.fab-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    white-space: nowrap;
+    color: #334155;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.fab-menu-item:hover {
+    background: #f8fafc;
+    color: #0ea5e9;
+}
+
+.fab-menu-item svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-right: 0.75rem;
+}
+
+/* Better scrollbars */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Loading animation */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.fi-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin: -0.75rem 0 0 -0.75rem;
+    border: 2px solid #0ea5e9;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 0.6s linear infinite;
+}
+
+/* Print styles */
+@media print {
+    .fab,
+    .fab-menu,
+    .fi-sidebar,
+    .fi-topbar {
+        display: none !important;
+    }
+}
+
