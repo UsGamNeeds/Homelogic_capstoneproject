@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 
 class UserController extends Controller
 {
@@ -68,7 +69,7 @@ class UserController extends Controller
             'date_of_birth' => 'required|date|before:' . now()->subYears(18)->format('Y-m-d'),
             'marital_status' => 'nullable|string|max:50',
             'sex' => 'required|string|in:male,female,other',
-            'position' => 'required|string|max:255',
+            'position' => 'nullable|string|max:255',
             'credentials' => 'nullable|string|max:255',
             'credential_details' => 'nullable|string',
             'date_employed' => 'required|date|before_or_equal:today',
@@ -87,6 +88,13 @@ class UserController extends Controller
         // Convert empty string to null for nullable fields
         if (array_key_exists('assigned_branch_id', $validated)) {
             $validated['assigned_branch_id'] = $validated['assigned_branch_id'] ?: null;
+        }
+        
+        // Remove position if column doesn't exist in database or if it's empty
+        if (!Schema::hasColumn('users', 'position')) {
+            unset($validated['position']);
+        } elseif (array_key_exists('position', $validated) && empty($validated['position'])) {
+            unset($validated['position']);
         }
 
         // Handle profile image upload
@@ -140,7 +148,7 @@ class UserController extends Controller
             'date_of_birth' => 'nullable|date|before:' . now()->subYears(18)->format('Y-m-d'),
             'marital_status' => 'nullable|string|max:50',
             'sex' => 'sometimes|required|string|in:male,female,other',
-            'position' => 'sometimes|required|string|max:255',
+            'position' => 'nullable|string|max:255',
             'credentials' => 'nullable|string|max:255',
             'credential_details' => 'nullable|string',
             'date_employed' => 'nullable|date|before_or_equal:today',
@@ -159,6 +167,13 @@ class UserController extends Controller
         // Convert empty string to null for nullable fields
         if (array_key_exists('assigned_branch_id', $validated)) {
             $validated['assigned_branch_id'] = $validated['assigned_branch_id'] ?: null;
+        }
+        
+        // Remove position if column doesn't exist in database or if it's empty
+        if (!Schema::hasColumn('users', 'position')) {
+            unset($validated['position']);
+        } elseif (array_key_exists('position', $validated) && empty($validated['position'])) {
+            unset($validated['position']);
         }
 
         // Handle profile image upload if provided

@@ -3,15 +3,13 @@ import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
 import { 
     FileText, Search, Filter, Calendar, User, Activity, 
-    AlertCircle, Info, CheckCircle, XCircle, Clock,
-    ChevronDown, ChevronUp, Eye, AlertTriangle
+    Clock, ChevronDown, ChevronUp, Eye
 } from 'lucide-react';
 
 export default function ActivityLogsPage() {
     const [search, setSearch] = useState('');
     const [logTypeFilter, setLogTypeFilter] = useState('');
     const [eventFilter, setEventFilter] = useState('');
-    const [levelFilter, setLevelFilter] = useState('');
     const [userFilter, setUserFilter] = useState('');
     const [branchFilter, setBranchFilter] = useState('');
     const [dateFrom, setDateFrom] = useState('');
@@ -21,7 +19,7 @@ export default function ActivityLogsPage() {
     const [showFilters, setShowFilters] = useState(false);
 
     const { data, isLoading, error } = useQuery({
-        queryKey: ['activity-logs', search, logTypeFilter, eventFilter, levelFilter, userFilter, branchFilter, dateFrom, dateUntil, currentPage],
+        queryKey: ['activity-logs', search, logTypeFilter, eventFilter, userFilter, branchFilter, dateFrom, dateUntil, currentPage],
         queryFn: async () => {
             const params = {
                 per_page: 20,
@@ -30,7 +28,6 @@ export default function ActivityLogsPage() {
             if (search) params.search = search;
             if (logTypeFilter) params.log_type = logTypeFilter;
             if (eventFilter) params.event = eventFilter;
-            if (levelFilter) params.level = levelFilter;
             if (userFilter) params.user_id = userFilter;
             if (branchFilter) params.branch_id = branchFilter;
             if (dateFrom) params.logged_from = dateFrom;
@@ -75,18 +72,12 @@ export default function ActivityLogsPage() {
         }
     };
 
-    const getLevelIcon = (level) => {
-        switch (level) {
-            case 'error':
-            case 'critical':
-                return <AlertCircle className="w-4 h-4 text-red-600" />;
-            case 'warning':
-                return <AlertTriangle className="w-4 h-4 text-yellow-600" />;
-            case 'info':
-                return <Info className="w-4 h-4 text-blue-600" />;
-            default:
-                return <CheckCircle className="w-4 h-4 text-gray-600" />;
-        }
+    const formatRole = (role) => {
+        if (!role) return 'N/A';
+        // Convert role to a more readable format
+        return role.split('_').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
     };
 
     const formatDate = (dateString) => {
@@ -104,7 +95,6 @@ export default function ActivityLogsPage() {
         setSearch('');
         setLogTypeFilter('');
         setEventFilter('');
-        setLevelFilter('');
         setUserFilter('');
         setBranchFilter('');
         setDateFrom('');
@@ -114,7 +104,7 @@ export default function ActivityLogsPage() {
 
     React.useEffect(() => {
         setCurrentPage(1);
-    }, [search, logTypeFilter, eventFilter, levelFilter, userFilter, branchFilter, dateFrom, dateUntil]);
+    }, [search, logTypeFilter, eventFilter, userFilter, branchFilter, dateFrom, dateUntil]);
 
     if (error) {
         return (
@@ -198,22 +188,6 @@ export default function ActivityLogsPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
-                            <select
-                                value={levelFilter}
-                                onChange={(e) => setLevelFilter(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
-                            >
-                                <option value="">All Levels</option>
-                                <option value="debug">Debug</option>
-                                <option value="info">Info</option>
-                                <option value="warning">Warning</option>
-                                <option value="error">Error</option>
-                                <option value="critical">Critical</option>
-                            </select>
-                        </div>
-
-                        <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">User</label>
                             <select
                                 value={userFilter}
@@ -285,9 +259,9 @@ export default function ActivityLogsPage() {
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User Role</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
@@ -319,6 +293,15 @@ export default function ActivityLogsPage() {
                                                     <span className="text-gray-400">System</span>
                                                 )}
                                             </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {log.user?.role ? (
+                                                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-[#2D5016]/10 text-[#2D5016]">
+                                                        {formatRole(log.user.role)}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-400">N/A</span>
+                                                )}
+                                            </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getLogTypeColor(log.log_type)}`}>
                                                     {log.log_type}
@@ -328,12 +311,6 @@ export default function ActivityLogsPage() {
                                                 <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getEventColor(log.event)}`}>
                                                     {log.event}
                                                 </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center">
-                                                    {getLevelIcon(log.level)}
-                                                    <span className="ml-2 text-sm text-gray-900 capitalize">{log.level}</span>
-                                                </div>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-900">
                                                 <div className="max-w-md truncate" title={log.description}>

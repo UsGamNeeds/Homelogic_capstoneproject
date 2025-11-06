@@ -177,3 +177,4 @@ ActivityLog::where('logged_at', '<', now()->subMonths(6))->delete();
 
 Or archive old logs to a separate storage system before deleting.
 
+

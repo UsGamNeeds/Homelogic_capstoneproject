@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { 
     Bell, Calendar, Activity, ClipboardList, Pill, Moon, UserCheck, 
-    Check, CheckCheck, AlertCircle, Clock, X
+    Check, CheckCheck, AlertCircle, Clock, X, User, UserPlus, Building2
 } from 'lucide-react';
 
 export default function NotificationDropdown() {
@@ -64,29 +64,85 @@ export default function NotificationDropdown() {
             markAsReadMutation.mutate(notification.id);
         }
 
-        // Navigate based on notification type
-        if (notification.type === 'appointment_upcoming' && notification.metadata) {
-            // For appointment notifications, navigate to appointments page with appointment and resident IDs
-            const appointmentId = notification.metadata.appointment_id;
-            const residentId = notification.metadata.resident_id;
-            if (appointmentId && residentId) {
-                navigate(`/app/appointments?resident_id=${residentId}&appointment_id=${appointmentId}`);
-            } else if (notification.action_url) {
-                navigate(notification.action_url);
-            }
-        } else if (notification.type === 'medication_created' && notification.metadata) {
-            // For medication notifications, navigate to medications page with medication and resident IDs
-            const medicationId = notification.metadata.medication_id;
-            const residentId = notification.metadata.resident_id;
-            if (medicationId && residentId) {
-                navigate(`/app/medications?resident_id=${residentId}&medication_id=${medicationId}`);
-            } else if (notification.action_url) {
-                navigate(notification.action_url);
-            }
-        } else if (notification.action_url) {
-            // For other notification types, use the action URL
-            navigate(notification.action_url);
+        // Navigate based on notification type and metadata
+        const metadata = notification.metadata || {};
+        
+        // Build navigation URL based on notification type
+        let navUrl = notification.action_url || '/app/dashboard';
+        
+        switch (notification.type) {
+            case 'appointment_upcoming':
+                if (metadata.appointment_id && metadata.resident_id) {
+                    navUrl = `/app/appointments?resident_id=${metadata.resident_id}&appointment_id=${metadata.appointment_id}`;
+                }
+                break;
+            case 'medication_created':
+                if (metadata.medication_id && metadata.resident_id) {
+                    navUrl = `/app/medications?resident_id=${metadata.resident_id}&medication_id=${metadata.medication_id}`;
+                }
+                break;
+            case 'medication_administered':
+                if (metadata.medication_id && metadata.resident_id) {
+                    navUrl = `/app/medications?resident_id=${metadata.resident_id}&medication_id=${metadata.medication_id}`;
+                }
+                break;
+            case 'assessment_created':
+            case 'assessment_completed':
+                if (metadata.assessment_id && metadata.resident_id) {
+                    navUrl = `/app/assessments?resident_id=${metadata.resident_id}&assessment_id=${metadata.assessment_id}`;
+                }
+                break;
+            case 'leave_request':
+            case 'leave_approved':
+            case 'leave_rejected':
+                if (metadata.leave_request_id) {
+                    navUrl = `/app/leave-requests?leave_request_id=${metadata.leave_request_id}`;
+                }
+                break;
+            case 'vital_recorded':
+            case 'vital_critical':
+                if (metadata.vital_sign_id && metadata.resident_id) {
+                    navUrl = `/app/vitals?resident_id=${metadata.resident_id}&vital_id=${metadata.vital_sign_id}`;
+                }
+                break;
+            case 'incident_reported':
+                if (metadata.incident_id && metadata.resident_id) {
+                    navUrl = `/app/incidents?resident_id=${metadata.resident_id}&incident_id=${metadata.incident_id}`;
+                }
+                break;
+            case 'sleep_record':
+                if (metadata.sleep_record_id && metadata.resident_id) {
+                    navUrl = `/app/sleep?resident_id=${metadata.resident_id}&sleep_record_id=${metadata.sleep_record_id}`;
+                }
+                break;
+            case 'resident_created':
+                if (metadata.resident_id) {
+                    navUrl = `/app/residents?resident_id=${metadata.resident_id}`;
+                }
+                break;
+            case 'user_created':
+                if (metadata.user_id) {
+                    navUrl = `/app/users?user_id=${metadata.user_id}`;
+                }
+                break;
+            case 'facility_created':
+                if (metadata.facility_id) {
+                    navUrl = `/app/facilities?facility_id=${metadata.facility_id}`;
+                }
+                break;
+            case 'branch_created':
+                if (metadata.branch_id) {
+                    navUrl = `/app/branches?branch_id=${metadata.branch_id}`;
+                }
+                break;
+            default:
+                // Use action_url if available
+                if (notification.action_url) {
+                    navUrl = notification.action_url;
+                }
         }
+        
+        navigate(navUrl);
         setIsOpen(false);
     };
 
@@ -104,20 +160,34 @@ export default function NotificationDropdown() {
                 return { Icon: ClipboardList, color: 'text-[#8B4513]' };
             case 'assessment_completed':
                 return { Icon: ClipboardList, color: 'text-green-600' };
-            case 'medication_due':
-                return { Icon: Pill, color: 'text-[#8B4513]' };
-            case 'medication_created':
-                return { Icon: Pill, color: 'text-[#8B4513]' };
-            case 'medication_administered':
-                return { Icon: Pill, color: 'text-green-600' };
-            case 'sleep_record':
-                return { Icon: Moon, color: 'text-[#2D5016]' };
             case 'leave_request':
                 return { Icon: UserCheck, color: 'text-[#8B4513]' };
             case 'leave_approved':
                 return { Icon: Check, color: 'text-[#2D5016]' };
             case 'leave_rejected':
                 return { Icon: X, color: 'text-red-600' };
+            case 'vital_recorded':
+                return { Icon: Activity, color: 'text-[#2D5016]' };
+            case 'vital_critical':
+                return { Icon: AlertCircle, color: 'text-red-600' };
+            case 'incident_reported':
+                return { Icon: AlertCircle, color: 'text-red-600' };
+            case 'sleep_record':
+                return { Icon: Moon, color: 'text-[#2D5016]' };
+            case 'resident_created':
+                return { Icon: User, color: 'text-[#2D5016]' };
+            case 'user_created':
+                return { Icon: User, color: 'text-[#2D5016]' };
+            case 'facility_created':
+                return { Icon: Building2, color: 'text-[#2D5016]' };
+            case 'branch_created':
+                return { Icon: Building2, color: 'text-[#2D5016]' };
+            case 'medication_due':
+                return { Icon: Pill, color: 'text-[#8B4513]' };
+            case 'medication_created':
+                return { Icon: Pill, color: 'text-[#8B4513]' };
+            case 'medication_administered':
+                return { Icon: Pill, color: 'text-green-600' };
             default:
                 return { Icon: Bell, color: 'text-gray-600' };
         }

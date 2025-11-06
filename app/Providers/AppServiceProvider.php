@@ -8,10 +8,26 @@ use App\Models\Appointment;
 use App\Models\Medication;
 use App\Models\MedicationAdministration;
 use App\Models\Assessment;
+use App\Models\LeaveRequest;
+use App\Models\VitalSign;
+use App\Models\Incident;
+use App\Models\SleepRecord;
+use App\Models\Resident;
+use App\Models\User;
+use App\Models\Facility;
+use App\Models\Branch;
 use App\Observers\AppointmentObserver;
 use App\Observers\MedicationObserver;
 use App\Observers\MedicationAdministrationObserver;
 use App\Observers\AssessmentObserver;
+use App\Observers\LeaveRequestObserver;
+use App\Observers\VitalSignObserver;
+use App\Observers\IncidentObserver;
+use App\Observers\SleepRecordObserver;
+use App\Observers\ResidentObserver;
+use App\Observers\UserObserver;
+use App\Observers\FacilityObserver;
+use App\Observers\BranchObserver;
 use App\Listeners\LogAuthentication;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
@@ -31,10 +47,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register all model observers
         Appointment::observe(AppointmentObserver::class);
         Medication::observe(MedicationObserver::class);
         MedicationAdministration::observe(MedicationAdministrationObserver::class);
         Assessment::observe(AssessmentObserver::class);
+        LeaveRequest::observe(LeaveRequestObserver::class);
+        VitalSign::observe(VitalSignObserver::class);
+        Incident::observe(IncidentObserver::class);
+        SleepRecord::observe(SleepRecordObserver::class);
+        Resident::observe(ResidentObserver::class);
+        User::observe(UserObserver::class);
+        Facility::observe(FacilityObserver::class);
+        Branch::observe(BranchObserver::class);
         
         // Register authentication event listeners
         Event::listen(Login::class, LogAuthentication::class);

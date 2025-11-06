@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
-import { Users, Plus, Edit, Trash2, Search, Filter, Upload, X, Eye, Mail, Phone, Calendar, Briefcase, MapPin, Award, Shield, Clock, User as UserIcon } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Search, Filter, Upload, X, Eye, Mail, Phone, Calendar, Briefcase, MapPin, Award, Shield, Clock, User as UserIcon, AlertCircle } from 'lucide-react';
 
 export default function UsersPage() {
     const queryClient = useQueryClient();
@@ -392,8 +392,12 @@ function UserForm({ record, branches, roles, onClose, onSuccess }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        e.stopPropagation();
         setErrors({});
         setIsSubmitting(true);
+
+        console.log('Form submitted with data:', formData);
+        console.log('Is new user?', !record);
 
         try {
             // Auto-generate name from first, middle, last name
@@ -450,14 +454,23 @@ function UserForm({ record, branches, roles, onClose, onSuccess }) {
                     setIsSubmitting(false);
                     return;
                 }
-                await api.post('/users', formDataToSend);
+                console.log('Creating new user...');
+                const response = await api.post('/users', formDataToSend);
+                console.log('User created successfully:', response.data);
             }
+            console.log('Calling onSuccess...');
             onSuccess();
         } catch (error) {
+            console.error('User creation/update error:', error);
             if (error.response?.data?.errors) {
                 setErrors(error.response.data.errors);
+                // Scroll to top to show errors
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
-                setErrors({ general: error.response?.data?.message || 'Failed to save user' });
+                const errorMessage = error.response?.data?.message || error.message || 'Failed to save user. Please check all required fields.';
+                setErrors({ general: errorMessage });
+                // Scroll to top to show error
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         } finally {
             setIsSubmitting(false);
@@ -481,8 +494,30 @@ function UserForm({ record, branches, roles, onClose, onSuccess }) {
                     </div>
 
                     {errors.general && (
-                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                            <p className="text-sm text-red-800">{errors.general}</p>
+                        <div className="mb-4 p-4 bg-red-50 border-2 border-red-300 rounded-lg">
+                            <div className="flex items-start">
+                                <AlertCircle className="w-5 h-5 text-red-600 mr-2 mt-0.5" />
+                                <div>
+                                    <p className="text-sm font-semibold text-red-800">Error</p>
+                                    <p className="text-sm text-red-700 mt-1">{errors.general}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {Object.keys(errors).filter(key => key !== 'general').length > 0 && (
+                        <div className="mb-4 p-4 bg-yellow-50 border-2 border-yellow-300 rounded-lg">
+                            <div className="flex items-start">
+                                <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 mt-0.5" />
+                                <div>
+                                    <p className="text-sm font-semibold text-yellow-800">Please fix the following errors:</p>
+                                    <ul className="text-sm text-yellow-700 mt-2 list-disc list-inside">
+                                        {Object.entries(errors).filter(([key]) => key !== 'general').map(([key, messages]) => (
+                                            <li key={key}>{key}: {Array.isArray(messages) ? messages.join(', ') : messages}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                     )}
 
@@ -914,9 +949,6 @@ function UserProfileViewer({ user, onClose, onEdit, onToggleActive }) {
                             </div>
                             <div className="text-center md:text-left">
                                 <h2 className="text-2xl md:text-3xl font-bold mb-2">{user.name || user.email}</h2>
-                                {user.position && (
-                                    <p className="text-lg md:text-xl text-green-100">{user.position}</p>
-                                )}
                                 {user.email && (
                                     <div className="flex items-center justify-center md:justify-start space-x-2 mt-2 text-sm md:text-base text-green-50">
                                         <Mail className="w-4 h-4" />
