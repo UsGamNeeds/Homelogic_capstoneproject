@@ -38,10 +38,16 @@ class LeaveRequestController extends Controller
             'status' => 'nullable|in:pending,approved,declined',
         ]);
         
+        $user = auth()->user();
+        
         // If user is a caregiver, force staff_id to be their own ID and status to pending
-        if (auth()->user()->hasRole('caregiver')) {
-            $validated['staff_id'] = auth()->id();
+        if ($user->hasRole('caregiver')) {
+            $validated['staff_id'] = $user->id;
             $validated['status'] = 'pending';
+            // Set branch_id from user's assigned branch
+            if ($user->assigned_branch_id) {
+                $validated['branch_id'] = $user->assigned_branch_id;
+            }
         } else {
             // Admins must provide staff_id
             if (!isset($validated['staff_id'])) {
@@ -49,6 +55,17 @@ class LeaveRequestController extends Controller
             }
             // Default status to pending if not provided
             $validated['status'] = $validated['status'] ?? 'pending';
+            
+            // Get branch_id from the selected staff member
+            $staff = \App\Models\User::find($validated['staff_id']);
+            if ($staff && $staff->assigned_branch_id) {
+                $validated['branch_id'] = $staff->assigned_branch_id;
+            }
+        }
+        
+        // Ensure branch_id is set (required by database)
+        if (!isset($validated['branch_id'])) {
+            return response()->json(['message' => 'Unable to determine branch. Please ensure the staff member has an assigned branch.'], 422);
         }
         
         $leave = LeaveRequest::create($validated);
@@ -78,6 +95,14 @@ class LeaveRequestController extends Controller
             unset($validated['status']);
             unset($validated['staff_id']);
             unset($validated['approved_by']);
+        }
+        
+        // If staff_id is being updated, update branch_id accordingly
+        if (isset($validated['staff_id']) && $validated['staff_id'] != $leave->staff_id) {
+            $staff = \App\Models\User::find($validated['staff_id']);
+            if ($staff && $staff->assigned_branch_id) {
+                $validated['branch_id'] = $staff->assigned_branch_id;
+            }
         }
         
         $leave->update($validated);

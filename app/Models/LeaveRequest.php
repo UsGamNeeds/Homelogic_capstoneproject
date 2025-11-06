@@ -13,6 +13,7 @@ class LeaveRequest extends Model
 
     protected $fillable = [
         'staff_id',
+        'branch_id',
         'start_date',
         'end_date',
         'reason',
@@ -36,6 +37,11 @@ class LeaveRequest extends Model
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     // Calculate leave duration in days

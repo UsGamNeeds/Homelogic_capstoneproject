@@ -10,6 +10,19 @@ class EditLeaveRequest extends EditRecord
 {
     protected static string $resource = LeaveRequestResource::class;
 
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        // If staff_id is being updated, update branch_id accordingly
+        if (isset($data['staff_id']) && $data['staff_id'] != $this->record->staff_id) {
+            $staff = \App\Models\User::find($data['staff_id']);
+            if ($staff && $staff->assigned_branch_id) {
+                $data['branch_id'] = $staff->assigned_branch_id;
+            }
+        }
+
+        return $data;
+    }
+
     protected function getHeaderActions(): array
     {
         return [

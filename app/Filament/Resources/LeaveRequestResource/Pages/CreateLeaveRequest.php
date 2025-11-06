@@ -12,9 +12,45 @@ class CreateLeaveRequest extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $user = auth()->user();
+        
         // If user is a caregiver, pre-fill their staff_id
-        if (auth()->user()->hasRole('caregiver')) {
-            $data['staff_id'] = auth()->id();
+        if ($user->hasRole('caregiver')) {
+            $data['staff_id'] = $user->id;
+            // Set branch_id from user's assigned branch
+            if ($user->assigned_branch_id) {
+                $data['branch_id'] = $user->assigned_branch_id;
+            } else {
+                // If caregiver doesn't have an assigned branch, show error
+                \Filament\Notifications\Notification::make()
+                    ->title('Cannot Create Leave Request')
+                    ->body('You must have an assigned branch to create a leave request. Please contact your administrator.')
+                    ->danger()
+                    ->send();
+                throw new \Illuminate\Validation\ValidationException(
+                    validator([], []),
+                    ['branch_id' => ['You must have an assigned branch to create a leave request.']]
+                );
+            }
+        } else {
+            // For admins, get branch_id from the selected staff member
+            if (isset($data['staff_id'])) {
+                $staff = \App\Models\User::find($data['staff_id']);
+                if ($staff && $staff->assigned_branch_id) {
+                    $data['branch_id'] = $staff->assigned_branch_id;
+                } else {
+                    // If selected staff doesn't have an assigned branch, show error
+                    \Filament\Notifications\Notification::make()
+                        ->title('Cannot Create Leave Request')
+                        ->body('The selected staff member must have an assigned branch. Please assign a branch to this staff member first.')
+                        ->danger()
+                        ->send();
+                    throw new \Illuminate\Validation\ValidationException(
+                        validator([], []),
+                        ['staff_id' => ['The selected staff member must have an assigned branch.']]
+                    );
+                }
+            }
         }
 
         return $data;
