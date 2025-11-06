@@ -15,6 +15,28 @@ export default function Medications() {
     const [showForm, setShowForm] = useState(false);
     const [editing, setEditing] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [currentUser, setCurrentUser] = useState(null);
+
+    // Fetch current user
+    React.useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const response = await api.get('/user');
+                setCurrentUser(response.data);
+            } catch (err) {
+                console.error('Failed to fetch current user:', err);
+            }
+        };
+        fetchUser();
+    }, []);
+
+    // Check if user is a caregiver
+    const isCaregiver = React.useMemo(() => {
+        if (!currentUser) return false;
+        const role = currentUser.role?.toLowerCase().trim() || '';
+        const roleNormalized = role.replace(/[\s_]/g, '');
+        return roleNormalized === 'caregiver' || (role.includes('care') && role.includes('giver'));
+    }, [currentUser]);
 
     const { data, isLoading } = useQuery({
         queryKey: ['medications', activeOnly, search, residentFilter, branchFilter, currentPage],
@@ -432,6 +454,8 @@ export default function Medications() {
                     record={editing}
                     residents={residentsData?.data || []}
                     branches={branchesData?.data || []}
+                    currentUser={currentUser}
+                    isCaregiver={isCaregiver}
                     onClose={() => {
                         setShowForm(false);
                         setEditing(null);
@@ -763,10 +787,21 @@ function MedicationAdministrationForm({ medication, onClose, onSuccess }) {
 }
 
 // Medication Create/Edit Form Component
-function MedicationForm({ record, residents, branches, onClose, onSuccess }) {
+function MedicationForm({ record, residents, branches, currentUser, isCaregiver, onClose, onSuccess }) {
+    // Filter branches and residents for caregivers
+    const filteredBranches = React.useMemo(() => {
+        if (!isCaregiver || !currentUser?.assigned_branch_id) return branches;
+        return branches.filter(b => b.id === currentUser.assigned_branch_id);
+    }, [branches, isCaregiver, currentUser]);
+
+    const filteredResidents = React.useMemo(() => {
+        if (!isCaregiver || !currentUser?.assigned_branch_id) return residents;
+        return residents.filter(r => r.branch_id === currentUser.assigned_branch_id);
+    }, [residents, isCaregiver, currentUser]);
+
     const [formData, setFormData] = useState({
         resident_id: record?.resident_id || '',
-        branch_id: record?.branch_id || '',
+        branch_id: record?.branch_id || (isCaregiver && currentUser?.assigned_branch_id ? currentUser.assigned_branch_id : ''),
         drug_id: record?.drug_id || '',
         name: record?.name || '',
         instructions: record?.instructions || '',
@@ -782,6 +817,13 @@ function MedicationForm({ record, residents, branches, onClose, onSuccess }) {
         time_3: record?.time_3 || '',
         time_4: record?.time_4 || '',
     });
+
+    // Auto-select branch for caregivers on mount
+    React.useEffect(() => {
+        if (isCaregiver && currentUser?.assigned_branch_id && !record && !formData.branch_id) {
+            setFormData(prev => ({ ...prev, branch_id: currentUser.assigned_branch_id }));
+        }
+    }, [isCaregiver, currentUser, record]);
 
     // Determine how many time fields to display based on instruction
     const getTimesNeeded = (instruction) => {
@@ -884,10 +926,11 @@ function MedicationForm({ record, residents, branches, onClose, onSuccess }) {
                                         });
                                     }}
                                     required
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    disabled={isCaregiver && currentUser?.assigned_branch_id}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                                 >
                                     <option value="">Select Branch</option>
-                                    {branches.map(b => (
+                                    {filteredBranches.map(b => (
                                         <option key={b.id} value={b.id}>{b.name}</option>
                                     ))}
                                 </select>
@@ -906,7 +949,7 @@ function MedicationForm({ record, residents, branches, onClose, onSuccess }) {
                                     <option value="">
                                         {formData.branch_id ? 'Select Resident' : 'Select Branch First'}
                                     </option>
-                                    {residents
+                                    {filteredResidents
                                         .filter(r => !formData.branch_id || r.branch_id == formData.branch_id)
                                         .map(r => (
                                             <option key={r.id} value={r.id}>{r.first_name} {r.last_name}</option>

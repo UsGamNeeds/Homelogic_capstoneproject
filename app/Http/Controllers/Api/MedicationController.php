@@ -42,6 +42,13 @@ class MedicationController extends Controller
             });
         }
 
+        // If user is a caregiver, show medications for residents in their assigned branch only
+        if (auth()->user()->hasRole('caregiver')) {
+            $query->whereHas('resident', function ($q) {
+                $q->where('branch_id', auth()->user()->assigned_branch_id);
+            });
+        }
+
         $medications = $query->orderBy('start_date', 'desc')
             ->paginate($request->get('per_page', 15));
 
@@ -85,6 +92,19 @@ class MedicationController extends Controller
             }
         }
 
+        // If user is a caregiver, ensure they can only create medications for residents in their assigned branch
+        if (auth()->user()->hasRole('caregiver')) {
+            $resident = \App\Models\Resident::find($validated['resident_id']);
+            if (!$resident || $resident->branch_id !== auth()->user()->assigned_branch_id) {
+                return response()->json([
+                    'message' => 'Unauthorized: You can only create medications for residents in your assigned branch.',
+                    'errors' => ['resident_id' => ['You can only create medications for residents in your assigned branch.']]
+                ], 403);
+            }
+            // Force branch_id to caregiver's assigned branch
+            $validated['branch_id'] = auth()->user()->assigned_branch_id;
+        }
+
         // Auto-generate name from drug if drug_id is provided but name is not
         if (isset($validated['drug_id']) && !isset($validated['name'])) {
             $drug = \App\Models\Drug::find($validated['drug_id']);
@@ -107,6 +127,15 @@ class MedicationController extends Controller
     {
         $medication = Medication::findOrFail($id);
 
+        // If user is a caregiver, ensure they can only update medications for residents in their assigned branch
+        if (auth()->user()->hasRole('caregiver')) {
+            if ($medication->resident->branch_id !== auth()->user()->assigned_branch_id) {
+                return response()->json([
+                    'message' => 'Unauthorized: You can only update medications for residents in your assigned branch.',
+                ], 403);
+            }
+        }
+
         $validated = $request->validate([
             'resident_id' => 'sometimes|exists:residents,id',
             'branch_id' => 'nullable|exists:branches,id',
@@ -125,6 +154,19 @@ class MedicationController extends Controller
             'time_3' => 'nullable',
             'time_4' => 'nullable',
         ]);
+
+        // If user is a caregiver and trying to change resident_id, validate it's in their branch
+        if (auth()->user()->hasRole('caregiver') && isset($validated['resident_id'])) {
+            $resident = \App\Models\Resident::find($validated['resident_id']);
+            if (!$resident || $resident->branch_id !== auth()->user()->assigned_branch_id) {
+                return response()->json([
+                    'message' => 'Unauthorized: You can only update medications for residents in your assigned branch.',
+                    'errors' => ['resident_id' => ['You can only update medications for residents in your assigned branch.']]
+                ], 403);
+            }
+            // Force branch_id to caregiver's assigned branch
+            $validated['branch_id'] = auth()->user()->assigned_branch_id;
+        }
 
         // Auto-generate name from drug if drug_id is provided but name is not
         if (isset($validated['drug_id']) && !isset($validated['name'])) {

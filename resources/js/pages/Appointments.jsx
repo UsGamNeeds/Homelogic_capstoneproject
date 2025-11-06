@@ -49,75 +49,7 @@ export default function Appointments() {
         return roleNormalized === 'caregiver' || (role.includes('care') && role.includes('giver'));
     }, [currentUser]);
 
-    // Read URL parameters on mount and set filters
-    useEffect(() => {
-        if (urlParamsProcessed.current) return;
-        
-        try {
-            const residentId = searchParams.get('resident_id');
-            const appointmentId = searchParams.get('appointment_id');
-            
-            if (residentId) {
-                setResidentFilter(residentId);
-                highlightedAppointmentId.current = appointmentId;
-                
-                // Clear URL parameters after reading them
-                const newSearchParams = new URLSearchParams(searchParams);
-                if (appointmentId) {
-                    // Keep appointment_id until we've scrolled to it
-                    newSearchParams.delete('resident_id');
-                } else {
-                    newSearchParams.delete('resident_id');
-                    newSearchParams.delete('appointment_id');
-                }
-                setSearchParams(newSearchParams, { replace: true });
-            }
-            
-            urlParamsProcessed.current = true;
-        } catch (error) {
-            console.error('Error processing URL parameters:', error);
-            urlParamsProcessed.current = true;
-        }
-    }, []); // Only run once on mount
-
-    // Scroll to and highlight appointment when data is loaded
-    useEffect(() => {
-        if (!highlightedAppointmentId.current || !data || !data.data || data.data.length === 0) {
-            return;
-        }
-
-        try {
-            // Wait a bit for the DOM to render
-            const timeoutId = setTimeout(() => {
-                const appointmentId = highlightedAppointmentId.current;
-                if (!appointmentId) return;
-                
-                // Try both string and number keys
-                const rowRef = appointmentRowRefs.current[appointmentId] || 
-                              appointmentRowRefs.current[String(appointmentId)] ||
-                              appointmentRowRefs.current[parseInt(appointmentId)];
-                
-                if (rowRef) {
-                    // Scroll to the appointment row
-                    rowRef.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    
-                    // Remove highlight after 3 seconds
-                    setTimeout(() => {
-                        highlightedAppointmentId.current = null;
-                        const newSearchParams = new URLSearchParams(window.location.search);
-                        newSearchParams.delete('appointment_id');
-                        setSearchParams(newSearchParams, { replace: true });
-                    }, 3000);
-                }
-            }, 200); // Slightly longer delay to ensure DOM is ready
-            
-            // Cleanup function to clear timeout if component unmounts or dependencies change
-            return () => clearTimeout(timeoutId);
-        } catch (error) {
-            console.error('Error scrolling to appointment:', error);
-        }
-    }, [data, setSearchParams]);
-
+    // Define queries FIRST before using them in useEffect
     const { data, isLoading, error: appointmentsError, refetch } = useQuery({
         queryKey: ['appointments', residentFilter, branchFilter],
         queryFn: async () => {
@@ -198,6 +130,75 @@ export default function Appointments() {
         },
         retry: 1,
     });
+
+    // Read URL parameters on mount and set filters
+    useEffect(() => {
+        if (urlParamsProcessed.current) return;
+        
+        try {
+            const residentId = searchParams.get('resident_id');
+            const appointmentId = searchParams.get('appointment_id');
+            
+            if (residentId) {
+                setResidentFilter(residentId);
+                highlightedAppointmentId.current = appointmentId;
+                
+                // Clear URL parameters after reading them
+                const newSearchParams = new URLSearchParams(searchParams);
+                if (appointmentId) {
+                    // Keep appointment_id until we've scrolled to it
+                    newSearchParams.delete('resident_id');
+                } else {
+                    newSearchParams.delete('resident_id');
+                    newSearchParams.delete('appointment_id');
+                }
+                setSearchParams(newSearchParams, { replace: true });
+            }
+            
+            urlParamsProcessed.current = true;
+        } catch (error) {
+            console.error('Error processing URL parameters:', error);
+            urlParamsProcessed.current = true;
+        }
+    }, []); // Only run once on mount
+
+    // Scroll to and highlight appointment when data is loaded
+    useEffect(() => {
+        if (!highlightedAppointmentId.current || !data || !data.data || data.data.length === 0) {
+            return;
+        }
+
+        try {
+            // Wait a bit for the DOM to render
+            const timeoutId = setTimeout(() => {
+                const appointmentId = highlightedAppointmentId.current;
+                if (!appointmentId) return;
+                
+                // Try both string and number keys
+                const rowRef = appointmentRowRefs.current[appointmentId] || 
+                              appointmentRowRefs.current[String(appointmentId)] ||
+                              appointmentRowRefs.current[parseInt(appointmentId)];
+                
+                if (rowRef) {
+                    // Scroll to the appointment row
+                    rowRef.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    // Remove highlight after 3 seconds
+                    setTimeout(() => {
+                        highlightedAppointmentId.current = null;
+                        const newSearchParams = new URLSearchParams(window.location.search);
+                        newSearchParams.delete('appointment_id');
+                        setSearchParams(newSearchParams, { replace: true });
+                    }, 3000);
+                }
+            }, 200); // Slightly longer delay to ensure DOM is ready
+            
+            // Cleanup function to clear timeout if component unmounts or dependencies change
+            return () => clearTimeout(timeoutId);
+        } catch (error) {
+            console.error('Error scrolling to appointment:', error);
+        }
+    }, [data, setSearchParams]);
 
     const createMutation = useMutation({
         mutationFn: async () => {
