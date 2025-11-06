@@ -74,6 +74,15 @@ export default function NotificationDropdown() {
             } else if (notification.action_url) {
                 navigate(notification.action_url);
             }
+        } else if (notification.type === 'medication_created' && notification.metadata) {
+            // For medication notifications, navigate to medications page with medication and resident IDs
+            const medicationId = notification.metadata.medication_id;
+            const residentId = notification.metadata.resident_id;
+            if (medicationId && residentId) {
+                navigate(`/app/medications?resident_id=${residentId}&medication_id=${medicationId}`);
+            } else if (notification.action_url) {
+                navigate(notification.action_url);
+            }
         } else if (notification.action_url) {
             // For other notification types, use the action URL
             navigate(notification.action_url);
@@ -91,8 +100,16 @@ export default function NotificationDropdown() {
                 return { Icon: Activity, color: 'text-[#2D5016]' };
             case 'assessment_due':
                 return { Icon: ClipboardList, color: 'text-[#8B4513]' };
+            case 'assessment_created':
+                return { Icon: ClipboardList, color: 'text-[#8B4513]' };
+            case 'assessment_completed':
+                return { Icon: ClipboardList, color: 'text-green-600' };
             case 'medication_due':
                 return { Icon: Pill, color: 'text-[#8B4513]' };
+            case 'medication_created':
+                return { Icon: Pill, color: 'text-[#8B4513]' };
+            case 'medication_administered':
+                return { Icon: Pill, color: 'text-green-600' };
             case 'sleep_record':
                 return { Icon: Moon, color: 'text-[#2D5016]' };
             case 'leave_request':

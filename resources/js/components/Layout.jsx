@@ -63,6 +63,7 @@ const navigation = [
             { name: 'Roles & Permissions', path: '/administration/roles' },
             { name: 'Users', path: '/administration/users' },
             { name: 'Employee Documents', path: '/administration/employee-documents' },
+            { name: 'Activity Logs', path: '/administration/activity-logs' },
         ]
     },
 ];

@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\DrugController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\EmployeeDocumentController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\ActivityLogController;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Session\Middleware\StartSession;
@@ -96,6 +97,12 @@ Route::prefix('v1')->group(function () {
     Route::get('/notifications/count', [NotificationController::class, 'count'])->middleware('auth:sanctum');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->middleware('auth:sanctum');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->middleware('auth:sanctum');
+
+    // Activity Logs
+    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->middleware('auth:sanctum');
+    Route::get('/activity-logs/stats', [ActivityLogController::class, 'stats'])->middleware('auth:sanctum');
+    Route::get('/activity-logs/{id}', [ActivityLogController::class, 'show'])->middleware('auth:sanctum');
+    Route::get('/activity-logs/subject/{subjectType}/{subjectId}', [ActivityLogController::class, 'forSubject'])->middleware('auth:sanctum');
 
     // Charts
     Route::prefix('charts')->middleware('auth:sanctum')->group(function () {

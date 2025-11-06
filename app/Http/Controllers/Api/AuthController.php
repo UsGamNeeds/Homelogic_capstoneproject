@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -23,6 +24,12 @@ class AuthController extends Controller
             // Regenerate session to prevent session fixation attacks
             $request->session()->regenerate();
 
+            // Log login
+            ActivityLogService::login($user, [
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
             return response()->json([
                 'user' => $user,
                 'token' => $token,
@@ -36,6 +43,16 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
+        $user = $request->user();
+        
+        // Log logout before deleting tokens
+        if ($user) {
+            ActivityLogService::logout($user, [
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+        }
+        
         $request->user()->tokens()->delete();
 
         return response()->json([

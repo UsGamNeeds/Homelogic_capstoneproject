@@ -25,6 +25,7 @@ import Roles from './pages/Roles';
 import Users from './pages/Users';
 import EmployeeDocuments from './pages/EmployeeDocuments';
 import Profile from './pages/Profile';
+import ActivityLogs from './pages/ActivityLogs';
 
 // Report sub-pages
 import ChartReports from './pages/reports/ChartReports';
@@ -85,6 +86,7 @@ function App() {
                 <Route path="administration/roles" element={<Roles />} />
                 <Route path="administration/users" element={<Users />} />
                 <Route path="administration/employee-documents" element={<EmployeeDocuments />} />
+                <Route path="administration/activity-logs" element={<ActivityLogs />} />
             </Route>
         </Routes>
     );

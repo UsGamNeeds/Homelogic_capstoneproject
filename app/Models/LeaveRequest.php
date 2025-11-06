@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\Loggable;
 
 class LeaveRequest extends Model
 {
-    use HasFactory;
+    use HasFactory, Loggable;
 
     protected $fillable = [
         'staff_id',

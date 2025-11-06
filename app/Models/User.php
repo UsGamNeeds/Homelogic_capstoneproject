@@ -11,11 +11,12 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Notification;
+use App\Traits\Loggable;
 
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, Loggable;
 
     /**
      * The attributes that are mass assignable.

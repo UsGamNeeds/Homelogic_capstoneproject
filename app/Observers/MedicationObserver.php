@@ -48,10 +48,24 @@ class MedicationObserver
             $times = [];
             for ($i = 1; $i <= 4; $i++) {
                 $timeField = "time_{$i}";
-                if ($medication->$timeField) {
+                $timeValue = $medication->$timeField;
+                if ($timeValue) {
                     try {
-                        $time = Carbon::parse($medication->$timeField);
-                        $times[] = $time->format('g:i A');
+                        // Handle different time formats (datetime, time string, etc.)
+                        if (is_string($timeValue) && preg_match('/^\d{2}:\d{2}/', $timeValue)) {
+                            // Time string format (HH:mm or HH:mm:ss)
+                            $timeParts = explode(':', $timeValue);
+                            if (count($timeParts) >= 2) {
+                                $hours = (int)$timeParts[0];
+                                $minutes = (int)$timeParts[1];
+                                $time = Carbon::createFromTime($hours, $minutes);
+                                $times[] = $time->format('g:i A');
+                            }
+                        } else {
+                            // Try parsing as datetime
+                            $time = Carbon::parse($timeValue);
+                            $times[] = $time->format('g:i A');
+                        }
                     } catch (\Exception $e) {
                         // Skip invalid time
                     }

@@ -213,13 +213,13 @@ export default function Assessments() {
                             >
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                            {assessment.assessment_type || 'Assessment'}
-                                        </h3>
-                                        <p className="text-sm text-gray-500 mb-4">
+                                        <p className="text-sm font-semibold text-gray-900 mb-2">
                                             {assessment.resident?.first_name} {assessment.resident?.last_name}
                                             {assessment.branch && ` • ${assessment.branch.name}`}
                                         </p>
+                                        <h3 className="text-lg text-gray-700 mb-4">
+                                            {assessment.assessment_type || 'Assessment'}
+                                        </h3>
                                     </div>
                                     <div className="flex items-center space-x-2">
                                         {getStatusIcon(assessment.status)}

@@ -13,6 +13,7 @@ export default function Appointments() {
     const [branchFilter, setBranchFilter] = useState('');
     const highlightedAppointmentId = useRef(null);
     const appointmentRowRefs = useRef({});
+    const urlParamsProcessed = useRef(false);
     const [showForm, setShowForm] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
     const [formData, setFormData] = useState({
@@ -49,6 +50,8 @@ export default function Appointments() {
 
     // Read URL parameters on mount and set filters
     useEffect(() => {
+        if (urlParamsProcessed.current) return;
+        
         const residentId = searchParams.get('resident_id');
         const appointmentId = searchParams.get('appointment_id');
         
@@ -67,13 +70,15 @@ export default function Appointments() {
             }
             setSearchParams(newSearchParams, { replace: true });
         }
-    }, []); // Only run on mount
+        
+        urlParamsProcessed.current = true;
+    }, [searchParams, setSearchParams]); // Include dependencies but use ref to prevent re-runs
 
     // Scroll to and highlight appointment when data is loaded
     useEffect(() => {
         if (highlightedAppointmentId.current && data?.data && data.data.length > 0) {
             // Wait a bit for the DOM to render
-            setTimeout(() => {
+            const timeoutId = setTimeout(() => {
                 const appointmentId = highlightedAppointmentId.current;
                 // Try both string and number keys
                 const rowRef = appointmentRowRefs.current[appointmentId] || 
@@ -92,6 +97,9 @@ export default function Appointments() {
                     }, 3000);
                 }
             }, 200); // Slightly longer delay to ensure DOM is ready
+            
+            // Cleanup function to clear timeout if component unmounts or dependencies change
+            return () => clearTimeout(timeoutId);
         }
     }, [data, searchParams, setSearchParams]);
 

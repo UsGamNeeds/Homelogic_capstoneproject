@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\Loggable;
 
 class Assessment extends Model
 {
+    use Loggable;
     protected $fillable = [
         'resident_id',
         'branch_id',
@@ -192,7 +194,17 @@ class Assessment extends Model
             case 'demographic':
                 // Demographic info doesn't typically score, but can affect social wellbeing
                 if (strpos($questionText, 'married') !== false || strpos($questionText, 'education') !== false) {
-                    $this->addToScore('social_wellbeing', $normalizedValue, $scores, $counts, 10);
+                    // Convert normalized value to numeric score
+                    // For yes/no questions, yes = 80, no = 60, other values = 70
+                    $score = 70; // default neutral score
+                    if ($normalizedValue === 'yes') {
+                        $score = 80;
+                    } elseif ($normalizedValue === 'no') {
+                        $score = 60;
+                    } elseif (is_numeric($normalizedValue)) {
+                        $score = (float)$normalizedValue;
+                    }
+                    $this->addToScore('social_wellbeing', $score, $scores, $counts, 100);
                 }
                 break;
 
