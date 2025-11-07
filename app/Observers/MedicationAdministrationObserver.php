@@ -74,7 +74,7 @@ class MedicationAdministrationObserver
                 'message' => $message,
                 'icon' => 'pill',
                 'icon_color' => 'text-green-600',
-                'action_url' => '/app/medications',
+                'action_url' => '/medications',
                 'metadata' => [
                     'medication_administration_id' => $administration->id,
                     'medication_id' => $administration->medication_id,

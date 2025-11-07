@@ -79,7 +79,7 @@ class AppointmentObserver
                            " at {$time}",
                 'icon' => 'calendar',
                 'icon_color' => 'text-green-600',
-                'action_url' => '/app/appointments',
+                'action_url' => '/appointments',
                 'metadata' => [
                     'appointment_id' => $appointment->id,
                     'resident_id' => $appointment->resident_id,

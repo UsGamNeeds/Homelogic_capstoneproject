@@ -44,7 +44,7 @@ class IncidentObserver
                 'message' => "A {$incident->severity} severity {$incident->incident_type} incident involving {$residentName} was reported by {$reportedByName} on {$incidentDate}",
                 'icon' => 'alert-circle',
                 'icon_color' => $iconColor,
-                'action_url' => '/app/incidents',
+                'action_url' => '/incidents',
                 'metadata' => [
                     'incident_id' => $incident->id,
                     'resident_id' => $incident->resident_id,

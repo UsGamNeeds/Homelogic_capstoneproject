@@ -87,7 +87,7 @@ class VitalSignObserver
                 'message' => "Vital signs for {$residentName} were recorded by {$takenByName} on {$measurementDate}{$vitalsStr}",
                 'icon' => 'activity',
                 'icon_color' => $iconColor,
-                'action_url' => '/app/vitals',
+                'action_url' => '/vitals',
                 'metadata' => [
                     'vital_sign_id' => $vitalSign->id,
                     'resident_id' => $vitalSign->resident_id,
@@ -114,7 +114,7 @@ class VitalSignObserver
                     'message' => "CRITICAL: Vital signs recorded for {$residentName} require immediate attention",
                     'icon' => 'alert-circle',
                     'icon_color' => 'text-red-600',
-                    'action_url' => '/app/vitals',
+                    'action_url' => '/vitals',
                     'metadata' => [
                         'vital_sign_id' => $vitalSign->id,
                         'resident_id' => $vitalSign->resident_id,

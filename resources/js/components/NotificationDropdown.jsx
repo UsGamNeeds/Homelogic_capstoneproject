@@ -67,91 +67,126 @@ export default function NotificationDropdown() {
         // Navigate based on notification type and metadata
         const metadata = notification.metadata || {};
         
-        // If action_url is already set and looks complete (starts with /app/), use it directly
-        // This allows the backend to specify exact navigation paths
-        if (notification.action_url && notification.action_url.startsWith('/app/')) {
-            navigate(notification.action_url);
+        // Helper function to normalize URLs (remove /app/ prefix since BrowserRouter has basename="/app")
+        const normalizeUrl = (url) => {
+            if (!url) return '/dashboard';
+            // Remove /app/ prefix if present (since React Router already adds it via basename)
+            if (url.startsWith('/app/')) {
+                return url.substring(5); // Remove '/app'
+            }
+            // Ensure it starts with /
+            if (!url.startsWith('/')) {
+                return '/' + url;
+            }
+            return url;
+        };
+        
+        // If action_url is set, normalize it and use it directly
+        if (notification.action_url) {
+            const normalizedUrl = normalizeUrl(notification.action_url);
+            navigate(normalizedUrl);
             setIsOpen(false);
             return;
         }
         
-        // Build navigation URL based on notification type
-        let navUrl = notification.action_url || '/app/dashboard';
+        // Build navigation URL based on notification type (without /app/ prefix)
+        let navUrl = '/dashboard';
         
         switch (notification.type) {
             case 'appointment_upcoming':
                 if (metadata.appointment_id && metadata.resident_id) {
-                    navUrl = `/app/appointments?resident_id=${metadata.resident_id}&appointment_id=${metadata.appointment_id}`;
+                    navUrl = `/appointments?resident_id=${metadata.resident_id}&appointment_id=${metadata.appointment_id}`;
+                } else {
+                    navUrl = '/appointments';
                 }
                 break;
             case 'medication_created':
                 if (metadata.medication_id && metadata.resident_id) {
-                    navUrl = `/app/medications?resident_id=${metadata.resident_id}&medication_id=${metadata.medication_id}`;
+                    navUrl = `/medications?resident_id=${metadata.resident_id}&medication_id=${metadata.medication_id}`;
+                } else {
+                    navUrl = '/medications';
                 }
                 break;
             case 'medication_administered':
                 if (metadata.medication_id && metadata.resident_id) {
-                    navUrl = `/app/medications?resident_id=${metadata.resident_id}&medication_id=${metadata.medication_id}`;
+                    navUrl = `/medications?resident_id=${metadata.resident_id}&medication_id=${metadata.medication_id}`;
+                } else {
+                    navUrl = '/medications';
                 }
                 break;
             case 'assessment_created':
             case 'assessment_completed':
                 if (metadata.assessment_id) {
                     // Navigate directly to the assessment review page
-                    navUrl = `/app/assessments/${metadata.assessment_id}/review`;
+                    navUrl = `/assessments/${metadata.assessment_id}/review`;
                 } else if (metadata.resident_id) {
                     // Fallback to assessments list filtered by resident
-                    navUrl = `/app/assessments?resident_id=${metadata.resident_id}`;
+                    navUrl = `/assessments?resident_id=${metadata.resident_id}`;
+                } else {
+                    navUrl = '/assessments';
                 }
                 break;
             case 'leave_request':
             case 'leave_approved':
             case 'leave_rejected':
                 if (metadata.leave_request_id) {
-                    navUrl = `/app/leave-requests?leave_request_id=${metadata.leave_request_id}`;
+                    navUrl = `/administration/leave-requests?leave_request_id=${metadata.leave_request_id}`;
+                } else {
+                    navUrl = '/administration/leave-requests';
                 }
                 break;
             case 'vital_recorded':
             case 'vital_critical':
                 if (metadata.vital_sign_id && metadata.resident_id) {
-                    navUrl = `/app/vitals?resident_id=${metadata.resident_id}&vital_id=${metadata.vital_sign_id}`;
+                    navUrl = `/vitals?resident_id=${metadata.resident_id}&vital_id=${metadata.vital_sign_id}`;
+                } else {
+                    navUrl = '/vitals';
                 }
                 break;
             case 'incident_reported':
                 if (metadata.incident_id && metadata.resident_id) {
-                    navUrl = `/app/incidents?resident_id=${metadata.resident_id}&incident_id=${metadata.incident_id}`;
+                    navUrl = `/incidents?resident_id=${metadata.resident_id}&incident_id=${metadata.incident_id}`;
+                } else {
+                    navUrl = '/incidents';
                 }
                 break;
             case 'sleep_record':
                 if (metadata.sleep_record_id && metadata.resident_id) {
-                    navUrl = `/app/sleep?resident_id=${metadata.resident_id}&sleep_record_id=${metadata.sleep_record_id}`;
+                    navUrl = `/sleep?resident_id=${metadata.resident_id}&sleep_record_id=${metadata.sleep_record_id}`;
+                } else {
+                    navUrl = '/sleep';
                 }
                 break;
             case 'resident_created':
                 if (metadata.resident_id) {
-                    navUrl = `/app/residents?resident_id=${metadata.resident_id}`;
+                    navUrl = `/administration/residents?resident_id=${metadata.resident_id}`;
+                } else {
+                    navUrl = '/administration/residents';
                 }
                 break;
             case 'user_created':
                 if (metadata.user_id) {
-                    navUrl = `/app/users?user_id=${metadata.user_id}`;
+                    navUrl = `/administration/users?user_id=${metadata.user_id}`;
+                } else {
+                    navUrl = '/administration/users';
                 }
                 break;
             case 'facility_created':
                 if (metadata.facility_id) {
-                    navUrl = `/app/facilities?facility_id=${metadata.facility_id}`;
+                    navUrl = `/administration/facilities?facility_id=${metadata.facility_id}`;
+                } else {
+                    navUrl = '/administration/facilities';
                 }
                 break;
             case 'branch_created':
                 if (metadata.branch_id) {
-                    navUrl = `/app/branches?branch_id=${metadata.branch_id}`;
+                    navUrl = `/administration/branches?branch_id=${metadata.branch_id}`;
+                } else {
+                    navUrl = '/administration/branches';
                 }
                 break;
             default:
-                // Use action_url if available
-                if (notification.action_url) {
-                    navUrl = notification.action_url;
-                }
+                navUrl = '/dashboard';
         }
         
         navigate(navUrl);

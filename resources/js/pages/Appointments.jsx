@@ -70,7 +70,7 @@ export default function Appointments() {
                 throw error;
             }
         },
-        enabled: !!residentFilter, // Only fetch when resident is selected
+        enabled: isCaregiver || !!residentFilter, // For caregivers, always fetch. For others, only when resident is selected
         retry: 1,
     });
 
@@ -593,33 +593,146 @@ export default function Appointments() {
                 </div>
             )}
 
-            {!residentFilter ? (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Calendar className="w-10 h-10 text-[#2D5016]" />
+            {/* Appointment History Display */}
+            {isCaregiver ? (
+                // Caregiver view - Show appointments in grid
+                isLoading ? (
+                    <div className="text-center py-12 bg-white rounded-xl shadow-sm">
+                        <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-[#2D5016]"></div>
+                        <p className="mt-4 text-gray-600 font-medium">Loading appointments...</p>
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Select a Resident to View Appointments</h3>
-                    <p className="text-gray-600 mb-4">
-                        Choose a resident from the filter above to view their appointment history
-                    </p>
-                    <div className="inline-flex items-center space-x-2 text-sm text-green-800 bg-green-50 px-4 py-2 rounded-lg">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <span>You can filter by branch first to narrow down resident options</span>
+                ) : data?.data?.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {data.data.map((appointment) => {
+                            if (!appointment) return null;
+                            
+                            const date = appointment.appointment_date ? new Date(appointment.appointment_date) : null;
+                            const dateStr = date && !isNaN(date.getTime()) ? date.toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric', 
+                                year: 'numeric' 
+                            }) : 'N/A';
+                            
+                            let timeStr = '';
+                            if (appointment.appointment_time) {
+                                try {
+                                    const timeParts = appointment.appointment_time.split(':');
+                                    if (timeParts.length >= 2) {
+                                        const hours = parseInt(timeParts[0]) || 0;
+                                        const minutes = timeParts[1] || '00';
+                                        const hour12 = hours % 12 || 12;
+                                        const ampm = hours >= 12 ? 'PM' : 'AM';
+                                        timeStr = `${hour12}:${minutes} ${ampm}`;
+                                    }
+                                } catch (err) {
+                                    console.error('Error parsing appointment time:', err);
+                                }
+                            }
+
+                            return (
+                                <div key={appointment.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200 p-5">
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div className="flex-1">
+                                            <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                                                {appointment.resident?.first_name} {appointment.resident?.last_name}
+                                            </h4>
+                                            <div className="flex items-center space-x-2 text-sm text-gray-600">
+                                                <Calendar className="w-4 h-4" />
+                                                <span>{dateStr}</span>
+                                                {timeStr && <span className="text-gray-500">• {timeStr}</span>}
+                                            </div>
+                                        </div>
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                            appointment.status === 'scheduled' ? 'bg-amber-100 text-amber-800' :
+                                            appointment.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                                            appointment.status === 'completed' ? 'bg-emerald-100 text-emerald-800' :
+                                            appointment.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                            'bg-gray-100 text-gray-800'
+                                        }`}>
+                                            {appointment.status?.charAt(0).toUpperCase() + appointment.status?.slice(1)}
+                                        </span>
+                                    </div>
+                                    
+                                    <div className="space-y-2 mb-4">
+                                        {appointment.provider_name && (
+                                            <div className="flex items-center text-sm text-gray-600">
+                                                <Stethoscope className="w-4 h-4 mr-2" />
+                                                <span>{appointment.provider_name}</span>
+                                            </div>
+                                        )}
+                                        {appointment.location && (
+                                            <div className="flex items-center text-sm text-gray-600">
+                                                <MapPin className="w-4 h-4 mr-2" />
+                                                <span>{appointment.location}</span>
+                                            </div>
+                                        )}
+                                        {appointment.description && (
+                                            <p className="text-sm text-gray-600 line-clamp-2">{appointment.description}</p>
+                                        )}
+                                    </div>
+
+                                    {isCaregiver && appointment.status !== 'completed' && appointment.status !== 'cancelled' && (
+                                        <div className="flex space-x-2">
+                                            {appointment.status === 'scheduled' && (
+                                                <button
+                                                    onClick={() => handleStatusUpdate(appointment.id, 'completed')}
+                                                    className="flex-1 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm rounded-lg transition-colors"
+                                                >
+                                                    Complete
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => handleCancel(appointment.id)}
+                                                className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg transition-colors"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
-                </div>
-            ) : isLoading ? (
-                <div className="text-center py-12 bg-white rounded-xl shadow-sm">
-                    <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-[#2D5016]"></div>
-                    <p className="mt-4 text-gray-600 font-medium">Loading appointments...</p>
-                </div>
+                ) : (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                        <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                        <p className="text-gray-900 text-lg font-semibold mb-2">No Appointments Found</p>
+                        <p className="text-gray-500 text-sm">
+                            {residentFilter 
+                                ? 'No appointments found for the selected resident.'
+                                : 'No appointments found. Try adjusting your filters.'}
+                        </p>
+                    </div>
+                )
             ) : (
-                <div>
-                    {data?.data?.length > 0 ? (
-                        <div className="bg-white rounded-lg shadow overflow-hidden">
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
+                // Non-caregiver view - Show table
+                !residentFilter ? (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Calendar className="w-10 h-10 text-[#2D5016]" />
+                        </div>
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">Select a Resident to View Appointments</h3>
+                        <p className="text-gray-600 mb-4">
+                            Choose a resident from the filter above to view their appointment history
+                        </p>
+                        <div className="inline-flex items-center space-x-2 text-sm text-green-800 bg-green-50 px-4 py-2 rounded-lg">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span>You can filter by branch first to narrow down resident options</span>
+                        </div>
+                    </div>
+                ) : isLoading ? (
+                    <div className="text-center py-12 bg-white rounded-xl shadow-sm">
+                        <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-[#2D5016]"></div>
+                        <p className="mt-4 text-gray-600 font-medium">Loading appointments...</p>
+                    </div>
+                ) : (
+                    <div>
+                        {data?.data?.length > 0 ? (
+                            <div className="bg-white rounded-lg shadow overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50">
                                         <tr>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -746,6 +859,7 @@ export default function Appointments() {
                         </div>
                     )}
                 </div>
+                )
             )}
 
             {showForm && (

@@ -34,7 +34,7 @@ class ResidentObserver
                 'message' => "A new resident, {$residentName}, has been added to {$branchName}. Admission date: {$admissionDate}",
                 'icon' => 'user',
                 'icon_color' => 'text-[#2D5016]',
-                'action_url' => '/app/residents',
+                'action_url' => '/administration/residents',
                 'metadata' => [
                     'resident_id' => $resident->id,
                     'branch_id' => $resident->branch_id,

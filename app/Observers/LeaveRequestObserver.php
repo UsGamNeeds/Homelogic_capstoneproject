@@ -35,7 +35,7 @@ class LeaveRequestObserver
                 'message' => "{$staffName} has submitted a leave request from {$startDate} to {$endDate} ({$duration} days)",
                 'icon' => 'user-check',
                 'icon_color' => 'text-[#8B4513]',
-                'action_url' => '/app/leave-requests',
+                'action_url' => '/administration/leave-requests',
                 'metadata' => [
                     'leave_request_id' => $leaveRequest->id,
                     'staff_id' => $leaveRequest->staff_id,
@@ -77,7 +77,7 @@ class LeaveRequestObserver
                         'message' => "Your leave request has been {$statusText} by {$approvedByName}",
                         'icon' => $currentStatus === 'approved' ? 'check' : 'x',
                         'icon_color' => $iconColor,
-                        'action_url' => '/app/leave-requests',
+                        'action_url' => '/administration/leave-requests',
                         'metadata' => [
                             'leave_request_id' => $leaveRequest->id,
                             'status' => $currentStatus,

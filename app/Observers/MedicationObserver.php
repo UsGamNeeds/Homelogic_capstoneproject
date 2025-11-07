@@ -80,7 +80,7 @@ class MedicationObserver
                 'message' => "{$medicationName} has been added for {$residentName}. Start date: {$startDate}{$timesStr}",
                 'icon' => 'pill',
                 'icon_color' => 'text-red-600',
-                'action_url' => '/app/medications',
+                'action_url' => '/medications',
                 'metadata' => [
                     'medication_id' => $medication->id,
                     'resident_id' => $medication->resident_id,

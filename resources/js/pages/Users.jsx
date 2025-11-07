@@ -524,12 +524,19 @@ function UserForm({ record, branches, roles, onClose, onSuccess }) {
                 }
                 const response = await api.put(`/users/${record.id}`, formDataToSend);
                 console.log('User updated successfully:', response.data);
+                console.log('Profile image URL:', response.data.profile_image_url);
+                
+                // Invalidate queries to refresh the user list BEFORE showing alert
+                await queryClient.invalidateQueries({ queryKey: ['users'] });
+                
+                // Wait a bit for the invalidation to trigger refetch
+                await new Promise(resolve => setTimeout(resolve, 200));
                 
                 // Show success message
                 alert('User updated successfully!');
                 
-                // Invalidate queries to refresh the user list
-                queryClient.invalidateQueries(['users']);
+                // Close form and refresh
+                onSuccess();
             } else {
                 if (!formData.password) {
                     setErrors({ password: ['Password is required for new users'] });
@@ -540,14 +547,16 @@ function UserForm({ record, branches, roles, onClose, onSuccess }) {
                 const response = await api.post('/users', formDataToSend);
                 console.log('User created successfully:', response.data);
                 
+                // Invalidate queries to refresh the user list
+                await queryClient.invalidateQueries({ queryKey: ['users'] });
+                await new Promise(resolve => setTimeout(resolve, 200));
+                
                 // Show success message
                 alert('User created successfully!');
                 
-                // Invalidate queries to refresh the user list
-                queryClient.invalidateQueries(['users']);
+                // Close form and refresh
+                onSuccess();
             }
-            console.log('Calling onSuccess...');
-            onSuccess();
         } catch (error) {
             console.error('User creation/update error:', error);
             if (error.response?.data?.errors) {
