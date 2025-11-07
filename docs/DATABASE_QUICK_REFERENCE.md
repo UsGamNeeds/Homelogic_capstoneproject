@@ -85,7 +85,7 @@
 
 ### Medication Instructions
 - `t.i.d` - Three times daily
-- `q.i.d` - Four times daily
+- `q.i.d` - Four times a day
 - `b.i.d` - Twice daily
 - `PRN` - As needed
 - `h.s` - At bedtime

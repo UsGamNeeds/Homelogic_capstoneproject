@@ -202,7 +202,9 @@ class CustomNavigationProvider
                         request()->routeIs('filament.admin.resources.users.*') || 
                         request()->routeIs('filament.admin.resources.leave-requests.*') ||
                         request()->routeIs('filament.admin.resources.roles.*') ||
-                        request()->routeIs('filament.admin.resources.employee-documents.*'))
+                        request()->routeIs('filament.admin.resources.employee-documents.*') ||
+                        request()->routeIs('filament.admin.pages.inactive-users') ||
+                        request()->routeIs('filament.admin.pages.inactive-residents'))
                     ->sort(80)
                     ->childItems([
                         NavigationItem::make('Facilities')
@@ -249,6 +251,22 @@ class CustomNavigationProvider
                             ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.resources.users.*'))
                             ->visible(fn (): bool => auth()->check() && (
                                 auth()->user()->hasPermission('view_users') ||
+                                auth()->user()->hasRole('administrator') ||
+                                auth()->user()->hasRole('super_admin')
+                            )),
+                        NavigationItem::make('Inactive Users')
+                            ->url(route('filament.admin.pages.inactive-users'))
+                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.inactive-users'))
+                            ->visible(fn (): bool => auth()->check() && (
+                                auth()->user()->hasPermission('view_users') ||
+                                auth()->user()->hasRole('administrator') ||
+                                auth()->user()->hasRole('super_admin')
+                            )),
+                        NavigationItem::make('Inactive Residents')
+                            ->url(route('filament.admin.pages.inactive-residents'))
+                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.admin.pages.inactive-residents'))
+                            ->visible(fn (): bool => auth()->check() && (
+                                auth()->user()->hasPermission('view_residents') ||
                                 auth()->user()->hasRole('administrator') ||
                                 auth()->user()->hasRole('super_admin')
                             )),

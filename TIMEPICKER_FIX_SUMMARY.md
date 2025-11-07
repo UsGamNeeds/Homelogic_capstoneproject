@@ -40,7 +40,7 @@ The time picker includes:
 Time pickers show/hide based on the selected instruction:
 - **b.i.d** (Twice daily) → Shows Time 1 & Time 2
 - **t.i.d** (Three times daily) → Shows Time 1, Time 2, & Time 3
-- **q.i.d** (Four times daily) → Shows Time 1, Time 2, Time 3, & Time 4
+- **q.i.d** (Four times a day) → Shows Time 1, Time 2, Time 3, & Time 4
 - **a.m** (Morning) → Shows Time 1
 - **p.m** (Evening) → Shows Time 1
 - **PRN** (As needed) → No time pickers

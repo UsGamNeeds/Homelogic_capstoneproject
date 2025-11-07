@@ -3,6 +3,34 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { Pill, Clock, User, Calendar, CheckCircle, XCircle, AlertCircle, Plus, Edit, Trash2, Download, ChevronDown } from 'lucide-react';
 
+const INSTRUCTION_DISPLAY_MAP = {
+    'q.i.d': 'Four times a day',
+    'q.i.d.': 'Four times a day',
+    'qid': 'Four times a day',
+    't.i.d': 'Thrice daily',
+    't.i.d.': 'Thrice daily',
+    'tid': 'Thrice daily',
+    'b.i.d': 'Twice daily',
+    'b.i.d.': 'Twice daily',
+    'bid': 'Twice daily',
+    'prn': 'As needed',
+    'h.s': 'Hour of sleep',
+    'h.s.': 'Hour of sleep',
+    'hs': 'Hour of sleep',
+    'a.m': 'Morning',
+    'a.m.': 'Morning',
+    'am': 'Morning',
+    'p.m': 'Evening',
+    'p.m.': 'Evening',
+    'pm': 'Evening',
+};
+
+const formatInstructionDisplay = (value) => {
+    if (!value) return '';
+    const normalized = value.toLowerCase().trim();
+    return INSTRUCTION_DISPLAY_MAP[normalized] ?? value;
+};
+
 export default function Medications() {
     const queryClient = useQueryClient();
     const [activeOnly, setActiveOnly] = useState(true);
@@ -237,7 +265,7 @@ export default function Medications() {
                                                     <div>
                                                         <p className="text-xs text-gray-500">Instructions</p>
                                                         <p className="text-sm font-medium text-gray-900">
-                                                            {medication.instructions}
+                                                            {formatInstructionDisplay(medication.instructions)}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -1011,7 +1039,7 @@ function MedicationForm({ record, residents, branches, currentUser, isCaregiver,
                                 >
                                     <option value="">Choose dosage instructions</option>
                                     <option value="t.i.d">t.i.d — Thrice daily</option>
-                                    <option value="q.i.d">q.i.d — Four times daily</option>
+                                    <option value="q.i.d">q.i.d — Four times a day</option>
                                     <option value="b.i.d">b.i.d — Twice daily</option>
                                     <option value="PRN">PRN — As needed</option>
                                     <option value="h.s">h.s — Hour of sleep</option>

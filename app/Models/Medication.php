@@ -85,7 +85,7 @@ class Medication extends Model
     {
         $instructions = [
             't.i.d' => 'Thrice daily',
-            'q.i.d' => 'Four times daily',
+            'q.i.d' => 'Four times a day',
             'b.i.d' => 'Twice daily',
             'PRN' => 'As needed',
             'h.s' => 'Hour of sleep',
@@ -113,7 +113,7 @@ class Medication extends Model
     {
         return [
             't.i.d' => 't.i.d — Thrice daily',
-            'q.i.d' => 'q.i.d — Four times daily',
+            'q.i.d' => 'q.i.d — Four times a day',
             'b.i.d' => 'b.i.d — Twice daily',
             'PRN' => 'PRN — As needed',
             'h.s' => 'h.s — Hour of sleep',

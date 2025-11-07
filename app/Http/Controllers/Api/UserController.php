@@ -16,8 +16,15 @@ class UserController extends Controller
     {
         $query = User::with(['assignedBranch', 'roles']);
 
-        // Filter by active status
-        if ($request->has('active_only') && $request->get('active_only') === 'true') {
+        // Filter by status
+        if ($request->has('status')) {
+            if ($request->get('status') === 'active') {
+                $query->where('is_active', true);
+            } elseif ($request->get('status') === 'inactive') {
+                $query->where('is_active', false);
+            }
+        } elseif ($request->has('active_only') && $request->get('active_only') === 'true') {
+            // Legacy support for older clients
             $query->where('is_active', true);
         }
 

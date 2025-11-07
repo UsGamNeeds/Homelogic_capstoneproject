@@ -27,6 +27,7 @@ import Users from './pages/Users';
 import EmployeeDocuments from './pages/EmployeeDocuments';
 import Profile from './pages/Profile';
 import ActivityLogs from './pages/ActivityLogs';
+import DeactivatedRecords from './pages/DeactivatedRecords';
 
 // Report sub-pages
 import ChartReports from './pages/reports/ChartReports';
@@ -89,6 +90,7 @@ function App() {
                 <Route path="administration/users" element={<Users />} />
                 <Route path="administration/employee-documents" element={<EmployeeDocuments />} />
                 <Route path="administration/activity-logs" element={<ActivityLogs />} />
+                <Route path="administration/deactivated" element={<DeactivatedRecords />} />
             </Route>
         </Routes>
     );

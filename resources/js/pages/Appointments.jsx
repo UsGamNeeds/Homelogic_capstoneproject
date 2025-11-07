@@ -383,27 +383,6 @@ export default function Appointments() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg flex items-center justify-center">
-                            <Calendar className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                            <h2 className="text-xl font-semibold text-gray-900">
-                                {isCaregiver ? 'Appointment Management' : 'View Appointments'}
-                            </h2>
-                            <p className="text-sm text-gray-500">
-                                {isCaregiver 
-                                    ? 'Manage appointments for your assigned residents' 
-                                    : 'Select branch and resident to view appointment history'}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             {isCaregiver ? (
                 <>
                     {/* Resident Cards Section */}
