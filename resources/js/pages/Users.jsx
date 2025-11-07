@@ -340,6 +340,7 @@ function UserForm({ record, branches, roles, onClose, onSuccess }) {
 
     const [profileImage, setProfileImage] = useState(null);
     const [profileImagePreview, setProfileImagePreview] = useState(null);
+    const [imageRemoved, setImageRemoved] = useState(false);
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -427,10 +428,13 @@ function UserForm({ record, branches, roles, onClose, onSuccess }) {
             }
             // Reset profile image file when record changes
             setProfileImage(null);
+            // Reset image removed flag when record changes
+            setImageRemoved(false);
         } else {
             // Reset when no record (creating new user)
             setProfileImagePreview(null);
             setProfileImage(null);
+            setImageRemoved(false);
         }
     }, [record]);
 
@@ -451,6 +455,8 @@ function UserForm({ record, branches, roles, onClose, onSuccess }) {
             }
             
             setProfileImage(file);
+            // Clear the removed flag since user selected a new image
+            setImageRemoved(false);
             
             // Create preview
             const reader = new FileReader();
@@ -463,12 +469,17 @@ function UserForm({ record, branches, roles, onClose, onSuccess }) {
             if (errors.profile_image) {
                 setErrors({ ...errors, profile_image: null });
             }
+        } else {
+            // No file selected
+            setProfileImage(null);
         }
     };
 
     const handleRemoveImage = () => {
         setProfileImage(null);
         setProfileImagePreview(null);
+        // Mark image as explicitly removed
+        setImageRemoved(true);
         // Reset file input
         const fileInput = document.getElementById('profile_image');
         if (fileInput) {
@@ -523,9 +534,28 @@ function UserForm({ record, branches, roles, onClose, onSuccess }) {
                 formDataToSend.append('password', formData.password);
             }
             
-            // Add profile image if selected
+            // Handle profile image
             if (profileImage) {
+                // New image selected - append the file
                 formDataToSend.append('profile_image', profileImage);
+                console.log('Profile image file added to FormData:', profileImage.name, profileImage.type, profileImage.size);
+            } else if (imageRemoved && record) {
+                // Image was explicitly removed - send a flag to clear it
+                // We'll handle this on the backend by checking for a special value
+                formDataToSend.append('remove_profile_image', '1');
+                console.log('Profile image removal requested');
+            } else {
+                console.log('No new profile image selected. Existing image should be preserved.');
+            }
+
+            // Debug: Log FormData contents
+            console.log('FormData contents:');
+            for (let pair of formDataToSend.entries()) {
+                if (pair[0] === 'profile_image') {
+                    console.log(pair[0] + ': [File]', pair[1].name, pair[1].size, 'bytes');
+                } else {
+                    console.log(pair[0] + ': ' + pair[1]);
+                }
             }
 
             if (record) {
@@ -533,7 +563,12 @@ function UserForm({ record, branches, roles, onClose, onSuccess }) {
                 if (!formData.password) {
                     // Remove password from FormData if it wasn't set
                 }
-                const response = await api.put(`/users/${record.id}`, formDataToSend);
+                
+                // For file uploads with PUT, use POST with _method override (browser compatibility)
+                // This is necessary because some browsers don't properly handle file uploads in PUT requests
+                // Always use this approach when FormData is involved to ensure file uploads work correctly
+                formDataToSend.append('_method', 'PUT');
+                const response = await api.post(`/users/${record.id}`, formDataToSend);
                 console.log('User updated successfully:', response.data);
                 console.log('Profile image URL:', response.data.profile_image_url);
                 

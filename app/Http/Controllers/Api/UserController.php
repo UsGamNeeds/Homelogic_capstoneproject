@@ -163,6 +163,7 @@ class UserController extends Controller
             'is_active' => 'boolean',
             'notes' => 'nullable|string',
             'profile_image' => 'nullable|image|mimes:jpeg,jpg,png,gif|max:5120',
+            'remove_profile_image' => 'nullable|boolean',
             'role_ids' => 'array',
             'role_ids.*' => 'exists:roles,id',
         ]);
@@ -179,17 +180,73 @@ class UserController extends Controller
             unset($validated['position']);
         }
 
-        // Handle profile image upload if provided
-        if ($request->hasFile('profile_image')) {
+        // Debug: Log request information for profile image
+        \Log::info('User update request - profile image check', [
+            'user_id' => $user->id,
+            'has_file' => $request->hasFile('profile_image'),
+            'has_remove_flag' => $request->has('remove_profile_image'),
+            'remove_flag_value' => $request->get('remove_profile_image'),
+            'all_request_keys' => array_keys($request->all()),
+            'files_keys' => array_keys($request->allFiles())
+        ]);
+
+        // Handle profile image removal if requested
+        if ($request->has('remove_profile_image') && $request->get('remove_profile_image') === '1') {
             // Delete old profile image if exists
             if ($user->profile_image && Storage::disk('public')->exists($user->profile_image)) {
                 Storage::disk('public')->delete($user->profile_image);
             }
+            $validated['profile_image'] = null;
+            // Remove the flag from validated array since it's not a user field
+            unset($validated['remove_profile_image']);
+        }
+        // Handle profile image upload if provided
+        elseif ($request->hasFile('profile_image')) {
+            try {
+                // Delete old profile image if exists
+                if ($user->profile_image && Storage::disk('public')->exists($user->profile_image)) {
+                    Storage::disk('public')->delete($user->profile_image);
+                }
 
-            $file = $request->file('profile_image');
-            $fileName = time() . '_' . $file->getClientOriginalName();
-            $filePath = $file->storeAs('profile-images', $fileName, 'public');
-            $validated['profile_image'] = $filePath;
+                $file = $request->file('profile_image');
+                
+                // Validate file was uploaded successfully
+                if (!$file->isValid()) {
+                    \Log::error('Profile image upload failed: Invalid file', [
+                        'user_id' => $user->id,
+                        'error' => $file->getError()
+                    ]);
+                    throw new \Exception('Invalid file upload');
+                }
+                
+                $fileName = time() . '_' . $file->getClientOriginalName();
+                $filePath = $file->storeAs('profile-images', $fileName, 'public');
+                
+                if (!$filePath) {
+                    \Log::error('Profile image upload failed: Storage failed', [
+                        'user_id' => $user->id,
+                        'file_name' => $fileName
+                    ]);
+                    throw new \Exception('Failed to store file');
+                }
+                
+                $validated['profile_image'] = $filePath;
+                \Log::info('Profile image uploaded successfully', [
+                    'user_id' => $user->id,
+                    'file_path' => $filePath
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Profile image upload error: ' . $e->getMessage(), [
+                    'user_id' => $user->id,
+                    'trace' => $e->getTraceAsString()
+                ]);
+                // Don't fail the entire update if image upload fails, but log it
+            }
+        }
+        // If neither remove flag nor new file, preserve existing image by not including it in validated array
+        // Remove remove_profile_image flag if it exists (shouldn't be in validated, but just in case)
+        if (isset($validated['remove_profile_image'])) {
+            unset($validated['remove_profile_image']);
         }
 
         // Hash password if provided

@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Residents from './pages/Residents';
 import Appointments from './pages/Appointments';
+import CreateAppointment from './pages/CreateAppointment';
 import Vitals from './pages/Vitals';
 import Medications from './pages/Medications';
 import Reports from './pages/Reports';
@@ -59,6 +60,7 @@ function App() {
                 <Route path="assessments/:id" element={<AssessmentDetail />} />
                 <Route path="assessments/:id/review" element={<AssessmentReview />} />
                 <Route path="appointments" element={<Appointments />} />
+                <Route path="appointments/create/:residentId" element={<CreateAppointment />} />
                 <Route path="vitals" element={<Vitals />} />
                 <Route path="view-vitals" element={<ViewVitals />} />
                 <Route path="medications" element={<Medications />} />

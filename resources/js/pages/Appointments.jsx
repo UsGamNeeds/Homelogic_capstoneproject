@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { CheckCircle, XCircle, Calendar, Plus, User, Stethoscope, MapPin, ChevronDown } from 'lucide-react';
+import { CheckCircle, XCircle, Calendar, Plus, User, Stethoscope, MapPin, ChevronDown, Edit } from 'lucide-react';
 import Card from '../components/Card';
 import SectionCard from '../components/SectionCard';
 
@@ -34,6 +34,7 @@ function ProfileImage({ resident }) {
 
 export default function Appointments() {
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const [residentFilter, setResidentFilter] = useState('');
     const [branchFilter, setBranchFilter] = useState('');
@@ -97,7 +98,7 @@ export default function Appointments() {
                 throw error;
             }
         },
-        enabled: isCaregiver || !!residentFilter, // For caregivers, always fetch. For others, only when resident is selected
+        enabled: !isCaregiver && !!residentFilter, // Only fetch for non-caregivers when resident is selected
         retry: 1,
     });
 
@@ -251,6 +252,7 @@ export default function Appointments() {
         },
     });
 
+
     const [completingAppointment, setCompletingAppointment] = useState(null);
     const [completionNotes, setCompletionNotes] = useState('');
 
@@ -327,7 +329,13 @@ export default function Appointments() {
         return sorted[0];
     };
 
-    // Handle opening appointment modal for a specific resident
+    // Handle opening appointment view for a specific resident
+    const handleOpenAppointmentView = (residentId) => {
+        navigate(`/appointments/create/${residentId}`);
+    };
+
+
+    // Handle opening appointment modal for a specific resident (for manual form)
     const handleOpenAppointmentModal = (residentId) => {
         const resident = allResidentsData?.data?.find(r => r.id === residentId);
         setFormData(prev => ({
@@ -488,7 +496,7 @@ export default function Appointments() {
 
                                                 {/* Appointment Button */}
                                                 <button
-                                                    onClick={() => handleOpenAppointmentModal(resident.id)}
+                                                    onClick={() => handleOpenAppointmentView(resident.id)}
                                                     className="w-full bg-[#2D5016] hover:bg-[#1a3009] text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2"
                                                 >
                                                     <Calendar className="w-4 h-4" />
@@ -508,56 +516,7 @@ export default function Appointments() {
                         )}
                     </div>
 
-                    {/* Appointment History Section */}
-                    <div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Appointment History</h3>
-                        {/* Filters for appointment history */}
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Resident:</label>
-                                    <div className="relative">
-                                        <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                        <select
-                                            value={residentFilter}
-                                            onChange={(e) => setResidentFilter(e.target.value)}
-                                            className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent appearance-none bg-white"
-                                        >
-                                            <option value="">All Residents</option>
-                                            {(allResidentsData?.data || []).map(r => (
-                                                <option key={r.id} value={r.id}>
-                                                    {r.first_name} {r.last_name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                    </div>
-                                </div>
-                                {branchFilter && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Branch:</label>
-                                        <div className="relative">
-                                            <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                            <select
-                                                value={branchFilter}
-                                                onChange={(e) => {
-                                                    setBranchFilter(e.target.value);
-                                                    setResidentFilter('');
-                                                }}
-                                                className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent appearance-none bg-white"
-                                            >
-                                                <option value="">All Branches</option>
-                                                {(branchesData?.data || branchesData || []).map(branch => (
-                                                    <option key={branch.id} value={branch.id}>{branch.name}</option>
-                                                ))}
-                                            </select>
-                                            <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+
                 </>
             ) : (
                 <>
@@ -639,117 +598,7 @@ export default function Appointments() {
             )}
 
             {/* Appointment History Display */}
-            {isCaregiver ? (
-                // Caregiver view - Show appointments in grid
-                isLoading ? (
-                    <div className="text-center py-12 bg-white rounded-xl shadow-sm">
-                        <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-[#2D5016]"></div>
-                        <p className="mt-4 text-gray-600 font-medium">Loading appointments...</p>
-                    </div>
-                ) : data?.data?.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {data.data.map((appointment) => {
-                            if (!appointment) return null;
-                            
-                            const date = appointment.appointment_date ? new Date(appointment.appointment_date) : null;
-                            const dateStr = date && !isNaN(date.getTime()) ? date.toLocaleDateString('en-US', { 
-                                month: 'short', 
-                                day: 'numeric', 
-                                year: 'numeric' 
-                            }) : 'N/A';
-                            
-                            let timeStr = '';
-                            if (appointment.appointment_time) {
-                                try {
-                                    const timeParts = appointment.appointment_time.split(':');
-                                    if (timeParts.length >= 2) {
-                                        const hours = parseInt(timeParts[0]) || 0;
-                                        const minutes = timeParts[1] || '00';
-                                        const hour12 = hours % 12 || 12;
-                                        const ampm = hours >= 12 ? 'PM' : 'AM';
-                                        timeStr = `${hour12}:${minutes} ${ampm}`;
-                                    }
-                                } catch (err) {
-                                    console.error('Error parsing appointment time:', err);
-                                }
-                            }
-
-                            return (
-                                <div key={appointment.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200 p-5">
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="flex-1">
-                                            <h4 className="text-lg font-semibold text-gray-900 mb-1">
-                                                {appointment.resident?.first_name} {appointment.resident?.last_name}
-                                            </h4>
-                                            <div className="flex items-center space-x-2 text-sm text-gray-600">
-                                                <Calendar className="w-4 h-4" />
-                                                <span>{dateStr}</span>
-                                                {timeStr && <span className="text-gray-500">• {timeStr}</span>}
-                                            </div>
-                                        </div>
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                            appointment.status === 'scheduled' ? 'bg-amber-100 text-amber-800' :
-                                            appointment.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                                            appointment.status === 'completed' ? 'bg-emerald-100 text-emerald-800' :
-                                            appointment.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                            'bg-gray-100 text-gray-800'
-                                        }`}>
-                                            {appointment.status?.charAt(0).toUpperCase() + appointment.status?.slice(1)}
-                                        </span>
-                                    </div>
-                                    
-                                    <div className="space-y-2 mb-4">
-                                        {appointment.provider_name && (
-                                            <div className="flex items-center text-sm text-gray-600">
-                                                <Stethoscope className="w-4 h-4 mr-2" />
-                                                <span>{appointment.provider_name}</span>
-                                            </div>
-                                        )}
-                                        {appointment.location && (
-                                            <div className="flex items-center text-sm text-gray-600">
-                                                <MapPin className="w-4 h-4 mr-2" />
-                                                <span>{appointment.location}</span>
-                                            </div>
-                                        )}
-                                        {appointment.description && (
-                                            <p className="text-sm text-gray-600 line-clamp-2">{appointment.description}</p>
-                                        )}
-                                    </div>
-
-                                    {isCaregiver && appointment.status !== 'completed' && appointment.status !== 'cancelled' && (
-                                        <div className="flex space-x-2">
-                                            {appointment.status === 'scheduled' && (
-                                                <button
-                                                    onClick={() => handleStatusUpdate(appointment.id, 'completed')}
-                                                    className="flex-1 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm rounded-lg transition-colors"
-                                                >
-                                                    Complete
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={() => handleCancel(appointment.id)}
-                                                className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg transition-colors"
-                                            >
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-                        <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-900 text-lg font-semibold mb-2">No Appointments Found</p>
-                        <p className="text-gray-500 text-sm">
-                            {residentFilter 
-                                ? 'No appointments found for the selected resident.'
-                                : 'No appointments found. Try adjusting your filters.'}
-                        </p>
-                    </div>
-                )
-            ) : (
+            {!isCaregiver && (
                 // Non-caregiver view - Show table
                 !residentFilter ? (
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
