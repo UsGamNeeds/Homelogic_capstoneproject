@@ -7,60 +7,63 @@
         <title>{{ config('app.name', 'Healthcare Management System') }}</title>
         
         {{-- Suppress Cloudflare cookie warnings IMMEDIATELY - before any other scripts --}}
-        <script>
-            (function() {
-                // Capture console methods before anything else
-                const originalWarn = console.warn;
-                const originalError = console.error;
-                const originalLog = console.log;
-                
-                // Helper function to check if message should be suppressed
-                function shouldSuppress(message) {
-                    const lowerMessage = message.toLowerCase();
-                    return (
-                        lowerMessage.includes('cookie') && (
-                            lowerMessage.includes('_cf_bm') || 
-                            lowerMessage.includes('__cf_bm') || 
-                            lowerMessage.includes('cf_clearance') ||
-                            lowerMessage.includes('cf_bm') ||
-                            lowerMessage.includes('rejected for invalid domain') ||
-                            lowerMessage.includes('has been rejected')
-                        )
-                    ) || (
-                        lowerMessage.includes('__cf_bm') ||
-                        lowerMessage.includes('_cf_bm')
-                    );
-                }
-                
-                // Override console.warn
-                console.warn = function() {
-                    const message = Array.from(arguments).join(' ');
-                    if (shouldSuppress(message)) {
-                        return; // Suppress Cloudflare cookie warnings
+        @env('production')
+            <script>
+                (function() {
+                    // Capture console methods before anything else
+                    const originalWarn = console.warn;
+                    const originalError = console.error;
+                    const originalLog = console.log;
+                    
+                    // Helper function to check if message should be suppressed
+                    function shouldSuppress(message) {
+                        const lowerMessage = message.toLowerCase();
+                        return (
+                            lowerMessage.includes('cookie') && (
+                                lowerMessage.includes('_cf_bm') || 
+                                lowerMessage.includes('__cf_bm') || 
+                                lowerMessage.includes('cf_clearance') ||
+                                lowerMessage.includes('cf_bm') ||
+                                lowerMessage.includes('rejected for invalid domain') ||
+                                lowerMessage.includes('has been rejected')
+                            )
+                        ) || (
+                            lowerMessage.includes('__cf_bm') ||
+                            lowerMessage.includes('_cf_bm')
+                        );
                     }
-                    originalWarn.apply(console, arguments);
-                };
-                
-                // Override console.error
-                console.error = function() {
-                    const message = Array.from(arguments).join(' ');
-                    if (shouldSuppress(message)) {
-                        return; // Suppress Cloudflare cookie errors
-                    }
-                    originalError.apply(console, arguments);
-                };
-                
-                // Also override console.log in case errors are logged there
-                console.log = function() {
-                    const message = Array.from(arguments).join(' ');
-                    if (shouldSuppress(message)) {
-                        return; // Suppress Cloudflare cookie logs
-                    }
-                    originalLog.apply(console, arguments);
-                };
-            })();
-        </script>
+                    
+                    // Override console.warn
+                    console.warn = function() {
+                        const message = Array.from(arguments).join(' ');
+                        if (shouldSuppress(message)) {
+                            return; // Suppress Cloudflare cookie warnings
+                        }
+                        originalWarn.apply(console, arguments);
+                    };
+                    
+                    // Override console.error
+                    console.error = function() {
+                        const message = Array.from(arguments).join(' ');
+                        if (shouldSuppress(message)) {
+                            return; // Suppress Cloudflare cookie errors
+                        }
+                        originalError.apply(console, arguments);
+                    };
+                    
+                    // Also override console.log in case errors are logged there
+                    console.log = function() {
+                        const message = Array.from(arguments).join(' ');
+                        if (shouldSuppress(message)) {
+                            return; // Suppress Cloudflare cookie logs
+                        }
+                        originalLog.apply(console, arguments);
+                    };
+                })();
+            </script>
+        @endenv
         
+        @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.jsx'])
     </head>
     <body style="margin: 0; padding: 0;">

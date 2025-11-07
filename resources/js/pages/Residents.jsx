@@ -42,6 +42,151 @@ export default function Residents() {
         onSuccess: () => queryClient.invalidateQueries(['residents']),
     });
 
+    const residentsList = data?.data || [];
+    const isResidentActive = (resident) => {
+        const value = resident?.is_active;
+        return value === true || value === 1 || value === '1';
+    };
+    const filteredResidents = residentsList.filter((resident) => {
+        if (statusFilter === 'active') return isResidentActive(resident);
+        if (statusFilter === 'inactive') return !isResidentActive(resident);
+        return true;
+    });
+    const activeResidents = filteredResidents.filter((resident) => isResidentActive(resident));
+    const inactiveResidents = filteredResidents.filter((resident) => !isResidentActive(resident));
+    const showActiveSection = statusFilter !== 'inactive';
+    const showInactiveSection = statusFilter !== 'active';
+
+    const renderResidentCard = (resident) => {
+        const isInactive = !isResidentActive(resident);
+        return (
+            <div
+                key={resident.id}
+                className={`bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow ${isInactive ? 'border border-red-200 bg-red-50/60' : ''}`}
+            >
+                <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-3 flex-1">
+                        {resident.profile_image ? (
+                            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-200 flex-shrink-0">
+                                <img
+                                    src={`/storage/${resident.profile_image}`}
+                                    alt={`${resident.first_name} ${resident.last_name}`}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(`${resident.first_name} ${resident.last_name}`)}&background=2D5016&color=fff&size=128`;
+                                    }}
+                                />
+                            </div>
+                        ) : (
+                            <div className="w-16 h-16 rounded-full bg-[#2D5016] flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
+                                {resident.first_name?.[0]?.toUpperCase() || ''}
+                                {resident.last_name?.[0]?.toUpperCase() || ''}
+                            </div>
+                        )}
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-lg font-semibold text-gray-900">
+                                    {resident.first_name}{' '}
+                                    {resident.middle_names ? `${resident.middle_names} ` : ''}
+                                    {resident.last_name}
+                                </h3>
+                                {isInactive && (
+                                    <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-700">
+                                        Deactivated
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex space-x-2">
+                        <button
+                            onClick={() => {
+                                setEditing(resident);
+                                setShowForm(true);
+                            }}
+                            className="p-2 text-[#2D5016] hover:bg-green-50 rounded-lg transition-colors"
+                            title="Edit"
+                        >
+                            <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => {
+                                const action = resident.is_active ? 'deactivate' : 'activate';
+                                if (window.confirm(`Are you sure you want to ${action} this resident?`)) {
+                                                toggleActiveMutation.mutate({ id: resident.id, isActive: isResidentActive(resident) });
+                                }
+                            }}
+                            className={`p-2 rounded-lg transition-colors ${
+                                resident.is_active ? 'text-[#8B4513] hover:bg-amber-50' : 'text-green-600 hover:bg-green-50'
+                            }`}
+                            title={resident.is_active ? 'Deactivate' : 'Activate'}
+                        >
+                            {resident.is_active ? <XCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                        </button>
+                    </div>
+                </div>
+                <div className="space-y-2 text-sm">
+                    {resident.branch && (
+                        <div className="flex justify-between">
+                            <span className="text-gray-600">Branch:</span>
+                            <span className="font-medium text-gray-900">{resident.branch.name}</span>
+                        </div>
+                    )}
+                    <div className="flex justify-between">
+                        <span className="text-gray-600">Room:</span>
+                        <span className="font-medium text-gray-900">{resident.room_number || resident.room || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-gray-600">DOB:</span>
+                        <span className="font-medium text-gray-900">
+                            {resident.date_of_birth
+                                ? new Date(resident.date_of_birth).toLocaleDateString('en-US', {
+                                      month: 'numeric',
+                                      day: 'numeric',
+                                      year: 'numeric',
+                                  })
+                                : 'N/A'}
+                        </span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-gray-600">Admission:</span>
+                        <span className="font-medium text-gray-900">
+                            {resident.admission_date
+                                ? new Date(resident.admission_date).toLocaleDateString('en-US', {
+                                      month: 'numeric',
+                                      day: 'numeric',
+                                      year: 'numeric',
+                                  })
+                                : 'N/A'}
+                        </span>
+                    </div>
+                    {resident.allergies && (
+                        <div className="flex justify-between">
+                            <span className="text-gray-600">Allergies:</span>
+                            <span className="font-medium text-gray-900">
+                                {Array.isArray(resident.allergies) ? resident.allergies.join(', ') : resident.allergies}
+                            </span>
+                        </div>
+                    )}
+                    {resident.diagnosis && (
+                        <div className="flex justify-between">
+                            <span className="text-gray-600">Diagnosis:</span>
+                            <span className="font-medium text-gray-900">{resident.diagnosis}</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    const renderResidentsEmptyState = (title, description, IconComponent = Users) => (
+        <div className="bg-white rounded-lg shadow p-12 text-center">
+            <IconComponent className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 text-lg font-medium">{title}</p>
+            <p className="text-gray-500 text-sm mt-2">{description}</p>
+        </div>
+    );
+
     return (
         <div>
             <div className="bg-white rounded-lg shadow p-6 mb-6">
@@ -119,121 +264,46 @@ export default function Residents() {
                     <p className="mt-4 text-gray-600">Loading residents...</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {data?.data?.length > 0 ? (
-                        data.data
-                            .filter(resident => {
-                                if (statusFilter === 'active') return resident.is_active !== false;
-                                if (statusFilter === 'inactive') return resident.is_active === false;
-                                return true;
-                            })
-                            .map((resident) => (
-                        <div key={resident.id} className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center space-x-3 flex-1">
-                                    {resident.profile_image ? (
-                                        <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-200 flex-shrink-0">
-                                            <img 
-                                                src={`/storage/${resident.profile_image}`} 
-                                                alt={`${resident.first_name} ${resident.last_name}`}
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => {
-                                                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(resident.first_name + ' ' + resident.last_name)}&background=2D5016&color=fff&size=128`;
-                                                }}
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className="w-16 h-16 rounded-full bg-[#2D5016] flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
-                                            {resident.first_name?.[0]?.toUpperCase() || ''}{resident.last_name?.[0]?.toUpperCase() || ''}
-                                        </div>
-                                    )}
-                                <h3 className="text-lg font-semibold text-gray-900">
-                                    {resident.first_name} {resident.middle_names ? resident.middle_names + ' ' : ''}{resident.last_name}
-                                </h3>
-                                </div>
-                                <div className="flex space-x-2">
-                                    <button
-                                        onClick={() => {
-                                            setEditing(resident);
-                                            setShowForm(true);
-                                        }}
-                                        className="p-2 text-[#2D5016] hover:bg-green-50 rounded-lg transition-colors"
-                                        title="Edit"
-                                    >
-                                        <Edit className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            const action = resident.is_active ? 'deactivate' : 'activate';
-                                            if (window.confirm(`Are you sure you want to ${action} this resident?`)) {
-                                                toggleActiveMutation.mutate({ id: resident.id, isActive: resident.is_active });
-                                            }
-                                        }}
-                                        className={`p-2 rounded-lg transition-colors ${
-                                            resident.is_active 
-                                                ? 'text-[#8B4513] hover:bg-amber-50' 
-                                                : 'text-green-600 hover:bg-green-50'
-                                        }`}
-                                        title={resident.is_active ? 'Deactivate' : 'Activate'}
-                                    >
-                                        {resident.is_active ? (
-                                            <XCircle className="w-4 h-4" />
-                                        ) : (
-                                            <CheckCircle className="w-4 h-4" />
-                                        )}
-                                    </button>
-                                </div>
+                <>
+                    {showActiveSection && (
+                        <div>
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-semibold text-gray-900">Active Residents</h3>
+                                <span className="text-sm text-gray-500">{activeResidents.length} total</span>
                             </div>
-                            <div className="space-y-2 text-sm">
-                                {resident.branch && (
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Branch:</span>
-                                        <span className="font-medium text-gray-900">{resident.branch.name}</span>
-                                    </div>
-                                )}
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Room:</span>
-                                    <span className="font-medium text-gray-900">{resident.room_number || resident.room || 'N/A'}</span>
+                            {activeResidents.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {activeResidents.map(renderResidentCard)}
                                 </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">DOB:</span>
-                                    <span className="font-medium text-gray-900">
-                                        {resident.date_of_birth ? new Date(resident.date_of_birth).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }) : 'N/A'}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Admission:</span>
-                                    <span className="font-medium text-gray-900">
-                                        {resident.admission_date ? new Date(resident.admission_date).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }) : 'N/A'}
-                                    </span>
-                                </div>
-                                {resident.allergies && (
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Allergies:</span>
-                                        <span className="font-medium text-gray-900">{Array.isArray(resident.allergies) ? resident.allergies.join(', ') : resident.allergies}</span>
-                                    </div>
-                                )}
-                                {resident.diagnosis && (
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Diagnosis:</span>
-                                        <span className="font-medium text-gray-900">{resident.diagnosis}</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        ))
-                    ) : (
-                        <div className="col-span-full bg-white rounded-lg shadow p-12 text-center">
-                            <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                            <p className="text-gray-600 text-lg font-medium">No residents found</p>
-                            <p className="text-gray-500 text-sm mt-2">
-                                {search 
-                                    ? 'No residents match your search.' 
-                                    : 'No residents found in the system.'}
-                            </p>
+                            ) : (
+                                renderResidentsEmptyState(
+                                    'No active residents found',
+                                    'Try adjusting your filters or add a new resident.'
+                                )
+                            )}
                         </div>
                     )}
-                </div>
+
+                    {showInactiveSection && (
+                        <div className={showActiveSection ? 'mt-10' : ''}>
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-semibold text-gray-900">Deactivated Residents</h3>
+                                <span className="text-sm text-gray-500">{inactiveResidents.length} total</span>
+                            </div>
+                            {inactiveResidents.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {inactiveResidents.map(renderResidentCard)}
+                                </div>
+                            ) : (
+                                renderResidentsEmptyState(
+                                    'No deactivated residents found',
+                                    'Deactivated residents will appear here when available.',
+                                    XCircle
+                                )
+                            )}
+                        </div>
+                    )}
+                </>
             )}
 
             {/* Create/Edit Form Modal */}
