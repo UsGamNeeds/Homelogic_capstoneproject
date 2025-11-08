@@ -22,7 +22,7 @@ export default function VitalsReports() {
     if (isLoading) {
         return (
             <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D5016]"></div>
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#25603E]"></div>
                 <p className="mt-4 text-gray-600">Loading vitals report...</p>
             </div>
         );
@@ -47,7 +47,7 @@ export default function VitalsReports() {
                             type="date"
                             value={dateFrom}
                             onChange={(e) => setDateFrom(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                         />
                     </div>
                     <div>
@@ -56,7 +56,7 @@ export default function VitalsReports() {
                             type="date"
                             value={dateTo}
                             onChange={(e) => setDateTo(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                         />
                     </div>
                 </div>
@@ -89,7 +89,7 @@ export default function VitalsReports() {
                             // Export functionality
                             alert('Export functionality coming soon');
                         }}
-                        className="px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center space-x-2"
+                        className="px-4 py-2 bg-[#25603E] text-white rounded-lg hover:bg-[#1B402D] transition-colors flex items-center space-x-2"
                     >
                         <Download className="w-4 h-4" />
                         <span>Export Report</span>

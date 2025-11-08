@@ -39,7 +39,7 @@ export const defaultOptions = {
 };
 
 export const colors = {
-    primary: '#2D5016',
+    primary: '#25603E',
     secondary: '#654321',
     success: '#10b981',
     warning: '#f59e0b',

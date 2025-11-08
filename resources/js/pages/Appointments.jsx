@@ -483,7 +483,7 @@ export default function Appointments() {
                                                         e.stopPropagation();
                                                         window.location.href = `/app/appointments/create/${resident.id}`;
                                                     }}
-                                                    className="w-full bg-[#2D5016] hover:bg-[#1a3009] text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 no-underline"
+                                                    className="w-full bg-[#25603E] hover:bg-[#1B402D] text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 no-underline"
                                                 >
                                                     <Calendar className="w-4 h-4" />
                                                     <span>Schedule Appointment</span>
@@ -534,7 +534,7 @@ export default function Appointments() {
                                             setBranchFilter(e.target.value);
                                             setResidentFilter('');
                                         }}
-                                        className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent appearance-none bg-white"
+                                        className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent appearance-none bg-white"
                                     >
                                         <option value="">All Branches</option>
                                         {(branchesData?.data || branchesData || []).map(branch => (
@@ -553,7 +553,7 @@ export default function Appointments() {
                                     <select
                                         value={residentFilter}
                                         onChange={(e) => setResidentFilter(e.target.value)}
-                                        className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent appearance-none bg-white"
+                                        className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent appearance-none bg-white"
                                     >
                                         <option value="">All Residents</option>
                                         {(allResidentsData?.data || []).map(r => (
@@ -589,7 +589,7 @@ export default function Appointments() {
                 !residentFilter ? (
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
                         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Calendar className="w-10 h-10 text-[#2D5016]" />
+                            <Calendar className="w-10 h-10 text-[#25603E]" />
                         </div>
                         <h3 className="text-xl font-semibold text-gray-900 mb-2">Select a Resident to View Appointments</h3>
                         <p className="text-gray-600 mb-4">
@@ -604,7 +604,7 @@ export default function Appointments() {
                     </div>
                 ) : isLoading ? (
                     <div className="text-center py-12 bg-white rounded-xl shadow-sm">
-                        <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-[#2D5016]"></div>
+                        <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-[#25603E]"></div>
                         <p className="mt-4 text-gray-600 font-medium">Loading appointments...</p>
                     </div>
                 ) : (
@@ -681,7 +681,7 @@ export default function Appointments() {
                                                     }}
                                                     className={`hover:bg-gray-50 transition-all duration-500 ${
                                                         isHighlighted 
-                                                            ? 'bg-green-100 border-l-4 border-[#2D5016] shadow-md' 
+                                                            ? 'bg-green-100 border-l-4 border-[#25603E] shadow-md' 
                                                             : ''
                                                     }`}
                                                 >
@@ -771,7 +771,7 @@ export default function Appointments() {
                                 rows={4}
                                 value={completionNotes}
                                 onChange={(e) => setCompletionNotes(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                 placeholder="Enter notes about the appointment outcome..."
                             />
                         </div>
@@ -843,7 +843,7 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                                         setErrors({ ...errors, branch_id: null, resident_id: null });
                                     }}
                                     disabled={isPreFilled}
-                                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent ${
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent ${
                                         isPreFilled ? 'bg-gray-100 cursor-not-allowed opacity-75' : 'bg-white'
                                     }`}
                                 >
@@ -866,7 +866,7 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                                         setErrors({ ...errors, resident_id: null });
                                     }}
                                     disabled={isPreFilled}
-                                    className={`w-full pl-9 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent ${
+                                    className={`w-full pl-9 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent ${
                                         errors.resident_id ? 'border-red-300' : 'border-gray-300'
                                     } ${isPreFilled ? 'bg-gray-100 cursor-not-allowed opacity-75' : 'bg-white'}`}
                                 >
@@ -888,7 +888,7 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                                     setErrors({ ...errors, appointment_date: null });
                                 }}
                                 required
-                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent ${
+                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent ${
                                     errors.appointment_date ? 'border-red-300' : 'border-gray-300'
                                 }`}
                             />
@@ -909,7 +909,7 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                                     type="text"
                                     value={formData.provider_name}
                                     onChange={(e) => setFormData({ ...formData, provider_name: e.target.value })}
-                                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                     placeholder="Dr. Smith"
                                 />
                             </div>
@@ -922,7 +922,7 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                                     type="text"
                                     value={formData.location}
                                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                     placeholder="Clinic / Room"
                                 />
                             </div>
@@ -934,7 +934,7 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                             rows={3}
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                             placeholder="Additional details..."
                         />
                     </div>
@@ -964,7 +964,7 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                         <button
                             type="submit"
                             disabled={isSubmitting || !formData.resident_id || !formData.appointment_date}
-                            className="px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-4 py-2 bg-[#25603E] text-white rounded-lg hover:bg-[#1B402D] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? 'Creating...' : 'Create Appointment'}
                         </button>
@@ -1038,7 +1038,7 @@ function TimePicker({ value, onChange, className = '' }) {
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent bg-white text-left flex items-center justify-between ${className}`}
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent bg-white text-left flex items-center justify-between ${className}`}
             >
                 <span className={value ? 'text-gray-900' : 'text-gray-400'}>
                     {displayValue}
@@ -1061,7 +1061,7 @@ function TimePicker({ value, onChange, className = '' }) {
                                     const newHours = parseInt(e.target.value);
                                     handleTimeChange(newHours, minutes, period);
                                 }}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent text-center text-lg font-semibold"
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent text-center text-lg font-semibold"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {hourOptions.map(h => (
@@ -1078,7 +1078,7 @@ function TimePicker({ value, onChange, className = '' }) {
                                     const newMinutes = parseInt(e.target.value);
                                     handleTimeChange(hours, newMinutes, period);
                                 }}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent text-center text-lg font-semibold"
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent text-center text-lg font-semibold"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {minuteOptions.map(m => (
@@ -1093,7 +1093,7 @@ function TimePicker({ value, onChange, className = '' }) {
                                     const newPeriod = e.target.value;
                                     handleTimeChange(hours, minutes, newPeriod);
                                 }}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent text-center text-lg font-semibold"
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent text-center text-lg font-semibold"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 <option value="AM">AM</option>

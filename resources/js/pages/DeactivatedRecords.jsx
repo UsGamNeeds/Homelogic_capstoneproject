@@ -77,7 +77,7 @@ export default function DeactivatedRecords() {
         if (isLoadingResidents) {
             return (
                 <div className="text-center py-12">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D5016]"></div>
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#25603E]"></div>
                     <p className="mt-4 text-gray-600">Loading deactivated residents...</p>
                 </div>
             );
@@ -148,7 +148,7 @@ export default function DeactivatedRecords() {
                             <button
                                 onClick={() => handleReactivateResident(resident)}
                                 disabled={reactivateResidentMutation.isPending && reactivateResidentMutation.variables === resident.id}
-                                className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg bg-[#2D5016] text-white hover:bg-[#1a3009] transition"
+                                className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg bg-[#25603E] text-white hover:bg-[#1B402D] transition"
                             >
                                 <Repeat2 className="w-4 h-4 mr-2" />
                                 Reactivate
@@ -164,7 +164,7 @@ export default function DeactivatedRecords() {
         if (isLoadingUsers) {
             return (
                 <div className="text-center py-12">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D5016]"></div>
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#25603E]"></div>
                     <p className="mt-4 text-gray-600">Loading deactivated users...</p>
                 </div>
             );
@@ -229,7 +229,7 @@ export default function DeactivatedRecords() {
                             <button
                                 onClick={() => handleReactivateUser(user)}
                                 disabled={reactivateUserMutation.isPending && reactivateUserMutation.variables === user.id}
-                                className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg bg-[#2D5016] text-white hover:bg-[#1a3009] transition"
+                                className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg bg-[#25603E] text-white hover:bg-[#1B402D] transition"
                             >
                                 <Repeat2 className="w-4 h-4 mr-2" />
                                 Reactivate
@@ -266,7 +266,7 @@ export default function DeactivatedRecords() {
                         onClick={() => setActiveTab('residents')}
                         className={`px-4 py-2 text-sm font-medium rounded-md transition ${
                             isResidentsTab
-                                ? 'bg-white shadow-sm text-[#2D5016]'
+                                ? 'bg-white shadow-sm text-[#25603E]'
                                 : 'text-gray-600 hover:text-gray-900'
                         }`}
                     >
@@ -276,7 +276,7 @@ export default function DeactivatedRecords() {
                         onClick={() => setActiveTab('users')}
                         className={`px-4 py-2 text-sm font-medium rounded-md transition ${
                             !isResidentsTab
-                                ? 'bg-white shadow-sm text-[#2D5016]'
+                                ? 'bg-white shadow-sm text-[#25603E]'
                                 : 'text-gray-600 hover:text-gray-900'
                         }`}
                     >

@@ -78,7 +78,7 @@ class VitalSignObserver
             $vitalsStr = !empty($vitalsSummary) ? ' (' . implode(', ', $vitalsSummary) . ')' : '';
             
             $title = $isCritical ? 'Critical Vital Signs Recorded' : 'Vital Signs Recorded';
-            $iconColor = $isCritical ? 'text-red-600' : 'text-[#2D5016]';
+            $iconColor = $isCritical ? 'text-red-600' : 'text-[#25603E]';
             
             Notification::create([
                 'user_id' => $caregiver->id,

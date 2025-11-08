@@ -13,7 +13,7 @@ export default function SleepCharts() {
     if (isLoading) {
         return (
             <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D5016]"></div>
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#25603E]"></div>
                 <p className="mt-4 text-gray-600">Loading sleep charts...</p>
             </div>
         );

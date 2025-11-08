@@ -78,9 +78,9 @@ export default function Dashboard() {
             title: 'My Residents',
             value: stats?.assigned_residents || 0,
             icon: Users,
-            gradient: 'from-[#2D5016] to-[#4a7a2a]',
+            gradient: 'from-[#25603E] to-[#4a7a2a]',
             iconBg: 'bg-green-50',
-            iconColor: 'text-[#2D5016]',
+            iconColor: 'text-[#25603E]',
             description: 'Assigned to me',
             link: '/administration/residents',
             trend: 'positive'
@@ -89,9 +89,9 @@ export default function Dashboard() {
             title: "Today's Appointments",
             value: stats?.todays_appointments || 0,
             icon: Calendar,
-            gradient: 'from-[#2D5016] to-[#4a7a2a]',
+            gradient: 'from-[#25603E] to-[#4a7a2a]',
             iconBg: 'bg-green-50',
-            iconColor: 'text-[#2D5016]',
+            iconColor: 'text-[#25603E]',
             description: 'Scheduled meetings',
             link: '/appointments',
             trend: 'positive'
@@ -111,9 +111,9 @@ export default function Dashboard() {
             title: 'Vitals Recorded',
             value: stats?.today_vitals || 0,
             icon: Activity,
-            gradient: 'from-[#2D5016] to-[#4a7a2a]',
+            gradient: 'from-[#25603E] to-[#4a7a2a]',
             iconBg: 'bg-green-50',
-            iconColor: 'text-[#2D5016]',
+            iconColor: 'text-[#25603E]',
             description: 'Today',
             link: '/vitals',
             trend: 'positive'
@@ -133,9 +133,9 @@ export default function Dashboard() {
             title: 'Weekly Appointments',
             value: stats?.week_appointments || 0,
             icon: Calendar,
-            gradient: 'from-[#2D5016] to-[#4a7a2a]',
+            gradient: 'from-[#25603E] to-[#4a7a2a]',
             iconBg: 'bg-green-50',
-            iconColor: 'text-[#2D5016]',
+            iconColor: 'text-[#25603E]',
             description: 'Next 7 days',
             link: '/appointments',
             trend: 'positive'
@@ -145,18 +145,18 @@ export default function Dashboard() {
             title: 'Total Residents',
             value: stats?.total_residents || 0,
             icon: Users,
-            gradient: 'from-[#2D5016] to-[#4a7a2a]',
+            gradient: 'from-[#25603E] to-[#4a7a2a]',
             iconBg: 'bg-green-50',
-            iconColor: 'text-[#2D5016]',
+            iconColor: 'text-[#25603E]',
             link: '/administration/residents',
         },
         {
             title: "Today's Appointments",
             value: stats?.today_appointments || 0,
             icon: Calendar,
-            gradient: 'from-[#2D5016] to-[#4a7a2a]',
+            gradient: 'from-[#25603E] to-[#4a7a2a]',
             iconBg: 'bg-green-50',
-            iconColor: 'text-[#2D5016]',
+            iconColor: 'text-[#25603E]',
             link: '/appointments',
         },
         {
@@ -196,7 +196,7 @@ export default function Dashboard() {
                 
                 {isLoading && (
                     <div className="text-center py-20">
-                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-[#2D5016] border-t-transparent"></div>
+                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-[#25603E] border-t-transparent"></div>
                         <p className="mt-4 text-[#8B4513] text-lg font-medium">Loading dashboard data...</p>
                     </div>
                 )}
@@ -209,13 +209,13 @@ export default function Dashboard() {
                                 <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                                     <div className="flex items-center space-x-4 mb-4 md:mb-0">
                                         <div className="relative">
-                                            <div className="absolute inset-0 bg-gradient-to-br from-[#2D5016] to-[#4a7a2a] rounded-xl blur-sm opacity-50"></div>
-                                            <div className="relative w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-[#2D5016] to-[#4a7a2a] rounded-xl flex items-center justify-center">
+                                            <div className="absolute inset-0 bg-gradient-to-br from-[#25603E] to-[#4a7a2a] rounded-xl blur-sm opacity-50"></div>
+                                            <div className="relative w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-[#25603E] to-[#4a7a2a] rounded-xl flex items-center justify-center">
                                                 <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-white" />
                                             </div>
                                         </div>
                                         <div>
-                                            <h1 className="text-xl md:text-2xl font-bold text-[#2D5016]">
+                                            <h1 className="text-xl md:text-2xl font-bold text-[#25603E]">
                                                 {greeting}, {currentUser?.first_name || currentUser?.name || 'User'} 👋
                                             </h1>
                                             <p className="text-xs md:text-sm text-gray-600 mt-1">
@@ -257,7 +257,7 @@ export default function Dashboard() {
                                                         {card.title}
                                                     </p>
                                                     <div className="flex items-baseline space-x-2">
-                                                        <p className="text-4xl font-bold text-[#2D5016]">
+                                                        <p className="text-4xl font-bold text-[#25603E]">
                                                             {card.value}
                                                         </p>
                                                         {card.trend === 'warning' && (
@@ -278,7 +278,7 @@ export default function Dashboard() {
                                             
                                             {/* Hover effect */}
                                             {card.link && (
-                                                <div className="flex items-center text-[#2D5016] text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                <div className="flex items-center text-[#25603E] text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                                     <span>View details</span>
                                                     <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform" />
                                                 </div>
@@ -295,10 +295,10 @@ export default function Dashboard() {
                             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                                 <div className="px-6 py-4 border-b border-gray-200">
                                     <div className="flex items-center justify-between">
-                                        <h2 className="text-lg font-bold text-[#2D5016]">Upcoming Appointments</h2>
+                                        <h2 className="text-lg font-bold text-[#25603E]">Upcoming Appointments</h2>
                                         <button
                                             onClick={() => navigate('/appointments')}
-                                            className="text-sm text-[#2D5016] hover:text-[#1a3009] font-medium"
+                                            className="text-sm text-[#25603E] hover:text-[#1B402D] font-medium"
                                         >
                                             View all →
                                         </button>
@@ -310,9 +310,9 @@ export default function Dashboard() {
                                             {stats.upcoming_appointments_list.map((apt, idx) => (
                                                 <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                                                     <div className="flex items-center space-x-3 flex-1">
-                                                        <Calendar className="w-5 h-5 text-[#2D5016] flex-shrink-0" />
+                                                        <Calendar className="w-5 h-5 text-[#25603E] flex-shrink-0" />
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-semibold text-[#2D5016] truncate">
+                                                            <p className="text-sm font-semibold text-[#25603E] truncate">
                                                                 {apt.resident_name}
                                                             </p>
                                                             <p className="text-xs text-gray-600 truncate">
@@ -345,10 +345,10 @@ export default function Dashboard() {
                             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                                 <div className="px-6 py-4 border-b border-gray-200">
                                     <div className="flex items-center justify-between">
-                                        <h2 className="text-lg font-bold text-[#2D5016]">My Residents</h2>
+                                        <h2 className="text-lg font-bold text-[#25603E]">My Residents</h2>
                                         <button
                                             onClick={() => navigate('/administration/residents')}
-                                            className="text-sm text-[#2D5016] hover:text-[#1a3009] font-medium"
+                                            className="text-sm text-[#25603E] hover:text-[#1B402D] font-medium"
                                         >
                                             View all →
                                         </button>
@@ -359,13 +359,13 @@ export default function Dashboard() {
                                         <div className="space-y-3">
                                             {stats.resident_list.map((resident, idx) => (
                                                 <div key={idx} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">
-                                                    <div className="w-10 h-10 bg-[#2D5016] rounded-full flex items-center justify-center flex-shrink-0">
+                                                    <div className="w-10 h-10 bg-[#25603E] rounded-full flex items-center justify-center flex-shrink-0">
                                                         <span className="text-white text-sm font-bold">
                                                             {resident.name.split(' ').map(n => n[0]).join('')}
                                                         </span>
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-semibold text-[#2D5016] truncate">
+                                                        <p className="text-sm font-semibold text-[#25603E] truncate">
                                                             {resident.name}
                                                         </p>
                                                         <p className="text-xs text-gray-500">
@@ -402,7 +402,7 @@ export default function Dashboard() {
                                 <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                                     <div className="px-6 py-4 border-b border-gray-200">
                                         <div className="flex items-center justify-between">
-                                            <h2 className="text-lg font-bold text-[#2D5016]">Medication Reminders</h2>
+                                            <h2 className="text-lg font-bold text-[#25603E]">Medication Reminders</h2>
                                             <span className="text-xs text-gray-500">Next 24 Hours</span>
                                         </div>
                                     </div>
@@ -412,13 +412,13 @@ export default function Dashboard() {
                                                 {stats.medication_reminders.map((reminder, idx) => (
                                                     <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                                                         <div className="flex items-center space-x-3 flex-1">
-                                                            <div className="w-10 h-10 bg-[#2D5016] rounded-full flex items-center justify-center flex-shrink-0">
+                                                            <div className="w-10 h-10 bg-[#25603E] rounded-full flex items-center justify-center flex-shrink-0">
                                                                 <span className="text-white text-sm font-bold">
                                                                     {reminder.resident_name.split(' ').map(n => n[0]).join('')}
                                                                 </span>
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="text-sm font-semibold text-[#2D5016] truncate">
+                                                                <p className="text-sm font-semibold text-[#25603E] truncate">
                                                                     {reminder.resident_name}
                                                                 </p>
                                                                 <p className="text-xs text-gray-600 truncate">
@@ -484,17 +484,17 @@ function ResidentVitalsTrendSection({ residents, defaultTrend }) {
     return (
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-[#2D5016]">Resident Vitals Trend</h2>
+                <h2 className="text-xl font-bold text-[#25603E]">Resident Vitals Trend</h2>
                 <div className="flex items-center">
                     {isLoading && (
                         <div className="inline-flex items-center mr-2">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#2D5016]"></div>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#25603E]"></div>
                         </div>
                     )}
                     <select
                         value={selectedResident || ''}
                         onChange={(e) => handleResidentChange(e.target.value)}
-                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-[#2D5016] focus:ring-2 focus:ring-[#2D5016] focus:border-transparent bg-white"
+                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-[#25603E] focus:ring-2 focus:ring-[#25603E] focus:border-transparent bg-white"
                     >
                         {residents.map((resident) => (
                             <option key={resident.id} value={resident.id}>
@@ -579,7 +579,7 @@ function ResidentVitalsChart({ data }) {
                         size: 12,
                         weight: '500',
                     },
-                    color: '#2D5016',
+                    color: '#25603E',
                 },
             },
             tooltip: {

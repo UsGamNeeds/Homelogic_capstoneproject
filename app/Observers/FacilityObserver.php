@@ -29,7 +29,7 @@ class FacilityObserver
                 'title' => 'New Facility Added',
                 'message' => "A new facility, {$facilityName}, has been added in {$location}",
                 'icon' => 'calendar',
-                'icon_color' => 'text-[#2D5016]',
+                'icon_color' => 'text-[#25603E]',
                 'action_url' => '/administration/facilities',
                 'metadata' => [
                     'facility_id' => $facility->id,

@@ -36,7 +36,7 @@ class UserObserver
                 'title' => 'New User Added',
                 'message' => "A new {$role}, {$userName} ({$email}), has been added to the system",
                 'icon' => 'user-plus',
-                'icon_color' => 'text-[#2D5016]',
+                'icon_color' => 'text-[#25603E]',
                 'action_url' => '/administration/users',
                 'metadata' => [
                     'user_id' => $user->id,

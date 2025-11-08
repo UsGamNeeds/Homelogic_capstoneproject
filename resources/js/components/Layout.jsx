@@ -102,7 +102,7 @@ export default function Layout() {
             {/* Sidebar */}
             <aside className={`fixed md:relative inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${
                 mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-            } w-64 bg-[#2D5016] text-white flex flex-col`}>
+            } w-64 bg-[#25603E] text-white flex flex-col`}>
                 {/* Mobile close button */}
                 <button
                     onClick={() => setMobileMenuOpen(false)}
@@ -113,7 +113,7 @@ export default function Layout() {
                 {/* Logo */}
                 <div className="p-6 border-b border-[#4a7a2a]">
                     <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-[#2D5016] rounded-full flex items-center justify-center shadow-lg overflow-hidden">
+                        <div className="w-12 h-12 bg-[#25603E] rounded-full flex items-center justify-center shadow-lg overflow-hidden">
                             <img 
                                 src="/images/logo.jpeg" 
                                 alt="Evergreen Oasis Care Home"
@@ -123,7 +123,7 @@ export default function Layout() {
                                     e.target.nextElementSibling.style.display = 'flex';
                                 }}
                             />
-                            <div className="w-full h-full bg-[#2D5016] rounded-full flex items-center justify-center hidden">
+                            <div className="w-full h-full bg-[#25603E] rounded-full flex items-center justify-center hidden">
                                 <span className="text-white font-bold text-xl">E</span>
                             </div>
                         </div>
@@ -165,7 +165,7 @@ export default function Layout() {
                                             onClick={() => setExpandedMenus({...expandedMenus, [item.name]: !isExpanded})}
                                             className={`w-full flex items-center justify-between space-x-3 px-4 py-3 rounded-lg transition-colors ${
                                                 isActive
-                                                    ? 'bg-white text-[#2D5016] shadow-md'
+                                                    ? 'bg-white text-[#25603E] shadow-md'
                                                     : 'text-white hover:bg-[#4a7a2a] hover:text-white'
                                             }`}
                                         >
@@ -207,7 +207,7 @@ export default function Layout() {
                                         onClick={() => setMobileMenuOpen(false)}
                                         className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                                             isActive
-                                                ? 'bg-white text-[#2D5016] shadow-md'
+                                                ? 'bg-white text-[#25603E] shadow-md'
                                                 : 'text-white hover:bg-[#4a7a2a] hover:text-white'
                                         }`}
                                     >
@@ -232,7 +232,7 @@ export default function Layout() {
                         >
                             <Menu className="w-6 h-6" />
                         </button>
-                        <h1 className="text-lg md:text-xl font-semibold text-[#2D5016]">Evergreen Oasis</h1>
+                        <h1 className="text-lg md:text-xl font-semibold text-[#25603E]">Evergreen Oasis</h1>
                     </div>
                     <div className="flex items-center space-x-2 md:space-x-4">
                         <NotificationDropdown />

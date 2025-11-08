@@ -45,7 +45,7 @@ class SleepRecordObserver
                 'title' => 'Sleep Record Added',
                 'message' => "Sleep record for {$residentName} was recorded by {$createdByName} on {$sleepDate}. Duration: {$sleepHours} hours, Quality: {$quality}",
                 'icon' => 'moon',
-                'icon_color' => 'text-[#2D5016]',
+                'icon_color' => 'text-[#25603E]',
                 'action_url' => '/sleep',
                 'metadata' => [
                     'sleep_record_id' => $sleepRecord->id,

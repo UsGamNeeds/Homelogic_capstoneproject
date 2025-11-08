@@ -306,7 +306,7 @@ export default function SleepPatterns() {
     return (
         <div>
             <SectionCard>
-                <h1 className="text-3xl font-bold text-[#2D5016] mb-6">Sleep Pattern Management</h1>
+                <h1 className="text-3xl font-bold text-[#25603E] mb-6">Sleep Pattern Management</h1>
                 
                 {/* Filters */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -320,7 +320,7 @@ export default function SleepPatterns() {
                                     setBranchId(e.target.value);
                                     setResidentId(''); // Reset resident when branch changes
                                 }}
-                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent appearance-none bg-white"
+                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent appearance-none bg-white"
                             >
                                 <option value="">Select a branch</option>
                                 {(branchesData || []).map(branch => (
@@ -338,7 +338,7 @@ export default function SleepPatterns() {
                                 value={residentId}
                                 onChange={(e) => setResidentId(e.target.value)}
                                 disabled={!branchId}
-                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                             >
                                 <option value="">Select a resident</option>
                                 {(residentsData?.data || []).map(resident => (
@@ -357,7 +357,7 @@ export default function SleepPatterns() {
                             <select
                                 value={month}
                                 onChange={(e) => setMonth(parseInt(e.target.value))}
-                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent appearance-none bg-white"
+                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent appearance-none bg-white"
                             >
                                 {months.map((m, idx) => (
                                     <option key={idx + 1} value={idx + 1}>{m}</option>
@@ -373,7 +373,7 @@ export default function SleepPatterns() {
                             <select
                                 value={year}
                                 onChange={(e) => setYear(parseInt(e.target.value))}
-                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent appearance-none bg-white"
+                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent appearance-none bg-white"
                             >
                                 {years.map(y => (
                                     <option key={y} value={y}>{y}</option>
@@ -415,7 +415,7 @@ export default function SleepPatterns() {
                                     onClick={() => setChartType('bar')}
                                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                                         chartType === 'bar'
-                                            ? 'bg-[#2D5016] text-white'
+                                            ? 'bg-[#25603E] text-white'
                                             : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                                     }`}
                                 >
@@ -426,7 +426,7 @@ export default function SleepPatterns() {
                                     onClick={() => setChartType('line')}
                                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                                         chartType === 'line'
-                                            ? 'bg-[#2D5016] text-white'
+                                            ? 'bg-[#25603E] text-white'
                                             : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                                     }`}
                                 >
@@ -437,7 +437,7 @@ export default function SleepPatterns() {
                                     onClick={() => setChartType('heatmap')}
                                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                                         chartType === 'heatmap'
-                                            ? 'bg-[#2D5016] text-white'
+                                            ? 'bg-[#25603E] text-white'
                                             : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                                     }`}
                                 >
@@ -477,7 +477,7 @@ export default function SleepPatterns() {
                                                 setGroupBy(e.target.value);
                                                 setShowPreview(false); // Reset preview when grouping changes
                                             }}
-                                            className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                            className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                         >
                                             <option value="day">Day</option>
                                             <option value="week">Week</option>
@@ -560,7 +560,7 @@ export default function SleepPatterns() {
 
                         {isLoading ? (
                             <div className="text-center py-12">
-                                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D5016]"></div>
+                                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#25603E]"></div>
                                 <p className="mt-4 text-gray-600">Loading sleep pattern data...</p>
                             </div>
                         ) : error ? (
@@ -733,7 +733,7 @@ export default function SleepPatterns() {
                                         <ul className="space-y-2">
                                             {patternData.key_observations.map((obs, idx) => (
                                                 <li key={idx} className="flex items-start gap-2 text-gray-700">
-                                                    <TrendingUp className="w-5 h-5 text-[#2D5016] mt-0.5 flex-shrink-0" />
+                                                    <TrendingUp className="w-5 h-5 text-[#25603E] mt-0.5 flex-shrink-0" />
                                                     <span>{obs}</span>
                                                 </li>
                                             ))}

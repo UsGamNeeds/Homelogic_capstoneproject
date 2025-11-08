@@ -32,7 +32,7 @@ export default function Facilities() {
           </div>
           <button
             onClick={() => { setEditing(null); setShowForm(true); }}
-            className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
+            className="w-full sm:w-auto px-4 py-2 bg-[#25603E] text-white rounded-lg hover:bg-[#1B402D] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
           >
             <Plus className="w-4 h-4" />
             <span>Add Facility</span>
@@ -45,14 +45,14 @@ export default function Facilities() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search facilities..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
           />
         </div>
       </div>
 
       {isLoading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D5016]"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#25603E]"></div>
           <p className="mt-4 text-gray-600">Loading facilities...</p>
         </div>
       ) : (
@@ -65,7 +65,7 @@ export default function Facilities() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-2">
-                        <Building2 className="w-5 h-5 text-[#2D5016]" />
+                        <Building2 className="w-5 h-5 text-[#25603E]" />
                         <h3 className="text-lg font-bold text-gray-900">{f.name}</h3>
                       </div>
                     </div>
@@ -73,7 +73,7 @@ export default function Facilities() {
                     <div className="flex space-x-1">
                     <button
                       onClick={() => { setEditing(f); setShowForm(true); }}
-                        className="p-2 text-[#2D5016] hover:bg-green-50 rounded-lg transition-colors"
+                        className="p-2 text-[#25603E] hover:bg-green-50 rounded-lg transition-colors"
                       title="Edit"
                     >
                       <Edit className="w-4 h-4" />
@@ -181,7 +181,7 @@ function FacilityForm({ record, onClose, onSuccess }) {
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
               />
               {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name[0]}</p>}
             </div>
@@ -191,7 +191,7 @@ function FacilityForm({ record, onClose, onSuccess }) {
                 value={form.address}
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
                 rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -200,7 +200,7 @@ function FacilityForm({ record, onClose, onSuccess }) {
                 <input
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                 />
               </div>
               <div>
@@ -209,13 +209,13 @@ function FacilityForm({ record, onClose, onSuccess }) {
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                 />
               </div>
             </div>
             <div className="flex items-center justify-end space-x-3 pt-4 border-t">
               <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
-              <button type="submit" disabled={submitting} className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] disabled:opacity-50">{submitting ? 'Saving...' : (record ? 'Update' : 'Create')}</button>
+              <button type="submit" disabled={submitting} className="w-full sm:w-auto px-4 py-2 bg-[#25603E] text-white rounded-lg hover:bg-[#1B402D] disabled:opacity-50">{submitting ? 'Saving...' : (record ? 'Update' : 'Create')}</button>
             </div>
           </form>
         </div>

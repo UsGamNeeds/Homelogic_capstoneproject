@@ -108,7 +108,7 @@ export default function Sleep() {
                             setEditingRecord(null);
                             setShowForm(true);
                         }}
-                        className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
+                        className="w-full sm:w-auto px-4 py-2 bg-[#25603E] text-white rounded-lg hover:bg-[#1B402D] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
                     >
                         <Plus className="w-4 h-4" />
                         <span>Add Sleep Record</span>
@@ -125,7 +125,7 @@ export default function Sleep() {
                                     onClick={() => setDateFilter(filter)}
                                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
                                         dateFilter === filter
-                                            ? 'bg-[#2D5016] text-white'
+                                            ? 'bg-[#25603E] text-white'
                                             : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                                     }`}
                                 >
@@ -140,7 +140,7 @@ export default function Sleep() {
                         <select
                             value={residentFilter}
                             onChange={(e) => setResidentFilter(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                         >
                             <option value="">All Residents</option>
                             {residentsData?.data?.map((resident) => (
@@ -160,7 +160,7 @@ export default function Sleep() {
                                 placeholder="Search residents..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                             />
                         </div>
                     </div>
@@ -170,7 +170,7 @@ export default function Sleep() {
             {/* Sleep Records List */}
             {isLoading ? (
                 <div className="text-center py-12">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D5016]"></div>
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#25603E]"></div>
                     <p className="mt-4 text-gray-600">Loading sleep records...</p>
                 </div>
             ) : (
@@ -276,7 +276,7 @@ export default function Sleep() {
                                     <div className="flex space-x-2 ml-4">
                                         <button
                                             onClick={() => handleEdit(record)}
-                                            className="p-2 text-[#2D5016] hover:bg-green-50 rounded-lg transition-colors"
+                                            className="p-2 text-[#25603E] hover:bg-green-50 rounded-lg transition-colors"
                                             title="Edit"
                                         >
                                             <Edit className="w-4 h-4" />
@@ -438,7 +438,7 @@ function SleepRecordForm({ record, residents, onClose, onSuccess }) {
                                     value={formData.branch_id}
                                     onChange={(e) => setFormData({...formData, branch_id: e.target.value, resident_id: ''})}
                                     required
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                 >
                                     <option value="">Select Branch</option>
                                     {branches.map(branch => (
@@ -457,7 +457,7 @@ function SleepRecordForm({ record, residents, onClose, onSuccess }) {
                                     onChange={(e) => setFormData({...formData, resident_id: e.target.value})}
                                     required
                                     disabled={!formData.branch_id}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent disabled:bg-gray-100"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent disabled:bg-gray-100"
                                 >
                                     <option value="">Select Resident</option>
                                     {filteredResidents.map(resident => (
@@ -480,7 +480,7 @@ function SleepRecordForm({ record, residents, onClose, onSuccess }) {
                                 onChange={(e) => setFormData({...formData, sleep_date: e.target.value})}
                                 required
                                 max={new Date().toISOString().split('T')[0]}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                             />
                             {errors.sleep_date && <p className="text-xs text-red-600 mt-1">{errors.sleep_date[0]}</p>}
                         </div>
@@ -534,7 +534,7 @@ function SleepRecordForm({ record, residents, onClose, onSuccess }) {
                                 <select
                                     value={formData.sleep_quality}
                                     onChange={(e) => setFormData({...formData, sleep_quality: e.target.value})}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                 >
                                     <option value="">Select Quality</option>
                                     {[1,2,3,4,5,6,7,8,9,10].map(num => (
@@ -552,7 +552,7 @@ function SleepRecordForm({ record, residents, onClose, onSuccess }) {
                                     min="0"
                                     value={formData.restlessness_episodes}
                                     onChange={(e) => setFormData({...formData, restlessness_episodes: e.target.value})}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                 />
                             </div>
                         </div>
@@ -565,7 +565,7 @@ function SleepRecordForm({ record, residents, onClose, onSuccess }) {
                                 value={formData.notes}
                                 onChange={(e) => setFormData({...formData, notes: e.target.value})}
                                 rows={3}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                 placeholder="Additional notes about the sleep session..."
                             />
                         </div>
@@ -581,7 +581,7 @@ function SleepRecordForm({ record, residents, onClose, onSuccess }) {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-4 py-2 bg-[#25603E] text-white rounded-lg hover:bg-[#1B402D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isSubmitting ? 'Saving...' : (record ? 'Update' : 'Create')}
                             </button>
@@ -655,7 +655,7 @@ function TimePicker({ value, onChange, className = '' }) {
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent bg-white text-left flex items-center justify-between ${className}`}
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent bg-white text-left flex items-center justify-between ${className}`}
             >
                 <span className={value ? 'text-gray-900' : 'text-gray-400'}>
                     {displayValue}
@@ -678,7 +678,7 @@ function TimePicker({ value, onChange, className = '' }) {
                                     const newHours = parseInt(e.target.value);
                                     handleTimeChange(newHours, minutes, period);
                                 }}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent text-center text-lg font-semibold"
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent text-center text-lg font-semibold"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {hourOptions.map(h => (
@@ -695,7 +695,7 @@ function TimePicker({ value, onChange, className = '' }) {
                                     const newMinutes = parseInt(e.target.value);
                                     handleTimeChange(hours, newMinutes, period);
                                 }}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent text-center text-lg font-semibold"
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent text-center text-lg font-semibold"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {minuteOptions.map(m => (
@@ -710,7 +710,7 @@ function TimePicker({ value, onChange, className = '' }) {
                                     const newPeriod = e.target.value;
                                     handleTimeChange(hours, minutes, newPeriod);
                                 }}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent text-center text-lg font-semibold"
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent text-center text-lg font-semibold"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 <option value="AM">AM</option>

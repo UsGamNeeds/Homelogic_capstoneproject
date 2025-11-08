@@ -81,7 +81,7 @@ export default function Assessments() {
     const getStatusColor = (status) => {
         switch (status) {
             case 'approved':
-                return 'bg-green-50 text-[#2D5016] border border-[#2D5016]';
+                return 'bg-green-50 text-[#25603E] border border-[#25603E]';
             case 'completed':
                 return 'bg-amber-50 text-[#8B4513] border border-[#8B4513]';
             case 'reviewed':
@@ -100,7 +100,7 @@ export default function Assessments() {
     const getStatusIcon = (status) => {
         switch (status) {
             case 'approved':
-                return <CheckCircle className="w-4 h-4 text-[#2D5016]" />;
+                return <CheckCircle className="w-4 h-4 text-[#25603E]" />;
             case 'completed':
             case 'reviewed':
                 return <CheckCircle className="w-4 h-4 text-[#8B4513]" />;
@@ -123,7 +123,7 @@ export default function Assessments() {
                             setEditing(null);
                             setShowForm(true);
                         }}
-                        className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
+                        className="w-full sm:w-auto px-4 py-2 bg-[#25603E] text-white rounded-lg hover:bg-[#1B402D] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
                     >
                         <Plus className="w-4 h-4" />
                         <span>Add Assessment</span>
@@ -140,7 +140,7 @@ export default function Assessments() {
                             placeholder="Search assessments..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                         />
                     </div>
 
@@ -149,7 +149,7 @@ export default function Assessments() {
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                         >
                             <option value="">All Status</option>
                             <option value="draft">Draft</option>
@@ -168,7 +168,7 @@ export default function Assessments() {
                             placeholder="Assessment Type"
                             value={typeFilter}
                             onChange={(e) => setTypeFilter(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                         />
                     </div>
 
@@ -177,7 +177,7 @@ export default function Assessments() {
                         <select
                             value={dateFilter}
                             onChange={(e) => setDateFilter(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                         >
                             <option value="all">All Dates</option>
                             <option value="today">Today</option>
@@ -200,7 +200,7 @@ export default function Assessments() {
 
             {isLoading ? (
                 <div className="text-center py-12">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D5016]"></div>
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#25603E]"></div>
                     <p className="mt-4 text-gray-600">Loading assessments...</p>
                 </div>
             ) : (
@@ -229,13 +229,13 @@ export default function Assessments() {
                                         <div className="flex flex-col items-end space-y-1">
                                             <Link
                                                 to={`/assessments/${assessment.id}`}
-                                                className="px-3 py-1 text-sm text-white bg-[#2D5016] hover:bg-[#1a3009] rounded-lg transition-colors"
+                                                className="px-3 py-1 text-sm text-white bg-[#25603E] hover:bg-[#1B402D] rounded-lg transition-colors"
                                             >
                                                 Start Assessment
                                             </Link>
                                             <Link
                                                 to={`/assessments/${assessment.id}/review`}
-                                                className="px-3 py-1 text-sm text-white bg-[#2D5016] hover:bg-[#1a3009] rounded-lg transition-colors"
+                                                className="px-3 py-1 text-sm text-white bg-[#25603E] hover:bg-[#1B402D] rounded-lg transition-colors"
                                             >
                                                 Review
                                             </Link>
@@ -441,7 +441,7 @@ function AssessmentForm({ record, residents, branches, onClose, onSuccess }) {
                                     value={formData.branch_id}
                                     onChange={(e) => setFormData({...formData, branch_id: e.target.value, resident_id: ''})}
                                     required
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                 >
                                     <option value="">Select Branch</option>
                                     {branches.map(branch => (
@@ -460,7 +460,7 @@ function AssessmentForm({ record, residents, branches, onClose, onSuccess }) {
                                     onChange={(e) => setFormData({...formData, resident_id: e.target.value})}
                                     required
                                     disabled={!formData.branch_id}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent disabled:bg-gray-100"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent disabled:bg-gray-100"
                                 >
                                     <option value="">Select Resident</option>
                                     {filteredResidents.map(resident => (
@@ -484,7 +484,7 @@ function AssessmentForm({ record, residents, branches, onClose, onSuccess }) {
                                     onChange={(e) => setFormData({...formData, assessment_type: e.target.value})}
                                     required
                                     placeholder="e.g., Initial Assessment, Follow-up"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                 />
                                 {errors.assessment_type && <p className="text-xs text-red-600 mt-1">{errors.assessment_type[0]}</p>}
                             </div>
@@ -499,7 +499,7 @@ function AssessmentForm({ record, residents, branches, onClose, onSuccess }) {
                                     onChange={(e) => setFormData({...formData, assessment_date: e.target.value})}
                                     required
                                     max={new Date().toISOString().split('T')[0]}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                 />
                                 {errors.assessment_date && <p className="text-xs text-red-600 mt-1">{errors.assessment_date[0]}</p>}
                             </div>
@@ -513,7 +513,7 @@ function AssessmentForm({ record, residents, branches, onClose, onSuccess }) {
                                 value={formData.status}
                                 onChange={(e) => setFormData({...formData, status: e.target.value})}
                                 required
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                             >
                                 <option value="draft">Draft</option>
                                 <option value="in_progress">In Progress</option>
@@ -533,7 +533,7 @@ function AssessmentForm({ record, residents, branches, onClose, onSuccess }) {
                                 value={formData.notes}
                                 onChange={(e) => setFormData({...formData, notes: e.target.value})}
                                 rows={4}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                 placeholder="Additional notes about the assessment..."
                             />
                             {errors.notes && <p className="text-xs text-red-600 mt-1">{errors.notes[0]}</p>}
@@ -550,7 +550,7 @@ function AssessmentForm({ record, residents, branches, onClose, onSuccess }) {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-4 py-2 bg-[#25603E] text-white rounded-lg hover:bg-[#1B402D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isSubmitting ? 'Saving...' : (record ? 'Update' : 'Create')}
                             </button>

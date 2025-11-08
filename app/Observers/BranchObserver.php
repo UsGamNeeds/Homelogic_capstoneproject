@@ -32,7 +32,7 @@ class BranchObserver
                 'title' => 'New Branch Added',
                 'message' => "A new branch, {$branchName}, has been added to {$facilityName}",
                 'icon' => 'calendar',
-                'icon_color' => 'text-[#2D5016]',
+                'icon_color' => 'text-[#25603E]',
                 'action_url' => '/administration/branches',
                 'metadata' => [
                     'branch_id' => $branch->id,

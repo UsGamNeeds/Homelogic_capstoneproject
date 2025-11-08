@@ -22,7 +22,7 @@ export default function ChartReports() {
     if (isLoading) {
         return (
             <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D5016]"></div>
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#25603E]"></div>
                 <p className="mt-4 text-gray-600">Loading chart reports...</p>
             </div>
         );
@@ -38,7 +38,7 @@ export default function ChartReports() {
                             <p className="text-3xl font-bold text-gray-900 mt-2">{stats?.residents?.total_residents || 0}</p>
                         </div>
                         <div className="p-3 bg-green-50 rounded-lg">
-                            <Users className="w-6 h-6 text-[#2D5016]" />
+                            <Users className="w-6 h-6 text-[#25603E]" />
                         </div>
                     </div>
                 </div>
@@ -50,7 +50,7 @@ export default function ChartReports() {
                             <p className="text-3xl font-bold text-gray-900 mt-2">{stats?.vitals?.total_vitals || 0}</p>
                         </div>
                         <div className="p-3 bg-green-50 rounded-lg">
-                            <Activity className="w-6 h-6 text-[#2D5016]" />
+                            <Activity className="w-6 h-6 text-[#25603E]" />
                         </div>
                     </div>
                 </div>
@@ -62,7 +62,7 @@ export default function ChartReports() {
                             <p className="text-3xl font-bold text-gray-900 mt-2">{stats?.appointments?.total_appointments || 0}</p>
                         </div>
                         <div className="p-3 bg-green-50 rounded-lg">
-                            <Calendar className="w-6 h-6 text-[#2D5016]" />
+                            <Calendar className="w-6 h-6 text-[#25603E]" />
                         </div>
                     </div>
                 </div>

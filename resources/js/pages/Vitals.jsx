@@ -54,7 +54,7 @@ export default function Vitals() {
                             setEditing(null);
                             setShowForm(true);
                         }}
-                        className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
+                        className="w-full sm:w-auto px-4 py-2 bg-[#25603E] text-white rounded-lg hover:bg-[#1B402D] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
                     >
                         <Plus className="w-4 h-4" />
                         <span>Add Vitals</span>
@@ -69,7 +69,7 @@ export default function Vitals() {
                                 onClick={() => setDateFilter('today')}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                                     dateFilter === 'today'
-                                        ? 'bg-[#2D5016] text-white'
+                                        ? 'bg-[#25603E] text-white'
                                         : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                                 }`}
                             >
@@ -79,7 +79,7 @@ export default function Vitals() {
                                 onClick={() => setDateFilter('week')}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                                     dateFilter === 'week'
-                                        ? 'bg-[#2D5016] text-white'
+                                        ? 'bg-[#25603E] text-white'
                                         : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                                 }`}
                             >
@@ -89,7 +89,7 @@ export default function Vitals() {
                                 onClick={() => setDateFilter('all')}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                                     dateFilter === 'all'
-                                        ? 'bg-[#2D5016] text-white'
+                                        ? 'bg-[#25603E] text-white'
                                         : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                                 }`}
                             >
@@ -103,7 +103,7 @@ export default function Vitals() {
                         <select
                             value={residentFilter}
                             onChange={(e) => setResidentFilter(e.target.value)}
-                            className="w-full px-4 py-2 rounded-lg text-sm border border-gray-300 focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                            className="w-full px-4 py-2 rounded-lg text-sm border border-gray-300 focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                         >
                             <option value="">All Residents</option>
                             {residentsData?.data?.map(r => (
@@ -118,7 +118,7 @@ export default function Vitals() {
 
             {isLoading ? (
                 <div className="text-center py-12">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D5016]"></div>
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#25603E]"></div>
                     <p className="mt-4 text-gray-600">Loading vital signs...</p>
                 </div>
             ) : (
@@ -147,7 +147,7 @@ export default function Vitals() {
                                                     setEditing(vital);
                                                     setShowForm(true);
                                                 }}
-                                                className="p-2 text-[#2D5016] hover:bg-green-50 rounded-lg transition-colors"
+                                                className="p-2 text-[#25603E] hover:bg-green-50 rounded-lg transition-colors"
                                                 title="Edit"
                                             >
                                                 <Edit className="w-4 h-4" />
@@ -180,7 +180,7 @@ export default function Vitals() {
                                         )}
                                         {vital.pulse && (
                                             <div className="flex items-center space-x-2 p-2 bg-green-50 rounded-lg">
-                                                <Activity className="w-4 h-4 text-[#2D5016] flex-shrink-0" />
+                                                <Activity className="w-4 h-4 text-[#25603E] flex-shrink-0" />
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-xs text-gray-500">Pulse</p>
                                                     <p className="text-sm font-semibold text-gray-900">
@@ -202,7 +202,7 @@ export default function Vitals() {
                                         )}
                                         {vital.oxygen_saturation && (
                                             <div className="flex items-center space-x-2 p-2 bg-green-50 rounded-lg">
-                                                <Droplet className="w-4 h-4 text-[#2D5016] flex-shrink-0" />
+                                                <Droplet className="w-4 h-4 text-[#25603E] flex-shrink-0" />
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-xs text-gray-500">O2 Sat</p>
                                                     <p className="text-sm font-semibold text-gray-900">
@@ -359,7 +359,7 @@ function VitalSignForm({ record, residents, onClose, onSuccess }) {
                                     value={formData.resident_id}
                                     onChange={(e) => setFormData({...formData, resident_id: e.target.value})}
                                     required
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                 >
                                     <option value="">Select Resident</option>
                                     {residents.map(r => (
@@ -380,7 +380,7 @@ function VitalSignForm({ record, residents, onClose, onSuccess }) {
                                     value={formData.measurement_date}
                                     onChange={(e) => setFormData({...formData, measurement_date: e.target.value})}
                                     required
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                 />
                                 {errors.measurement_date && <p className="text-xs text-red-600 mt-1">{errors.measurement_date[0]}</p>}
                             </div>
@@ -409,7 +409,7 @@ function VitalSignForm({ record, residents, onClose, onSuccess }) {
                                         onChange={(e) => setFormData({...formData, systolic: e.target.value})}
                                         min="0"
                                         max="300"
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                     />
                                 </div>
 
@@ -423,7 +423,7 @@ function VitalSignForm({ record, residents, onClose, onSuccess }) {
                                         onChange={(e) => setFormData({...formData, diastolic: e.target.value})}
                                         min="0"
                                         max="200"
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                     />
                                 </div>
 
@@ -438,7 +438,7 @@ function VitalSignForm({ record, residents, onClose, onSuccess }) {
                                         onChange={(e) => setFormData({...formData, temperature: e.target.value})}
                                         min="90"
                                         max="110"
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                     />
                                 </div>
 
@@ -452,7 +452,7 @@ function VitalSignForm({ record, residents, onClose, onSuccess }) {
                                         onChange={(e) => setFormData({...formData, pulse: e.target.value})}
                                         min="0"
                                         max="200"
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                     />
                                 </div>
 
@@ -466,7 +466,7 @@ function VitalSignForm({ record, residents, onClose, onSuccess }) {
                                         onChange={(e) => setFormData({...formData, oxygen_saturation: e.target.value})}
                                         min="0"
                                         max="100"
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                     />
                                 </div>
 
@@ -480,7 +480,7 @@ function VitalSignForm({ record, residents, onClose, onSuccess }) {
                                         onChange={(e) => setFormData({...formData, pain_level: e.target.value})}
                                         min="0"
                                         max="10"
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                     />
                                 </div>
                             </div>
@@ -494,7 +494,7 @@ function VitalSignForm({ record, residents, onClose, onSuccess }) {
                                 type="text"
                                 value={formData.pain_description}
                                 onChange={(e) => setFormData({...formData, pain_description: e.target.value})}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                 placeholder="Describe pain location/type..."
                             />
                         </div>
@@ -507,7 +507,7 @@ function VitalSignForm({ record, residents, onClose, onSuccess }) {
                                 value={formData.notes}
                                 onChange={(e) => setFormData({...formData, notes: e.target.value})}
                                 rows={3}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                 placeholder="Additional notes..."
                             />
                         </div>
@@ -523,7 +523,7 @@ function VitalSignForm({ record, residents, onClose, onSuccess }) {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-4 py-2 bg-[#25603E] text-white rounded-lg hover:bg-[#1B402D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isSubmitting ? 'Saving...' : (record ? 'Update' : 'Create')}
                             </button>
@@ -597,7 +597,7 @@ function TimePicker({ value, onChange, className = '' }) {
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent bg-white text-left flex items-center justify-between ${className}`}
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent bg-white text-left flex items-center justify-between ${className}`}
             >
                 <span className={value ? 'text-gray-900' : 'text-gray-400'}>
                     {displayValue}
@@ -620,7 +620,7 @@ function TimePicker({ value, onChange, className = '' }) {
                                     const newHours = parseInt(e.target.value);
                                     handleTimeChange(newHours, minutes, period);
                                 }}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent text-center text-lg font-semibold"
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent text-center text-lg font-semibold"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {hourOptions.map(h => (
@@ -637,7 +637,7 @@ function TimePicker({ value, onChange, className = '' }) {
                                     const newMinutes = parseInt(e.target.value);
                                     handleTimeChange(hours, newMinutes, period);
                                 }}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent text-center text-lg font-semibold"
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent text-center text-lg font-semibold"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {minuteOptions.map(m => (
@@ -652,7 +652,7 @@ function TimePicker({ value, onChange, className = '' }) {
                                     const newPeriod = e.target.value;
                                     handleTimeChange(hours, minutes, newPeriod);
                                 }}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent text-center text-lg font-semibold"
+                                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent text-center text-lg font-semibold"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 <option value="AM">AM</option>

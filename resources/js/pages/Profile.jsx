@@ -118,7 +118,7 @@ export default function Profile() {
     if (isLoading) {
         return (
             <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D5016]"></div>
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#25603E]"></div>
                 <p className="mt-4 text-gray-600">Loading profile...</p>
             </div>
         );
@@ -137,7 +137,7 @@ export default function Profile() {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">My Profile</h1>
 
             {/* Profile Header */}
-            <div className="bg-gradient-to-r from-[#2D5016] to-[#4a7a2a] rounded-xl shadow-lg p-4 md:p-8 mb-6">
+            <div className="bg-gradient-to-r from-[#25603E] to-[#4a7a2a] rounded-xl shadow-lg p-4 md:p-8 mb-6">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
                     <div className="flex flex-col md:flex-row md:items-center md:space-x-6 space-y-4 md:space-y-0">
                         {/* Profile Picture */}
@@ -150,14 +150,14 @@ export default function Profile() {
                                 />
                             ) : (
                                 <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white flex items-center justify-center border-4 border-white shadow-lg">
-                                    <span className="text-[#2D5016] font-bold text-4xl md:text-5xl">
+                                    <span className="text-[#25603E] font-bold text-4xl md:text-5xl">
                                         {user.name?.charAt(0)?.toUpperCase() || 'U'}
                                     </span>
                                 </div>
                             )}
                             {isEditing && (
                                 <div className="absolute bottom-0 right-0">
-                                    <label className="cursor-pointer bg-[#2D5016] text-white p-2 rounded-full shadow-lg hover:bg-[#1a3009] transition-colors inline-flex items-center justify-center">
+                                    <label className="cursor-pointer bg-[#25603E] text-white p-2 rounded-full shadow-lg hover:bg-[#1B402D] transition-colors inline-flex items-center justify-center">
                                         <Camera className="w-4 h-4" />
                                         <input
                                             type="file"
@@ -185,7 +185,7 @@ export default function Profile() {
                     {!isEditing && (
                         <button
                             onClick={() => setIsEditing(true)}
-                            className="flex items-center justify-center space-x-2 px-4 md:px-6 py-2 bg-white text-[#2D5016] rounded-lg hover:bg-green-50 transition-colors font-medium w-full md:w-auto"
+                            className="flex items-center justify-center space-x-2 px-4 md:px-6 py-2 bg-white text-[#25603E] rounded-lg hover:bg-green-50 transition-colors font-medium w-full md:w-auto"
                         >
                             <Edit className="w-4 h-4" />
                             <span>Edit Profile</span>
@@ -203,7 +203,7 @@ export default function Profile() {
                             <button
                                 onClick={handleSave}
                                 disabled={updateMutation.isLoading}
-                                className="flex items-center justify-center space-x-2 px-4 md:px-6 py-2 bg-white text-[#2D5016] rounded-lg hover:bg-green-50 transition-colors font-medium disabled:opacity-50 w-full sm:w-auto"
+                                className="flex items-center justify-center space-x-2 px-4 md:px-6 py-2 bg-white text-[#25603E] rounded-lg hover:bg-green-50 transition-colors font-medium disabled:opacity-50 w-full sm:w-auto"
                             >
                                 <Save className="w-4 h-4" />
                                 <span>{updateMutation.isLoading ? 'Saving...' : 'Save'}</span>
@@ -216,9 +216,9 @@ export default function Profile() {
             {/* Profile Content */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Personal Information */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden border-l-4 border-l-[#2D5016]">
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden border-l-4 border-l-[#25603E]">
                     <div className="p-6">
-                        <h3 className="text-lg font-bold text-[#2D5016] mb-4 flex items-center">
+                        <h3 className="text-lg font-bold text-[#25603E] mb-4 flex items-center">
                             <UserIcon className="w-5 h-5 mr-2" />
                             Personal Information
                         </h3>
@@ -235,7 +235,7 @@ export default function Profile() {
                 {/* Employment Details */}
                 <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden border-l-4 border-l-[#8B4513]">
                     <div className="p-6">
-                        <h3 className="text-lg font-bold text-[#2D5016] mb-4 flex items-center">
+                        <h3 className="text-lg font-bold text-[#25603E] mb-4 flex items-center">
                             <Briefcase className="w-5 h-5 mr-2" />
                             Employment Details
                         </h3>
@@ -252,7 +252,7 @@ export default function Profile() {
                 {/* Contact Information */}
                 <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden border-l-4 border-l-[#4a7a2a]">
                     <div className="p-6">
-                        <h3 className="text-lg font-bold text-[#2D5016] mb-4 flex items-center">
+                        <h3 className="text-lg font-bold text-[#25603E] mb-4 flex items-center">
                             <Phone className="w-5 h-5 mr-2" />
                             Contact Information
                         </h3>
@@ -270,14 +270,14 @@ export default function Profile() {
                 {user.notes && (
                     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden border-l-4 border-l-[#a0522d]">
                         <div className="p-6">
-                            <h3 className="text-lg font-bold text-[#2D5016] mb-4">Additional Notes</h3>
+                            <h3 className="text-lg font-bold text-[#25603E] mb-4">Additional Notes</h3>
                             <div className="bg-gray-50 rounded-lg p-4">
                                 {isEditing ? (
                                     <textarea
                                         value={editedUser?.notes || ''}
                                         onChange={(e) => setEditedUser({...editedUser, notes: e.target.value})}
                                         rows={5}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                     />
                                 ) : (
                                     <p className="text-gray-700 whitespace-pre-wrap">{user.notes}</p>
@@ -452,7 +452,7 @@ function EditPersonalInfo({ user, setUser }) {
                     type="text"
                     value={user?.first_name || ''}
                     onChange={(e) => setUser({...user, first_name: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                 />
             </div>
             <div>
@@ -461,7 +461,7 @@ function EditPersonalInfo({ user, setUser }) {
                     type="text"
                     value={user?.middle_names || ''}
                     onChange={(e) => setUser({...user, middle_names: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                 />
             </div>
             <div>
@@ -470,7 +470,7 @@ function EditPersonalInfo({ user, setUser }) {
                     type="text"
                     value={user?.last_name || ''}
                     onChange={(e) => setUser({...user, last_name: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                 />
             </div>
             {user?.date_of_birth && (
@@ -480,7 +480,7 @@ function EditPersonalInfo({ user, setUser }) {
                         type="date"
                         value={user.date_of_birth}
                         onChange={(e) => setUser({...user, date_of_birth: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                     />
                 </div>
             )}
@@ -490,7 +490,7 @@ function EditPersonalInfo({ user, setUser }) {
                     <select
                         value={user.marital_status || ''}
                         onChange={(e) => setUser({...user, marital_status: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                     >
                         <option value="">Select status</option>
                         <option value="single">Single</option>
@@ -515,7 +515,7 @@ function EditEmploymentInfo({ user, setUser }) {
                         type="text"
                         value={user.position || ''}
                         onChange={(e) => setUser({...user, position: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                     />
                 </div>
             )}
@@ -526,7 +526,7 @@ function EditEmploymentInfo({ user, setUser }) {
                         type="text"
                         value={user.credentials || ''}
                         onChange={(e) => setUser({...user, credentials: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                     />
                 </div>
             )}
@@ -537,7 +537,7 @@ function EditEmploymentInfo({ user, setUser }) {
                         type="text"
                         value={user.credential_details || ''}
                         onChange={(e) => setUser({...user, credential_details: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                     />
                 </div>
             )}
@@ -548,7 +548,7 @@ function EditEmploymentInfo({ user, setUser }) {
                         type="text"
                         value={user.supervisor_name || ''}
                         onChange={(e) => setUser({...user, supervisor_name: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                     />
                 </div>
             )}
@@ -559,7 +559,7 @@ function EditEmploymentInfo({ user, setUser }) {
                         type="text"
                         value={user.provider_name || ''}
                         onChange={(e) => setUser({...user, provider_name: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                     />
                 </div>
             )}
@@ -576,7 +576,7 @@ function EditContactInfo({ user, setUser }) {
                     type="email"
                     value={user?.email || ''}
                     onChange={(e) => setUser({...user, email: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                 />
             </div>
             <div>
@@ -585,7 +585,7 @@ function EditContactInfo({ user, setUser }) {
                     type="tel"
                     value={user?.phone_number || ''}
                     onChange={(e) => setUser({...user, phone_number: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                 />
             </div>
         </>

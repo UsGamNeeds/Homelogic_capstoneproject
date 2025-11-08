@@ -59,7 +59,7 @@ export default function LeaveRequests() {
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Leave Requests Management</h2>
             <p className="text-gray-600">View and manage staff leave requests.</p>
           </div>
-          <button onClick={() => { setEditing(null); setShowForm(true); }} className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base">
+          <button onClick={() => { setEditing(null); setShowForm(true); }} className="w-full sm:w-auto px-4 py-2 bg-[#25603E] text-white rounded-lg hover:bg-[#1B402D] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base">
             <Plus className="w-4 h-4" />
             <span>New Request</span>
           </button>
@@ -67,13 +67,13 @@ export default function LeaveRequests() {
         
         <div className="flex flex-wrap gap-2">
           {['all', 'pending', 'approved', 'rejected'].map((s) => (
-            <button key={s} onClick={() => setStatusFilter(s)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${statusFilter === s ? 'bg-[#2D5016] text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}>{s}</button>
+            <button key={s} onClick={() => setStatusFilter(s)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${statusFilter === s ? 'bg-[#25603E] text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}>{s}</button>
           ))}
         </div>
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12"><div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D5016]"></div><p className="mt-4 text-gray-600">Loading leave requests...</p></div>
+        <div className="text-center py-12"><div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#25603E]"></div><p className="mt-4 text-gray-600">Loading leave requests...</p></div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {data?.data?.length ? (
@@ -95,7 +95,7 @@ export default function LeaveRequests() {
                     {/* Actions */}
                     {(!isCaregiver || lr.staff_id === currentUser?.id) && (
                       <div className="flex space-x-1">
-                        <button onClick={() => { setEditing(lr); setShowForm(true); }} className="p-2 text-[#2D5016] hover:bg-green-50 rounded-lg transition-colors" title="Edit">
+                        <button onClick={() => { setEditing(lr); setShowForm(true); }} className="p-2 text-[#25603E] hover:bg-green-50 rounded-lg transition-colors" title="Edit">
                           <Edit className="w-4 h-4" />
                         </button>
                         <button onClick={() => window.confirm('Delete leave request?') && deleteMutation.mutate(lr.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
@@ -189,22 +189,22 @@ function LeaveForm({ record, currentUser, isCaregiver, onClose, onSuccess }) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
-                <input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent" />
+                <input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">End Date *</label>
-                <input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent" />
+                <input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent" />
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Reason *</label>
-              <textarea value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} rows={3} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent" placeholder="Please provide a reason for your leave request..." />
+              <textarea value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} rows={3} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent" placeholder="Please provide a reason for your leave request..." />
             </div>
             {/* Only admins can approve/reject leave requests */}
             {!isCaregiver && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2D5016] focus:border-transparent">
+              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent">
                 <option value="pending">Pending</option>
                 <option value="approved">Approved</option>
                   <option value="declined">Declined</option>
@@ -213,7 +213,7 @@ function LeaveForm({ record, currentUser, isCaregiver, onClose, onSuccess }) {
             )}
             <div className="flex items-center justify-end space-x-3 pt-4 border-t">
               <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
-              <button type="submit" disabled={submitting} className="w-full sm:w-auto px-4 py-2 bg-[#2D5016] text-white rounded-lg hover:bg-[#1a3009] disabled:opacity-50">{submitting ? 'Saving...' : (record ? 'Update' : 'Create')}</button>
+              <button type="submit" disabled={submitting} className="w-full sm:w-auto px-4 py-2 bg-[#25603E] text-white rounded-lg hover:bg-[#1B402D] disabled:opacity-50">{submitting ? 'Saving...' : (record ? 'Update' : 'Create')}</button>
             </div>
           </form>
         </div>

@@ -23,7 +23,7 @@ export default function AssessmentCharts() {
     if (isLoading) {
         return (
             <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D5016]"></div>
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#25603E]"></div>
                 <p className="mt-4 text-gray-600">Loading assessment charts...</p>
             </div>
         );
@@ -41,11 +41,11 @@ export default function AssessmentCharts() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 <SectionCard>
                     <p className="text-gray-600 text-sm font-medium">Total Assessments</p>
-                    <p className="text-3xl font-bold text-[#2D5016] mt-2">{data?.total_assessments || 0}</p>
+                    <p className="text-3xl font-bold text-[#25603E] mt-2">{data?.total_assessments || 0}</p>
                 </SectionCard>
                 <SectionCard>
                     <p className="text-gray-600 text-sm font-medium">Completed</p>
-                    <p className="text-3xl font-bold text-[#2D5016] mt-2">{data?.completed_assessments || 0}</p>
+                    <p className="text-3xl font-bold text-[#25603E] mt-2">{data?.completed_assessments || 0}</p>
                 </SectionCard>
                 <SectionCard>
                     <p className="text-gray-600 text-sm font-medium">Pending</p>
@@ -53,7 +53,7 @@ export default function AssessmentCharts() {
                 </SectionCard>
                 <SectionCard>
                     <p className="text-gray-600 text-sm font-medium">This Month</p>
-                    <p className="text-3xl font-bold text-[#2D5016] mt-2">{data?.this_month || 0}</p>
+                    <p className="text-3xl font-bold text-[#25603E] mt-2">{data?.this_month || 0}</p>
                 </SectionCard>
             </div>
 
