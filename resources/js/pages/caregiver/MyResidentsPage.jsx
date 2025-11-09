@@ -87,9 +87,9 @@ export default function MyResidentsPage() {
             >
                 <div className="flex items-start gap-4">
                     <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-full border border-emerald-100 bg-emerald-600 text-white">
-                        {resident.profile_image ? (
+                        {resident.profile_image_url || resident.profile_image ? (
                             <img
-                                src={`/storage/${resident.profile_image}`}
+                                src={resident.profile_image_url || `/storage/${resident.profile_image}`}
                                 alt={fullName || 'Resident profile'}
                                 className="h-full w-full object-cover"
                                 onError={(event) => {
@@ -170,6 +170,14 @@ export default function MyResidentsPage() {
         );
     };
 
+    const renderResidentsEmptyState = (title, description, IconComponent = Users) => (
+        <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center shadow-sm">
+            <IconComponent className="mx-auto h-12 w-12 text-emerald-300" />
+            <h3 className="mt-4 text-lg font-semibold text-gray-900">{title}</h3>
+            <p className="mt-2 text-sm text-gray-500">{description}</p>
+        </div>
+    );
+
     return (
         <div className="space-y-6">
             <header className="rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-400 p-6 text-white shadow-lg">
@@ -191,11 +199,11 @@ export default function MyResidentsPage() {
                     {stats.map(({ key, label, icon: Icon, value }) => (
                         <div
                             key={key}
-                            className={`rounded-2xl border border-white/10 bg-white/15 p-4 shadow-sm backdrop-blur transition hover:bg-white/20`}
+                            className="rounded-2xl border border-white/10 bg-white/15 p-4 shadow-sm backdrop-blur transition hover:bg-white/20"
                         >
                             <div className="flex items-center justify-between">
                                 <dt className="text-sm font-medium text-emerald-50">{label}</dt>
-                                <span className={`rounded-full bg-white/20 p-2`}>
+                                <span className="rounded-full bg-white/20 p-2">
                                     <Icon className="h-4 w-4 text-white" />
                                 </span>
                             </div>
@@ -240,13 +248,10 @@ export default function MyResidentsPage() {
                     </div>
                 </div>
             ) : residents.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center shadow-sm">
-                    <Users className="mx-auto h-12 w-12 text-emerald-300" />
-                    <h3 className="mt-4 text-lg font-semibold text-gray-900">No residents found</h3>
-                    <p className="mt-2 text-sm text-gray-500">
-                        Residents assigned to your branch will appear here. Try adjusting your search query.
-                    </p>
-                </div>
+                renderResidentsEmptyState(
+                    'No residents found',
+                    'Residents assigned to your branch will appear here. Try adjusting your search query.'
+                )
             ) : (
                 <section className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                     {residents.map(renderResidentCard)}

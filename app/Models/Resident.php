@@ -52,6 +52,8 @@ class Resident extends Model
         'medications' => 'array',
     ];
 
+    protected $appends = ['profile_image_url'];
+
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
@@ -75,6 +77,19 @@ class Resident extends Model
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);
+    }
+
+    public function getProfileImageUrlAttribute(): ?string
+    {
+        if (!$this->profile_image) {
+            return null;
+        }
+
+        if (filter_var($this->profile_image, FILTER_VALIDATE_URL)) {
+            return $this->profile_image;
+        }
+
+        return \Storage::disk('public')->url($this->profile_image);
     }
 
     public function sleepPatterns(): HasMany

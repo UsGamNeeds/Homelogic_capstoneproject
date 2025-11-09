@@ -47,8 +47,8 @@ function App() {
     return (
         <Routes>
             <Route path="/login" element={<Login />} />
-            <Route 
-                path="/" 
+            <Route
+                path="/"
                 element={
                     <ProtectedRoute>
                         <Layout />
@@ -56,7 +56,7 @@ function App() {
                 }
             >
                 <Route index element={<Navigate to="dashboard" replace />} />
-                
+
                 {/* Main Pages */}
                 <Route path="profile" element={<Profile />} />
                 <Route path="dashboard" element={<Dashboard />} />
@@ -74,7 +74,7 @@ function App() {
                 <Route path="leave-requests" element={<LeaveRequests />} />
                 <Route path="my-residents" element={<MyResidentsPage />} />
                 <Route path="my-residents/:residentId" element={<ResidentDetailPage />} />
-                
+
                 {/* Reports */}
                 <Route path="reports" element={<Reports />} />
                 <Route path="reports/charts" element={<ChartReports />} />
@@ -86,7 +86,7 @@ function App() {
                 <Route path="reports/vitals-history" element={<VitalsHistory />} />
                 <Route path="reports/sleep-charts" element={<SleepCharts />} />
                 <Route path="reports/staff-charts" element={<StaffCharts />} />
-                
+
                 {/* Administration */}
                 <Route path="administration/residents" element={<Residents />} />
                 <Route path="administration/facilities" element={<Facilities />} />
@@ -98,7 +98,10 @@ function App() {
                 <Route path="administration/employee-documents" element={<EmployeeDocuments />} />
                 <Route path="administration/activity-logs" element={<ActivityLogs />} />
                 <Route path="administration/deactivated" element={<DeactivatedRecords />} />
+
+                <Route path="*" element={<Navigate to="dashboard" replace />} />
             </Route>
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
     );
 }

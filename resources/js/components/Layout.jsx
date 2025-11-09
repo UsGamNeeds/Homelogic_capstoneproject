@@ -325,20 +325,12 @@ export default function Layout() {
                     <div className="flex items-center space-x-2 md:space-x-4">
                         <Link
                             to="/my-residents"
-                            className={`inline-flex sm:hidden items-center rounded-full border border-[#25603E] p-2 transition hover:bg-[#25603E] hover:text-white ${
-                                isCaregiver ? 'text-[#25603E]' : 'text-gray-300 pointer-events-none opacity-50'
-                            }`}
-                            title="My Residents"
-                        >
-                            <Users className="h-5 w-5" />
-                        </Link>
-                        <Link
-                            to="/my-residents"
-                            className={`hidden sm:inline-flex items-center space-x-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                            className={`inline-flex items-center space-x-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
                                 isCaregiver
                                     ? 'border-[#25603E] text-[#25603E] hover:bg-[#25603E] hover:text-white'
                                     : 'border-gray-200 text-gray-300 pointer-events-none opacity-60'
                             }`}
+                            aria-disabled={!isCaregiver}
                         >
                             <Users className="h-4 w-4" />
                             <span>My Residents</span>

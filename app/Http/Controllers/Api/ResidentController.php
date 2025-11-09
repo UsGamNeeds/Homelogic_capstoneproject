@@ -74,7 +74,13 @@ class ResidentController extends Controller
 
     public function show($id): JsonResponse
     {
-        $resident = Resident::with(['branch', 'appointments', 'vitalSigns'])
+        $resident = Resident::with([
+                'branch',
+                'appointments',
+                'vitalSigns',
+                'sleepRecords',
+                'sleepPatterns',
+            ])
             ->findOrFail($id);
 
         $user = request()->user();

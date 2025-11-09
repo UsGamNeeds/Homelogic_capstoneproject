@@ -8,8 +8,8 @@ import {
     ClipboardList,
     Heart,
     Pill,
-    FileText,
     AlertCircle,
+    Moon,
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -19,7 +19,7 @@ const tabs = [
     { id: 'medications', label: 'Medications', icon: Pill },
     { id: 'vitals', label: 'Vitals', icon: Heart },
     { id: 'appointments', label: 'Appointments', icon: Calendar },
-    { id: 'documents', label: 'Documents', icon: FileText },
+    { id: 'sleep', label: 'Sleep', icon: Moon },
 ];
 
 function formatDate(value, options = { dateStyle: 'medium' }) {
@@ -72,8 +72,11 @@ function computeLengthOfStay(admissionDate) {
 }
 
 function formatPhone(value) {
-    if (!value) return 'N/A';
-    const cleaned = value.replace(/[^\d+]/g, '');
+    if (value === null || value === undefined || value === '') {
+        return 'N/A';
+    }
+
+    const cleaned = String(value).replace(/[^\d+]/g, '');
     if (cleaned.startsWith('+')) {
         return cleaned;
     }
@@ -212,9 +215,9 @@ export default function ResidentDetailPage() {
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex items-start gap-4">
                         <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-full border-4 border-emerald-100 bg-emerald-600 text-white">
-                            {resident.profile_image ? (
+                            {resident.profile_image_url || resident.profile_image ? (
                                 <img
-                                    src={`/storage/${resident.profile_image}`}
+                                    src={resident.profile_image_url || `/storage/${resident.profile_image}`}
                                     alt={fullName}
                                     className="h-full w-full object-cover"
                                 />
@@ -467,14 +470,78 @@ export default function ResidentDetailPage() {
                     </div>
                 )}
 
-                {activeTab === 'documents' && (
+                {activeTab === 'sleep' && (
                     <div className="space-y-4">
-                        <h2 className="text-lg font-semibold text-gray-900">Resident Documents</h2>
-                        <EmptyState
-                            icon={FileText}
-                            title="No documents uploaded"
-                            description="Care plans, assessments, and signed consents can be uploaded from the Documents workspace."
-                        />
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-900">Sleep Overview</h2>
+                                <p className="text-sm text-gray-500">
+                                    Recent sleep records and patterns for this resident.
+                                </p>
+                            </div>
+                            <Link
+                                to={`/sleep?resident=${resident.id}`}
+                                className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                            >
+                                View Sleep Workspace
+                            </Link>
+                        </div>
+                        {resident.sleep_records?.length || resident.sleepPatterns?.length ? (
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                {(resident.sleep_records || [])
+                                    .slice(0, 4)
+                                    .map((record) => (
+                                        <div
+                                            key={`sleep-record-${record.id}`}
+                                            className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm text-emerald-900"
+                                        >
+                                            <p className="text-xs uppercase tracking-wide text-emerald-600">
+                                                Sleep Record
+                                            </p>
+                                            <p className="mt-2 text-lg font-semibold">
+                                                {formatDate(record.sleep_date)}
+                                            </p>
+                                            <p className="mt-1 text-xs text-emerald-700">
+                                                Duration: {record.hours_slept ?? 'N/A'} hours
+                                            </p>
+                                            {record.notes ? (
+                                                <p className="mt-2 text-xs text-emerald-700 line-clamp-2">
+                                                    {record.notes}
+                                                </p>
+                                            ) : null}
+                                        </div>
+                                    ))}
+                                {(resident.sleepPatterns || [])
+                                    .slice(0, 4)
+                                    .map((pattern) => (
+                                        <div
+                                            key={`sleep-pattern-${pattern.id}`}
+                                            className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm text-emerald-900"
+                                        >
+                                            <p className="text-xs uppercase tracking-wide text-emerald-600">
+                                                Sleep Pattern
+                                            </p>
+                                            <p className="mt-2 text-lg font-semibold">
+                                                {pattern.pattern_name || 'Pattern'}
+                                            </p>
+                                            <p className="mt-1 text-xs text-emerald-700">
+                                                Updated {formatDate(pattern.updated_at)}
+                                            </p>
+                                            {pattern.notes ? (
+                                                <p className="mt-2 text-xs text-emerald-700 line-clamp-2">
+                                                    {pattern.notes}
+                                                </p>
+                                            ) : null}
+                                        </div>
+                                    ))}
+                            </div>
+                        ) : (
+                            <EmptyState
+                                icon={Moon}
+                                title="No sleep data recorded"
+                                description="Sleep records and patterns will appear here once logged."
+                            />
+                        )}
                     </div>
                 )}
             </section>
