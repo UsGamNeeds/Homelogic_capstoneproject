@@ -92,7 +92,7 @@ const caregiverNavigation = [
             { name: 'Sleep Pattern', path: '/sleep-patterns' },
         ]
     },
-    { name: 'Upcoming Appointments', icon: Calendar, path: '/appointments', children: null },
+    { name: 'Appointments', icon: Calendar, path: '/appointments', children: null },
     { name: 'Leave Requests', icon: CalendarClock, path: '/leave-requests', children: null },
 ];
 
