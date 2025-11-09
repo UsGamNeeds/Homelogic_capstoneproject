@@ -1,9 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
-import { 
-    User as UserIcon, Mail, Phone, Calendar, Briefcase, MapPin, Award, Shield, 
-    Clock, Edit, Save, X, Upload, Camera
+import {
+    User as UserIcon,
+    Mail,
+    Phone,
+    Calendar,
+    Briefcase,
+    MapPin,
+    Award,
+    Shield,
+    Clock,
+    Edit,
+    Save,
+    X,
+    Camera,
+    Building,
+    Activity,
+    Heart,
+    ClipboardList,
+    Info,
+    UserCheck
 } from 'lucide-react';
 
 export default function Profile() {
@@ -12,6 +29,7 @@ export default function Profile() {
     const [editedUser, setEditedUser] = useState(null);
     const [profileImage, setProfileImage] = useState(null);
     const [profileImagePreview, setProfileImagePreview] = useState(null);
+    const [isImageErrored, setIsImageErrored] = useState(false);
     
     // Get current user from local storage or API
     const { data: user, isLoading, error } = useQuery({
@@ -26,9 +44,11 @@ export default function Profile() {
         if (user) {
             setEditedUser(user);
             // Set profile image preview
-            if (user.profile_image_url) {
-                setProfileImagePreview(user.profile_image_url);
-            }
+            setProfileImagePreview(
+                user.profile_image_url ||
+                (user.profile_image ? `/storage/${user.profile_image}` : null)
+            );
+            setIsImageErrored(false);
         }
     }, [user]);
 
@@ -112,7 +132,11 @@ export default function Profile() {
         setEditedUser(user);
         setIsEditing(false);
         setProfileImage(null);
-        setProfileImagePreview(user?.profile_image_url || null);
+        setProfileImagePreview(
+            user?.profile_image_url ||
+            (user?.profile_image ? `/storage/${user.profile_image}` : null)
+        );
+        setIsImageErrored(false);
     };
 
     if (isLoading) {
@@ -132,32 +156,53 @@ export default function Profile() {
         );
     }
 
+    const assignedBranchName = user.assigned_branch?.name;
+    const facilityName = user.assigned_branch?.facility?.name;
+    const branchDetails = [assignedBranchName, facilityName].filter(Boolean).join(' • ');
+    const roleLabel = user.role ? user.role.replace(/_/g, ' ') : null;
+    const statusStyles = user.is_active
+        ? 'bg-green-100 text-green-800 border border-green-200'
+        : 'bg-red-100 text-red-800 border border-red-200';
+    const statusLabel = user.is_active ? 'Active' : 'Inactive';
+    const dateEmployedLabel = user.date_employed
+        ? new Date(user.date_employed).toLocaleDateString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+        })
+        : null;
+
+    const headerImageSrc =
+        profileImagePreview ||
+        user.profile_image_url ||
+        (user.profile_image ? `/storage/${user.profile_image}` : null);
+
     return (
         <div className="max-w-5xl mx-auto">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">My Profile</h1>
 
             {/* Profile Header */}
-            <div className="bg-gradient-to-r from-[#25603E] to-[#4a7a2a] rounded-xl shadow-lg p-4 md:p-8 mb-6">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-                    <div className="flex flex-col md:flex-row md:items-center md:space-x-6 space-y-4 md:space-y-0">
-                        {/* Profile Picture */}
-                        <div className="relative self-center md:self-auto">
-                            {(profileImagePreview || user.profile_image_url) ? (
+            <div className="bg-gradient-to-br from-[#25603E] via-[#2f6c3a] to-[#1B402D] rounded-2xl shadow-xl p-6 md:p-8 mb-6 text-white">
+                <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                    <div className="flex flex-col md:flex-row md:items-center gap-6">
+                        <div className="relative mx-auto md:mx-0">
+                            {headerImageSrc && !isImageErrored ? (
                                 <img
-                                    src={profileImagePreview || user.profile_image_url}
+                                    src={headerImageSrc}
                                     alt={user.name}
-                                    className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                                    onError={() => setIsImageErrored(true)}
+                                    className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-white/80 shadow-lg"
                                 />
                             ) : (
-                                <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white flex items-center justify-center border-4 border-white shadow-lg">
-                                    <span className="text-[#25603E] font-bold text-4xl md:text-5xl">
-                                        {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                                <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white/10 backdrop-blur flex items-center justify-center border-4 border-white/20 shadow-lg">
+                                    <span className="text-4xl md:text-5xl font-bold tracking-wide">
+                                        {user.name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}
                                     </span>
                                 </div>
                             )}
                             {isEditing && (
-                                <div className="absolute bottom-0 right-0">
-                                    <label className="cursor-pointer bg-[#25603E] text-white p-2 rounded-full shadow-lg hover:bg-[#1B402D] transition-colors inline-flex items-center justify-center">
+                                <div className="absolute bottom-1 right-1">
+                                    <label className="cursor-pointer bg-white/20 hover:bg-white/30 text-white p-2 rounded-full shadow-lg transition-colors inline-flex items-center justify-center backdrop-blur">
                                         <Camera className="w-4 h-4" />
                                         <input
                                             type="file"
@@ -169,47 +214,98 @@ export default function Profile() {
                                 </div>
                             )}
                         </div>
-                        <div className="text-center md:text-left">
-                            <h2 className="text-xl md:text-3xl font-bold mb-2 text-white break-words">{user.name || user.email}</h2>
-                            {user.position && (
-                                <p className="text-base md:text-xl text-green-100">{user.position}</p>
-                            )}
+                        <div className="text-center md:text-left space-y-3">
+                            <div>
+                                <h2 className="text-2xl md:text-3xl font-semibold break-words">{user.name || user.email}</h2>
+                                {roleLabel && (
+                                    <p className="text-green-100/90 capitalize">{roleLabel}</p>
+                                )}
+                            </div>
+                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                                {branchDetails && (
+                                    <Badge icon={MapPin} label={branchDetails} />
+                                )}
+                                {user.position && (
+                                    <Badge icon={Briefcase} label={user.position} />
+                                )}
+                                <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${statusStyles}`}>
+                                    <Activity className="w-3 h-3" />
+                                    {statusLabel}
+                                </span>
+                            </div>
                             {user.email && (
-                                <div className="flex items-center justify-center md:justify-start space-x-2 mt-2 text-sm md:text-base text-green-50">
-                                    <Mail className="w-4 h-4 flex-shrink-0" />
+                                <a
+                                    href={`mailto:${user.email}`}
+                                    className="inline-flex items-center gap-2 text-sm md:text-base text-green-50 hover:text-white transition-colors"
+                                >
+                                    <Mail className="w-4 h-4" />
                                     <span className="break-all">{user.email}</span>
-                                </div>
+                                </a>
+                            )}
+                            {user.phone_number && (
+                                <a
+                                    href={`tel:${user.phone_number}`}
+                                    className="inline-flex items-center gap-2 text-sm md:text-base text-green-50 hover:text-white transition-colors"
+                                >
+                                    <Phone className="w-4 h-4" />
+                                    <span>{user.phone_number}</span>
+                                </a>
                             )}
                         </div>
                     </div>
-                    {!isEditing && (
-                        <button
-                            onClick={() => setIsEditing(true)}
-                            className="flex items-center justify-center space-x-2 px-4 md:px-6 py-2 bg-white text-[#25603E] rounded-lg hover:bg-green-50 transition-colors font-medium w-full md:w-auto"
-                        >
-                            <Edit className="w-4 h-4" />
-                            <span>Edit Profile</span>
-                        </button>
-                    )}
-                    {isEditing && (
-                        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                    <div className="flex flex-col sm:flex-row gap-3 justify-end">
+                        {!isEditing && (
                             <button
-                                onClick={handleCancel}
-                                className="flex items-center justify-center space-x-2 px-4 md:px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium w-full sm:w-auto"
+                                onClick={() => setIsEditing(true)}
+                                className="flex items-center justify-center gap-2 px-4 md:px-6 py-2 bg-white text-[#25603E] rounded-lg shadow hover:bg-green-50 transition-colors font-medium"
                             >
-                                <X className="w-4 h-4" />
-                                <span>Cancel</span>
+                                <Edit className="w-4 h-4" />
+                                <span>Edit Profile</span>
                             </button>
-                            <button
-                                onClick={handleSave}
-                                disabled={updateMutation.isLoading}
-                                className="flex items-center justify-center space-x-2 px-4 md:px-6 py-2 bg-white text-[#25603E] rounded-lg hover:bg-green-50 transition-colors font-medium disabled:opacity-50 w-full sm:w-auto"
-                            >
-                                <Save className="w-4 h-4" />
-                                <span>{updateMutation.isLoading ? 'Saving...' : 'Save'}</span>
-                            </button>
-                        </div>
-                    )}
+                        )}
+                        {isEditing && (
+                            <>
+                                <button
+                                    onClick={handleCancel}
+                                    className="flex items-center justify-center gap-2 px-4 md:px-6 py-2 bg-white/10 text-white rounded-lg border border-white/20 hover:bg-white/20 transition-colors font-medium"
+                                >
+                                    <X className="w-4 h-4" />
+                                    <span>Cancel</span>
+                                </button>
+                                <button
+                                    onClick={handleSave}
+                                    disabled={updateMutation.isLoading}
+                                    className="flex items-center justify-center gap-2 px-4 md:px-6 py-2 bg-white text-[#25603E] rounded-lg shadow hover:bg-green-50 transition-colors font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+                                >
+                                    <Save className="w-4 h-4" />
+                                    <span>{updateMutation.isLoading ? 'Saving...' : 'Save Changes'}</span>
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <SummaryCard
+                        icon={MapPin}
+                        label="Assigned Branch"
+                        value={assignedBranchName || 'Not assigned'}
+                        supporting={facilityName}
+                    />
+                    <SummaryCard
+                        icon={Calendar}
+                        label="Date Employed"
+                        value={dateEmployedLabel || 'Not set'}
+                    />
+                    <SummaryCard
+                        icon={Shield}
+                        label="Role"
+                        value={roleLabel ? capitalizeWords(roleLabel) : 'Not set'}
+                    />
+                    <SummaryCard
+                        icon={Building}
+                        label="Supervisor"
+                        value={user.supervisor_name || 'Not set'}
+                    />
                 </div>
             </div>
 
@@ -360,7 +456,14 @@ function ViewEmploymentInfo({ user }) {
                         <MapPin className="w-4 h-4 mr-1" />
                         Assigned Branch
                     </p>
-                    <p className="font-semibold text-gray-900">{user.assigned_branch.name}</p>
+                    <p className="font-semibold text-gray-900">
+                        {user.assigned_branch.name}
+                        {user.assigned_branch.facility?.name && (
+                            <span className="block text-sm text-gray-500">
+                                {user.assigned_branch.facility.name}
+                            </span>
+                        )}
+                    </p>
                 </div>
             )}
             {user.credentials && (
@@ -590,5 +693,43 @@ function EditContactInfo({ user, setUser }) {
             </div>
         </>
     );
+}
+
+function Badge({ icon: Icon, label }) {
+    if (!label) {
+        return null;
+    }
+
+    return (
+        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs md:text-sm font-medium bg-white/10 border border-white/30 backdrop-blur">
+            {Icon && <Icon className="w-3.5 h-3.5" />}
+            <span>{label}</span>
+        </span>
+    );
+}
+
+function SummaryCard({ icon: Icon, label, value, supporting }) {
+    return (
+        <div className="bg-white/10 border border-white/20 rounded-xl p-4 backdrop-blur">
+            <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 text-white">
+                    {Icon && <Icon className="w-5 h-5" />}
+                </div>
+                <div>
+                    <p className="text-sm text-white/70">{label}</p>
+                    <p className="text-base font-semibold text-white">{value}</p>
+                    {supporting && <p className="text-xs text-white/60 mt-1">{supporting}</p>}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function capitalizeWords(text) {
+    if (!text) {
+        return '';
+    }
+
+    return text.replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
