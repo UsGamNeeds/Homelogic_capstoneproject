@@ -2,13 +2,16 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Traits\FormatsPhoneNumbers;
 
 class HealthcareProvider extends Model
 {
     use HasFactory, SoftDeletes;
+    use FormatsPhoneNumbers;
 
     protected $fillable = [
         'name',
@@ -51,5 +54,10 @@ class HealthcareProvider extends Model
         if ($this->contact_info) $info[] = $this->contact_info;
         
         return implode(' | ', $info);
+    }
+
+    protected function phone(): Attribute
+    {
+        return $this->phoneAttribute();
     }
 }

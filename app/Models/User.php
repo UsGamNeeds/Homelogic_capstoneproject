@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -12,11 +13,12 @@ use Filament\Panel;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Notification;
 use App\Traits\Loggable;
+use App\Traits\FormatsPhoneNumbers;
 
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, Loggable;
+    use HasApiTokens, HasFactory, Notifiable, Loggable, FormatsPhoneNumbers;
 
     /**
      * The attributes that are mass assignable.
@@ -330,5 +332,10 @@ class User extends Authenticatable implements FilamentUser
             'female' => 'Female',
             'other' => 'Other',
         ];
+    }
+
+    protected function phoneNumber(): Attribute
+    {
+        return $this->phoneAttribute();
     }
 }

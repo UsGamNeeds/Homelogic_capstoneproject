@@ -39,6 +39,46 @@ export default function SleepPatterns() {
     const [chartType, setChartType] = useState('bar'); // 'bar', 'line', 'heatmap'
     const [groupBy, setGroupBy] = useState('day');
     const [showPreview, setShowPreview] = useState(false);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [isCaregiver, setIsCaregiver] = useState(false);
+    React.useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const response = await api.get('/user');
+                const user = response.data;
+                setCurrentUser(user);
+
+                const roles = [];
+                if (user?.role) {
+                    roles.push(String(user.role).toLowerCase());
+                }
+                if (Array.isArray(user?.roles)) {
+                    user.roles.forEach((roleItem) => {
+                        if (typeof roleItem === 'string') {
+                            roles.push(roleItem.toLowerCase());
+                        } else if (roleItem?.name) {
+                            roles.push(String(roleItem.name).toLowerCase());
+                        }
+                    });
+                }
+
+                const derivedCaregiver =
+                    roles.some((role) => role && role.replace(/[\s_-]+/g, '') === 'caregiver') ||
+                    Boolean(user?.assigned_branch_id);
+
+                setIsCaregiver(derivedCaregiver);
+
+                if (derivedCaregiver && user?.assigned_branch_id) {
+                    setBranchId((prev) => prev || String(user.assigned_branch_id));
+                }
+            } catch (err) {
+                console.error('Failed to fetch current user:', err);
+            }
+        };
+
+        fetchUser();
+    }, []);
+
 
     // Fetch branches
     const { data: branchesData } = useQuery({
@@ -49,6 +89,23 @@ export default function SleepPatterns() {
             return branches.filter(b => b.is_active !== false);
         },
     });
+
+    const availableBranches = React.useMemo(() => {
+        if (!branchesData) {
+            return [];
+        }
+
+        if (isCaregiver) {
+            const assignedBranchId = currentUser?.assigned_branch_id;
+            if (assignedBranchId) {
+                return branchesData.filter((branch) => Number(branch.id) === Number(assignedBranchId));
+            }
+            // If caregiver has no assigned branch, show empty list
+            return [];
+        }
+
+        return branchesData;
+    }, [branchesData, isCaregiver, currentUser?.assigned_branch_id]);
 
     // Fetch residents filtered by branch
     const { data: residentsData } = useQuery({
@@ -63,6 +120,18 @@ export default function SleepPatterns() {
         },
         enabled: true,
     });
+
+    React.useEffect(() => {
+        if (isCaregiver && currentUser?.assigned_branch_id) {
+            setBranchId((prev) => prev || String(currentUser.assigned_branch_id));
+        }
+    }, [isCaregiver, currentUser?.assigned_branch_id]);
+
+    React.useEffect(() => {
+        if (branchId && !residentId && residentsData?.data?.length) {
+            setResidentId(String(residentsData.data[0].id));
+        }
+    }, [branchId, residentId, residentsData]);
 
     // Fetch sleep pattern data
     const { data: patternData, isLoading, error } = useQuery({
@@ -321,17 +390,26 @@ export default function SleepPatterns() {
                             <select
                                 value={branchId}
                                 onChange={(e) => {
-                                    setBranchId(e.target.value);
+                                    const nextBranchId = e.target.value;
+                                    setBranchId(nextBranchId);
                                     setResidentId(''); // Reset resident when branch changes
                                 }}
-                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent appearance-none bg-white"
+                                disabled={isCaregiver && availableBranches.length <= 1}
+                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent appearance-none bg-white disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                             >
-                                <option value="">Select a branch</option>
-                                {(branchesData || []).map(branch => (
-                                    <option key={branch.id} value={branch.id}>{branch.name}</option>
+                                {!isCaregiver && <option value="">Select a branch</option>}
+                                {availableBranches.map((branch) => (
+                                    <option key={branch.id} value={branch.id}>
+                                        {branch.name}
+                                    </option>
                                 ))}
                             </select>
                         </div>
+                        {isCaregiver && !currentUser?.assigned_branch_id && (
+                            <p className="mt-2 text-xs text-red-600">
+                                Your account is not linked to a branch. Please contact an administrator.
+                            </p>
+                        )}
                     </div>
 
                     <div>

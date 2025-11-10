@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\Loggable;
+use App\Traits\FormatsPhoneNumbers;
 
 class Branch extends Model
 {
     use HasFactory, SoftDeletes, Loggable;
+    use FormatsPhoneNumbers;
 
     protected $fillable = [
         'name',
@@ -60,5 +63,10 @@ class Branch extends Model
     public function getResidentCountAttribute()
     {
         return $this->residents()->count();
+    }
+
+    protected function phone(): Attribute
+    {
+        return $this->phoneAttribute();
     }
 }

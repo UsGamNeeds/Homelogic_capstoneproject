@@ -59,7 +59,7 @@ class AppointmentController extends Controller
             'appointment_type_id' => 'nullable|exists:appointment_types,id',
             'healthcare_provider_id' => 'nullable|exists:healthcare_providers,id',
             'appointment_date' => 'required|date',
-            'appointment_time' => 'nullable|date_format:H:i',
+            'appointment_time' => 'required|date_format:H:i',
             'provider_name' => 'nullable|string|max:255',
             'location' => 'nullable|string|max:255',
             'description' => 'nullable|string',

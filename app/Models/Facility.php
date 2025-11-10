@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\Loggable;
+use App\Traits\FormatsPhoneNumbers;
 
 class Facility extends Model
 {
     use HasFactory, SoftDeletes, Loggable;
+    use FormatsPhoneNumbers;
 
     protected $fillable = [
         'name',
@@ -43,5 +46,10 @@ class Facility extends Model
     public function getBranchCountAttribute()
     {
         return $this->branches()->count();
+    }
+
+    protected function phone(): Attribute
+    {
+        return $this->phoneAttribute();
     }
 }

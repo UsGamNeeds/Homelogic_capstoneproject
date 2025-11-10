@@ -51,7 +51,7 @@ export default function CreateAppointment() {
                 resident_id: parseInt(residentId),
                 branch_id: residentData?.branch_id || '',
                 appointment_date: formData.appointment_date,
-                appointment_time: formData.appointment_time || null,
+                appointment_time: formData.appointment_time,
                 provider_name: formData.provider_name || null,
                 location: formData.location || null,
                 description: formData.description || null,
@@ -116,14 +116,22 @@ export default function CreateAppointment() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        setErrors({});
-        
-        // Validate required fields
+        const nextErrors = {};
+
         if (!formData.appointment_date) {
-            setErrors({ appointment_date: 'Date is required' });
+            nextErrors.appointment_date = 'Date is required';
+        }
+
+        if (!formData.appointment_time) {
+            nextErrors.appointment_time = 'Time is required';
+        }
+
+        if (Object.keys(nextErrors).length > 0) {
+            setErrors(nextErrors);
             return;
         }
-        
+
+        setErrors({});
         submitMutation.mutate();
     };
 
@@ -192,14 +200,23 @@ export default function CreateAppointment() {
                             
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Time
+                                    Time *
                                 </label>
                                 <input
                                     type="time"
                                     value={formData.appointment_time}
-                                    onChange={(e) => setFormData({ ...formData, appointment_time: e.target.value })}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
+                                    onChange={(e) => {
+                                        setFormData({ ...formData, appointment_time: e.target.value });
+                                        setErrors({ ...errors, appointment_time: null });
+                                    }}
+                                    required
+                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent ${
+                                        errors.appointment_time ? 'border-red-300' : 'border-gray-300'
+                                    }`}
                                 />
+                                {errors.appointment_time && (
+                                    <p className="text-xs text-red-600 mt-1">{errors.appointment_time}</p>
+                                )}
                             </div>
                             
                             <div>
@@ -267,7 +284,7 @@ export default function CreateAppointment() {
                     <div className="flex justify-center mt-6">
                         <button
                             type="submit"
-                            disabled={submitMutation.isPending || !formData.appointment_date}
+                            disabled={submitMutation.isPending || !formData.appointment_date || !formData.appointment_time}
                             className="px-6 py-2 bg-[#25603E] text-white font-bold rounded-lg hover:bg-[#1B402D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {submitMutation.isPending ? 'Creating...' : 'Create Appointment'}

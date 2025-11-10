@@ -422,15 +422,52 @@ export default function ViewVitals() {
             return;
         }
 
-        const selectedResident = residentsData?.data?.find(r => r.id == residentId);
-        const residentName = selectedResident 
-            ? `${selectedResident.first_name}_${selectedResident.last_name}`.replace(/\s+/g, '_')
-            : 'Unknown';
-        
-        const fileName = `vitals_${residentName}_${months[month - 1]}_${year}.csv`;
-        
-        // Prepare CSV content
-        const headers = ['Date', 'Blood Pressure', 'Temperature', 'Pulse', 'Oxygen Saturation', 'Pain', 'Reason Declined', 'Vital Status', 'Notes'];
+        const selectedResident = residentsData?.data?.find((r) => r.id == residentId);
+        const residentDisplayName = selectedResident
+            ? `${selectedResident.first_name || ''} ${selectedResident.last_name || ''}`.trim() || 'Unknown'
+            : residentId
+                ? `Resident #${residentId}`
+                : 'All Residents';
+
+        const residentFileName = residentDisplayName.replace(/\s+/g, '_');
+        const branchDisplayName =
+            selectedResident?.branch?.name ||
+            filteredBranchOptions.find((b) => String(b.id) === String(branchId))?.name ||
+            caregiverBranchName ||
+            (branchId ? `Branch #${branchId}` : 'All Branches');
+
+        let dateOfBirth = 'N/A';
+        if (selectedResident?.date_of_birth) {
+            const dobDate = new Date(selectedResident.date_of_birth);
+            if (!isNaN(dobDate.getTime())) {
+                dateOfBirth = dobDate.toLocaleDateString('en-US', {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric',
+                });
+            }
+        }
+
+        const fileName = `vitals_${residentFileName}_${months[month - 1]}_${year}.csv`;
+        const generatedAt = new Date().toLocaleString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+        });
+
+        const headers = [
+            'Date',
+            'Blood Pressure',
+            'Temperature',
+            'Pulse',
+            'Oxygen Saturation',
+            'Pain',
+            'Reason Declined',
+            'Vital Status',
+            'Notes',
+        ];
         const rows = vitalsData.data.map(v => {
             const date = new Date(v.measurement_date);
             return [
@@ -447,7 +484,21 @@ export default function ViewVitals() {
         });
 
         // Create CSV content
-        let csvContent = headers.join(',') + '\n';
+        const patientDetails = [
+            ['Resident Name', residentDisplayName],
+            ['Date of Birth', dateOfBirth],
+            ['Gender', selectedResident?.gender || 'N/A'],
+            ['Branch', branchDisplayName || 'N/A'],
+            ['Report Month', `${months[month - 1]} ${year}`],
+            ['Generated On', generatedAt],
+        ];
+
+        let csvContent = '';
+        patientDetails.forEach((row) => {
+            csvContent += row.map((cell) => `"${cell}"`).join(',') + '\n';
+        });
+        csvContent += '\n';
+        csvContent += headers.join(',') + '\n';
         rows.forEach(row => {
             csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
         });

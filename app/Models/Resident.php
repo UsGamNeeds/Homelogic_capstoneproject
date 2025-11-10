@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Traits\Loggable;
+use App\Traits\FormatsPhoneNumbers;
 
 class Resident extends Model
 {
     use Loggable;
+    use FormatsPhoneNumbers;
     protected $fillable = [
         'name',
         'first_name',
@@ -105,5 +108,15 @@ class Resident extends Model
     public function medicationAdministrations(): HasMany
     {
         return $this->hasMany(MedicationAdministration::class);
+    }
+
+    protected function phone(): Attribute
+    {
+        return $this->phoneAttribute();
+    }
+
+    protected function emergencyContactPhone(): Attribute
+    {
+        return $this->phoneAttribute();
     }
 }
