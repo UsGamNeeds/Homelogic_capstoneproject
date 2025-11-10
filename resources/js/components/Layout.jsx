@@ -116,6 +116,60 @@ export default function Layout() {
         fetchUser();
     }, []);
 
+    // Handle automatic logout after inactivity
+    useEffect(() => {
+        const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 minutes
+        let inactivityTimeout = null;
+        let isLoggingOut = false;
+
+        const performLogout = async () => {
+            if (isLoggingOut) {
+                return;
+            }
+            isLoggingOut = true;
+
+            try {
+                await api.post('/logout');
+            } catch (err) {
+                console.error('Automatic logout error:', err);
+            } finally {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_name');
+                window.location.href = '/app/login';
+            }
+        };
+
+        const resetInactivityTimer = () => {
+            if (isLoggingOut) {
+                return;
+            }
+
+            if (inactivityTimeout) {
+                clearTimeout(inactivityTimeout);
+            }
+
+            inactivityTimeout = window.setTimeout(() => {
+                performLogout();
+            }, INACTIVITY_LIMIT);
+        };
+
+        const activityEvents = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
+
+        const activityHandler = () => {
+            resetInactivityTimer();
+        };
+
+        activityEvents.forEach((event) => window.addEventListener(event, activityHandler));
+        resetInactivityTimer();
+
+        return () => {
+            if (inactivityTimeout) {
+                clearTimeout(inactivityTimeout);
+            }
+            activityEvents.forEach((event) => window.removeEventListener(event, activityHandler));
+        };
+    }, []);
+
     const isCaregiver = React.useMemo(() => {
         if (!currentUser) {
             return false;
