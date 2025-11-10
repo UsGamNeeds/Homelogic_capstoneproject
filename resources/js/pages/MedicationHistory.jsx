@@ -267,6 +267,11 @@ export default function MedicationHistory() {
                                             administration.administered_by_name ??
                                             administration.administered_by_full_name ??
                                             administration.administered_by;
+                                        const lateNoteMarker = '[Late Administration]';
+                                        const isLateAdministration = typeof administration.notes === 'string' && administration.notes.includes(lateNoteMarker);
+                                        const cleanedNotes = isLateAdministration
+                                            ? administration.notes.replace(lateNoteMarker, '').trim()
+                                            : administration.notes;
 
                                         return (
                                             <tr key={administration.id} className="hover:bg-gray-50 transition-colors">
@@ -292,6 +297,11 @@ export default function MedicationHistory() {
                                                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClass}`}>
                                                         {administration.status?.charAt(0).toUpperCase() + administration.status?.slice(1)}
                                                     </span>
+                                                    {isLateAdministration && (
+                                                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                                                            Late
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                     {administeredBy ? (
@@ -309,8 +319,10 @@ export default function MedicationHistory() {
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-900">
                                                     <div>{administration.dosage_given || 'Dose not recorded'}</div>
-                                                    {administration.notes && (
-                                                        <div className="text-xs text-gray-500 mt-1">{administration.notes}</div>
+                                                    {(cleanedNotes || isLateAdministration) && (
+                                                        <div className="text-xs text-gray-500 mt-1 whitespace-pre-line">
+                                                            {cleanedNotes || 'Late administration recorded outside scheduled window.'}
+                                                        </div>
                                                     )}
                                                 </td>
                                             </tr>

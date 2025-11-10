@@ -1676,6 +1676,12 @@ function QuickAdminister({ medication, onSuccess }) {
                                     try {
                                         setSubmitting(true);
                                         setError('');
+                                        const lateNoteMarker = '[Late Administration]';
+                                        const trimmedNotes = dosageNotes.trim();
+                                        const finalNotes = isLateMode
+                                            ? `${trimmedNotes ? `${trimmedNotes}\n` : ''}${lateNoteMarker}`
+                                            : trimmedNotes || undefined;
+
                                         await api.post('/medication-administrations', {
                                             medication_id: medication.id,
                                             resident_id: medication.resident_id,
@@ -1683,7 +1689,7 @@ function QuickAdminister({ medication, onSuccess }) {
                                             administered_at: new Date().toISOString().slice(0,16),
                                             status,
                                             dosage_given: trimmedDosage,
-                                            notes: dosageNotes.trim() || undefined,
+                                            notes: finalNotes,
                                         });
                                         queryClient.invalidateQueries(['medication-administrations']);
                                         queryClient.invalidateQueries(['medication-administrations-today', medication.id]);
