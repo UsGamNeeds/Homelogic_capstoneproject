@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import {
-    setServerTimeReference,
+    setPacificServerTime,
     getPacificDate,
     getPacificStartOfDay,
     getPacificISODate,
@@ -16,7 +16,8 @@ import {
     toPacificDateFromTime,
     formatPacificTimeValue,
     getPacificDayIdentifier,
-} from '../utils/time';
+    getPacificParts,
+} from '../utils/pacificTime';
 import {
     Pill,
     Clock,
@@ -128,7 +129,7 @@ export default function Medications() {
             try {
                 const response = await api.get('/user');
                 setCurrentUser(response.data);
-                setServerTimeReference(response.data?.app_current_time);
+                setPacificServerTime(response.data?.app_current_time);
             } catch (err) {
                 console.error('Failed to fetch current user:', err);
             }
@@ -138,7 +139,7 @@ export default function Medications() {
 
     React.useEffect(() => {
         if (currentUser?.app_current_time) {
-            setServerTimeReference(currentUser.app_current_time);
+            setPacificServerTime(currentUser.app_current_time);
         }
     }, [currentUser?.app_current_time]);
 

@@ -3,40 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
 import { Calendar, ClipboardList, Pill, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-
-const PACIFIC_TIMEZONE = 'America/Los_Angeles';
-
-const pacificDisplayDateFormatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: PACIFIC_TIMEZONE,
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-});
-
-const pacificDisplayTimeFormatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: PACIFIC_TIMEZONE,
-    hour: '2-digit',
-    minute: '2-digit',
-});
-
-const toPacificDate = (value) => {
-    if (!value) return null;
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return null;
-    return date;
-};
-
-function formatDate(dateString) {
-    const date = toPacificDate(dateString);
-    if (!date) return '—';
-    return pacificDisplayDateFormatter.format(date);
-}
-
-function formatTime(dateString) {
-    const date = toPacificDate(dateString);
-    if (!date) return '—';
-    return pacificDisplayTimeFormatter.format(date);
-}
+import { formatPacificDate as formatDate, formatPacificTime as formatTime } from '../utils/pacificTime';
 
 const statusOptions = [
     { value: '', label: 'All statuses' },

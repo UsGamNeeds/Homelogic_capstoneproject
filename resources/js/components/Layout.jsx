@@ -25,46 +25,12 @@ import {
     CalendarClock
 } from 'lucide-react';
 import NotificationDropdown from './NotificationDropdown';
-import { setServerTimeReference, getServerNow } from '../utils/time';
-
-const DEFAULT_TIMEZONE = 'America/Los_Angeles';
-
-const getTimezoneDisplayParts = (timeZone = DEFAULT_TIMEZONE) => {
-    try {
-        const now = getServerNow();
-        const shortFormatter = new Intl.DateTimeFormat('en-US', {
-            timeZone,
-            timeZoneName: 'short',
-        });
-        const offsetFormatter = new Intl.DateTimeFormat('en-US', {
-            timeZone,
-            timeZoneName: 'shortOffset',
-        });
-
-        const shortName =
-            shortFormatter
-                .formatToParts(now)
-                .find((part) => part.type === 'timeZoneName')
-                ?.value || '';
-        const offsetName =
-            offsetFormatter
-                .formatToParts(now)
-                .find((part) => part.type === 'timeZoneName')
-                ?.value || '';
-
-        const normalizedOffset = offsetName.replace(/^GMT/, 'UTC');
-        return {
-            shortName,
-            offset: normalizedOffset,
-        };
-    } catch (error) {
-        console.error('Failed to parse timezone metadata:', error);
-        return {
-            shortName: '',
-            offset: '',
-        };
-    }
-};
+import {
+    PACIFIC_TIMEZONE_ID,
+    setPacificServerTime,
+    getPacificNow,
+    getTimezoneDisplayParts,
+} from '../utils/pacificTime';
 
 const navigation = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', children: null },
@@ -150,7 +116,7 @@ export default function Layout() {
             try {
                 const response = await api.get('/user');
                 setCurrentUser(response.data);
-                setServerTimeReference(response.data?.app_current_time);
+                setPacificServerTime(response.data?.app_current_time);
             } catch (err) {
                 console.error('Failed to fetch current user:', err);
             }
@@ -160,12 +126,12 @@ export default function Layout() {
 
     useEffect(() => {
         if (currentUser?.app_current_time) {
-            setServerTimeReference(currentUser.app_current_time);
+            setPacificServerTime(currentUser.app_current_time);
         }
     }, [currentUser?.app_current_time]);
 
     useEffect(() => {
-        const timeZone = currentUser?.app_timezone || DEFAULT_TIMEZONE;
+        const timeZone = PACIFIC_TIMEZONE_ID;
         const timeFormatter = new Intl.DateTimeFormat([], {
             hour: 'numeric',
             minute: '2-digit',
@@ -182,7 +148,7 @@ export default function Layout() {
         });
 
         const updateClock = () => {
-            const now = getServerNow();
+            const now = getPacificNow();
             setAppClock({
                 time: timeFormatter.format(now),
                 date: dateFormatter.format(now),
@@ -192,7 +158,7 @@ export default function Layout() {
         updateClock();
         const interval = window.setInterval(updateClock, 1000);
         return () => window.clearInterval(interval);
-    }, [currentUser?.app_timezone]);
+    }, [currentUser?.app_current_time]);
 
     // Handle automatic logout after inactivity
     useEffect(() => {
@@ -321,14 +287,14 @@ export default function Layout() {
     }, [isCaregiver]);
 
     const appTimezoneLabel = React.useMemo(() => {
-        const timeZone = currentUser?.app_timezone || DEFAULT_TIMEZONE;
+        const timeZone = PACIFIC_TIMEZONE_ID;
         const { shortName, offset } = getTimezoneDisplayParts(timeZone);
         const parts = [shortName, offset].filter(Boolean);
         if (parts.length > 0) {
             return `${parts.join(' ')} · ${timeZone}`;
         }
         return timeZone;
-    }, [currentUser?.app_timezone]);
+    }, [currentUser?.app_current_time]);
 
     const leaveRequestsPath = isCaregiver ? '/leave-requests' : '/administration/leave-requests';
 
