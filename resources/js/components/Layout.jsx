@@ -26,6 +26,45 @@ import {
 } from 'lucide-react';
 import NotificationDropdown from './NotificationDropdown';
 
+const DEFAULT_TIMEZONE = 'America/Los_Angeles';
+
+const getTimezoneDisplayParts = (timeZone = DEFAULT_TIMEZONE) => {
+    try {
+        const now = new Date();
+        const shortFormatter = new Intl.DateTimeFormat('en-US', {
+            timeZone,
+            timeZoneName: 'short',
+        });
+        const offsetFormatter = new Intl.DateTimeFormat('en-US', {
+            timeZone,
+            timeZoneName: 'shortOffset',
+        });
+
+        const shortName =
+            shortFormatter
+                .formatToParts(now)
+                .find((part) => part.type === 'timeZoneName')
+                ?.value || '';
+        const offsetName =
+            offsetFormatter
+                .formatToParts(now)
+                .find((part) => part.type === 'timeZoneName')
+                ?.value || '';
+
+        const normalizedOffset = offsetName.replace(/^GMT/, 'UTC');
+        return {
+            shortName,
+            offset: normalizedOffset,
+        };
+    } catch (error) {
+        console.error('Failed to parse timezone metadata:', error);
+        return {
+            shortName: '',
+            offset: '',
+        };
+    }
+};
+
 const navigation = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', children: null },
     { name: 'Assessments', icon: ClipboardList, path: '/assessments', children: null },
@@ -118,12 +157,7 @@ export default function Layout() {
     }, []);
 
     useEffect(() => {
-        if (!currentUser?.app_timezone) {
-            setAppClock({ time: '', date: '' });
-            return;
-        }
-
-        const timeZone = currentUser.app_timezone;
+        const timeZone = currentUser?.app_timezone || DEFAULT_TIMEZONE;
         const timeFormatter = new Intl.DateTimeFormat([], {
             hour: 'numeric',
             minute: '2-digit',
@@ -279,21 +313,14 @@ export default function Layout() {
     }, [isCaregiver]);
 
     const appTimezoneLabel = React.useMemo(() => {
-        if (!currentUser?.app_timezone) {
-            return '';
-        }
-
-        const parts = [
-            currentUser.app_timezone_abbr,
-            currentUser.app_timezone_offset,
-        ].filter(Boolean);
-
+        const timeZone = currentUser?.app_timezone || DEFAULT_TIMEZONE;
+        const { shortName, offset } = getTimezoneDisplayParts(timeZone);
+        const parts = [shortName, offset].filter(Boolean);
         if (parts.length > 0) {
-            return `${parts.join(' ')} · ${currentUser.app_timezone}`;
+            return `${parts.join(' ')} · ${timeZone}`;
         }
-
-        return currentUser.app_timezone;
-    }, [currentUser]);
+        return timeZone;
+    }, [currentUser?.app_timezone]);
 
     const leaveRequestsPath = isCaregiver ? '/leave-requests' : '/administration/leave-requests';
 
