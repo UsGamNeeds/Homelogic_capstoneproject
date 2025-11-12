@@ -62,11 +62,12 @@ export const setPacificServerTime = (isoString, offsetString) => {
         }
     }
 
-    const targetOffsetMinutes =
-        parseOffsetMinutes(offsetString) ?? parseOffsetMinutes('-08:00') ?? -480;
-    const deltaMinutes = targetOffsetMinutes - isoOffsetMinutes;
-
-    pacificServerReference = new Date(reference.getTime() + deltaMinutes * 60 * 1000);
+    // The API returns time in Pacific timezone (e.g., "02:33:28-08:00" means 2:33 AM Pacific)
+    // JavaScript parses this and stores it as UTC internally (e.g., 10:33:28 UTC)
+    // We want to store it so that UTC components = Pacific components
+    // So we subtract the offset to convert back: 10:33:28 UTC - 8 hours = 02:33:28 UTC
+    // Now when we extract UTC components, we get 02:33:28, which is the Pacific time
+    pacificServerReference = new Date(reference.getTime() - isoOffsetMinutes * 60 * 1000);
     pacificReferencePerformance = getPerformanceNow();
 };
 
@@ -78,7 +79,36 @@ const getReferenceDate = () => {
     return new Date();
 };
 
+// Extract Pacific time components directly from a Date that already represents Pacific time
+// This is used when we have a server reference that's already adjusted to Pacific time
+const extractPacificComponentsFromReference = (date) => {
+    // The pacificServerReference stores time in a way where UTC components = Pacific components
+    // So we extract UTC components and treat them as Pacific time
+    const utcYear = date.getUTCFullYear();
+    const utcMonth = date.getUTCMonth() + 1;
+    const utcDay = date.getUTCDate();
+    const utcHour = date.getUTCHours();
+    const utcMinute = date.getUTCMinutes();
+    const utcSecond = date.getUTCSeconds();
+    
+    return {
+        year: utcYear,
+        month: utcMonth,
+        day: utcDay,
+        hour: utcHour,
+        minute: utcMinute,
+        second: utcSecond,
+    };
+};
+
 export const getPacificParts = (date) => {
+    // If no date provided and we have a server reference, use it directly
+    if (!date && pacificServerReference && pacificReferencePerformance !== null) {
+        const referenceDate = getReferenceDate();
+        return extractPacificComponentsFromReference(referenceDate);
+    }
+    
+    // If a date is provided, we need to convert it to Pacific time using the formatter
     const target = date ? new Date(date) : getReferenceDate();
     const parts = pacificDateTimeFormatter.formatToParts(target);
     const lookup = {};
@@ -125,9 +155,36 @@ const resolveDateInput = (date) => {
     return getReferenceDate();
 };
 
-export const formatPacificDate = (date) => pacificDateFormatter.format(resolveDateInput(date));
+// Format time/date directly from Pacific components (no timezone conversion)
+const formatFromPacificComponents = (parts, formatter) => {
+    const { year, month, day, hour, minute, second } = parts;
+    // Create a UTC Date from Pacific components (since we're treating UTC = Pacific)
+    const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+    // Format using UTC (no timezone conversion)
+    const utcFormatter = new Intl.DateTimeFormat('en-US', {
+        ...formatter.resolvedOptions(),
+        timeZone: 'UTC',
+    });
+    return utcFormatter.format(utcDate);
+};
 
-export const formatPacificTime = (date) => pacificTimeFormatter.format(resolveDateInput(date));
+export const formatPacificDate = (date) => {
+    // If no date provided and we have a server reference, format directly from components
+    if (!date && pacificServerReference && pacificReferencePerformance !== null) {
+        const parts = getPacificParts();
+        return formatFromPacificComponents(parts, pacificDateFormatter);
+    }
+    return pacificDateFormatter.format(resolveDateInput(date));
+};
+
+export const formatPacificTime = (date) => {
+    // If no date provided and we have a server reference, format directly from components
+    if (!date && pacificServerReference && pacificReferencePerformance !== null) {
+        const parts = getPacificParts();
+        return formatFromPacificComponents(parts, pacificTimeFormatter);
+    }
+    return pacificTimeFormatter.format(resolveDateInput(date));
+};
 
 export const getPacificNow = () => getPacificDate();
 

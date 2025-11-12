@@ -28,7 +28,8 @@ import NotificationDropdown from './NotificationDropdown';
 import {
     PACIFIC_TIMEZONE_ID,
     setPacificServerTime,
-    getPacificNow,
+    formatPacificTime,
+    formatPacificDate,
     getTimezoneDisplayParts,
 } from '../utils/pacificTime';
 
@@ -131,27 +132,10 @@ export default function Layout() {
     }, [currentUser?.app_current_time]);
 
     useEffect(() => {
-        const timeZone = PACIFIC_TIMEZONE_ID;
-        const timeFormatter = new Intl.DateTimeFormat([], {
-            hour: 'numeric',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: true,
-            timeZone,
-        });
-        const dateFormatter = new Intl.DateTimeFormat([], {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            timeZone,
-        });
-
         const updateClock = () => {
-            const now = getPacificNow();
             setAppClock({
-                time: timeFormatter.format(now),
-                date: dateFormatter.format(now),
+                time: formatPacificTime(),
+                date: formatPacificDate(),
             });
         };
 
