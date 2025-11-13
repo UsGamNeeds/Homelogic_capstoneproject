@@ -1324,6 +1324,16 @@ function MedicationTimeBadges({ medication }) {
                     per_page: 100,
                 },
             });
+            // Debug logging
+            console.log('Fetched administrations for medication', medication.id, 'on', today, ':', {
+                total: response.data?.data?.length || 0,
+                administrations: response.data?.data?.map(admin => ({
+                    id: admin.id,
+                    status: admin.status,
+                    administered_at: admin.administered_at,
+                    administered_at_parsed: formatPacificTime(new Date(admin.administered_at)),
+                })) || [],
+            });
             return response.data;
         },
     });
@@ -1353,10 +1363,32 @@ function MedicationTimeBadges({ medication }) {
 
         // Check if there's a matching administration within tolerance for today's scheduled time
         const matchingAdmin = todayAdminData?.data?.find((admin) => {
+            // Parse the administered_at time - it comes from the API as an ISO string
+            // The API stores it in Pacific timezone, but Laravel serializes it as UTC
+            // So we need to parse it correctly
             const adminTime = getPacificDate(new Date(admin.administered_at));
+            
             // Check against both today and yesterday's scheduled times
             const matchToday = scheduledTimeToday && Math.abs(adminTime.getTime() - scheduledTimeToday.getTime()) <= toleranceMs;
             const matchYesterday = scheduledTimeYesterday && Math.abs(adminTime.getTime() - scheduledTimeYesterday.getTime()) <= toleranceMs;
+            
+            // Debug logging
+            if (matchToday || matchYesterday) {
+                console.log('Found matching administration:', {
+                    timeValue,
+                    adminId: admin.id,
+                    adminStatus: admin.status,
+                    adminAdministeredAt: admin.administered_at,
+                    adminTimeISO: adminTime.toISOString(),
+                    adminTimeFormatted: formatPacificTime(adminTime),
+                    scheduledTimeTodayISO: scheduledTimeToday?.toISOString(),
+                    scheduledTimeTodayFormatted: scheduledTimeToday ? formatPacificTime(scheduledTimeToday) : null,
+                    matchToday,
+                    matchYesterday,
+                    timeDiff: scheduledTimeToday ? Math.abs(adminTime.getTime() - scheduledTimeToday.getTime()) / (60 * 1000) + ' minutes' : null,
+                });
+            }
+            
             return matchToday || matchYesterday;
         });
 
