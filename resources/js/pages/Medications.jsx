@@ -967,7 +967,7 @@ function MedicationForm({ record, residents, branches, currentUser, isCaregiver,
         quantity: record?.quantity || '',
         diagnosis: record?.diagnosis || '',
         prescription_date: formatDateForInput(record?.prescription_date) || '',
-        start_date: formatDateForInput(record?.start_date) || getPacificISODate(),
+        start_date: formatDateForInput(record?.start_date) || '', // Will be set in useEffect
         end_date: formatDateForInput(record?.end_date) || '',
         notes: record?.notes || '',
         is_active: record?.is_active ?? true,
@@ -983,6 +983,17 @@ function MedicationForm({ record, residents, branches, currentUser, isCaregiver,
             setFormData(prev => ({ ...prev, branch_id: currentUser.assigned_branch_id }));
         }
     }, [isCaregiver, currentUser, record]);
+
+    // Set default start_date (if not editing existing record)
+    // This runs after component mount to ensure server time is available, or uses formatter fallback
+    React.useEffect(() => {
+        if (!record && !formData.start_date) {
+            // Set the default start date (will use server time if available, otherwise formatter)
+            const today = getPacificISODate();
+            console.log('Setting default start_date to:', today);
+            setFormData(prev => ({ ...prev, start_date: today }));
+        }
+    }, [record, formData.start_date]); // Run when record changes or if start_date is empty
 
     // Determine how many time fields to display based on instruction
     const getTimesNeeded = (instruction) => {
@@ -1045,6 +1056,9 @@ function MedicationForm({ record, residents, branches, currentUser, isCaregiver,
 
         try {
             // Ensure dates are sent in YYYY-MM-DD format (no time component to avoid timezone shifts)
+            const startDate = formData.start_date ? formData.start_date.split('T')[0] : formData.start_date;
+            console.log('Submitting start_date:', startDate, 'from formData:', formData.start_date);
+            
             const payload = {
                 ...formData,
                 resident_id: parseInt(formData.resident_id),
@@ -1052,7 +1066,7 @@ function MedicationForm({ record, residents, branches, currentUser, isCaregiver,
                 drug_id: formData.drug_id ? parseInt(formData.drug_id) : null,
                 is_active: Boolean(formData.is_active),
                 // Ensure dates are in YYYY-MM-DD format (date inputs already provide this)
-                start_date: formData.start_date ? formData.start_date.split('T')[0] : formData.start_date,
+                start_date: startDate,
                 end_date: formData.end_date ? formData.end_date.split('T')[0] : formData.end_date,
                 prescription_date: formData.prescription_date ? formData.prescription_date.split('T')[0] : formData.prescription_date,
             };
@@ -1322,9 +1336,12 @@ function MedicationTimeBadges({ medication }) {
 
         const now = getPacificNow();
         
-        // Parse scheduled time for today
-        const scheduledTime = parseScheduledTime(timeValue);
-        if (!scheduledTime) return null;
+        // Parse scheduled time for today (dayOffset = 0) and yesterday (dayOffset = -1)
+        // We need to check both to see if yesterday's window has closed
+        const scheduledTimeToday = toPacificDateFromTime(timeValue, { referenceDate: getPacificNow(), dayOffset: 0 });
+        const scheduledTimeYesterday = toPacificDateFromTime(timeValue, { referenceDate: getPacificNow(), dayOffset: -1 });
+        
+        if (!scheduledTimeToday) return null;
 
         // Use the same window as checkTimeWindow: 60 minutes after scheduled time
         const windowAfterMinutes = 60;
@@ -1334,20 +1351,51 @@ function MedicationTimeBadges({ medication }) {
         const toleranceMinutes = 30;
         const toleranceMs = toleranceMinutes * 60 * 1000;
 
-        // Check if there's a matching administration within tolerance
+        // Check if there's a matching administration within tolerance for today's scheduled time
         const matchingAdmin = todayAdminData?.data?.find((admin) => {
             const adminTime = getPacificDate(new Date(admin.administered_at));
-            return Math.abs(adminTime.getTime() - scheduledTime.getTime()) <= toleranceMs;
+            // Check against both today and yesterday's scheduled times
+            const matchToday = scheduledTimeToday && Math.abs(adminTime.getTime() - scheduledTimeToday.getTime()) <= toleranceMs;
+            const matchYesterday = scheduledTimeYesterday && Math.abs(adminTime.getTime() - scheduledTimeYesterday.getTime()) <= toleranceMs;
+            return matchToday || matchYesterday;
         });
 
         if (matchingAdmin) {
             return matchingAdmin.status;
         }
 
-        // Only mark as missed if the administration window has completely closed
-        // (i.e., current time is more than 60 minutes after the scheduled time)
-        const windowEndTime = scheduledTime.getTime() + windowAfterMs;
-        if (now.getTime() > windowEndTime) {
+        // Only mark as missed if today's scheduled time has passed and its window has closed
+        // Don't mark future times as missed
+        const windowEndTimeToday = scheduledTimeToday.getTime() + windowAfterMs;
+        
+        // Check if today's scheduled time is in the past (has already occurred)
+        const scheduledTimeHasPassed = now.getTime() > scheduledTimeToday.getTime();
+        
+        // Check if today's window has closed (60 minutes after scheduled time)
+        const todayWindowClosed = now.getTime() > windowEndTimeToday;
+        
+        // Only mark as missed if:
+        // 1. The scheduled time for TODAY has already passed (not in the future)
+        // 2. AND the administration window has closed (60 minutes after the scheduled time)
+        const isMissed = scheduledTimeHasPassed && todayWindowClosed;
+        
+        // Debug logging
+        if (isMissed) {
+            console.log('Time marked as missed:', {
+                timeValue,
+                scheduledTimeToday: scheduledTimeToday.toISOString(),
+                scheduledTimeTodayFormatted: formatPacificTime(scheduledTimeToday),
+                now: now.toISOString(),
+                nowFormatted: formatPacificTime(now),
+                windowEndTimeToday: new Date(windowEndTimeToday).toISOString(),
+                windowEndTimeTodayFormatted: formatPacificTime(new Date(windowEndTimeToday)),
+                scheduledTimeHasPassed,
+                todayWindowClosed,
+                isMissed
+            });
+        }
+        
+        if (isMissed) {
             return 'missed';
         }
 

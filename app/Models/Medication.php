@@ -60,13 +60,27 @@ class Medication extends Model
             if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
                 // Store directly as string to avoid any Carbon timezone conversion
                 $this->attributes['start_date'] = $value;
+            } elseif ($value instanceof \Carbon\Carbon) {
+                // If it's already a Carbon instance (from validation), we need to be careful
+                // Carbon might have parsed it as UTC, so we need to get the date in app timezone
+                // But we want to preserve the date components, not convert the time
+                // So we format it in the app timezone to get the correct date
+                $this->attributes['start_date'] = $value->setTimezone(config('app.timezone'))->format('Y-m-d');
             } else {
-                // Parse the date and extract date part only (treat as date in app timezone)
+                // Parse the date string and extract date part only
                 try {
-                    $date = \Carbon\Carbon::createFromFormat('Y-m-d', is_string($value) ? substr($value, 0, 10) : $value, config('app.timezone'));
-                    $this->attributes['start_date'] = $date->format('Y-m-d');
+                    // Try to extract YYYY-MM-DD from the string
+                    $dateStr = is_string($value) ? substr($value, 0, 10) : (string)$value;
+                    if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $dateStr, $matches)) {
+                        // If we can extract YYYY-MM-DD, use it directly
+                        $this->attributes['start_date'] = $matches[1];
+                    } else {
+                        // Parse and format in app timezone
+                        $parsed = \Carbon\Carbon::parse($value)->setTimezone(config('app.timezone'));
+                        $this->attributes['start_date'] = $parsed->format('Y-m-d');
+                    }
                 } catch (\Exception $e) {
-                    // Fallback: parse and format
+                    // Last resort: try to parse and format
                     $parsed = \Carbon\Carbon::parse($value)->setTimezone(config('app.timezone'));
                     $this->attributes['start_date'] = $parsed->format('Y-m-d');
                 }
@@ -83,13 +97,25 @@ class Medication extends Model
             if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
                 // Store directly as string to avoid any Carbon timezone conversion
                 $this->attributes['end_date'] = $value;
+            } elseif ($value instanceof \Carbon\Carbon) {
+                // If it's already a Carbon instance (from validation), extract date components directly
+                // Use the date in the app timezone without conversion
+                $this->attributes['end_date'] = $value->setTimezone(config('app.timezone'))->format('Y-m-d');
             } else {
-                // Parse the date and extract date part only (treat as date in app timezone)
+                // Parse the date string and extract date part only
                 try {
-                    $date = \Carbon\Carbon::createFromFormat('Y-m-d', is_string($value) ? substr($value, 0, 10) : $value, config('app.timezone'));
-                    $this->attributes['end_date'] = $date->format('Y-m-d');
+                    // Try to extract YYYY-MM-DD from the string
+                    $dateStr = is_string($value) ? substr($value, 0, 10) : (string)$value;
+                    if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $dateStr, $matches)) {
+                        // If we can extract YYYY-MM-DD, use it directly
+                        $this->attributes['end_date'] = $matches[1];
+                    } else {
+                        // Parse and format in app timezone
+                        $parsed = \Carbon\Carbon::parse($value)->setTimezone(config('app.timezone'));
+                        $this->attributes['end_date'] = $parsed->format('Y-m-d');
+                    }
                 } catch (\Exception $e) {
-                    // Fallback: parse and format
+                    // Last resort: try to parse and format
                     $parsed = \Carbon\Carbon::parse($value)->setTimezone(config('app.timezone'));
                     $this->attributes['end_date'] = $parsed->format('Y-m-d');
                 }
@@ -106,13 +132,25 @@ class Medication extends Model
             if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
                 // Store directly as string to avoid any Carbon timezone conversion
                 $this->attributes['prescription_date'] = $value;
+            } elseif ($value instanceof \Carbon\Carbon) {
+                // If it's already a Carbon instance (from validation), extract date components directly
+                // Use the date in the app timezone without conversion
+                $this->attributes['prescription_date'] = $value->setTimezone(config('app.timezone'))->format('Y-m-d');
             } else {
-                // Parse the date and extract date part only (treat as date in app timezone)
+                // Parse the date string and extract date part only
                 try {
-                    $date = \Carbon\Carbon::createFromFormat('Y-m-d', is_string($value) ? substr($value, 0, 10) : $value, config('app.timezone'));
-                    $this->attributes['prescription_date'] = $date->format('Y-m-d');
+                    // Try to extract YYYY-MM-DD from the string
+                    $dateStr = is_string($value) ? substr($value, 0, 10) : (string)$value;
+                    if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $dateStr, $matches)) {
+                        // If we can extract YYYY-MM-DD, use it directly
+                        $this->attributes['prescription_date'] = $matches[1];
+                    } else {
+                        // Parse and format in app timezone
+                        $parsed = \Carbon\Carbon::parse($value)->setTimezone(config('app.timezone'));
+                        $this->attributes['prescription_date'] = $parsed->format('Y-m-d');
+                    }
                 } catch (\Exception $e) {
-                    // Fallback: parse and format
+                    // Last resort: try to parse and format
                     $parsed = \Carbon\Carbon::parse($value)->setTimezone(config('app.timezone'));
                     $this->attributes['prescription_date'] = $parsed->format('Y-m-d');
                 }

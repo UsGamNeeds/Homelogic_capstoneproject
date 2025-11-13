@@ -139,16 +139,39 @@ export const getPacificStartOfDay = (date) => {
 };
 
 export const getPacificISODate = (date) => {
-    // If no date provided and we have a server reference, extract directly
-    if (!date && pacificServerReference && pacificReferencePerformance !== null) {
-        const referenceDate = getReferenceDate();
-        const year = referenceDate.getUTCFullYear();
-        const month = referenceDate.getUTCMonth() + 1;
-        const day = referenceDate.getUTCDate();
-        return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    // If no date provided, get today's date in Pacific timezone
+    if (!date) {
+        // If we have a server reference, extract UTC components directly
+        // (The server reference is already adjusted so UTC components = Pacific components)
+        if (pacificServerReference && pacificReferencePerformance !== null) {
+            const referenceDate = getReferenceDate();
+            // Extract UTC components directly - they represent Pacific time in our system
+            const year = referenceDate.getUTCFullYear();
+            const month = referenceDate.getUTCMonth() + 1;
+            const day = referenceDate.getUTCDate();
+            const result = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            console.log('getPacificISODate (server ref):', result, 'UTC components:', { year, month, day });
+            return result;
+        }
+        
+        // No server reference - use formatter to convert current local time to Pacific
+        const now = new Date();
+        const parts = pacificDateFormatter.formatToParts(now);
+        const lookup = {};
+        parts.forEach(({ type, value }) => {
+            if (type !== 'literal') {
+                lookup[type] = Number(value);
+            }
+        });
+        const year = lookup.year;
+        const month = lookup.month;
+        const day = lookup.day;
+        const result = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        console.log('getPacificISODate (formatter):', result, 'local now:', now, 'Pacific parts:', { year, month, day });
+        return result;
     }
     
-    // Otherwise, use getPacificParts
+    // If date is provided, use getPacificParts to extract date components
     const { year, month, day } = getPacificParts(date);
     return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 };
@@ -229,6 +252,33 @@ export const formatPacificDate = (date) => {
         const parts = getPacificParts();
         return formatFromPacificComponents(parts, pacificDateFormatter);
     }
+    
+    // If date is provided, extract components directly to avoid timezone conversion
+    if (date) {
+        // If it's a Date object created by parsePacificDateString, extract UTC components directly
+        // (they represent Pacific components in our system)
+        if (date instanceof Date) {
+            const year = date.getUTCFullYear();
+            const month = date.getUTCMonth() + 1;
+            const day = date.getUTCDate();
+            // Format directly without timezone conversion
+            return `${month}/${day}/${year}`;
+        }
+        
+        // If it's a string in YYYY-MM-DD format, parse and format directly
+        if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}/.test(date)) {
+            const match = date.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (match) {
+                const [, yearStr, monthStr, dayStr] = match;
+                const month = Number(monthStr);
+                const day = Number(dayStr);
+                const year = Number(yearStr);
+                return `${month}/${day}/${year}`;
+            }
+        }
+    }
+    
+    // Fallback to formatter (shouldn't reach here for date strings)
     return pacificDateFormatter.format(resolveDateInput(date));
 };
 
