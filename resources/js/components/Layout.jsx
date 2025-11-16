@@ -467,33 +467,37 @@ export default function Layout() {
                                 )}
                             </button>
                             {userMenuOpen && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                                    <Link
-                                        to="/profile"
-                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                    >
-                                        Profile
-                                    </Link>
-                                    <button
-                                        onClick={async () => {
-                                            try {
-                                                // Call logout API
-                                                await api.post('/logout');
-                                            } catch (err) {
-                                                console.error('Logout error:', err);
-                                            } finally {
-                                                // Clear local storage and redirect
-                                                localStorage.removeItem('auth_token');
-                                                localStorage.removeItem('user_name');
-                                                window.location.href = '/app/login';
-                                            }
-                                        }}
-                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                                    >
-                                        <LogOut className="w-4 h-4" />
-                                        <span>Sign out</span>
-                                    </button>
-                                </div>
+                                <>
+                                    <div 
+                                        className="fixed inset-0 z-40" 
+                                        onClick={() => setUserMenuOpen(false)}
+                                    ></div>
+                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                                        <Link
+                                            to="/profile"
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                        >
+                                            Profile
+                                        </Link>
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    await api.post('/logout');
+                                                } catch (err) {
+                                                    console.error('Logout error:', err);
+                                                } finally {
+                                                    localStorage.removeItem('auth_token');
+                                                    localStorage.removeItem('user_name');
+                                                    window.location.href = '/app/login';
+                                                }
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                                        >
+                                            <LogOut className="w-4 h-4" />
+                                            <span>Sign out</span>
+                                        </button>
+                                    </div>
+                                </>
                             )}
                         </div>
                     </div>

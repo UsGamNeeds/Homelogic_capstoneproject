@@ -475,6 +475,9 @@ const closeAssignmentModal = () => {
                     }}
                     onRemove={async (assignmentId) => {
                         try {
+                            // Close the modal immediately for snappier UX
+                            setAssignmentTask(null);
+                            setIsAssignmentModalOpen(false);
                             await removeAssignment.mutateAsync(assignmentId);
                             await queryClient.invalidateQueries({ queryKey: ['cleaning-tasks'] });
                         } catch (err) {
