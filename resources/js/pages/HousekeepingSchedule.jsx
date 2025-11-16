@@ -964,7 +964,14 @@ function AssignmentModal({ task, date, caregivers, onAssign, onRemove, isSaving,
                                         </div>
                                         <button
                                             type="button"
-                                            onClick={() => onRemove(assignment.id)}
+                                            onClick={async () => {
+                                                if (!window.confirm('Remove this caregiver from the task for this date?')) {
+                                                    return;
+                                                }
+                                                const id = assignment.id;
+                                                onClose?.();
+                                                await onRemove(id);
+                                            }}
                                             disabled={isSaving}
                                             className="rounded-lg border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed"
                                         >
