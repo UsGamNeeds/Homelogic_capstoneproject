@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { 
@@ -118,6 +118,8 @@ const caregiverNavigation = [
 export default function Layout() {
     const location = useLocation();
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const userMenuRef = useRef(null);
+    const userButtonRef = useRef(null);
     const [expandedMenus, setExpandedMenus] = useState({});
     const [currentUser, setCurrentUser] = useState(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -136,6 +138,32 @@ export default function Layout() {
         };
         fetchUser();
     }, []);
+
+    // Close user menu on outside click (robust against z-index/stacking contexts)
+    useEffect(() => {
+        if (!userMenuOpen) {
+            return;
+        }
+        const handleClickOutside = (event) => {
+            const menuEl = userMenuRef.current;
+            const buttonEl = userButtonRef.current;
+            if (!menuEl || !buttonEl) {
+                return;
+            }
+            if (
+                !menuEl.contains(event.target) &&
+                !buttonEl.contains(event.target)
+            ) {
+                setUserMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, [userMenuOpen]);
 
     useEffect(() => {
         if (currentUser?.app_current_time) {
@@ -453,6 +481,7 @@ export default function Layout() {
                         </Link>
                         <div className="relative">
                             <button
+                                ref={userButtonRef}
                                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                                 className="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center overflow-hidden"
                             >
@@ -472,7 +501,7 @@ export default function Layout() {
                                         className="fixed inset-0 z-40" 
                                         onClick={() => setUserMenuOpen(false)}
                                     ></div>
-                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                                    <div ref={userMenuRef} className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                                         <Link
                                             to="/profile"
                                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

@@ -63,6 +63,7 @@ export default function HousekeepingSchedule() {
     const [isModalOpen, setIsModalOpen] = React.useState(false);
     const [editingTask, setEditingTask] = React.useState(null);
     const [isAreaModalOpen, setIsAreaModalOpen] = React.useState(false);
+    const [editingArea, setEditingArea] = React.useState(null);
     const [assignmentDate, setAssignmentDate] = React.useState(() => new Date().toISOString().slice(0, 10));
     const [assignmentTask, setAssignmentTask] = React.useState(null);
     const [isAssignmentModalOpen, setIsAssignmentModalOpen] = React.useState(false);
@@ -251,7 +252,10 @@ const closeAssignmentModal = () => {
                         </div>
                         <button
                             type="button"
-                            onClick={() => setIsAreaModalOpen(true)}
+                            onClick={() => {
+                                setEditingArea(null);
+                                setIsAreaModalOpen(true);
+                            }}
                             disabled={!branchId}
                             className="inline-flex items-center gap-1 rounded-xl border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-600 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
                         >
@@ -277,24 +281,54 @@ const closeAssignmentModal = () => {
                             {areasData.map((area) => {
                                 const isActive = area.id === selectedAreaId;
                                 return (
-                                    <button
-                                        key={area.id}
-                                        type="button"
-                                        onClick={() => setSelectedAreaId(area.id)}
-                                        className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
-                                            isActive
-                                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                                                : 'border-gray-100 bg-white text-gray-700 hover:border-emerald-100'
-                                        }`}
-                                    >
+                                    <div key={area.id} className={`w-full rounded-2xl border px-4 py-3 transition ${isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-gray-100 bg-white text-gray-700 hover:border-emerald-100'}`}>
                                         <div className="flex items-center justify-between">
-                                            <div className="font-semibold">{area.name}</div>
-                                            <span className="text-xs text-gray-400">{area.tasks_count} tasks</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedAreaId(area.id)}
+                                                className="text-left"
+                                            >
+                                                <div className="font-semibold">{area.name}</div>
+                                                <p className="text-xs text-gray-500">
+                                                    {[area.shift_label, area.location].filter(Boolean).join(' • ') || 'On-site'}
+                                                </p>
+                                            </button>
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setEditingArea(area);
+                                                        setIsAreaModalOpen(true);
+                                                    }}
+                                                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                                                >
+                                                    <Edit3 className="h-3 w-3" />
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        if (!window.confirm(`Delete area “${area.name}”? This cannot be undone.`)) {
+                                                            return;
+                                                        }
+                                                        try {
+                                                            await api.delete(`/cleaning/areas/${area.id}`);
+                                                            if (selectedAreaId === area.id) {
+                                                                setSelectedAreaId(null);
+                                                            }
+                                                            await queryClient.invalidateQueries({ queryKey: ['cleaning-areas'] });
+                                                        } catch (err) {
+                                                            window.alert(err?.response?.data?.message || err.message);
+                                                        }
+                                                    }}
+                                                    className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                                                >
+                                                    <Trash2 className="h-3 w-3" />
+                                                    Delete
+                                                </button>
+                                            </div>
                                         </div>
-                                        <p className="text-xs text-gray-500">
-                                            {[area.shift_label, area.location].filter(Boolean).join(' • ') || 'On-site'}
-                                        </p>
-                                    </button>
+                                    </div>
                                 );
                             })}
                         </div>
@@ -446,13 +480,22 @@ const closeAssignmentModal = () => {
 
             {isAreaModalOpen ? (
                 <AreaModal
-                    onClose={() => setIsAreaModalOpen(false)}
+                    onClose={() => {
+                        setIsAreaModalOpen(false);
+                        setEditingArea(null);
+                    }}
                     branchId={branchId}
-                    onCreated={async (payload) => {
+                    initialValues={editingArea}
+                    onSaved={async (payload) => {
                         try {
-                            await api.post('/cleaning/areas', payload);
+                            if (editingArea) {
+                                await api.put(`/cleaning/areas/${editingArea.id}`, payload);
+                            } else {
+                                await api.post('/cleaning/areas', payload);
+                            }
                             await queryClient.invalidateQueries({ queryKey: ['cleaning-areas'] });
                             setIsAreaModalOpen(false);
+                            setEditingArea(null);
                         } catch (err) {
                             window.alert(err?.response?.data?.message || err.message);
                         }
@@ -733,14 +776,14 @@ function TaskModal({ onClose, onSubmit, initialValues, isSaving }) {
     );
 }
 
-function AreaModal({ onClose, branchId, onCreated }) {
+function AreaModal({ onClose, branchId, onSaved, initialValues }) {
     const [formValues, setFormValues] = React.useState({
-        name: '',
-        shift_label: '',
-        location: '',
-        description: '',
-        display_order: 0,
-        is_active: true,
+        name: initialValues?.name ?? '',
+        shift_label: initialValues?.shift_label ?? '',
+        location: initialValues?.location ?? '',
+        description: initialValues?.description ?? '',
+        display_order: initialValues?.display_order ?? 0,
+        is_active: initialValues?.is_active ?? true,
     });
 
     const handleChange = (event) => {
@@ -758,7 +801,7 @@ function AreaModal({ onClose, branchId, onCreated }) {
             return;
         }
 
-        await onCreated({
+        await onSaved({
             ...formValues,
             branch_id: branchId,
             name: formValues.name.trim(),
@@ -774,7 +817,9 @@ function AreaModal({ onClose, branchId, onCreated }) {
             <div className="max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
                 <div className="mb-6 flex items-center justify-between">
                     <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-500">New Area</p>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-500">
+                            {initialValues ? 'Edit Area' : 'New Area'}
+                        </p>
                         <h2 className="text-2xl font-semibold text-gray-900">Cleaning Area</h2>
                     </div>
                     <button
@@ -876,7 +921,7 @@ function AreaModal({ onClose, branchId, onCreated }) {
                             className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
                         >
                             <Building2 className="h-4 w-4" />
-                            Save Area
+                            {initialValues ? 'Save Changes' : 'Save Area'}
                         </button>
                     </div>
                 </form>
