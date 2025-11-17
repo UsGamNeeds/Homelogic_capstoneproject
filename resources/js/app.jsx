@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
+import { ToastProvider } from './contexts/ToastContext';
 import '../css/app.css';
 
 // Suppress Cloudflare cookie warnings - after imports
@@ -128,9 +129,11 @@ function initApp() {
                     <React.StrictMode>
                         <ErrorBoundary>
                             <QueryClientProvider client={queryClient}>
-                                <BrowserRouter basename="/app">
-                                    <App />
-                                </BrowserRouter>
+                                <ToastProvider>
+                                    <BrowserRouter basename="/app">
+                                        <App />
+                                    </BrowserRouter>
+                                </ToastProvider>
                             </QueryClientProvider>
                         </ErrorBoundary>
                     </React.StrictMode>

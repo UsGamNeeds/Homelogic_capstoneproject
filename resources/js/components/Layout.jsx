@@ -23,9 +23,12 @@ import {
     Menu,
     X,
     CalendarClock,
-    Sparkles
+    Sparkles,
+    Command
 } from 'lucide-react';
 import NotificationDropdown from './NotificationDropdown';
+import { useToastContext } from '../contexts/ToastContext';
+import CommandPalette from './ui/CommandPalette';
 import {
     PACIFIC_TIMEZONE_ID,
     setPacificServerTime,
@@ -124,6 +127,8 @@ export default function Layout() {
     const [currentUser, setCurrentUser] = useState(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [appClock, setAppClock] = useState({ time: '', date: '' });
+    const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+    const toast = useToastContext();
 
     // Fetch current user data
     useEffect(() => {
@@ -236,6 +241,19 @@ export default function Layout() {
             }
             activityEvents.forEach((event) => window.removeEventListener(event, activityHandler));
         };
+    }, []);
+
+    // Command palette keyboard shortcut (Cmd+K or Ctrl+K)
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                setCommandPaletteOpen(true);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
     const isCaregiver = React.useMemo(() => {
@@ -471,6 +489,15 @@ export default function Layout() {
                                 </span>
                             </div>
                         )}
+                        <button
+                            onClick={() => setCommandPaletteOpen(true)}
+                            className="hidden md:flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300"
+                            title="Open command palette (Cmd+K)"
+                        >
+                            <Command className="w-4 h-4" />
+                            <span className="hidden lg:inline">Search</span>
+                            <kbd className="hidden lg:inline px-1.5 py-0.5 text-xs bg-gray-200 rounded">⌘K</kbd>
+                        </button>
                         <NotificationDropdown />
                         <Link
                             to={leaveRequestsPath}
@@ -537,6 +564,9 @@ export default function Layout() {
                         <Outlet />
                     </main>
             </div>
+            
+            {/* Command Palette */}
+            <CommandPalette isOpen={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />
         </div>
     );
 }

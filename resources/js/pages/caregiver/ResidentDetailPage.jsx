@@ -12,6 +12,7 @@ import {
     Moon,
 } from 'lucide-react';
 import api from '../../services/api';
+import Breadcrumbs from '../../components/ui/Breadcrumbs';
 
 const tabs = [
     { id: 'profile', label: 'Profile Overview', icon: Users },
@@ -202,10 +203,16 @@ export default function ResidentDetailPage() {
 
     if (isLoading) {
         return (
-            <div className="flex min-h-[60vh] items-center justify-center">
-                <div className="flex flex-col items-center gap-3 text-sm text-gray-500">
-                    <div className="h-10 w-10 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-600" />
-                    Loading resident details...
+            <div>
+                <Breadcrumbs items={[
+                    { label: 'My Residents', path: '/my-residents' },
+                    { label: 'Loading...', path: '' }
+                ]} />
+                <div className="flex min-h-[60vh] items-center justify-center">
+                    <div className="flex flex-col items-center gap-3 text-sm text-gray-500">
+                        <div className="h-10 w-10 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-600" />
+                        Loading resident details...
+                    </div>
                 </div>
             </div>
         );
@@ -224,16 +231,27 @@ export default function ResidentDetailPage() {
 
     if (!resident) {
         return (
-            <EmptyState
-                icon={AlertCircle}
-                title="Resident not found"
-                description="We could not find the resident you were looking for."
-            />
+            <div>
+                <Breadcrumbs items={[
+                    { label: 'My Residents', path: '/my-residents' },
+                    { label: 'Not Found', path: '' }
+                ]} />
+                <EmptyState
+                    icon={AlertCircle}
+                    title="Resident not found"
+                    description="We could not find the resident you were looking for."
+                />
+            </div>
         );
     }
 
     return (
-        <div className="space-y-6">
+        <div>
+            <Breadcrumbs items={[
+                { label: 'My Residents', path: '/my-residents' },
+                { label: resident.first_name && resident.last_name ? `${resident.first_name} ${resident.last_name}` : 'Resident Details', path: '' }
+            ]} />
+            <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <button
                     type="button"

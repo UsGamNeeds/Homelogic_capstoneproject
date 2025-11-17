@@ -120,6 +120,12 @@ export default function VitalsReports() {
                             setDateFrom(e.target.value);
                             setCurrentPage(1);
                         }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                            }
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                 />
                             </div>
@@ -134,6 +140,12 @@ export default function VitalsReports() {
                         onChange={(e) => {
                             setDateTo(e.target.value);
                             setCurrentPage(1);
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                            }
                         }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25603E] focus:border-transparent"
                                 />

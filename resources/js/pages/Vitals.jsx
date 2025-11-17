@@ -3,9 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { Activity, Calendar, User, Heart, Plus, Thermometer, Droplet, Edit, Trash2, ChevronDown } from 'lucide-react';
 import { getLocalDateString } from '../utils/pacificTime';
+import { TableSkeleton, ListSkeleton } from '../components/ui/SkeletonLoader';
+import EmptyState from '../components/ui/EmptyState';
+import { useToastContext } from '../contexts/ToastContext';
 
 export default function Vitals() {
     const queryClient = useQueryClient();
+    const toast = useToastContext();
     const [dateFilter, setDateFilter] = useState('all');
     const [residentFilter, setResidentFilter] = useState('');
     const [showForm, setShowForm] = useState(false);
@@ -39,7 +43,13 @@ export default function Vitals() {
 
     const deleteMutation = useMutation({
         mutationFn: async (id) => api.delete(`/vitals/${id}`),
-        onSuccess: () => queryClient.invalidateQueries(['vitals']),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['vitals']);
+            toast.success('Success', 'Vital sign record deleted successfully');
+        },
+        onError: (error) => {
+            toast.error('Error', error.response?.data?.message || 'Failed to delete vital sign record');
+        },
     });
 
     return (
@@ -118,10 +128,7 @@ export default function Vitals() {
             </div>
 
             {isLoading ? (
-                <div className="text-center py-12">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#25603E]"></div>
-                    <p className="mt-4 text-gray-600">Loading vital signs...</p>
-                </div>
+                <TableSkeleton rows={5} columns={4} />
             ) : (
                 <div>
                     {data?.data?.length > 0 ? (
@@ -232,15 +239,27 @@ export default function Vitals() {
                             ))}
                         </div>
                     ) : (
-                        <div className="bg-white rounded-lg shadow p-12 text-center">
-                            <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                            <p className="text-gray-600 text-lg font-medium">No vital signs found</p>
-                            <p className="text-gray-500 text-sm mt-2">
-                                {dateFilter === 'today' 
-                                    ? 'No vital signs recorded today.' 
-                                    : 'Try adjusting your filters or check back later.'}
-                            </p>
-                        </div>
+                        <EmptyState
+                            icon={Activity}
+                            title="No vital signs found"
+                            description={
+                                dateFilter === 'today' 
+                                    ? 'No vital signs recorded today. Get started by recording vital signs for residents.'
+                                    : 'Try adjusting your filters or check back later.'
+                            }
+                            action={
+                                <button
+                                    onClick={() => {
+                                        setEditing(null);
+                                        setShowForm(true);
+                                    }}
+                                    className="px-4 py-2 bg-[#25603E] text-white rounded-lg hover:bg-[#1B402D] transition-colors"
+                                >
+                                    <Plus className="w-4 h-4 inline mr-2" />
+                                    Add Vitals
+                                </button>
+                            }
+                        />
                     )}
                 </div>
             )}
@@ -265,6 +284,7 @@ export default function Vitals() {
 }
 
 function VitalSignForm({ record, residents, onClose, onSuccess }) {
+    const toast = useToastContext();
     const [formData, setFormData] = useState({
         resident_id: record?.resident_id || '',
         measurement_date: record?.measurement_date 
@@ -319,15 +339,19 @@ function VitalSignForm({ record, residents, onClose, onSuccess }) {
 
             if (record) {
                 await api.put(`/vitals/${record.id}`, payload);
+                toast.success('Success', 'Vital sign updated successfully');
             } else {
                 await api.post('/vitals', payload);
+                toast.success('Success', 'Vital sign recorded successfully');
             }
             onSuccess();
         } catch (error) {
             if (error.response?.data?.errors) {
                 setErrors(error.response.data.errors);
             } else {
-                setErrors({ general: error.response?.data?.message || 'Failed to save vital sign' });
+                const errorMessage = error.response?.data?.message || 'Failed to save vital sign';
+                setErrors({ general: errorMessage });
+                toast.error('Error', errorMessage);
             }
         } finally {
             setIsSubmitting(false);

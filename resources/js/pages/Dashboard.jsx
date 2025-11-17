@@ -19,6 +19,7 @@ import {
     TrendingUp, Clock, CheckCircle, FileText, Heart, Pill, Moon,
     ArrowRight, Sparkles, MoreVertical
 } from 'lucide-react';
+import { DashboardSkeleton } from '../components/ui/SkeletonLoader';
 
 // Register Chart.js components
 ChartJS.register(
@@ -195,10 +196,7 @@ export default function Dashboard() {
                 )}
                 
                 {isLoading && (
-                    <div className="text-center py-20">
-                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-[#25603E] border-t-transparent"></div>
-                        <p className="mt-4 text-[#8B4513] text-lg font-medium">Loading dashboard data...</p>
-                    </div>
+                    <DashboardSkeleton />
                 )}
                 
                 {!isLoading && (
