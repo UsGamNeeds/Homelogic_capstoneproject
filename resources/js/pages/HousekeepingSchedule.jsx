@@ -282,19 +282,15 @@ const closeAssignmentModal = () => {
                             {areasData.map((area) => {
                                 const isActive = area.id === selectedAreaId;
                                 return (
-                                    <div key={area.id} className={`w-full rounded-2xl border px-4 py-3 transition ${isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-gray-100 bg-white text-gray-700 hover:border-emerald-100'}`}>
+                                    <div key={area.id} className={`w-full rounded-2xl border px-4 py-3 transition cursor-pointer ${isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-gray-100 bg-white text-gray-700 hover:border-emerald-100'}`} onClick={() => setSelectedAreaId(area.id)}>
                                         <div className="flex items-center justify-between">
-                                            <button
-                                                type="button"
-                                                onClick={() => setSelectedAreaId(area.id)}
-                                                className="text-left"
-                                            >
+                                            <div className="flex-1 min-w-0">
                                                 <div className="font-semibold">{area.name}</div>
                                                 <p className="text-xs text-gray-500">
                                                     {[area.shift_label, area.location].filter(Boolean).join(' • ') || 'On-site'}
                                                 </p>
-                                            </button>
-                                            <div className="flex items-center gap-2">
+                                            </div>
+                                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                                                 <button
                                                     type="button"
                                                     onClick={() => {
