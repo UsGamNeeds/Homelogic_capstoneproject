@@ -30,46 +30,85 @@ class LeaveRequestController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'staff_id' => 'sometimes|exists:users,id',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'reason' => 'required|string|min:10',
-            'status' => 'nullable|in:pending,approved,declined',
-        ]);
-        
-        $user = auth()->user();
-        
-        // If user is a caregiver, force staff_id to be their own ID and status to pending
-        if ($user->hasRole('caregiver')) {
-            $validated['staff_id'] = $user->id;
-            $validated['status'] = 'pending';
-            // Set branch_id from user's assigned branch
-            if ($user->assigned_branch_id) {
-                $validated['branch_id'] = $user->assigned_branch_id;
-            }
-        } else {
-            // Admins must provide staff_id
-            if (!isset($validated['staff_id'])) {
-                return response()->json(['message' => 'staff_id is required'], 422);
-            }
-            // Default status to pending if not provided
-            $validated['status'] = $validated['status'] ?? 'pending';
+        try {
+            $validated = $request->validate([
+                'staff_id' => 'sometimes|exists:users,id',
+                'start_date' => 'required|date',
+                'end_date' => 'required|date|after_or_equal:start_date',
+                'reason' => 'required|string|min:10',
+                'status' => 'nullable|in:pending,approved,declined',
+            ]);
             
-            // Get branch_id from the selected staff member
-            $staff = \App\Models\User::find($validated['staff_id']);
-            if ($staff && $staff->assigned_branch_id) {
-                $validated['branch_id'] = $staff->assigned_branch_id;
+            $user = auth()->user();
+            
+            if (!$user) {
+                return response()->json(['message' => 'Unauthenticated'], 401);
             }
+            
+            // If user is a caregiver, force staff_id to be their own ID and status to pending
+            if ($user->hasRole('caregiver')) {
+                $validated['staff_id'] = $user->id;
+                $validated['status'] = 'pending';
+                // Set branch_id from user's assigned branch
+                if ($user->assigned_branch_id) {
+                    $validated['branch_id'] = $user->assigned_branch_id;
+                } else {
+                    return response()->json([
+                        'message' => 'You must be assigned to a branch to submit leave requests. Please contact an administrator.',
+                        'errors' => ['branch_id' => ['No branch assigned to your account']]
+                    ], 422);
+                }
+            } else {
+                // Admins must provide staff_id
+                if (!isset($validated['staff_id'])) {
+                    return response()->json([
+                        'message' => 'Staff member is required',
+                        'errors' => ['staff_id' => ['Please select a staff member']]
+                    ], 422);
+                }
+                // Default status to pending if not provided
+                $validated['status'] = $validated['status'] ?? 'pending';
+                
+                // Get branch_id from the selected staff member
+                $staff = \App\Models\User::find($validated['staff_id']);
+                if ($staff && $staff->assigned_branch_id) {
+                    $validated['branch_id'] = $staff->assigned_branch_id;
+                } else {
+                    return response()->json([
+                        'message' => 'The selected staff member must be assigned to a branch.',
+                        'errors' => ['staff_id' => ['Selected staff member has no branch assignment']]
+                    ], 422);
+                }
+            }
+            
+            // Ensure branch_id is set (required by database)
+            if (!isset($validated['branch_id'])) {
+                return response()->json([
+                    'message' => 'Unable to determine branch. Please ensure the staff member has an assigned branch.',
+                    'errors' => ['branch_id' => ['Branch assignment required']]
+                ], 422);
+            }
+            
+            $leave = LeaveRequest::create($validated);
+            return response()->json($leave->load(['staff', 'approvedBy']), 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Leave request creation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'user_id' => auth()->id(),
+                'request_data' => $request->all()
+            ]);
+            
+            return response()->json([
+                'message' => 'An error occurred while creating the leave request. Please try again or contact support.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Server error'
+            ], 500);
         }
-        
-        // Ensure branch_id is set (required by database)
-        if (!isset($validated['branch_id'])) {
-            return response()->json(['message' => 'Unable to determine branch. Please ensure the staff member has an assigned branch.'], 422);
-        }
-        
-        $leave = LeaveRequest::create($validated);
-        return response()->json($leave->load(['staff', 'approvedBy']), 201);
     }
 
     public function update(Request $request, $id): JsonResponse

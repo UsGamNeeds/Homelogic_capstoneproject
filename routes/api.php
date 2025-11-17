@@ -136,6 +136,7 @@ Route::prefix('v1')->group(function () {
         Route::delete('/tasks/{cleaningTask}', [CleaningTaskController::class, 'destroy']);
 
         Route::get('/dashboard', [HousekeepingReportController::class, 'index']);
+        Route::get('/completion-report', [HousekeepingReportController::class, 'completionReport']);
         Route::get('/tasks/{cleaningTask}/assignments', [CleaningTaskAssignmentController::class, 'index']);
         Route::post('/tasks/{cleaningTask}/assignments', [CleaningTaskAssignmentController::class, 'store']);
         Route::delete('/task-assignments/{cleaningTaskAssignment}', [CleaningTaskAssignmentController::class, 'destroy']);

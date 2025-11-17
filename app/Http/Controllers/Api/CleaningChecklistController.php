@@ -108,7 +108,8 @@ class CleaningChecklistController extends Controller
 
         $scheduledDate = $this->resolveDate($data['scheduled_date'] ?? null)->toDateString();
         $status = $data['status'];
-        $initials = $this->deriveInitials($user->name ?? '', $data['initials'] ?? null);
+        // Auto-derive initials from user's name (always use authenticated user)
+        $initials = $this->deriveInitials($user->name ?? $user->email ?? 'User', null);
 
         $log = CleaningTaskLog::updateOrCreate(
             [
@@ -120,7 +121,8 @@ class CleaningChecklistController extends Controller
                 'branch_id' => $task->area->branch_id,
                 'shift_label' => $task->area->shift_label,
                 'status' => $status,
-                'completed_by' => $status === 'completed' ? $user->id : null,
+                // Always set completed_by to track who performed the action
+                'completed_by' => $user->id,
                 'initials' => $initials,
                 'notes' => $data['notes'] ?? null,
                 'completed_at' => $status === 'completed' ? now() : null,

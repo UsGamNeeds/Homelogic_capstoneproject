@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { Moon, Plus, Search, Calendar, Clock, User, Edit, Trash2, Filter, ChevronDown } from 'lucide-react';
+import { getLocalDateString } from '../utils/pacificTime';
 
 export default function Sleep() {
     const queryClient = useQueryClient();
@@ -481,7 +482,7 @@ function SleepRecordForm({ record, residents, isCaregiver, caregiverBranchId, ca
     const [formData, setFormData] = useState({
         resident_id: record?.resident_id || '',
         branch_id: record?.branch_id || caregiverBranchId || '',
-        sleep_date: record?.sleep_date || new Date().toISOString().split('T')[0],
+        sleep_date: record?.sleep_date || getLocalDateString(),
         sleep_time: record?.sleep_time || '',
         wake_time: record?.wake_time || '',
         total_sleep_hours: record?.total_sleep_hours || '',

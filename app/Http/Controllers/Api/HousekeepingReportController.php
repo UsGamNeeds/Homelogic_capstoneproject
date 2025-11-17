@@ -123,4 +123,65 @@ class HousekeepingReportController extends Controller
             'rows' => $rows,
         ]);
     }
+
+    public function completionReport(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user || !$user->hasPermission('view_cleaning_areas')) {
+            abort(403, 'You do not have permission to view housekeeping reports.');
+        }
+
+        $branchId = (int) ($request->input('branch_id') ?? $user->assigned_branch_id);
+
+        if (!$branchId) {
+            throw ValidationException::withMessages([
+                'branch_id' => 'Select a branch or assign one to your profile.',
+            ]);
+        }
+
+        $dateFrom = $request->input('date_from') 
+            ? Carbon::parse($request->input('date_from'))->startOfDay()
+            : Carbon::now()->subDays(7)->startOfDay();
+        
+        $dateTo = $request->input('date_to')
+            ? Carbon::parse($request->input('date_to'))->endOfDay()
+            : Carbon::now()->endOfDay();
+
+        $logs = CleaningTaskLog::query()
+            ->with(['task.area', 'completedBy'])
+            ->where('branch_id', $branchId)
+            ->whereBetween('scheduled_date', [$dateFrom->toDateString(), $dateTo->toDateString()])
+            ->whereIn('status', ['completed', 'skipped'])
+            ->orderBy('scheduled_date', 'desc')
+            ->orderBy('completed_at', 'desc')
+            ->get();
+
+        $report = $logs->map(function ($log) {
+            return [
+                'id' => $log->id,
+                'date' => $log->scheduled_date->toDateString(),
+                'area' => $log->task->area->name ?? 'Unknown',
+                'shift' => $log->shift_label ?? 'N/A',
+                'task' => $log->task->title ?? 'Unknown Task',
+                'status' => $log->status,
+                'completed_by' => $log->completedBy ? [
+                    'id' => $log->completedBy->id,
+                    'name' => $log->completedBy->name,
+                    'email' => $log->completedBy->email,
+                ] : null,
+                'initials' => $log->initials,
+                'completed_at' => $log->completed_at ? $log->completed_at->toDateTimeString() : null,
+                'notes' => $log->notes,
+            ];
+        });
+
+        return response()->json([
+            'date_from' => $dateFrom->toDateString(),
+            'date_to' => $dateTo->toDateString(),
+            'branch_id' => $branchId,
+            'total_records' => $report->count(),
+            'records' => $report->values(),
+        ]);
+    }
 }

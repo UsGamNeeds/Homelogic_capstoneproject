@@ -2,6 +2,7 @@ import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Sparkles, CalendarDays, RefreshCcw, CheckCircle2, XCircle, Loader2, StickyNote, Info } from 'lucide-react';
 import api from '../services/api';
+import { getLocalDateString } from '../utils/pacificTime';
 
 const statusStyles = {
     pending: 'bg-gray-100 text-gray-600 ring-gray-200',
@@ -11,8 +12,8 @@ const statusStyles = {
 
 export default function Housekeeping() {
     const queryClient = useQueryClient();
-    const [selectedDate, setSelectedDate] = React.useState(() => new Date().toISOString().slice(0, 10));
-    const [initials, setInitials] = React.useState(() => localStorage.getItem('housekeeping_initials') ?? '');
+    const [selectedDate, setSelectedDate] = React.useState(() => getLocalDateString());
+    const [skipNotesModal, setSkipNotesModal] = React.useState({ open: false, taskId: null, notes: '' });
 
     const { data, isLoading, error, isFetching } = useQuery({
         queryKey: ['cleaning-checklists', selectedDate],
@@ -27,14 +28,9 @@ export default function Housekeeping() {
 
     const mutation = useMutation({
         mutationFn: async ({ taskId, status, notes }) => {
-            if (!initials.trim()) {
-                throw new Error('Please enter your initials before updating tasks.');
-            }
-
             const payload = {
                 task_id: taskId,
                 status,
-                initials: initials.trim(),
                 scheduled_date: selectedDate,
             };
 
@@ -51,21 +47,25 @@ export default function Housekeeping() {
 
     const areas = React.useMemo(() => data?.areas ?? [], [data?.areas]);
 
-    const handleStatusUpdate = async (taskId, status) => {
+    const handleStatusUpdate = async (taskId, status, notes = '') => {
         try {
-            let notes = '';
-            if (status === 'skipped') {
-                notes = window.prompt('Add a note for skipping this task (optional)', '') || '';
-            }
             await mutation.mutateAsync({ taskId, status, notes });
-        } catch (err) {
-            if (err instanceof Error && err.message.includes('initials')) {
-                window.alert(err.message);
-                return;
+            if (status === 'skipped') {
+                setSkipNotesModal({ open: false, taskId: null, notes: '' });
             }
-
+        } catch (err) {
             const apiMessage = err?.response?.data?.message ?? err?.message ?? 'Unable to update task.';
             window.alert(apiMessage);
+        }
+    };
+
+    const handleSkipClick = (taskId) => {
+        setSkipNotesModal({ open: true, taskId, notes: '' });
+    };
+
+    const handleSkipSubmit = () => {
+        if (skipNotesModal.taskId) {
+            handleStatusUpdate(skipNotesModal.taskId, 'skipped', skipNotesModal.notes);
         }
     };
 
@@ -149,7 +149,7 @@ export default function Housekeeping() {
                         <button
                             type="button"
                             disabled={disabled}
-                            onClick={() => handleStatusUpdate(task.id, 'skipped')}
+                            onClick={() => handleSkipClick(task.id)}
                             className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700 ring-1 ring-amber-200 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:bg-amber-50 disabled:text-amber-300"
                         >
                             <XCircle className="h-4 w-4" />
@@ -197,31 +197,14 @@ export default function Housekeeping() {
             </header>
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
-                <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                        <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Your Initials</label>
-                        <input
-                            type="text"
-                            value={initials}
-                            onChange={(event) => {
-                                const value = event.target.value.toUpperCase().slice(0, 8);
-                                setInitials(value);
-                                localStorage.setItem('housekeeping_initials', value);
-                            }}
-                            placeholder="e.g. JD"
-                            className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                        />
+                <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/80 p-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-2 font-semibold text-gray-800">
+                        <Info className="h-4 w-4" />
+                        Reminder
                     </div>
-                    <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/80 p-4 text-sm text-gray-600">
-                        <div className="flex items-center gap-2 font-semibold text-gray-800">
-                            <Info className="h-4 w-4" />
-                            Reminder
-                        </div>
-                        <p className="mt-2">
-                            Swing shift float staff are expected to close the house before the end of their shift. Use this log to confirm every
-                            item is checked before leaving.
-                        </p>
-                    </div>
+                    <p className="mt-2">
+                        Maintaining high standards of cleanliness and hygiene is essential for the health and safety of our residents. All staff members are expected to take their housekeeping responsibilities seriously, as state inspectors may conduct unannounced visits at any time. Please ensure all tasks are completed thoroughly and documented accurately.
+                    </p>
                 </div>
             </section>
 
@@ -268,6 +251,50 @@ export default function Housekeeping() {
                         <div className="mt-4 space-y-4">{area.tasks?.length ? area.tasks.map(renderTask) : <p className="text-sm text-gray-500">No tasks scheduled for this date.</p>}</div>
                     </section>
                 ))
+            )}
+
+            {/* Skip Notes Modal */}
+            {skipNotesModal.open && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Skip Task</h3>
+                        <p className="text-sm text-gray-600 mb-4">
+                            Add a note explaining why this task is being skipped (optional):
+                        </p>
+                        <textarea
+                            value={skipNotesModal.notes}
+                            onChange={(e) => setSkipNotesModal({ ...skipNotesModal, notes: e.target.value })}
+                            placeholder="Enter reason for skipping..."
+                            rows={4}
+                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                            maxLength={1000}
+                        />
+                        <div className="mt-6 flex items-center justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setSkipNotesModal({ open: false, taskId: null, notes: '' })}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50 transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSkipSubmit}
+                                disabled={mutation.isLoading}
+                                className="px-4 py-2 text-sm font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
+                            >
+                                {mutation.isLoading ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Skipping...
+                                    </>
+                                ) : (
+                                    'Skip Task'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

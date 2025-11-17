@@ -1,7 +1,8 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Sparkles, RefreshCcw, CalendarDays, CheckCircle2, XCircle, Clock3, ShieldCheck } from 'lucide-react';
+import { Sparkles, RefreshCcw, CalendarDays, CheckCircle2, XCircle, Clock3, ShieldCheck, FileText, User } from 'lucide-react';
 import api from '../services/api';
+import { getLocalDateString } from '../utils/pacificTime';
 
 const statusOptions = [
     { value: '', label: 'All statuses' },
@@ -23,9 +24,19 @@ const formatTime = (value) => {
 };
 
 export default function HousekeepingDashboard() {
-    const [selectedDate, setSelectedDate] = React.useState(() => new Date().toISOString().slice(0, 10));
+    const [selectedDate, setSelectedDate] = React.useState(() => getLocalDateString());
     const [areaId, setAreaId] = React.useState('');
     const [status, setStatus] = React.useState('');
+    const [showCompletionReport, setShowCompletionReport] = React.useState(false);
+    const [reportDateFrom, setReportDateFrom] = React.useState(() => {
+        const date = new Date();
+        date.setDate(date.getDate() - 7);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    });
+    const [reportDateTo, setReportDateTo] = React.useState(() => getLocalDateString());
 
     const { data, isLoading, isFetching, error, refetch } = useQuery({
         queryKey: ['housekeeping-dashboard', selectedDate, areaId, status],
@@ -36,6 +47,16 @@ export default function HousekeepingDashboard() {
             const response = await api.get('/cleaning/dashboard', { params });
             return response.data;
         },
+    });
+
+    const { data: completionReport, isLoading: reportLoading } = useQuery({
+        queryKey: ['housekeeping-completion-report', reportDateFrom, reportDateTo],
+        queryFn: async () => {
+            const params = { date_from: reportDateFrom, date_to: reportDateTo };
+            const response = await api.get('/cleaning/completion-report', { params });
+            return response.data;
+        },
+        enabled: showCompletionReport,
     });
 
     const summary = data?.summary ?? { total: 0, completed: 0, skipped: 0, pending: 0, required_missing: 0 };
@@ -186,6 +207,119 @@ export default function HousekeepingDashboard() {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                )}
+            </section>
+
+            {/* Completion Report Section */}
+            <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-emerald-600" />
+                        Task Completion Report
+                    </h2>
+                    <button
+                        type="button"
+                        onClick={() => setShowCompletionReport(!showCompletionReport)}
+                        className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
+                    >
+                        {showCompletionReport ? 'Hide Report' : 'Show Report'}
+                    </button>
+                </div>
+
+                {showCompletionReport && (
+                    <div className="space-y-4">
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <label className="text-sm font-semibold text-gray-700">
+                                From Date
+                                <input
+                                    type="date"
+                                    value={reportDateFrom}
+                                    onChange={(e) => setReportDateFrom(e.target.value)}
+                                    className="mt-2 w-full rounded-2xl border border-gray-200 px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                                />
+                            </label>
+                            <label className="text-sm font-semibold text-gray-700">
+                                To Date
+                                <input
+                                    type="date"
+                                    value={reportDateTo}
+                                    onChange={(e) => setReportDateTo(e.target.value)}
+                                    className="mt-2 w-full rounded-2xl border border-gray-200 px-4 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                                />
+                            </label>
+                        </div>
+
+                        {reportLoading ? (
+                            <div className="flex items-center justify-center py-12 text-sm text-gray-500">
+                                <div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-600"></div>
+                                <span className="ml-3">Loading report...</span>
+                            </div>
+                        ) : completionReport?.records?.length > 0 ? (
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-100">
+                                    <thead>
+                                        <tr className="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                            <th className="px-4 py-3">Date</th>
+                                            <th className="px-4 py-3">Area / Shift</th>
+                                            <th className="px-4 py-3">Task</th>
+                                            <th className="px-4 py-3">Status</th>
+                                            <th className="px-4 py-3">Completed By</th>
+                                            <th className="px-4 py-3">Completed At</th>
+                                            <th className="px-4 py-3">Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 text-sm">
+                                        {completionReport.records.map((record) => (
+                                            <tr key={record.id}>
+                                                <td className="px-4 py-3 text-gray-700">
+                                                    {new Date(record.date).toLocaleDateString()}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="font-semibold text-gray-900">{record.area}</div>
+                                                    <p className="text-xs text-gray-500">{record.shift}</p>
+                                                </td>
+                                                <td className="px-4 py-3 font-medium text-gray-900">{record.task}</td>
+                                                <td className="px-4 py-3">
+                                                    <StatusBadge status={record.status} />
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {record.completed_by ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <User className="h-4 w-4 text-gray-400" />
+                                                            <div>
+                                                                <div className="font-medium text-gray-900">{record.completed_by.name}</div>
+                                                                <div className="text-xs text-gray-500">{record.initials}</div>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400">—</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-700">
+                                                    {record.completed_at
+                                                        ? new Date(record.completed_at).toLocaleString([], {
+                                                              month: 'short',
+                                                              day: 'numeric',
+                                                              hour: '2-digit',
+                                                              minute: '2-digit',
+                                                          })
+                                                        : '—'}
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-600">{record.notes || '—'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                <div className="mt-4 text-sm text-gray-500">
+                                    Total records: {completionReport.total_records}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-8 text-center text-sm text-gray-500">
+                                No completion records found for the selected date range.
+                            </div>
+                        )}
                     </div>
                 )}
             </section>

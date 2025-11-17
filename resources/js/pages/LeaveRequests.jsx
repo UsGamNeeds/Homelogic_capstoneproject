@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { Calendar, Plus, Edit, Trash2 } from 'lucide-react';
+import { getLocalDateString } from '../utils/pacificTime';
 
 export default function LeaveRequests() {
   const queryClient = useQueryClient();
@@ -140,12 +141,15 @@ export default function LeaveRequests() {
 function LeaveForm({ record, currentUser, isCaregiver, onClose, onSuccess }) {
   // Format date helper function
   const formatDateForInput = (dateString) => {
-    if (!dateString) return new Date().toISOString().split('T')[0];
+    if (!dateString) return getLocalDateString();
     // If it's already in YYYY-MM-DD format, return it
     if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return dateString;
-    // Otherwise parse and format it
+    // Otherwise parse and format it using local date
     const date = new Date(dateString);
-    return date.toISOString().split('T')[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const [form, setForm] = useState({

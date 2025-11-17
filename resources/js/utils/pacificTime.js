@@ -513,3 +513,15 @@ export const getTimezoneDisplayParts = (timeZone = PACIFIC_TIMEZONE) => {
 
 export const PACIFIC_TIMEZONE_ID = PACIFIC_TIMEZONE;
 
+/**
+ * Get today's date as YYYY-MM-DD string in local timezone (not UTC)
+ * This prevents timezone offset issues when setting default dates in forms
+ */
+export const getLocalDateString = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+

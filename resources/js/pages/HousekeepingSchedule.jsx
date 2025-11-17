@@ -14,6 +14,7 @@ import {
     Building2,
 } from 'lucide-react';
 import api from '../services/api';
+import { getLocalDateString } from '../utils/pacificTime';
 
 const frequencyOptions = [
     { value: 'daily', label: 'Daily' },
@@ -64,7 +65,7 @@ export default function HousekeepingSchedule() {
     const [editingTask, setEditingTask] = React.useState(null);
     const [isAreaModalOpen, setIsAreaModalOpen] = React.useState(false);
     const [editingArea, setEditingArea] = React.useState(null);
-    const [assignmentDate, setAssignmentDate] = React.useState(() => new Date().toISOString().slice(0, 10));
+    const [assignmentDate, setAssignmentDate] = React.useState(() => getLocalDateString());
     const [assignmentTask, setAssignmentTask] = React.useState(null);
     const [isAssignmentModalOpen, setIsAssignmentModalOpen] = React.useState(false);
 

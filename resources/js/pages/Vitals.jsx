@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { Activity, Calendar, User, Heart, Plus, Thermometer, Droplet, Edit, Trash2, ChevronDown } from 'lucide-react';
+import { getLocalDateString } from '../utils/pacificTime';
 
 export default function Vitals() {
     const queryClient = useQueryClient();
@@ -269,8 +270,14 @@ function VitalSignForm({ record, residents, onClose, onSuccess }) {
         measurement_date: record?.measurement_date 
             ? (typeof record.measurement_date === 'string' 
                 ? record.measurement_date.split('T')[0]
-                : new Date(record.measurement_date).toISOString().split('T')[0])
-            : new Date().toISOString().split('T')[0],
+                : (() => {
+                    const date = new Date(record.measurement_date);
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                })())
+            : getLocalDateString(),
         measurement_time: record?.measurement_date
             ? (typeof record.measurement_date === 'string'
                 ? new Date(record.measurement_date).toTimeString().slice(0, 5)
