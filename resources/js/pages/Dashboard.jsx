@@ -63,6 +63,12 @@ export default function Dashboard() {
                     today_appointments: 0,
                     today_vitals: 0,
                     total_staff: 0,
+                    assigned_residents: 0,
+                    todays_appointments: 0,
+                    pending_assessments: 0,
+                    pending_leave_requests: 0,
+                    week_appointments: 0,
+                    user_type: 'caregiver',
                 };
             }
         },
@@ -74,10 +80,11 @@ export default function Dashboard() {
     const greeting = currentHour < 12 ? 'Good Morning' : currentHour < 18 ? 'Good Afternoon' : 'Good Evening';
     
     // Define stat cards based on user type with gradients and modern styling
+    // Ensure values are numbers
     const statCards = isCaregiver ? [
         {
             title: 'My Residents',
-            value: stats?.assigned_residents || 0,
+            value: Number(stats?.assigned_residents ?? 0),
             icon: Users,
             gradient: 'from-[#25603E] to-[#4a7a2a]',
             iconBg: 'bg-green-50',
@@ -88,7 +95,7 @@ export default function Dashboard() {
         },
         {
             title: "Today's Appointments",
-            value: stats?.todays_appointments || 0,
+            value: Number(stats?.todays_appointments ?? 0),
             icon: Calendar,
             gradient: 'from-[#25603E] to-[#4a7a2a]',
             iconBg: 'bg-green-50',
@@ -99,18 +106,18 @@ export default function Dashboard() {
         },
         {
             title: 'Pending Assessments',
-            value: stats?.pending_assessments || 0,
+            value: Number(stats?.pending_assessments ?? 0),
             icon: ClipboardList,
             gradient: 'from-[#8B4513] to-[#a0522d]',
             iconBg: 'bg-amber-50',
             iconColor: 'text-[#8B4513]',
             description: 'Awaiting completion',
             link: '/assessments',
-            trend: stats?.pending_assessments > 0 ? 'warning' : 'positive'
+            trend: (stats?.pending_assessments ?? 0) > 0 ? 'warning' : 'positive'
         },
         {
             title: 'Vitals Recorded',
-            value: stats?.today_vitals || 0,
+            value: Number(stats?.today_vitals ?? 0),
             icon: Activity,
             gradient: 'from-[#25603E] to-[#4a7a2a]',
             iconBg: 'bg-green-50',
@@ -121,18 +128,18 @@ export default function Dashboard() {
         },
         {
             title: 'Leave Requests',
-            value: stats?.pending_leave_requests || 0,
+            value: Number(stats?.pending_leave_requests ?? 0),
             icon: AlertCircle,
             gradient: 'from-[#8B4513] to-[#a0522d]',
             iconBg: 'bg-amber-50',
             iconColor: 'text-[#8B4513]',
             description: 'Pending approval',
             link: '/administration/leave-requests',
-            trend: stats?.pending_leave_requests > 0 ? 'warning' : 'positive'
+            trend: (stats?.pending_leave_requests ?? 0) > 0 ? 'warning' : 'positive'
         },
         {
             title: 'Weekly Appointments',
-            value: stats?.week_appointments || 0,
+            value: Number(stats?.week_appointments ?? 0),
             icon: Calendar,
             gradient: 'from-[#25603E] to-[#4a7a2a]',
             iconBg: 'bg-green-50',

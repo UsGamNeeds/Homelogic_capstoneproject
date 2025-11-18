@@ -16,7 +16,10 @@ class MedicationAdministrationController extends Controller
         $query = MedicationAdministration::with(['medication', 'resident', 'branch', 'administeredBy']);
         $user = $request->user();
 
-        if ($user && $user->hasRole('caregiver')) {
+        // Check if user is a caregiver (including all caregiver-related roles)
+        $isCaregiver = $user && in_array($user->role, ['caregiver', 'care_giver', 'nurse', 'registered_nurse', 'licensed_nurse']);
+
+        if ($isCaregiver) {
             if ($user->assigned_branch_id) {
                 $query->where('branch_id', $user->assigned_branch_id);
             } else {
@@ -33,7 +36,7 @@ class MedicationAdministrationController extends Controller
         if ($request->has('resident_id')) {
             $residentId = $request->get('resident_id');
 
-            if ($user && $user->hasRole('caregiver')) {
+            if ($isCaregiver) {
                 $residentBranch = \App\Models\Resident::where('id', $residentId)->value('branch_id');
 
                 if ($user->assigned_branch_id && (int) $residentBranch !== (int) $user->assigned_branch_id) {
@@ -46,8 +49,8 @@ class MedicationAdministrationController extends Controller
             $query->where('resident_id', $residentId);
         }
 
-        // Filter by branch
-        if ($request->has('branch_id')) {
+        // Filter by branch (only for non-caregivers - caregivers are already filtered above)
+        if (!$isCaregiver && $request->has('branch_id')) {
             $query->where('branch_id', $request->get('branch_id'));
         }
 

@@ -36,7 +36,7 @@ export default function MyResidentsPage() {
     const [debouncedSearch, setDebouncedSearch] = React.useState('');
 
     // Current user query (to get assigned branch)
-    const { data: currentUser } = useQuery({
+    const { data: currentUser, isLoading: isLoadingUser } = useQuery({
         queryKey: ['current-user'],
         queryFn: async () => {
             const res = await api.get('/user');
@@ -53,15 +53,20 @@ export default function MyResidentsPage() {
     }, [search]);
 
     const { data, isLoading, error } = useQuery({
-        queryKey: ['my-residents', debouncedSearch],
+        queryKey: ['my-residents', debouncedSearch, currentUser?.assigned_branch_id],
         queryFn: async () => {
-            const params = { per_page: 50 };
+            const params = { 
+                per_page: 50,
+                show_all: true, // Show both active and inactive residents
+            };
             if (debouncedSearch) {
                 params.search = debouncedSearch;
             }
+            // Don't pass branch_id - backend will automatically filter by caregiver's branch
             const response = await api.get('/residents', { params });
             return response.data;
         },
+        enabled: !isLoadingUser, // Wait for user data to load first
     });
 
     const residents = React.useMemo(() => data?.data ?? [], [data?.data]);

@@ -51,12 +51,11 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
         
-        // Verify caregiver has access to this resident
+        // Verify caregiver has access to this resident (must be in same branch)
         if (in_array($user->role, ['caregiver', 'care_giver', 'nurse', 'registered_nurse', 'licensed_nurse'])) {
             $hasAccess = Resident::where('id', $residentId)
-                ->whereHas('assignments', function($q) use ($user) {
-                    $q->where('caregiver_id', $user->id)->where('is_active', true);
-                })
+                ->where('branch_id', $user->assigned_branch_id)
+                ->where('is_active', true)
                 ->exists();
             
             if (!$hasAccess) {
@@ -71,52 +70,71 @@ class DashboardController extends Controller
     private function caregiverStats($user): JsonResponse
     {
         $userId = $user->id;
+        $branchId = $user->assigned_branch_id;
         
-        // Get residents assigned to this caregiver
-        $assignedResidents = Resident::whereHas('assignments', function($q) use ($userId) {
-            $q->where('caregiver_id', $userId)->where('is_active', true);
-        })->count();
+        // If no branch assigned, return empty stats
+        if (!$branchId) {
+            return response()->json([
+                'assigned_residents' => 0,
+                'todays_appointments' => 0,
+                'pending_assessments' => 0,
+                'today_vitals' => 0,
+                'pending_leave_requests' => 0,
+                'week_appointments' => 0,
+                'user_type' => 'caregiver',
+                'weekly_activity' => [],
+                'medication_reminders' => [],
+                'upcoming_appointments_list' => [],
+                'resident_list' => [],
+                'resident_vitals_trend' => null,
+            ]);
+        }
         
-        // Today's appointments for assigned residents
-        $todayAppointments = Appointment::whereHas('resident.assignments', function($q) use ($userId) {
-            $q->where('caregiver_id', $userId)->where('is_active', true);
+        // Get all residents in this caregiver's branch
+        $assignedResidents = Resident::where('branch_id', $branchId)
+            ->where('is_active', true)
+            ->count();
+        
+        // Today's appointments for residents in this branch
+        $todayAppointments = Appointment::whereHas('resident', function($q) use ($branchId) {
+            $q->where('branch_id', $branchId)->where('is_active', true);
         })->whereDate('appointment_date', today())->count();
         
-        // Pending assessments for assigned residents
-        $pendingAssessments = \App\Models\Assessment::whereHas('resident.assignments', function($q) use ($userId) {
-            $q->where('caregiver_id', $userId)->where('is_active', true);
+        // Pending assessments for residents in this branch
+        $pendingAssessments = \App\Models\Assessment::whereHas('resident', function($q) use ($branchId) {
+            $q->where('branch_id', $branchId)->where('is_active', true);
         })->whereNotIn('status', ['approved', 'archived'])->count();
         
-        // Vitals recorded today
-        $todayVitals = VitalSign::whereHas('resident.assignments', function($q) use ($userId) {
-            $q->where('caregiver_id', $userId)->where('is_active', true);
+        // Vitals recorded today for residents in this branch
+        $todayVitals = VitalSign::whereHas('resident', function($q) use ($branchId) {
+            $q->where('branch_id', $branchId)->where('is_active', true);
         })->whereDate('measurement_date', today())->count();
         
         // Pending leave requests
         $pendingLeaveRequests = \App\Models\LeaveRequest::where('staff_id', $userId)
             ->where('status', 'pending')->count();
         
-        // Upcoming appointments this week
-        $weekAppointments = Appointment::whereHas('resident.assignments', function($q) use ($userId) {
-            $q->where('caregiver_id', $userId)->where('is_active', true);
+        // Upcoming appointments this week for residents in this branch
+        $weekAppointments = Appointment::whereHas('resident', function($q) use ($branchId) {
+            $q->where('branch_id', $branchId)->where('is_active', true);
         })->whereBetween('appointment_date', [today(), today()->addDays(7)])->count();
         
         // Weekly activity data for charts
-        $weeklyActivity = $this->getWeeklyActivity($userId);
+        $weeklyActivity = $this->getWeeklyActivity($branchId);
         
         // Medication reminders for next hour
-        $medicationReminders = $this->getMedicationReminders($userId);
+        $medicationReminders = $this->getMedicationReminders($branchId);
         
         // Upcoming appointments with details
-        $upcomingAppointmentsList = $this->getUpcomingAppointments($userId);
+        $upcomingAppointmentsList = $this->getUpcomingAppointments($branchId);
         
         // Resident list
-        $residentList = $this->getResidentList($userId);
+        $residentList = $this->getResidentList($branchId);
         
         // Resident vitals trend for first resident (default)
-        $defaultResident = Resident::whereHas('assignments', function($q) use ($userId) {
-            $q->where('caregiver_id', $userId)->where('is_active', true);
-        })->first();
+        $defaultResident = Resident::where('branch_id', $branchId)
+            ->where('is_active', true)
+            ->first();
         $residentVitalsTrend = $defaultResident ? $this->getResidentVitalsTrend($defaultResident->id) : null;
         
         return response()->json([
@@ -135,7 +153,7 @@ class DashboardController extends Controller
         ]);
     }
     
-    private function getWeeklyActivity($userId): array
+    private function getWeeklyActivity($branchId): array
     {
         $now = now();
         $weekStart = $now->copy()->startOfWeek();
@@ -146,11 +164,11 @@ class DashboardController extends Controller
             $days[] = [
                 'date' => $day->format('Y-m-d'),
                 'day' => $day->format('D'),
-                'assessments' => Assessment::whereHas('resident.assignments', function($q) use ($userId) {
-                    $q->where('caregiver_id', $userId)->where('is_active', true);
+                'assessments' => Assessment::whereHas('resident', function($q) use ($branchId) {
+                    $q->where('branch_id', $branchId)->where('is_active', true);
                 })->whereDate('assessment_date', $day->toDateString())->count(),
-                'vitals' => VitalSign::whereHas('resident.assignments', function($q) use ($userId) {
-                    $q->where('caregiver_id', $userId)->where('is_active', true);
+                'vitals' => VitalSign::whereHas('resident', function($q) use ($branchId) {
+                    $q->where('branch_id', $branchId)->where('is_active', true);
                 })->whereDate('measurement_date', $day->toDateString())->count(),
             ];
         }
@@ -158,14 +176,14 @@ class DashboardController extends Controller
         return $days;
     }
     
-    private function getMedicationReminders($userId): array
+    private function getMedicationReminders($branchId): array
     {
         $now = now();
         $next24Hours = $now->copy()->addHours(24);
         
         $medications = Medication::with(['resident', 'drug'])
-            ->whereHas('resident.assignments', function($q) use ($userId) {
-                $q->where('caregiver_id', $userId)->where('is_active', true);
+            ->whereHas('resident', function($q) use ($branchId) {
+                $q->where('branch_id', $branchId)->where('is_active', true);
             })
             ->where('is_active', true)
             ->where(function($q) use ($now) {
@@ -223,11 +241,11 @@ class DashboardController extends Controller
         return array_slice($reminders, 0, 5); // Limit to 5 reminders
     }
     
-    private function getUpcomingAppointments($userId): array
+    private function getUpcomingAppointments($branchId): array
     {
         return Appointment::with(['resident', 'appointmentType'])
-            ->whereHas('resident.assignments', function($q) use ($userId) {
-                $q->where('caregiver_id', $userId)->where('is_active', true);
+            ->whereHas('resident', function($q) use ($branchId) {
+                $q->where('branch_id', $branchId)->where('is_active', true);
             })
             ->whereDate('appointment_date', '>=', today())
             ->where('status', '!=', 'cancelled')
@@ -249,12 +267,10 @@ class DashboardController extends Controller
             ->toArray();
     }
     
-    private function getResidentList($userId): array
+    private function getResidentList($branchId): array
     {
-        return Resident::whereHas('assignments', function($q) use ($userId) {
-                $q->where('caregiver_id', $userId)->where('is_active', true);
-            })
-            ->with('assignments')
+        return Resident::where('branch_id', $branchId)
+            ->where('is_active', true)
             ->orderBy('first_name')
             ->limit(10)
             ->get()

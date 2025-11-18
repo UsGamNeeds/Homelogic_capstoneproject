@@ -64,8 +64,17 @@ export default function MedicationHistory() {
         setPage((prev) => (prev === 1 ? prev : 1));
     }, [residentId, status, dateFrom, dateTo]);
 
+    // Current user query (to get assigned branch)
+    const { data: currentUser, isLoading: isLoadingUser } = useQuery({
+        queryKey: ['current-user'],
+        queryFn: async () => {
+            const res = await api.get('/user');
+            return res.data;
+        },
+    });
+
     const { data: residentsResponse } = useQuery({
-        queryKey: ['medication-history-residents'],
+        queryKey: ['medication-history-residents', currentUser?.assigned_branch_id],
         queryFn: async () => {
             const response = await api.get('/residents', {
                 params: {
@@ -75,6 +84,7 @@ export default function MedicationHistory() {
             });
             return response.data;
         },
+        enabled: !isLoadingUser, // Wait for user data to load first
     });
 
     const residents = useMemo(() => {
@@ -88,7 +98,7 @@ export default function MedicationHistory() {
         error,
         isFetching,
     } = useQuery({
-        queryKey: ['medication-history', residentId, status, dateFrom, dateTo, page],
+        queryKey: ['medication-history', residentId, status, dateFrom, dateTo, page, currentUser?.assigned_branch_id],
         queryFn: async () => {
             const params = {
                 per_page: perPage,
@@ -103,6 +113,7 @@ export default function MedicationHistory() {
             const response = await api.get('/medication-administrations', { params });
             return response.data;
         },
+        enabled: !isLoadingUser, // Wait for user data to load first
         keepPreviousData: true,
         retry: false,
     });

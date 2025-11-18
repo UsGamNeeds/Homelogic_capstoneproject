@@ -15,7 +15,10 @@ class ResidentController extends Controller
         $user = $request->user();
         $caregiverBranchId = null;
 
-        if ($user && $user->hasRole('caregiver')) {
+        // Check if user is a caregiver (including all caregiver-related roles)
+        $isCaregiver = $user && in_array($user->role, ['caregiver', 'care_giver', 'nurse', 'registered_nurse', 'licensed_nurse']);
+        
+        if ($isCaregiver) {
             $caregiverBranchId = (int) ($user->assigned_branch_id ?? 0);
 
             if ($caregiverBranchId === 0) {
@@ -45,8 +48,8 @@ class ResidentController extends Controller
             });
         }
 
-        // Filter by branch
-        if ($request->has('branch_id') && !empty($request->get('branch_id'))) {
+        // Filter by branch (only for non-caregivers - caregivers are already filtered above)
+        if (!$isCaregiver && $request->has('branch_id') && !empty($request->get('branch_id'))) {
             $query->where('branch_id', $request->get('branch_id'));
         }
 
@@ -84,7 +87,8 @@ class ResidentController extends Controller
             ->findOrFail($id);
 
         $user = request()->user();
-        if ($user && $user->hasRole('caregiver')) {
+        $isCaregiver = $user && in_array($user->role, ['caregiver', 'care_giver', 'nurse', 'registered_nurse', 'licensed_nurse']);
+        if ($isCaregiver) {
             $caregiverBranchId = (int) ($user->assigned_branch_id ?? 0);
             if ($caregiverBranchId === 0 || (int) $resident->branch_id !== $caregiverBranchId) {
                 return response()->json([
@@ -100,7 +104,8 @@ class ResidentController extends Controller
     {
         $resident = Resident::findOrFail($id);
         $user = request()->user();
-        if ($user && $user->hasRole('caregiver')) {
+        $isCaregiver = $user && in_array($user->role, ['caregiver', 'care_giver', 'nurse', 'registered_nurse', 'licensed_nurse']);
+        if ($isCaregiver) {
             $caregiverBranchId = (int) ($user->assigned_branch_id ?? 0);
             if ($caregiverBranchId === 0 || (int) $resident->branch_id !== $caregiverBranchId) {
                 return response()->json([
@@ -121,7 +126,8 @@ class ResidentController extends Controller
     {
         $resident = Resident::findOrFail($id);
         $user = request()->user();
-        if ($user && $user->hasRole('caregiver')) {
+        $isCaregiver = $user && in_array($user->role, ['caregiver', 'care_giver', 'nurse', 'registered_nurse', 'licensed_nurse']);
+        if ($isCaregiver) {
             $caregiverBranchId = (int) ($user->assigned_branch_id ?? 0);
             if ($caregiverBranchId === 0 || (int) $resident->branch_id !== $caregiverBranchId) {
                 return response()->json([
