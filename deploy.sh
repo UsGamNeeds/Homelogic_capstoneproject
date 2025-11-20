@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Laravel Forge Deployment Script for Edmond Serenity AFH
-echo "🚀 Starting deployment for Edmond Serenity AFH..."
+# Multi-Tenant Deployment Script for Evergreen
+# Branch: multi-tenant
+echo "🚀 Starting Multi-Tenant Deployment for Evergreen..."
 
 # Exit on any error
 set -e
@@ -20,22 +21,28 @@ npm run build
 echo "🗄️ Running database migrations..."
 php artisan migrate --force
 
-# Seed production data (only on first deployment)
-if [ ! -f .deployed ]; then
-    echo "🌱 Seeding production database..."
-    php artisan db:seed --class=ProductionSeeder --force
-    touch .deployed
+# Create super admin (first time only or if needed)
+if [ ! -f .super-admin-created ]; then
+    echo "👤 Creating super admin account..."
+    php artisan db:seed --class=SuperAdminSeeder --force || echo "Super admin may already exist"
+    touch .super-admin-created
 fi
+
+# Create storage symlink (for facility logo uploads)
+echo "🔗 Creating storage symlink..."
+php artisan storage:link || echo "Storage link may already exist"
 
 # Clear and cache configuration
 echo "⚡ Optimizing application..."
+php artisan optimize:clear
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 php artisan event:cache
 
-# Clear application cache
-php artisan cache:clear
+# Set permissions
+echo "🔐 Setting file permissions..."
+chmod -R 775 storage bootstrap/cache 2>/dev/null || echo "Permissions may need manual adjustment"
 
 # Restart PHP-FPM (try different versions)
 echo "🔄 Restarting PHP-FPM..."
@@ -51,5 +58,12 @@ fi
 echo "🔄 Restarting queue workers..."
 php artisan queue:restart
 
-echo "✅ Deployment completed successfully!"
-echo "🌐 Application is now live at: https://evergreen-v5ywe0w6.on-forge.com"
+echo "✅ Multi-Tenant Deployment completed successfully!"
+echo ""
+echo "📋 Post-Deployment Checklist:"
+echo "  1. Verify super admin account: php artisan tinker → User::where('role', 'super_admin')->first()"
+echo "  2. Test facility registration: https://your-domain.com/facility-registration"
+echo "  3. Test facility customization (upload logo, change colors)"
+echo "  4. Verify theme system works correctly"
+echo ""
+echo "⚠️  IMPORTANT: Change default super admin password after first login!"
