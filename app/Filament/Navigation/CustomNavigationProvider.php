@@ -297,6 +297,8 @@ class CustomNavigationProvider
         
         // Only add Administration menu if user is NOT a caregiver
         // ALWAYS check this - even if auth is not checked, we still don't want to add it
+        ];
+        
         $shouldAddAdminMenu = false;
         
         if (auth()->check()) {
