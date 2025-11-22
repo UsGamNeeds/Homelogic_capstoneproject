@@ -484,3 +484,47 @@ aside[class*="bg-\[var\(--theme-primary\)\]"] button[class*="bg-white"] svg {
     stroke: var(--theme-primary, #1E3A5F) !important;
     fill: var(--theme-primary, #1E3A5F) !important;
 }
+
+/* CRITICAL: Force black text for labels and inputs in modals with white backgrounds */
+div[class*="bg-gray-50"] label,
+div[class*="bg-white"] label,
+.bg-gray-50 label,
+.bg-white label,
+form label {
+    color: #000000 !important;
+}
+
+div[class*="bg-gray-50"] input[type="text"],
+div[class*="bg-gray-50"] input[type="date"],
+div[class*="bg-gray-50"] input[type="email"],
+div[class*="bg-gray-50"] input[type="tel"],
+div[class*="bg-gray-50"] input[type="password"],
+div[class*="bg-gray-50"] textarea,
+div[class*="bg-gray-50"] select,
+div[class*="bg-white"] input[type="text"],
+div[class*="bg-white"] input[type="date"],
+div[class*="bg-white"] input[type="email"],
+div[class*="bg-white"] input[type="tel"],
+div[class*="bg-white"] input[type="password"],
+div[class*="bg-white"] textarea,
+div[class*="bg-white"] select,
+.bg-gray-50 input,
+.bg-gray-50 textarea,
+.bg-gray-50 select,
+.bg-white input,
+.bg-white textarea,
+.bg-white select {
+    color: #000000 !important;
+}
+
+div[class*="bg-gray-50"] input::placeholder,
+div[class*="bg-gray-50"] textarea::placeholder,
+div[class*="bg-white"] input::placeholder,
+div[class*="bg-white"] textarea::placeholder,
+.bg-gray-50 input::placeholder,
+.bg-gray-50 textarea::placeholder,
+.bg-white input::placeholder,
+.bg-white textarea::placeholder {
+    color: #000000 !important;
+    opacity: 0.6;
+}

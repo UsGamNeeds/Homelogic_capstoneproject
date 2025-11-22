@@ -96,15 +96,15 @@ export default function AssessmentReview() {
     const assessment = data;
 
     const getStatusBadgeColor = (status) => {
-        // Use brand green variants only
+        // Use theme colors
         return status === 'approved'
-            ? 'bg-green-100 text-green-800 border-green-200'
-            : 'bg-emerald-50 text-emerald-800 border-emerald-200';
+            ? 'bg-[var(--theme-primary-bg)] text-[var(--theme-primary)] border-[var(--theme-primary-light)]'
+            : 'bg-[var(--theme-primary-bg)] text-[var(--theme-primary)] border-[var(--theme-primary-light)]';
     };
 
-    // Single brand palette: deep green (var(--theme-primary)) and emerald accents
+    // Use theme primary color palette
     const sectionColors = [
-        { bg: 'bg-emerald-50', border: 'border-emerald-200', icon: 'text-emerald-700' },
+        { bg: 'bg-[var(--theme-primary-bg)]', border: 'border-[var(--theme-primary-light)]', icon: 'text-[var(--theme-primary)]' },
     ];
 
     return (
@@ -148,42 +148,42 @@ export default function AssessmentReview() {
                     <div className="bg-[var(--theme-primary)] rounded-xl shadow p-5 text-[var(--theme-text-on-primary)]">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-emerald-100 text-sm font-medium">Assessment Type</p>
+                                <p className="text-white/90 text-sm font-medium">Assessment Type</p>
                                 <p className="text-xl font-bold mt-1">{assessment.assessment_type || 'N/A'}</p>
                             </div>
-                            <ClipboardList className="w-8 h-8 text-emerald-200" />
+                            <ClipboardList className="w-8 h-8 text-white/80" />
                         </div>
                     </div>
 
-                    <div className="bg-emerald-600 rounded-xl shadow p-5 text-white">
+                    <div className="bg-[var(--theme-primary-light)] rounded-xl shadow p-5 text-white">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-emerald-100 text-sm font-medium">Completion</p>
+                                <p className="text-white/90 text-sm font-medium">Completion</p>
                                 <p className="text-xl font-bold mt-1">{stats.percentage}%</p>
                             </div>
-                            <TrendingUp className="w-8 h-8 text-emerald-200" />
+                            <TrendingUp className="w-8 h-8 text-white/80" />
                         </div>
                     </div>
 
-                    <div className="bg-emerald-700 rounded-xl shadow p-5 text-white">
+                    <div className="bg-[var(--theme-primary)] rounded-xl shadow p-5 text-white">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-emerald-100 text-sm font-medium">Questions</p>
+                                <p className="text-white/90 text-sm font-medium">Questions</p>
                                 <p className="text-xl font-bold mt-1">{stats.answered}/{stats.total}</p>
                             </div>
-                            <FileText className="w-8 h-8 text-emerald-200" />
+                            <FileText className="w-8 h-8 text-white/80" />
                         </div>
                     </div>
 
-                    <div className="bg-emerald-800 rounded-xl shadow p-5 text-white">
+                    <div className="bg-[var(--theme-primary-dark)] rounded-xl shadow p-5 text-white">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-emerald-100 text-sm font-medium">Resident</p>
+                                <p className="text-white/90 text-sm font-medium">Resident</p>
                                 <p className="text-lg font-bold mt-1 truncate">
                                     {assessment.resident?.first_name} {assessment.resident?.last_name}
                                 </p>
                             </div>
-                            <User className="w-8 h-8 text-emerald-200" />
+                            <User className="w-8 h-8 text-white/80" />
                         </div>
                     </div>
                 </div>
@@ -232,7 +232,7 @@ export default function AssessmentReview() {
                                                     <p className="text-xs text-gray-600">Complete</p>
                                                 </div>
                                                 {isComplete && (
-                                                    <div className="p-2 bg-green-500 rounded-full">
+                                                    <div className="p-2 bg-[var(--theme-primary)] rounded-full">
                                                         <CheckCircle className="w-6 h-6 text-white" />
                                                     </div>
                                                 )}
@@ -245,7 +245,7 @@ export default function AssessmentReview() {
                                         <div className="mt-3 w-full bg-white/50 rounded-full h-2 overflow-hidden">
                                             <div
                                                 className={`h-2 rounded-full transition-all duration-500 ${
-                                                    isComplete ? 'bg-green-500' : 'bg-gradient-to-r from-blue-400 to-purple-400'
+                                                    isComplete ? 'bg-[var(--theme-primary)]' : 'bg-gradient-to-r from-[var(--theme-primary-light)] to-[var(--theme-primary)]'
                                                 }`}
                                                 style={{ width: `${sectionProgress}%` }}
                                             />
@@ -289,7 +289,7 @@ export default function AssessmentReview() {
                                                         key={q.id} 
                                                         className={`rounded-lg border-2 transition-all ${
                                                             hasAnswer 
-                                                                ? 'border-green-200 bg-green-50/50 hover:bg-green-50' 
+                                                                ? 'border-[var(--theme-primary-light)] bg-[var(--theme-primary-bg)] hover:bg-[var(--theme-primary-bg-light)]' 
                                                                 : 'border-gray-200 bg-gray-50/50 hover:bg-gray-50'
                                                         }`}
                                                     >
@@ -299,12 +299,12 @@ export default function AssessmentReview() {
                                                                     <div className="flex items-center space-x-2 mb-2">
                                                                         <span className={`px-2 py-1 rounded text-xs font-semibold ${
                                                                             hasAnswer 
-                                                                                ? 'bg-green-100 text-green-800' 
+                                                                                ? 'bg-[var(--theme-primary-bg)] text-[var(--theme-primary)]' 
                                                                                 : 'bg-gray-100 text-gray-600'
                                                                         }`}>
                                                                             Q{qIndex + 1}
                                                                         </span>
-                                                                        <span className="px-2 py-1 rounded text-xs font-medium bg-green-50 text-[var(--theme-primary)]">
+                                                                        <span className="px-2 py-1 rounded text-xs font-medium bg-[var(--theme-primary-bg)] text-[var(--theme-primary)]">
                                                                             {q.response_type}
                                                                         </span>
                                                                     </div>
@@ -313,13 +313,13 @@ export default function AssessmentReview() {
                                                                     </p>
                                                                 </div>
                                                                 {hasAnswer && (
-                                                                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 ml-3" />
+                                                                    <CheckCircle className="w-5 h-5 text-[var(--theme-primary)] flex-shrink-0 ml-3" />
                                                                 )}
                                                             </div>
                                                             
                                                             <div className={`mt-3 p-4 rounded-lg ${
                                                                 hasAnswer 
-                                                                    ? 'bg-white border border-green-200' 
+                                                                    ? 'bg-white border border-[var(--theme-primary-light)]' 
                                                                     : 'bg-white border-2 border-dashed border-gray-300'
                                                             }`}>
                                                                 {hasAnswer ? (
@@ -349,7 +349,7 @@ export default function AssessmentReview() {
 
                     {/* Mark as Complete Button */}
                     {assessment.sections?.length > 0 && assessment.status !== 'approved' && assessment.status !== 'archived' && (
-                        <div className="bg-white rounded-xl shadow-lg p-6 border-2 border-emerald-200">
+                        <div className="bg-white rounded-xl shadow-lg p-6 border-2 border-[var(--theme-primary-light)]">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <h3 className="text-lg font-semibold text-gray-900 mb-1">Assessment Complete?</h3>

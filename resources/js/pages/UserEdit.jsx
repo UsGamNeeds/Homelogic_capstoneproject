@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import {
     ArrowLeft, Save, User, Mail, Phone, Calendar, Briefcase,
-    Shield, MapPin, Award, Clock, Building2
+    Shield, MapPin, Award, Clock, Building2, Upload, X
 } from 'lucide-react';
 import { useToastContext } from '../contexts/ToastContext';
 
@@ -45,6 +45,9 @@ function FormProvider({ children, initialData }) {
         notes: '',
         ...initialData
     });
+    const [profileImage, setProfileImage] = useState(null);
+    const [profileImagePreview, setProfileImagePreview] = useState(null);
+    const [imageRemoved, setImageRemoved] = useState(false);
 
     // Update form data when initialData changes (e.g. after fetch)
     useEffect(() => {
@@ -57,6 +60,18 @@ function FormProvider({ children, initialData }) {
                 // Ensure role is just the name string if it comes as an object or relation
                 role: typeof initialData.role === 'object' ? initialData.role?.name : initialData.role,
             }));
+
+            // Set profile image preview from initial data
+            if (initialData.profile_image_url) {
+                setProfileImagePreview(initialData.profile_image_url);
+            } else if (initialData.profile_image) {
+                const imageUrl = initialData.profile_image.startsWith('http')
+                    ? initialData.profile_image
+                    : `/storage/${initialData.profile_image}`;
+                setProfileImagePreview(imageUrl);
+            } else {
+                setProfileImagePreview(null);
+            }
         }
     }, [initialData]);
 
@@ -64,8 +79,56 @@ function FormProvider({ children, initialData }) {
         setFormData(prev => ({ ...prev, ...updates }));
     };
 
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                return;
+            }
+
+            // Validate file size (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
+                return;
+            }
+
+            setProfileImage(file);
+            setImageRemoved(false);
+
+            // Create preview
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setProfileImagePreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        } else {
+            setProfileImage(null);
+        }
+    };
+
+    const handleRemoveImage = () => {
+        setProfileImage(null);
+        setProfileImagePreview(null);
+        setImageRemoved(true);
+        const fileInput = document.getElementById('profile_image');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+    };
+
     return (
-        <FormContext.Provider value={{ formData, updateForm }}>
+        <FormContext.Provider value={{ 
+            formData, 
+            updateForm, 
+            profileImage, 
+            setProfileImage,
+            profileImagePreview,
+            setProfileImagePreview,
+            handleFileChange,
+            handleRemoveImage,
+            imageRemoved
+        }}>
             {children}
         </FormContext.Provider>
     );
@@ -73,10 +136,63 @@ function FormProvider({ children, initialData }) {
 
 // Personal Info Tab
 function PersonalInfoTab() {
-    const { formData, updateForm } = React.useContext(FormContext);
+    const { 
+        formData, 
+        updateForm, 
+        profileImagePreview,
+        handleFileChange,
+        handleRemoveImage
+    } = React.useContext(FormContext);
 
     return (
         <div className="space-y-6">
+            {/* Profile Picture Upload */}
+            <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                    Profile Picture
+                </label>
+                <div className="space-y-3">
+                    {profileImagePreview && (
+                        <div className="relative inline-block">
+                            <img
+                                src={profileImagePreview}
+                                alt="Profile preview"
+                                className="h-32 w-32 rounded-full object-cover border-4 border-gray-200"
+                            />
+                            <button
+                                type="button"
+                                onClick={handleRemoveImage}
+                                className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                title="Remove image"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    )}
+                    <div className="flex items-center space-x-3">
+                        <label
+                            htmlFor="profile_image"
+                            className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                        >
+                            <Upload className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm text-gray-700">
+                                {profileImagePreview ? 'Change Picture' : 'Upload Picture'}
+                            </span>
+                        </label>
+                        <input
+                            id="profile_image"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            className="hidden"
+                        />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                        Upload a profile picture (max 5MB). Supported formats: JPG, PNG, GIF
+                    </p>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-900 mb-1">First Name *</label>
@@ -414,7 +530,7 @@ function UserEditContent({
     navigate, showToast, queryClient, isSubmitting, setIsSubmitting, errors, setErrors,
     roles, branches, facilities, isSuperAdmin, userId
 }) {
-    const { formData } = React.useContext(FormContext);
+    const { formData, profileImage, imageRemoved } = React.useContext(FormContext);
     const [activeTab, setActiveTab] = useState('personal');
 
     const handleSubmit = async () => {
@@ -423,17 +539,73 @@ function UserEditContent({
 
         try {
             const name = `${formData.first_name} ${formData.last_name}`.trim() || formData.email;
-            const payload = { ...formData, name };
+            let response;
 
-            // Remove password if empty to avoid overwriting
-            if (!payload.password) {
-                delete payload.password;
+            // Use FormData if there's a profile image or image removal, otherwise use JSON
+            if (profileImage || imageRemoved) {
+                const formDataToSend = new FormData();
+                formDataToSend.append('name', name);
+                formDataToSend.append('first_name', formData.first_name);
+                formDataToSend.append('middle_names', formData.middle_names || '');
+                formDataToSend.append('last_name', formData.last_name);
+                formDataToSend.append('email', formData.email);
+                formDataToSend.append('phone_number', formData.phone_number || '');
+                formDataToSend.append('date_of_birth', formData.date_of_birth || '');
+                formDataToSend.append('marital_status', formData.marital_status || '');
+                formDataToSend.append('sex', formData.sex || '');
+                formDataToSend.append('credentials', formData.credentials || '');
+                formDataToSend.append('credential_details', formData.credential_details || '');
+                formDataToSend.append('date_employed', formData.date_employed || '');
+                formDataToSend.append('supervisor_name', formData.supervisor_name || '');
+                formDataToSend.append('provider_name', formData.provider_name || '');
+                formDataToSend.append('role', formData.role || '');
+                if (formData.assigned_branch_id) {
+                    formDataToSend.append('assigned_branch_id', formData.assigned_branch_id);
+                }
+                if (formData.facility_id) {
+                    formDataToSend.append('facility_id', formData.facility_id);
+                }
+                formDataToSend.append('is_active', formData.is_active ? '1' : '0');
+                formDataToSend.append('notes', formData.notes || '');
+
+                // Add password if provided
+                if (formData.password) {
+                    formDataToSend.append('password', formData.password);
+                }
+
+                // Handle profile image
+                if (profileImage) {
+                    formDataToSend.append('profile_image', profileImage);
+                } else if (imageRemoved) {
+                    formDataToSend.append('remove_profile_image', '1');
+                }
+
+                // Use POST with _method override for file uploads
+                formDataToSend.append('_method', 'PUT');
+                response = await api.post(`/users/${userId}`, formDataToSend, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
+            } else {
+                const payload = { ...formData, name };
+
+                // Remove password if empty to avoid overwriting
+                if (!payload.password) {
+                    delete payload.password;
+                }
+
+                response = await api.put(`/users/${userId}`, payload);
             }
-
-            await api.put(`/users/${userId}`, payload);
 
             queryClient.invalidateQueries(['users']);
             queryClient.invalidateQueries(['user', userId]);
+            
+            // If user has a facility_id, invalidate the facility-users query
+            if (formData.facility_id) {
+                queryClient.invalidateQueries(['facility-users', formData.facility_id]);
+            }
+            
             showToast('User updated successfully!', 'success');
             navigate(-1); // Go back
         } catch (error) {

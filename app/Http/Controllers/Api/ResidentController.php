@@ -156,6 +156,27 @@ class ResidentController extends BaseApiController
     {
         $validated = $request->validated();
 
+        // Generate full name from first_name, middle_names, and last_name
+        $nameParts = array_filter([
+            $validated['first_name'] ?? '',
+            $validated['middle_names'] ?? '',
+            $validated['last_name'] ?? ''
+        ]);
+        $validated['name'] = implode(' ', $nameParts);
+
+        // Handle allergies and medical_conditions - convert strings to arrays for storage
+        if (isset($validated['allergies']) && is_string($validated['allergies'])) {
+            $validated['allergies'] = !empty(trim($validated['allergies'])) 
+                ? [$validated['allergies']] 
+                : null;
+        }
+        
+        if (isset($validated['medical_conditions']) && is_string($validated['medical_conditions'])) {
+            $validated['medical_conditions'] = !empty(trim($validated['medical_conditions'])) 
+                ? [$validated['medical_conditions']] 
+                : null;
+        }
+
         // Handle profile image upload
         if ($request->hasFile('profile_image')) {
             $image = $request->file('profile_image');

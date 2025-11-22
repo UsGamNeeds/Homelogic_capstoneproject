@@ -491,7 +491,7 @@ export default function Appointments() {
                                                             </div>
                                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                                                 nextAppt.status === 'scheduled' ? 'bg-amber-100 text-amber-800' :
-                                                                nextAppt.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                                                                nextAppt.status === 'confirmed' ? 'bg-[var(--theme-primary-bg)] text-[var(--theme-primary)]' :
                                                                 'bg-gray-100 text-gray-800'
                                                             }`}>
                                                                 {nextAppt.status?.charAt(0).toUpperCase() + nextAppt.status?.slice(1)}
@@ -535,7 +535,7 @@ export default function Appointments() {
                     <SectionCard>
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg flex items-center justify-center">
+                                <div className="w-10 h-10 bg-gradient-to-br from-[var(--theme-primary)] to-[var(--theme-primary-dark)] rounded-lg flex items-center justify-center">
                                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
                                     </svg>
@@ -613,14 +613,14 @@ export default function Appointments() {
                 // Non-caregiver view - Show table or calendar
                 !residentFilter ? (
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <div className="w-20 h-20 bg-[var(--theme-primary-bg)] rounded-full flex items-center justify-center mx-auto mb-4">
                             <Calendar className="w-10 h-10 text-[var(--theme-primary)]" />
                         </div>
                         <h3 className="text-xl font-semibold text-gray-900 mb-2">Select a Resident to View Appointments</h3>
                         <p className="text-gray-600 mb-4">
                             Choose a resident from the filter above to view their appointment history
                         </p>
-                        <div className="inline-flex items-center space-x-2 text-sm text-green-800 bg-green-50 px-4 py-2 rounded-lg">
+                        <div className="inline-flex items-center space-x-2 text-sm text-[var(--theme-primary)] bg-[var(--theme-primary-bg)] px-4 py-2 rounded-lg">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
@@ -800,7 +800,7 @@ export default function Appointments() {
                                                     }}
                                                     className={`hover:bg-gray-50 transition-all duration-500 ${
                                                         isHighlighted 
-                                                            ? 'bg-green-100 border-l-4 border-[var(--theme-primary)] shadow-md' 
+                                                            ? 'bg-[var(--theme-primary-bg)] border-l-4 border-[var(--theme-primary)] shadow-md' 
                                                             : ''
                                                     }`}
                                                 >
@@ -829,8 +829,8 @@ export default function Appointments() {
                                                         <td className="px-6 py-4 whitespace-nowrap">
                                                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                                                                 appointment.status === 'scheduled' ? 'bg-amber-100 text-amber-800' :
-                                                                appointment.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                                                                appointment.status === 'completed' ? 'bg-emerald-100 text-emerald-800' :
+                                                                appointment.status === 'confirmed' ? 'bg-[var(--theme-primary-bg)] text-[var(--theme-primary)]' :
+                                                                appointment.status === 'completed' ? 'bg-[var(--theme-primary-bg)] text-[var(--theme-primary)]' :
                                                                 appointment.status === 'cancelled' ? 'bg-red-100 text-red-800' :
                                                                 'bg-gray-100 text-gray-800'
                                                             }`}>
@@ -912,7 +912,7 @@ export default function Appointments() {
                                                 notes: '',
                                             }]);
                                         }}
-                                        className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                                        className="text-sm text-[var(--theme-primary)] hover:text-[var(--theme-primary-hover)] font-medium"
                                     >
                                         + Add Document
                                     </button>
@@ -949,7 +949,7 @@ export default function Appointments() {
                                                                 setCompletionDocuments(updated);
                                                             }}
                                                             required
-                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                                                             placeholder="e.g., Medical Report"
                                                         />
                                                     </div>
@@ -965,7 +965,7 @@ export default function Appointments() {
                                                                 setCompletionDocuments(updated);
                                                             }}
                                                             required
-                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                                                         >
                                                             <option value="appointment">Appointment</option>
                                                             <option value="medical">Medical</option>
@@ -986,7 +986,7 @@ export default function Appointments() {
                                                             }}
                                                             accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx"
                                                             required
-                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                                                         />
                                                         <p className="text-xs text-gray-500 mt-1">Max size: 10MB</p>
                                                     </div>
@@ -1002,7 +1002,7 @@ export default function Appointments() {
                                                                 setCompletionDocuments(updated);
                                                             }}
                                                             rows={2}
-                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                                                             placeholder="Additional notes..."
                                                         />
                                                     </div>
@@ -1036,7 +1036,7 @@ export default function Appointments() {
                                     }
                                     handleStatusUpdate(completingAppointment, 'completed', completionNotes || null, validDocuments);
                                 }}
-                                className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-all"
+                                className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-primary-hover)] transition-all"
                             >
                                 Mark as Completed
                             </button>
@@ -1077,9 +1077,11 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                 </div>
                 <form onSubmit={handleSubmit}>
                     <div className="p-6 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-900 mb-2">Branch</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Branch
+                            </label>
                             <div className="relative">
                                 <select
                                     value={formData.branch_id}
@@ -1093,7 +1095,7 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                                     }}
                                     disabled={isPreFilled}
                                     className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${
-                                        isPreFilled ? 'bg-gray-100 cursor-not-allowed opacity-75' : 'bg-white'
+                                        isPreFilled ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''
                                     }`}
                                 >
                                     <option value="">All Branches</option>
@@ -1105,7 +1107,9 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                             {errors.branch_id && <p className="text-xs text-red-600 mt-1">{errors.branch_id}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-900 mb-2">Resident *</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Resident *
+                            </label>
                             <div className="relative">
                                 <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                 <select
@@ -1117,7 +1121,7 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                                     disabled={isPreFilled}
                                     className={`w-full pl-9 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${
                                         errors.resident_id ? 'border-red-300' : 'border-gray-300'
-                                    } ${isPreFilled ? 'bg-gray-100 cursor-not-allowed opacity-75' : 'bg-white'}`}
+                                    } ${isPreFilled ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
                                 >
                                     <option value="">Select resident</option>
                                     {(residents || []).map(r => (
@@ -1128,7 +1132,9 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                             {errors.resident_id && <p className="text-xs text-red-600 mt-1">{errors.resident_id}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-900 mb-2">Date *</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Date *
+                            </label>
                             <input
                                 type="date"
                                 value={formData.appointment_date}
@@ -1144,14 +1150,18 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                             {errors.appointment_date && <p className="text-xs text-red-600 mt-1">{errors.appointment_date}</p>}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-900 mb-2">Time</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Time
+                            </label>
                             <TimePicker
                                 value={formData.appointment_time}
                                 onChange={(value) => setFormData({ ...formData, appointment_time: value })}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-900 mb-2">Provider Name</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Provider Name
+                            </label>
                             <div className="relative">
                                 <Stethoscope className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                 <input
@@ -1164,7 +1174,9 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-900 mb-2">Location</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Location
+                            </label>
                             <div className="relative">
                                 <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                 <input
@@ -1178,7 +1190,9 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Notes / Description</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Notes / Description
+                        </label>
                         <textarea
                             rows={3}
                             value={formData.description}

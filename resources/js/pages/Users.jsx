@@ -82,6 +82,12 @@ export default function UsersPage() {
         toggleActiveMutation.mutate({ id: user.id, isActive: newStatus });
     };
 
+    const handleDelete = (user) => {
+        if (window.confirm(`Are you sure you want to delete ${user.name || user.email}? This action cannot be undone.`)) {
+            deleteMutation.mutate(user.id);
+        }
+    };
+
     const handleEditFromProfile = async (user) => {
         try {
             // Fetch full user details to ensure all fields are loaded
@@ -161,20 +167,27 @@ export default function UsersPage() {
                             )}
                         </div>
                     </div>
-                    <div className="flex space-x-2 ml-2">
-                        <button
-                            onClick={() => navigate(`/administration/users/${user.id}/edit`)}
-                            className="p-2.5 text-[var(--theme-primary)] hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-[var(--theme-primary)]"
-                            title="Edit User"
-                        >
-                            <Edit className="w-5 h-5" />
-                        </button>
+                    <div className="flex space-x-2 ml-2 flex-shrink-0">
                         <button
                             onClick={() => setViewingProfile(user)}
-                            className="p-2.5 text-[var(--theme-primary)] hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-[var(--theme-primary)]"
+                            className="p-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-hover)] rounded-lg transition-all duration-200 border-2 border-[var(--theme-primary)] shadow-md hover:shadow-lg transform hover:scale-105"
                             title="View Profile"
                         >
-                            <Eye className="w-5 h-5" />
+                            <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => navigate(`/administration/users/${user.id}/edit`)}
+                            className="p-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-hover)] rounded-lg transition-all duration-200 border-2 border-[var(--theme-primary)] shadow-md hover:shadow-lg transform hover:scale-105"
+                            title="Edit User"
+                        >
+                            <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => handleDelete(user)}
+                            className="p-2 bg-red-500 text-white hover:bg-red-600 rounded-lg transition-all duration-200 border-2 border-red-600 shadow-md hover:shadow-lg transform hover:scale-105"
+                            title="Delete User"
+                        >
+                            <Trash2 className="w-4 h-4" />
                         </button>
                     </div>
                 </div>

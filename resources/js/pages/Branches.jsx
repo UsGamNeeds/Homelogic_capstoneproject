@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { Building2, Plus, Search, Edit, Trash2, MapPin, Phone, Mail, Building } from 'lucide-react';
+import SectionCard from '../components/SectionCard';
 
 export default function Branches() {
   const queryClient = useQueryClient();
@@ -10,9 +11,26 @@ export default function Branches() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
 
+  // Fetch current user
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: async () => {
+      try {
+        const response = await api.get('/user');
+        return response.data;
+      } catch {
+        return null;
+      }
+    },
+  });
+
+  const isSuperAdmin = currentUser?.role === 'super_admin';
+  const isFacilityAdmin = currentUser?.role === 'administrator' || currentUser?.role === 'admin' || currentUser?.role === 'facility_admin';
+
   const { data: facilities } = useQuery({
     queryKey: ['facilities-options'],
     queryFn: async () => (await api.get('/facilities', { params: { per_page: 100 } })).data,
+    enabled: isSuperAdmin, // Only fetch facilities for super admin
   });
 
   const { data, isLoading } = useQuery({
@@ -27,6 +45,30 @@ export default function Branches() {
     mutationFn: async (id) => api.delete(`/branches/${id}`),
     onSuccess: () => queryClient.invalidateQueries(['branches']),
   });
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditing(null);
+  };
+
+  if (showForm) {
+    return (
+      <div>
+        <BranchForm
+          record={editing}
+          facilities={facilities?.data || []}
+          currentUser={currentUser}
+          isSuperAdmin={isSuperAdmin}
+          isFacilityAdmin={isFacilityAdmin}
+          onClose={handleCloseForm}
+          onSuccess={() => {
+            handleCloseForm();
+            queryClient.invalidateQueries(['branches']);
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -146,23 +188,21 @@ export default function Branches() {
           )}
         </div>
       )}
-
-      {showForm && (
-        <BranchForm
-          record={editing}
-          facilities={facilities?.data || []}
-          onClose={() => { setShowForm(false); setEditing(null); }}
-          onSuccess={() => { setShowForm(false); setEditing(null); queryClient.invalidateQueries(['branches']); }}
-        />
-      )}
     </div>
   );
 }
 
-function BranchForm({ record, facilities, onClose, onSuccess }) {
+function BranchForm({ record, facilities, currentUser, isSuperAdmin, isFacilityAdmin, onClose, onSuccess }) {
+  // For facility admins, automatically use their facility_id
+  const initialFacilityId = React.useMemo(() => {
+    if (record?.facility_id) return record.facility_id;
+    if (isFacilityAdmin && currentUser?.facility_id) return currentUser.facility_id;
+    return '';
+  }, [record, isFacilityAdmin, currentUser]);
+
   const [form, setForm] = useState({
     name: record?.name || '',
-    facility_id: record?.facility_id || '',
+    facility_id: initialFacilityId,
     address: record?.address || '',
     phone: record?.phone || '',
     email: record?.email || '',
@@ -170,6 +210,13 @@ function BranchForm({ record, facilities, onClose, onSuccess }) {
   });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+
+  // Update facility_id when initialFacilityId changes (when currentUser loads)
+  React.useEffect(() => {
+    if (initialFacilityId && !form.facility_id) {
+      setForm(prev => ({ ...prev, facility_id: initialFacilityId }));
+    }
+  }, [initialFacilityId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -190,68 +237,114 @@ function BranchForm({ record, facilities, onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center justify-center z-50 p-4 text-sm md:text-base">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
-        <div className="p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 md:mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">{record ? 'Edit Branch' : 'Add Branch'}</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">×</button>
+    <div>
+      <SectionCard>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-gray-900">
+            {record ? 'Edit Branch' : 'Add Branch'}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            ✕
+          </button>
+        </div>
+
+        {errors.general && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-800">{errors.general}</p>
           </div>
-          {errors.general && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg"><p className="text-sm text-red-800">{errors.general}</p></div>
-          )}
-          <form onSubmit={handleSubmit} className="space-y-4 text-gray-900">
+        )}
+
+          <form id="branch-form" onSubmit={handleSubmit} className="space-y-6">
+            {isSuperAdmin ? (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Facility *
+                </label>
+                <select
+                  value={form.facility_id}
+                  onChange={(e) => setForm({ ...form, facility_id: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                >
+                  <option value="">Select Facility</option>
+                  {facilities.map((f) => (
+                    <option key={f.id} value={f.id}>{f.name}</option>
+                  ))}
+                </select>
+                {errors.facility_id && <p className="text-xs text-red-600 mt-1">{errors.facility_id[0]}</p>}
+              </div>
+            ) : (
+              <input type="hidden" value={form.facility_id} name="facility_id" />
+            )}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1" style={{ color: '#111827' }}>Facility *</label>
-              <select
-                value={form.facility_id}
-                onChange={(e) => setForm({ ...form, facility_id: e.target.value })}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-              >
-                <option value="">Select Facility</option>
-                {facilities.map((f) => (
-                  <option key={f.id} value={f.id}>{f.name}</option>
-                ))}
-              </select>
-              {errors.facility_id && <p className="text-xs text-red-600 mt-1">{errors.facility_id[0]}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1" style={{ color: '#111827' }}>Name *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Name *
+              </label>
               <input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
               />
               {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name[0]}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1" style={{ color: '#111827' }}>Address</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Address
+              </label>
               <textarea
                 value={form.address}
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
                 rows={2}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1" style={{ color: '#111827' }}>Phone</label>
-                <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-gray-900 bg-white" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone
+                </label>
+                <input
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1" style={{ color: '#111827' }}>Email</label>
-                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-gray-900 bg-white" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                />
               </div>
-            </div>
-            <div className="flex items-center justify-end space-x-3 pt-4 border-t">
-              <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 bg-white">Cancel</button>
-              <button type="submit" disabled={submitting} className="w-full sm:w-auto px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] disabled:opacity-50">{submitting ? 'Saving...' : (record ? 'Update' : 'Create')}</button>
             </div>
           </form>
+
+        <div className="flex justify-end space-x-3 mt-6">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="branch-form"
+            disabled={submitting}
+            className="px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors disabled:opacity-50"
+          >
+            {submitting ? 'Saving...' : (record ? 'Update' : 'Create')}
+          </button>
         </div>
-      </div>
+      </SectionCard>
     </div>
   );
 }

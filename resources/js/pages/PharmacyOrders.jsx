@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
-import { ShoppingCart, Plus, Search, Edit, Trash2, Calendar, Package, CheckCircle, Clock, XCircle, Truck } from 'lucide-react';
+import { ShoppingCart, Plus, Search, Edit, Trash2, Calendar, Package, CheckCircle, Clock, XCircle, Truck, X } from 'lucide-react';
 import SectionCard from '../components/SectionCard';
 import Card from '../components/Card';
 
@@ -15,6 +15,16 @@ export default function PharmacyOrders() {
     const [editing, setEditing] = useState(null);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [showItems, setShowItems] = useState(false);
+    const [formData, setFormData] = useState({
+        branch_id: '',
+        supplier_id: '',
+        status: 'draft',
+        order_date: new Date().toISOString().split('T')[0],
+        expected_delivery_date: '',
+        notes: '',
+        internal_notes: '',
+        items: [],
+    });
 
     // Fetch branches
     const { data: branchesData } = useQuery({
@@ -57,6 +67,31 @@ export default function PharmacyOrders() {
         },
     });
 
+    const createMutation = useMutation({
+        mutationFn: async (data) => {
+            const response = await api.post('/pharmacy-orders', data);
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['pharmacy-orders']);
+            setShowForm(false);
+            setFormData({
+                branch_id: '',
+                supplier_id: '',
+                status: 'draft',
+                order_date: new Date().toISOString().split('T')[0],
+                expected_delivery_date: '',
+                notes: '',
+                internal_notes: '',
+                items: [],
+            });
+        },
+        onError: (error) => {
+            console.error('Failed to create order:', error);
+            alert(error.response?.data?.message || 'Failed to create order. Please try again.');
+        },
+    });
+
     const orders = data?.data || [];
     const branches = branchesData?.data || [];
     const suppliers = suppliersData?.data || [];
@@ -73,13 +108,62 @@ export default function PharmacyOrders() {
         setShowItems(true);
     };
 
+    const handleAddItem = () => {
+        setFormData({
+            ...formData,
+            items: [...formData.items, { drug_id: '', quantity_ordered: 1, unit_cost: 0, discount: 0, notes: '' }],
+        });
+    };
+
+    const handleRemoveItem = (index) => {
+        setFormData({
+            ...formData,
+            items: formData.items.filter((_, i) => i !== index),
+        });
+    };
+
+    const handleItemChange = (index, field, value) => {
+        const updatedItems = [...formData.items];
+        updatedItems[index] = { ...updatedItems[index], [field]: value };
+        setFormData({ ...formData, items: updatedItems });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        
+        if (!formData.branch_id || !formData.supplier_id) {
+            alert('Please select a branch and supplier.');
+            return;
+        }
+
+        if (formData.items.length === 0) {
+            alert('Please add at least one item to the order.');
+            return;
+        }
+
+        // Validate all items have required fields
+        for (let i = 0; i < formData.items.length; i++) {
+            const item = formData.items[i];
+            if (!item.drug_id || !item.quantity_ordered || item.quantity_ordered < 1) {
+                alert(`Please complete item ${i + 1}: select a drug and enter a quantity.`);
+                return;
+            }
+            if (!item.unit_cost || item.unit_cost < 0) {
+                alert(`Please enter a valid unit cost for item ${i + 1}.`);
+                return;
+            }
+        }
+
+        createMutation.mutate(formData);
+    };
+
     const getStatusBadge = (status) => {
         const styles = {
             draft: 'bg-gray-100 text-gray-800',
             pending: 'bg-yellow-100 text-yellow-800',
             confirmed: 'bg-blue-100 text-blue-800',
             partially_received: 'bg-purple-100 text-purple-800',
-            received: 'bg-green-100 text-green-800',
+            received: 'bg-[var(--theme-primary-bg)] text-[var(--theme-primary)]',
             cancelled: 'bg-red-100 text-red-800',
         };
         const labels = {
@@ -100,7 +184,7 @@ export default function PharmacyOrders() {
     const getStatusIcon = (status) => {
         switch (status) {
             case 'received':
-                return <CheckCircle className="w-5 h-5 text-green-500" />;
+                return <CheckCircle className="w-5 h-5 text-[var(--theme-primary)]" />;
             case 'cancelled':
                 return <XCircle className="w-5 h-5 text-red-500" />;
             case 'draft':
@@ -109,6 +193,248 @@ export default function PharmacyOrders() {
                 return <Clock className="w-5 h-5 text-yellow-500" />;
         }
     };
+
+    if (showForm) {
+        return (
+            <div>
+                <SectionCard>
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl font-semibold text-gray-900">
+                            {editing ? 'Edit Order' : 'Create Order'}
+                        </h2>
+                        <button
+                            onClick={() => {
+                                setShowForm(false);
+                                setEditing(null);
+                                setFormData({
+                                    branch_id: '',
+                                    supplier_id: '',
+                                    status: 'draft',
+                                    order_date: new Date().toISOString().split('T')[0],
+                                    expected_delivery_date: '',
+                                    notes: '',
+                                    internal_notes: '',
+                                    items: [],
+                                });
+                            }}
+                            className="text-gray-500 hover:text-gray-700"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Branch *
+                                </label>
+                                <select
+                                    required
+                                    value={formData.branch_id}
+                                    onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                >
+                                    <option value="">Select Branch</option>
+                                    {branches.map(branch => (
+                                        <option key={branch.id} value={branch.id}>{branch.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Supplier *
+                                </label>
+                                <select
+                                    required
+                                    value={formData.supplier_id}
+                                    onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                >
+                                    <option value="">Select Supplier</option>
+                                    {suppliers.map(supplier => (
+                                        <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Status *
+                                </label>
+                                <select
+                                    required
+                                    value={formData.status}
+                                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                >
+                                    <option value="draft">Draft</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="confirmed">Confirmed</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Order Date *
+                                </label>
+                                <input
+                                    type="date"
+                                    required
+                                    value={formData.order_date}
+                                    onChange={(e) => setFormData({ ...formData, order_date: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Expected Delivery Date
+                                </label>
+                                <input
+                                    type="date"
+                                    value={formData.expected_delivery_date}
+                                    onChange={(e) => setFormData({ ...formData, expected_delivery_date: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                />
+                            </div>
+
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Notes
+                                </label>
+                                <textarea
+                                    rows={3}
+                                    value={formData.notes}
+                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Order Items */}
+                        <div className="border-t pt-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-semibold text-gray-900">Order Items</h3>
+                                <button
+                                    type="button"
+                                    onClick={handleAddItem}
+                                    className="px-3 py-1.5 text-sm bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors flex items-center space-x-2"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    <span>Add Item</span>
+                                </button>
+                            </div>
+
+                            {formData.items.length === 0 ? (
+                                <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                                    <p className="text-gray-500">No items added. Click "Add Item" to start.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {formData.items.map((item, index) => (
+                                        <div key={index} className="border border-gray-200 rounded-lg p-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                                                <div className="md:col-span-2">
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        Drug *
+                                                    </label>
+                                                    <select
+                                                        required
+                                                        value={item.drug_id}
+                                                        onChange={(e) => handleItemChange(index, 'drug_id', e.target.value)}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                                    >
+                                                        <option value="">Select Drug</option>
+                                                        {drugs.map(drug => (
+                                                            <option key={drug.id} value={drug.id}>
+                                                                {drug.name} {drug.strength ? `(${drug.strength})` : ''}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        Quantity *
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        required
+                                                        min="1"
+                                                        value={item.quantity_ordered}
+                                                        onChange={(e) => handleItemChange(index, 'quantity_ordered', parseInt(e.target.value) || 1)}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        Unit Cost *
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        required
+                                                        step="0.01"
+                                                        min="0"
+                                                        value={item.unit_cost}
+                                                        onChange={(e) => handleItemChange(index, 'unit_cost', parseFloat(e.target.value) || 0)}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                                    />
+                                                </div>
+
+                                                <div className="flex items-end">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveItem(index)}
+                                                        className="w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    >
+                                                        <Trash2 className="w-4 h-4 mx-auto" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end space-x-3 border-t pt-6">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowForm(false);
+                                    setEditing(null);
+                                    setFormData({
+                                        branch_id: '',
+                                        supplier_id: '',
+                                        status: 'draft',
+                                        order_date: new Date().toISOString().split('T')[0],
+                                        expected_delivery_date: '',
+                                        notes: '',
+                                        internal_notes: '',
+                                        items: [],
+                                    });
+                                }}
+                                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors"
+                                disabled={createMutation.isPending}
+                            >
+                                {createMutation.isPending ? 'Creating...' : 'Create Order'}
+                            </button>
+                        </div>
+                    </form>
+                </SectionCard>
+            </div>
+        );
+    }
 
     if (showItems && selectedOrder) {
         return (

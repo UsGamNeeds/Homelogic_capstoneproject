@@ -105,10 +105,10 @@ export default function MyResidentsPage() {
         return (
             <article
                 key={resident.id}
-                className="group flex flex-col rounded-2xl border border-transparent bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:border-emerald-100"
+                className="group flex flex-col rounded-2xl border border-transparent bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:border-[var(--theme-primary-light)]"
             >
                 <div className="flex items-start gap-4">
-                    <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-full border border-emerald-100 bg-emerald-600 text-white">
+                    <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-full border border-[var(--theme-primary-light)] bg-[var(--theme-primary)] text-white">
                         {resident.profile_image_url || resident.profile_image ? (
                             <img
                                 src={resident.profile_image_url || `/storage/${resident.profile_image}`}
@@ -121,7 +121,7 @@ export default function MyResidentsPage() {
                             />
                         ) : null}
                         <div
-                            className={`absolute inset-0 ${resident.profile_image ? 'hidden' : 'flex'} items-center justify-center bg-emerald-600 text-lg font-semibold uppercase text-white`}
+                            className={`absolute inset-0 ${resident.profile_image ? 'hidden' : 'flex'} items-center justify-center bg-[var(--theme-primary)] text-lg font-semibold uppercase text-white`}
                         >
                             {getInitials(resident.first_name, resident.last_name) || <Users className="h-6 w-6" />}
                         </div>
@@ -132,7 +132,7 @@ export default function MyResidentsPage() {
                             <span
                                 className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                                     isActive
-                                        ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200'
+                                        ? 'bg-[var(--theme-primary-bg)] text-[var(--theme-primary)] ring-1 ring-inset ring-[var(--theme-primary-light)]'
                                         : 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200'
                                 }`}
                             >
@@ -145,28 +145,28 @@ export default function MyResidentsPage() {
 
                 <dl className="mt-6 grid grid-cols-1 gap-4 text-sm text-gray-600 sm:grid-cols-2">
                     <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50/60 px-3 py-2">
-                        <MapPin className="h-4 w-4 text-emerald-500" />
+                        <MapPin className="h-4 w-4 text-[var(--theme-primary)]" />
                         <div>
                             <dt className="text-xs uppercase tracking-wide text-gray-500">Branch</dt>
                             <dd className="font-medium text-gray-900">{branchName}</dd>
                         </div>
                     </div>
                     <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50/60 px-3 py-2">
-                        <Calendar className="h-4 w-4 text-emerald-500" />
+                        <Calendar className="h-4 w-4 text-[var(--theme-primary)]" />
                         <div>
                             <dt className="text-xs uppercase tracking-wide text-gray-500">Date of Birth</dt>
                             <dd className="font-medium text-gray-900">{formatDate(resident.date_of_birth)}</dd>
                         </div>
                     </div>
                     <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50/60 px-3 py-2">
-                        <Phone className="h-4 w-4 text-emerald-500" />
+                        <Phone className="h-4 w-4 text-[var(--theme-primary)]" />
                         <div>
                             <dt className="text-xs uppercase tracking-wide text-gray-500">Primary Phone</dt>
                             <dd className="font-medium text-gray-900">{resident.phone || resident.emergency_contact_phone || 'N/A'}</dd>
                         </div>
                     </div>
                     <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50/60 px-3 py-2">
-                        <Users className="h-4 w-4 text-emerald-500" />
+                        <Users className="h-4 w-4 text-[var(--theme-primary)]" />
                         <div>
                             <dt className="text-xs uppercase tracking-wide text-gray-500">Emergency Contact</dt>
                             <dd className="font-medium text-gray-900">
@@ -183,7 +183,7 @@ export default function MyResidentsPage() {
                     <button
                         type="button"
                         onClick={() => navigate(`/my-residents/${resident.id}`)}
-                        className="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                        className="inline-flex items-center rounded-lg bg-[var(--theme-primary)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--theme-primary)]"
                     >
                         View Details
                     </button>
@@ -194,7 +194,7 @@ export default function MyResidentsPage() {
 
     const renderResidentsEmptyState = (title, description, IconComponent = Users) => (
         <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center shadow-sm">
-            <IconComponent className="mx-auto h-12 w-12 text-emerald-300" />
+            <IconComponent className="mx-auto h-12 w-12 text-[var(--theme-primary-light)]" />
             <h3 className="mt-4 text-lg font-semibold text-gray-900">{title}</h3>
             <p className="mt-2 text-sm text-gray-500">{description}</p>
         </div>
@@ -202,19 +202,19 @@ export default function MyResidentsPage() {
 
     return (
         <div className="space-y-6">
-            <header className="rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-400 p-6 text-white shadow-lg">
+            <header className="rounded-2xl bg-gradient-to-r from-[var(--theme-primary)] via-[var(--theme-primary-light)] to-[var(--theme-primary-lighter)] p-6 text-white shadow-lg">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
-                        <p className="text-sm font-medium uppercase tracking-wide text-emerald-100">Caregiver Console</p>
+                        <p className="text-sm font-medium uppercase tracking-wide text-white/90">Caregiver Console</p>
                         <h1 className="text-2xl font-semibold md:text-3xl">My Residents</h1>
-                        <p className="mt-2 max-w-xl text-sm text-emerald-100">
+                        <p className="mt-2 max-w-xl text-sm text-white/90">
                             Review key details for the residents assigned to you. Quickly navigate to a resident&apos;s full
                             profile to view care plans, medication records, vitals, and more.
                         </p>
                     </div>
                     <div className="rounded-xl bg-white/10 px-4 py-3 text-sm text-white shadow-inner backdrop-blur">
                         <span className="text-2xl font-semibold">{residents.length}</span>{' '}
-                        <span className="text-emerald-100">total residents</span>
+                        <span className="text-white/90">total residents</span>
                     </div>
                 </div>
                 <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -224,7 +224,7 @@ export default function MyResidentsPage() {
                             className="rounded-2xl border border-white/10 bg-white/15 p-4 shadow-sm backdrop-blur transition hover:bg-white/20"
                         >
                             <div className="flex items-center justify-between">
-                                <dt className="text-sm font-medium text-emerald-50">{label}</dt>
+                                <dt className="text-sm font-medium text-white/90">{label}</dt>
                                 <span className="rounded-full bg-white/20 p-2">
                                     <Icon className="h-4 w-4 text-white" />
                                 </span>
@@ -235,7 +235,7 @@ export default function MyResidentsPage() {
                     {branchName ? (
                         <div className="rounded-2xl border border-white/10 bg-white/15 p-4 shadow-sm backdrop-blur transition hover:bg-white/20">
                             <div className="flex items-center justify-between">
-                                <dt className="text-sm font-medium text-emerald-50">Branch</dt>
+                                <dt className="text-sm font-medium text-white/90">Branch</dt>
                                 <span className="rounded-full bg-white/20 p-2">
                                     <MapPin className="h-4 w-4 text-white" />
                                 </span>
@@ -261,7 +261,7 @@ export default function MyResidentsPage() {
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="Search residents..."
-                            className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-11 pr-4 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                            className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-11 pr-4 text-sm shadow-sm focus:border-[var(--theme-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary-bg)]"
                         />
                     </div>
                 </div>
@@ -276,7 +276,7 @@ export default function MyResidentsPage() {
             {isLoading ? (
                 <div className="flex min-h-[200px] items-center justify-center rounded-2xl bg-white shadow-sm">
                     <div className="flex flex-col items-center gap-4">
-                        <div className="h-10 w-10 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-600" />
+                        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--theme-primary-bg)] border-t-[var(--theme-primary)]" />
                         <p className="text-sm text-gray-500">Loading residents...</p>
                     </div>
                 </div>

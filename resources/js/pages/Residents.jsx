@@ -109,10 +109,10 @@ export default function Residents() {
             >
                 <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3 flex-1">
-                        {resident.profile_image ? (
+                        {resident.profile_image_url ? (
                             <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-200 flex-shrink-0">
                                 <img
-                                    src={`/storage/${resident.profile_image}`}
+                                    src={resident.profile_image_url}
                                     alt={`${resident.first_name} ${resident.last_name}`}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
@@ -141,23 +141,23 @@ export default function Residents() {
                             </div>
                         </div>
                     </div>
-                    <div className="flex space-x-2">
+                    <div className="flex space-x-1.5 ml-2 flex-shrink-0">
                         <button
                             onClick={() => navigate(`/my-residents/${resident.id}`)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-1.5 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-hover)] rounded-lg transition-all duration-200 border-2 border-[var(--theme-primary)] shadow-md hover:shadow-lg transform hover:scale-105"
                             title="View Details"
                         >
-                            <Eye className="w-4 h-4" />
+                            <Eye className="w-3.5 h-3.5" />
                         </button>
                         <button
                             onClick={() => {
                                 setEditing(resident);
                                 setShowForm(true);
                             }}
-                            className="p-2 text-[var(--theme-primary)] hover:bg-green-50 rounded-lg transition-colors"
+                            className="p-1.5 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-hover)] rounded-lg transition-all duration-200 border-2 border-[var(--theme-primary)] shadow-md hover:shadow-lg transform hover:scale-105"
                             title="Edit"
                         >
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-3.5 h-3.5" />
                         </button>
                         <button
                             onClick={() => {
@@ -166,12 +166,14 @@ export default function Residents() {
                                                 toggleActiveMutation.mutate({ id: resident.id, isActive: isResidentActive(resident) });
                                 }
                             }}
-                            className={`p-2 rounded-lg transition-colors ${
-                                resident.is_active ? 'text-[var(--theme-secondary)] hover:bg-amber-50' : 'text-green-600 hover:bg-green-50'
+                            className={`p-1.5 rounded-lg transition-all duration-200 border-2 shadow-md hover:shadow-lg transform hover:scale-105 ${
+                                resident.is_active 
+                                    ? 'bg-amber-500 text-white hover:bg-amber-600 border-amber-600' 
+                                    : 'bg-green-500 text-white hover:bg-green-600 border-green-600'
                             }`}
                             title={resident.is_active ? 'Deactivate' : 'Activate'}
                         >
-                            {resident.is_active ? <XCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                            {resident.is_active ? <XCircle className="w-3.5 h-3.5" /> : <CheckCircle className="w-3.5 h-3.5" />}
                         </button>
                     </div>
                 </div>
@@ -604,11 +606,11 @@ function ResidentForm({ record, branches, onClose, onSuccess }) {
                 formDataToSend.append('branch_id', parseInt(formData.branch_id) || '');
                 formDataToSend.append('admission_date', normalizedAdmissionDate);
                 
-                // Include optional fields (convert empty strings to null for nullable fields)
+                // Include optional fields - always send allergies and medical_conditions as strings
                 const optionalFields = [
                     'middle_names', 'gender', 'phone', 'room', 'room_number',
                     'emergency_contact_name', 'emergency_contact_phone',
-                    'diagnosis', 'allergies', 'medical_conditions', 'physician_name', 'medicare_number', 'primary_care_doctor', 'status'
+                    'diagnosis', 'physician_name', 'medicare_number', 'primary_care_doctor', 'status'
                 ];
                 
                 optionalFields.forEach(key => {
@@ -617,6 +619,10 @@ function ResidentForm({ record, branches, onClose, onSuccess }) {
                         formDataToSend.append(key, value);
                     }
                 });
+                
+                // Always send allergies and medical_conditions as strings (even if empty)
+                formDataToSend.append('allergies', formData.allergies || '');
+                formDataToSend.append('medical_conditions', formData.medical_conditions || '');
                 
                 // Handle boolean field
                 if (formData.is_active !== null && formData.is_active !== undefined) {
@@ -637,7 +643,7 @@ function ResidentForm({ record, branches, onClose, onSuccess }) {
                 }
                 console.log('Resident saved successfully (with image):', response.data);
             } else {
-                // Clean up empty strings - convert to null for optional fields
+                // Clean up empty strings - convert to null for optional fields, but keep allergies/medical_conditions as strings
                 const payload = {};
                 Object.keys(formData).forEach(key => {
                     const value = formData[key];
@@ -645,6 +651,9 @@ function ResidentForm({ record, branches, onClose, onSuccess }) {
                         // Keep required fields as-is, set optional ones to null
                         if (['first_name', 'last_name', 'date_of_birth', 'branch_id', 'admission_date'].includes(key)) {
                             payload[key] = value;
+                        } else if (key === 'allergies' || key === 'medical_conditions') {
+                            // Always send allergies and medical_conditions as empty strings (not null)
+                            payload[key] = '';
                         } else {
                             payload[key] = null;
                         }
@@ -657,6 +666,10 @@ function ResidentForm({ record, branches, onClose, onSuccess }) {
                 payload.date_of_birth = normalizedDateOfBirth;
                 payload.admission_date = normalizedAdmissionDate;
                 payload.branch_id = parseInt(formData.branch_id);
+                
+                // Ensure allergies and medical_conditions are always strings
+                payload.allergies = formData.allergies || '';
+                payload.medical_conditions = formData.medical_conditions || '';
 
                 if (record) {
                     response = await api.put(`/residents/${record.id}`, payload);

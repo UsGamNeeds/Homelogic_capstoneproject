@@ -4,6 +4,7 @@ import api from '../services/api';
 import { Calendar, Plus, Edit, Trash2, Grid, List } from 'lucide-react';
 import { getLocalDateString } from '../utils/pacificTime';
 import CalendarComponent from '../components/ui/Calendar';
+import SectionCard from '../components/SectionCard';
 
 export default function LeaveRequests() {
   const queryClient = useQueryClient();
@@ -159,6 +160,29 @@ export default function LeaveRequests() {
     setSelectedCalendarDate(dateStr);
   };
 
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditing(null);
+  };
+
+  if (showForm) {
+    return (
+      <div>
+        <LeaveForm
+          record={editing}
+          currentUser={currentUser}
+          isCaregiver={isCaregiver}
+          onClose={handleCloseForm}
+          onSuccess={() => {
+            handleCloseForm();
+            queryClient.invalidateQueries(['leave-requests']);
+            queryClient.invalidateQueries(['leave-requests-calendar']);
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -272,21 +296,6 @@ export default function LeaveRequests() {
           )}
         </div>
       )}
-
-      {showForm && (
-        <LeaveForm
-          record={editing}
-          currentUser={currentUser}
-          isCaregiver={isCaregiver}
-          onClose={() => { setShowForm(false); setEditing(null); }}
-          onSuccess={() => {
-            setShowForm(false);
-            setEditing(null);
-            queryClient.invalidateQueries(['leave-requests']);
-            queryClient.invalidateQueries(['leave-requests-calendar']);
-          }}
-        />
-      )}
     </div>
   );
 }
@@ -371,13 +380,19 @@ function LeaveForm({ record, currentUser, isCaregiver, onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center justify-center z-50 p-4 text-sm md:text-base">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
-        <div className="p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 md:mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">{record ? 'Edit Leave Request' : 'New Leave Request'}</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">×</button>
-          </div>
+    <div>
+      <SectionCard>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-gray-900">
+            {record ? 'Edit Leave Request' : 'New Leave Request'}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            ✕
+          </button>
+        </div>
           {errors.general && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-800 font-medium">{errors.general}</p>
@@ -393,39 +408,83 @@ function LeaveForm({ record, currentUser, isCaregiver, onClose, onSuccess }) {
               </ul>
             </div>
           )}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <form id="leave-request-form" onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Start Date *</label>
-                <input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} required className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Start Date *
+                </label>
+                <input 
+                  type="date" 
+                  value={form.start_date} 
+                  onChange={(e) => setForm({ ...form, start_date: e.target.value })} 
+                  required 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">End Date *</label>
-                <input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} required className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  End Date *
+                </label>
+                <input 
+                  type="date" 
+                  value={form.end_date} 
+                  onChange={(e) => setForm({ ...form, end_date: e.target.value })} 
+                  required 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1">Reason *</label>
-              <textarea value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} rows={3} required className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent" placeholder="Please provide a reason for your leave request..." />
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Reason *
+              </label>
+              <textarea 
+                value={form.reason} 
+                onChange={(e) => setForm({ ...form, reason: e.target.value })} 
+                rows={3} 
+                required 
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                placeholder="Please provide a reason for your leave request..."
+              />
             </div>
             {/* Only admins can approve/reject leave requests */}
             {!isCaregiver && (
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Status</label>
-                <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Status
+                </label>
+                <select 
+                  value={form.status} 
+                  onChange={(e) => setForm({ ...form, status: e.target.value })} 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                >
                   <option value="pending">Pending</option>
                   <option value="approved">Approved</option>
                   <option value="declined">Declined</option>
                 </select>
               </div>
             )}
-            <div className="flex items-center justify-end space-x-3 pt-4 border-t">
-              <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
-              <button type="submit" disabled={submitting} className="w-full sm:w-auto px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] disabled:opacity-50">{submitting ? 'Saving...' : (record ? 'Update' : 'Create')}</button>
-            </div>
           </form>
+
+        <div className="flex justify-end space-x-3 mt-6">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="leave-request-form"
+            disabled={submitting}
+            className="px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors disabled:opacity-50"
+          >
+            {submitting ? 'Saving...' : (record ? 'Update' : 'Create')}
+          </button>
         </div>
-      </div>
+      </SectionCard>
     </div>
   );
 }
