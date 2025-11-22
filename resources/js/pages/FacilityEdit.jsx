@@ -756,15 +756,31 @@ function AccountsTab({ facilityId }) {
   const [editing, setEditing] = useState(null);
   const [viewingProfile, setViewingProfile] = useState(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['facility-users', facilityId, search],
     queryFn: async () => {
       const params = { facility_id: facilityId, per_page: 50 };
       if (search) params.search = search;
       const res = await api.get('/users', { params });
+      console.log('Facility Users API Response:', res.data);
+      console.log('Users count:', res.data?.data?.length || 0);
       return res.data;
     },
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    enabled: !!facilityId, // Only fetch if facilityId is provided
   });
+
+  // Refetch when component becomes visible again
+  useEffect(() => {
+    const handleFocus = () => {
+      if (facilityId) {
+        refetch();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [facilityId, refetch]);
 
   const { data: branchesData } = useQuery({
     queryKey: ['branches-options', facilityId],
@@ -810,7 +826,7 @@ function AccountsTab({ facilityId }) {
           <p className="text-sm text-gray-600">Manage users associated with this facility.</p>
         </div>
         <button
-          onClick={() => navigate('/administration/users/create')}
+          onClick={() => navigate(`/administration/users/create?facility_id=${facilityId}`)}
           className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-primary-hover)] flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -924,6 +940,7 @@ function PermissionsTab({ facilityId, facilityName }) {
 // User Form Modal Component (simplified version)
 function UserFormModal({ record, facilityId, branches, roles, onClose, onSuccess }) {
   const { showToast } = useToastContext();
+  const queryClient = useQueryClient();
 
   const formatDateForInput = (dateString) => {
     if (!dateString) return '';
@@ -959,6 +976,12 @@ function UserFormModal({ record, facilityId, branches, roles, onClose, onSuccess
       return api.post('/users', { ...data, name });
     },
     onSuccess: () => {
+      // Invalidate general users query
+      queryClient.invalidateQueries(['users']);
+      // Invalidate facility-users query for this facility
+      if (facilityId) {
+        queryClient.invalidateQueries(['facility-users', facilityId]);
+      }
       showToast('User created successfully', 'success');
       onSuccess();
     },
@@ -978,6 +1001,12 @@ function UserFormModal({ record, facilityId, branches, roles, onClose, onSuccess
       return api.put(`/users/${record.id}`, { ...data, name });
     },
     onSuccess: () => {
+      // Invalidate general users query
+      queryClient.invalidateQueries(['users']);
+      // Invalidate facility-users query for this facility
+      if (facilityId) {
+        queryClient.invalidateQueries(['facility-users', facilityId]);
+      }
       showToast('User updated successfully', 'success');
       onSuccess();
     },

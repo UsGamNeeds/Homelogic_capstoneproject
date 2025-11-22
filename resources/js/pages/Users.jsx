@@ -738,6 +738,12 @@ function UserForm({ record, branches, roles, facilities, isSuperAdmin, onClose, 
 
             // Invalidate queries to refresh the user list BEFORE showing alert
             await queryClient.invalidateQueries({ queryKey: ['users'] });
+            
+            // If user was created/updated with a facility_id, invalidate the facility-users query for that facility
+            const userFacilityId = response.data?.facility_id || record?.facility_id || formData?.facility_id;
+            if (userFacilityId) {
+                await queryClient.invalidateQueries({ queryKey: ['facility-users', userFacilityId] });
+            }
 
             // Wait a bit for the invalidation to trigger refetch
             await new Promise(resolve => setTimeout(resolve, 200));

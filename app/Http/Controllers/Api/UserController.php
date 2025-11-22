@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
@@ -18,8 +19,28 @@ class UserController extends BaseApiController
 
         // Apply facility scope for non-super admins
         $currentUser = Auth::user();
+        $requestedFacilityId = $request->get('facility_id');
+        
         if ($currentUser && $currentUser->role !== 'super_admin') {
+            // For non-super admins, ensure they can only see users from their facility
+            // If facility_id is requested, verify it matches their facility
+            if ($requestedFacilityId && $requestedFacilityId != $currentUser->facility_id) {
+                // Facility admin trying to access different facility - return empty result
+                return response()->json([
+                    'data' => [],
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'per_page' => $request->get('per_page', 20),
+                    'total' => 0
+                ]);
+            }
+            // Filter by user's facility
             $query->where('facility_id', $currentUser->facility_id);
+        } else {
+            // For super admins, filter by facility_id if provided
+            if ($requestedFacilityId) {
+                $query->where('facility_id', $requestedFacilityId);
+            }
         }
 
         // Filter by status
@@ -32,11 +53,6 @@ class UserController extends BaseApiController
         } elseif ($request->has('active_only') && $request->get('active_only') === 'true') {
             // Legacy support for older clients
             $query->where('is_active', true);
-        }
-
-        // Filter by facility
-        if ($request->has('facility_id')) {
-            $query->where('facility_id', $request->get('facility_id'));
         }
 
         // Filter by branch
@@ -126,6 +142,15 @@ class UserController extends BaseApiController
 
         // Hash password
         $validated['password'] = Hash::make($validated['password']);
+
+        // For non-super admins, ensure facility_id is set to their facility
+        $currentUser = Auth::user();
+        if ($currentUser && $currentUser->role !== 'super_admin') {
+            // Facility admins can only create users for their own facility
+            if (!isset($validated['facility_id']) || $validated['facility_id'] != $currentUser->facility_id) {
+                $validated['facility_id'] = $currentUser->facility_id;
+            }
+        }
 
         // Extract role_ids if provided
         $roleIds = $validated['role_ids'] ?? null;

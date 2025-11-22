@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import {
@@ -346,6 +346,7 @@ export default function UserCreateWrapper() {
     const queryClient = useQueryClient();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState({});
+    const [searchParams] = useSearchParams();
 
     // Fetch dependencies
     const { data: currentUser } = useQuery({
@@ -354,6 +355,10 @@ export default function UserCreateWrapper() {
     });
 
     const isSuperAdmin = currentUser?.role === 'super_admin';
+
+    // Get facility_id from URL params if provided (when navigating from facility edit)
+    const facilityIdFromUrl = searchParams.get('facility_id');
+    const initialFacilityId = facilityIdFromUrl || currentUser?.facility_id || '';
 
     const { data: rolesData } = useQuery({
         queryKey: ['roles-options'],
@@ -372,7 +377,7 @@ export default function UserCreateWrapper() {
     });
 
     return (
-        <FormProvider initialData={{ facility_id: currentUser?.facility_id || '' }}>
+        <FormProvider initialData={{ facility_id: initialFacilityId }}>
             <UserCreateContent
                 navigate={navigate}
                 showToast={showToast}
@@ -385,6 +390,7 @@ export default function UserCreateWrapper() {
                 branches={branchesData?.data || []}
                 facilities={facilitiesData?.data || []}
                 isSuperAdmin={isSuperAdmin}
+                facilityIdFromUrl={facilityIdFromUrl}
             />
         </FormProvider>
     );
@@ -392,7 +398,7 @@ export default function UserCreateWrapper() {
 
 function UserCreateContent({
     navigate, showToast, queryClient, isSubmitting, setIsSubmitting, errors, setErrors,
-    roles, branches, facilities, isSuperAdmin
+    roles, branches, facilities, isSuperAdmin, facilityIdFromUrl
 }) {
     const { formData } = React.useContext(FormContext);
     const [activeTab, setActiveTab] = useState('personal');
@@ -405,9 +411,18 @@ function UserCreateContent({
             const name = `${formData.first_name} ${formData.last_name}`.trim() || formData.email;
             const payload = { ...formData, name };
 
-            await api.post('/users', payload);
+            const response = await api.post('/users', payload);
+            const createdUser = response.data;
 
+            // Invalidate general users query
             queryClient.invalidateQueries(['users']);
+            
+            // If user was created with a facility_id, invalidate the facility-users query for that facility
+            if (createdUser?.facility_id || formData.facility_id) {
+                const facilityId = createdUser?.facility_id || formData.facility_id;
+                queryClient.invalidateQueries(['facility-users', facilityId]);
+            }
+            
             showToast('User created successfully!', 'success');
             navigate(-1); // Go back
         } catch (error) {
