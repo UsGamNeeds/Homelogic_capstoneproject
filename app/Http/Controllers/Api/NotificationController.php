@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use App\Models\User;
+use App\Models\Resident;
+use App\Models\Branch;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -36,23 +39,38 @@ class NotificationController extends BaseApiController
                 // Show notification if:
                 // 1. It has facility_id matching user's facility
                 // 2. It's about a user in the same facility (check user_id in metadata)
-                // 3. It doesn't have facility_id (legacy/global notifications)
                 
                 if (isset($metadata['facility_id'])) {
-                    return $metadata['facility_id'] == $user->facility_id;
+                    return (int)$metadata['facility_id'] === (int)$user->facility_id;
                 }
                 
                 // Check if notification is about a user in the same facility
                 if (isset($metadata['user_id'])) {
                     $notifiedUserId = $metadata['user_id'];
-                    $notifiedUser = \App\Models\User::find($notifiedUserId);
-                    if ($notifiedUser && $notifiedUser->facility_id == $user->facility_id) {
+                    $notifiedUser = User::find($notifiedUserId);
+                    if ($notifiedUser && $notifiedUser->facility_id && (int)$notifiedUser->facility_id === (int)$user->facility_id) {
                         return true;
                     }
                 }
                 
-                // Show global/legacy notifications (no facility_id)
-                return !isset($metadata['facility_id']);
+                // Check if notification is about a resident in the same facility
+                if (isset($metadata['resident_id'])) {
+                    $resident = Resident::with('branch')->find($metadata['resident_id']);
+                    if ($resident && $resident->branch && $resident->branch->facility_id && (int)$resident->branch->facility_id === (int)$user->facility_id) {
+                        return true;
+                    }
+                }
+                
+                // Check if notification is about a branch in the same facility
+                if (isset($metadata['branch_id'])) {
+                    $branch = Branch::find($metadata['branch_id']);
+                    if ($branch && $branch->facility_id && (int)$branch->facility_id === (int)$user->facility_id) {
+                        return true;
+                    }
+                }
+                
+                // Don't show notifications without facility context for non-super admins
+                return false;
             })->take($limit)->values();
         } else {
             $notifications = $notifications->take($limit);
@@ -67,18 +85,35 @@ class NotificationController extends BaseApiController
                 $metadata = $notification->metadata ?? [];
                 
                 if (isset($metadata['facility_id'])) {
-                    return $metadata['facility_id'] == $user->facility_id;
+                    return (int)$metadata['facility_id'] === (int)$user->facility_id;
                 }
                 
                 if (isset($metadata['user_id'])) {
                     $notifiedUserId = $metadata['user_id'];
                     $notifiedUser = \App\Models\User::find($notifiedUserId);
-                    if ($notifiedUser && $notifiedUser->facility_id == $user->facility_id) {
+                    if ($notifiedUser && $notifiedUser->facility_id && (int)$notifiedUser->facility_id === (int)$user->facility_id) {
                         return true;
                     }
                 }
                 
-                return !isset($metadata['facility_id']);
+                // Check if notification is about a resident in the same facility
+                if (isset($metadata['resident_id'])) {
+                    $resident = \App\Models\Resident::with('branch')->find($metadata['resident_id']);
+                    if ($resident && $resident->branch && $resident->branch->facility_id && (int)$resident->branch->facility_id === (int)$user->facility_id) {
+                        return true;
+                    }
+                }
+                
+                // Check if notification is about a branch in the same facility
+                if (isset($metadata['branch_id'])) {
+                    $branch = \App\Models\Branch::find($metadata['branch_id']);
+                    if ($branch && $branch->facility_id && (int)$branch->facility_id === (int)$user->facility_id) {
+                        return true;
+                    }
+                }
+                
+                // Don't count notifications without facility context for non-super admins
+                return false;
             });
         }
         
@@ -104,18 +139,35 @@ class NotificationController extends BaseApiController
                 $metadata = $notification->metadata ?? [];
                 
                 if (isset($metadata['facility_id'])) {
-                    return $metadata['facility_id'] == $user->facility_id;
+                    return (int)$metadata['facility_id'] === (int)$user->facility_id;
                 }
                 
                 if (isset($metadata['user_id'])) {
                     $notifiedUserId = $metadata['user_id'];
                     $notifiedUser = \App\Models\User::find($notifiedUserId);
-                    if ($notifiedUser && $notifiedUser->facility_id == $user->facility_id) {
+                    if ($notifiedUser && $notifiedUser->facility_id && (int)$notifiedUser->facility_id === (int)$user->facility_id) {
                         return true;
                     }
                 }
                 
-                return !isset($metadata['facility_id']);
+                // Check if notification is about a resident in the same facility
+                if (isset($metadata['resident_id'])) {
+                    $resident = \App\Models\Resident::with('branch')->find($metadata['resident_id']);
+                    if ($resident && $resident->branch && $resident->branch->facility_id && (int)$resident->branch->facility_id === (int)$user->facility_id) {
+                        return true;
+                    }
+                }
+                
+                // Check if notification is about a branch in the same facility
+                if (isset($metadata['branch_id'])) {
+                    $branch = \App\Models\Branch::find($metadata['branch_id']);
+                    if ($branch && $branch->facility_id && (int)$branch->facility_id === (int)$user->facility_id) {
+                        return true;
+                    }
+                }
+                
+                // Don't count notifications without facility context for non-super admins
+                return false;
             });
         }
 

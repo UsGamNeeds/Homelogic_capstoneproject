@@ -177,7 +177,7 @@ export default function Vitals() {
                                     <div className="grid grid-cols-2 gap-4">
                                         {vital.systolic && vital.diastolic && (
                                             <div className="flex items-center space-x-2 p-2 bg-amber-50 rounded-lg">
-                                                <Heart className="w-4 h-4 text-[var(--theme-secondary)] flex-shrink-0" />
+                                                <Heart className="w-5 h-5 text-red-600 flex-shrink-0" />
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-xs text-gray-500">Blood Pressure</p>
                                                     <p className="text-sm font-semibold text-gray-900">
@@ -188,7 +188,7 @@ export default function Vitals() {
                                         )}
                                         {vital.pulse && (
                                             <div className="flex items-center space-x-2 p-2 bg-green-50 rounded-lg">
-                                                <Activity className="w-4 h-4 text-[var(--theme-primary)] flex-shrink-0" />
+                                                <Activity className="w-5 h-5 text-green-600 flex-shrink-0" />
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-xs text-gray-500">Pulse</p>
                                                     <p className="text-sm font-semibold text-gray-900">
@@ -199,7 +199,7 @@ export default function Vitals() {
                                         )}
                                         {vital.temperature && (
                                             <div className="flex items-center space-x-2 p-2 bg-amber-50 rounded-lg">
-                                                <Thermometer className="w-4 h-4 text-[var(--theme-secondary)] flex-shrink-0" />
+                                                <Thermometer className="w-5 h-5 text-red-600 flex-shrink-0" />
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-xs text-gray-500">Temperature</p>
                                                     <p className="text-sm font-semibold text-gray-900">
@@ -210,7 +210,7 @@ export default function Vitals() {
                                         )}
                                         {vital.oxygen_saturation && (
                                             <div className="flex items-center space-x-2 p-2 bg-green-50 rounded-lg">
-                                                <Droplet className="w-4 h-4 text-[var(--theme-primary)] flex-shrink-0" />
+                                                <Droplet className="w-5 h-5 text-green-600 flex-shrink-0" />
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-xs text-gray-500">O2 Sat</p>
                                                     <p className="text-sm font-semibold text-gray-900">

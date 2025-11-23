@@ -246,6 +246,41 @@ export default function ViewVitals() {
     const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
     const endDate = new Date(year, month, 0).toISOString().split('T')[0]; // Last day of selected month
 
+    // Mutation to update vital status
+    const updateStatusMutation = useMutation({
+        mutationFn: async ({ id, status }) => {
+            const response = await api.put(`/vitals/${id}`, { status });
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['vitals-view']);
+            setOpenMenuId(null);
+        },
+        onError: (error) => {
+            console.error('Failed to update vital status:', error);
+            alert('Failed to update vital status. Please try again.');
+        },
+    });
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (openMenuId && menuRefs.current[openMenuId] && !menuRefs.current[openMenuId].contains(event.target)) {
+                setOpenMenuId(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [openMenuId]);
+
+    const handleApprove = (vitalId) => {
+        if (window.confirm('Are you sure you want to approve this vital sign?')) {
+            updateStatusMutation.mutate({ id: vitalId, status: 'approved' });
+        }
+    };
+
     // Fetch vitals data
     const { data: vitalsData, isLoading, error } = useQuery({
         queryKey: ['vitals-view', branchId, residentId, year, month, currentPage, perPage],
@@ -736,10 +771,31 @@ export default function ViewVitals() {
                                                         {vital.status || 'approved'}
                                                     </span>
                                                 </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                            <button className="p-1 hover:bg-gray-100 rounded text-gray-600 hover:text-gray-900">
-                                                                <MoreVertical className="w-4 h-4" />
-                                                            </button>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 relative">
+                                                            <div className="relative" ref={(el) => (menuRefs.current[vital.id] = el)}>
+                                                                <button
+                                                                    onClick={() => setOpenMenuId(openMenuId === vital.id ? null : vital.id)}
+                                                                    className="p-1 hover:bg-gray-100 rounded text-gray-600 hover:text-gray-900"
+                                                                >
+                                                                    <MoreVertical className="w-4 h-4" />
+                                                                </button>
+                                                                {openMenuId === vital.id && (
+                                                                    <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                                                                        <div className="py-1">
+                                                                            {vital.status === 'pending_review' && (
+                                                                                <button
+                                                                                    onClick={() => handleApprove(vital.id)}
+                                                                                    disabled={updateStatusMutation.isPending}
+                                                                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                                                                >
+                                                                                    <CheckCircle className="w-4 h-4 text-green-600" />
+                                                                                    Approve
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 );
