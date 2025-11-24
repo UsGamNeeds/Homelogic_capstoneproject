@@ -26,3 +26,4 @@ class AppointmentResource extends JsonResource
 
 
 
+
