@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
+import { slideInRight, slideInRight as slideOutRight, fadeOut, shouldAnimate } from '../../utils/animationPresets';
 
 const TOAST_TYPES = {
     success: {
@@ -36,20 +37,56 @@ export default function Toast({ toast, onClose }) {
     const { id, type = 'info', title, message, duration = 5000 } = toast;
     const config = TOAST_TYPES[type] || TOAST_TYPES.info;
     const Icon = config.icon;
+    const toastRef = useRef(null);
+    const animationRef = useRef(null);
 
+    // Animate entrance
+    useEffect(() => {
+        if (toastRef.current && shouldAnimate()) {
+            // Set initial state
+            toastRef.current.style.opacity = '0';
+            toastRef.current.style.transform = 'translateX(100%)';
+
+            // Animate in
+            animationRef.current = slideInRight(toastRef.current, {
+                duration: 400,
+                easing: 'easeOutExpo',
+            });
+        }
+    }, []);
+
+    // Handle auto-dismiss with exit animation
     useEffect(() => {
         if (duration > 0) {
             const timer = setTimeout(() => {
-                onClose(id);
+                handleClose();
             }, duration);
 
             return () => clearTimeout(timer);
         }
-    }, [id, duration, onClose]);
+    }, [id, duration]);
+
+    const handleClose = () => {
+        if (toastRef.current && shouldAnimate()) {
+            // Animate out
+            const exitAnim = fadeOut(toastRef.current, {
+                duration: 250,
+                easing: 'easeInQuad',
+            });
+
+            // Wait for animation to complete before removing
+            setTimeout(() => {
+                onClose(id);
+            }, 250);
+        } else {
+            onClose(id);
+        }
+    };
 
     return (
         <div
-            className={`${config.bgColor} ${config.borderColor} border rounded-lg shadow-lg p-4 min-w-[300px] max-w-md mb-3 animate-slide-in-right`}
+            ref={toastRef}
+            className={`${config.bgColor} ${config.borderColor} border rounded-lg shadow-lg p-4 min-w-[300px] max-w-md mb-3`}
             role="alert"
             aria-live="polite"
         >
@@ -68,7 +105,7 @@ export default function Toast({ toast, onClose }) {
                     )}
                 </div>
                 <button
-                    onClick={() => onClose(id)}
+                    onClick={handleClose}
                     className={`${config.textColor} hover:opacity-70 transition-opacity flex-shrink-0`}
                     aria-label="Close notification"
                 >

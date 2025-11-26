@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Building2, MapPin, Phone, Mail, Globe, Key, Users, CheckCircle, XCircle } from 'lucide-react';
+import { useAnimateOnMount } from '../../hooks/useAnimateOnMount';
+import anime from 'animejs';
+import Tooltip from '../ui/Tooltip';
 
 /**
  * FacilityCard Component
@@ -23,8 +26,42 @@ export default function FacilityCard({ facility, onEdit, onDelete, onView, showA
         users_count,
     } = facility;
 
+    const cardRef = useAnimateOnMount('slideUp', { delay: 0, duration: 400 });
+    const cardElementRef = useRef(null);
+
+    // Enhanced hover animation
+    const handleMouseEnter = () => {
+        if (cardElementRef.current) {
+            anime({
+                targets: cardElementRef.current,
+                scale: 1.02,
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                duration: 300,
+                easing: 'easeOutQuad',
+            });
+        }
+    };
+
+    const handleMouseLeave = () => {
+        if (cardElementRef.current) {
+            anime({
+                targets: cardElementRef.current,
+                scale: 1,
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                duration: 300,
+                easing: 'easeOutQuad',
+            });
+        }
+    };
+
     return (
-        <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 overflow-hidden group">
+        <div 
+            ref={cardRef}
+            className="bg-white rounded-lg shadow-md overflow-hidden group"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+        >
+            <div ref={cardElementRef} className="h-full">
             {/* Header with Logo and Status */}
             <div
                 className="h-2"
@@ -63,9 +100,13 @@ export default function FacilityCard({ facility, onEdit, onDelete, onView, showA
                                     {name}
                                 </h3>
                                 {is_active ? (
-                                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" title="Active" />
+                                    <Tooltip content="Facility is active" position="top">
+                                        <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 cursor-help" />
+                                    </Tooltip>
                                 ) : (
-                                    <XCircle className="w-5 h-5 text-red-500 flex-shrink-0" title="Inactive" />
+                                    <Tooltip content="Facility is inactive" position="top">
+                                        <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 cursor-help" />
+                                    </Tooltip>
                                 )}
                             </div>
                             {location && (
@@ -209,6 +250,7 @@ export default function FacilityCard({ facility, onEdit, onDelete, onView, showA
                         </div>
                     )}
                 </div>
+            </div>
             </div>
         </div>
     );

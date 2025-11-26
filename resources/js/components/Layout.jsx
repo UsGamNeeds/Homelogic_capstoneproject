@@ -38,6 +38,7 @@ import { useToastContext } from '../contexts/ToastContext';
 import { useTheme } from '../contexts/ThemeContext';
 import CommandPalette from './ui/CommandPalette';
 import PageTransition from './PageTransition';
+import DropdownMenu, { DropdownMenuItem, DropdownMenuSeparator } from './ui/radix/DropdownMenu';
 import { filterNavigationByModuleAccess } from '../utils/moduleAccess';
 import { filterNavigationByPermissionAccess } from '../utils/permissionAccess';
 import {
@@ -170,9 +171,7 @@ const caregiverNavigation = [
 
 export default function Layout() {
     const location = useLocation();
-    const [userMenuOpen, setUserMenuOpen] = useState(false);
-    const userMenuRef = useRef(null);
-    const userButtonRef = useRef(null);
+    // Removed userMenuOpen state - now handled by Radix DropdownMenu
     const [expandedMenus, setExpandedMenus] = useState({});
     const [currentUser, setCurrentUser] = useState(null);
     const [isLoadingUser, setIsLoadingUser] = useState(true);
@@ -206,31 +205,7 @@ export default function Layout() {
         setIsLoadingUser(isLoadingUserData);
     }, [currentUserData, isLoadingUserData]);
 
-    // Close user menu on outside click (robust against z-index/stacking contexts)
-    useEffect(() => {
-        if (!userMenuOpen) {
-            return;
-        }
-        const handleClickOutside = (event) => {
-            const menuEl = userMenuRef.current;
-            const buttonEl = userButtonRef.current;
-            if (!menuEl || !buttonEl) {
-                return;
-            }
-            if (
-                !menuEl.contains(event.target) &&
-                !buttonEl.contains(event.target)
-            ) {
-                setUserMenuOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        document.addEventListener('touchstart', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-            document.removeEventListener('touchstart', handleClickOutside);
-        };
-    }, [userMenuOpen]);
+    // User menu is now handled by Radix DropdownMenu - no need for manual click outside handling
 
     useEffect(() => {
         if (currentUser?.app_current_time) {
@@ -697,56 +672,46 @@ export default function Layout() {
                                 </Link>
                             </>
                         )}
-                        <div className="relative">
-                            <button
-                                ref={userButtonRef}
-                                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                                className="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center overflow-hidden"
+                        <DropdownMenu
+                            trigger={
+                                <button className="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center overflow-hidden focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]">
+                                    {currentUser?.profile_image_url ? (
+                                        <img
+                                            src={currentUser.profile_image_url}
+                                            alt={currentUser.name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <User className="w-6 h-6 text-gray-600" />
+                                    )}
+                                </button>
+                            }
+                            align="end"
+                        >
+                            <DropdownMenuItem asChild>
+                                <Link to="/profile" className="flex items-center">
+                                    <User className="w-4 h-4 mr-2" />
+                                    Profile
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onClick={async () => {
+                                    try {
+                                        await api.post('/logout');
+                                    } catch (err) {
+                                        console.error('Logout error:', err);
+                                    } finally {
+                                        localStorage.removeItem('auth_token');
+                                        localStorage.removeItem('user_name');
+                                        window.location.href = '/app/login';
+                                    }
+                                }}
                             >
-                                {currentUser?.profile_image_url ? (
-                                    <img
-                                        src={currentUser.profile_image_url}
-                                        alt={currentUser.name}
-                                        className="w-full h-full object-cover"
-                                    />
-                                ) : (
-                                    <User className="w-6 h-6 text-gray-600" />
-                                )}
-                            </button>
-                            {userMenuOpen && (
-                                <>
-                                    <div 
-                                        className="fixed inset-0 z-40" 
-                                        onClick={() => setUserMenuOpen(false)}
-                                    ></div>
-                                    <div ref={userMenuRef} className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                                        <Link
-                                            to="/profile"
-                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                        >
-                                            Profile
-                                        </Link>
-                                        <button
-                                            onClick={async () => {
-                                                try {
-                                                    await api.post('/logout');
-                                                } catch (err) {
-                                                    console.error('Logout error:', err);
-                                                } finally {
-                                                    localStorage.removeItem('auth_token');
-                                                    localStorage.removeItem('user_name');
-                                                    window.location.href = '/app/login';
-                                                }
-                                            }}
-                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                                        >
-                                            <LogOut className="w-4 h-4" />
-                                            <span>Sign out</span>
-                                        </button>
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                                <LogOut className="w-4 h-4 mr-2" />
+                                Sign out
+                            </DropdownMenuItem>
+                        </DropdownMenu>
                     </div>
                 </header>
 

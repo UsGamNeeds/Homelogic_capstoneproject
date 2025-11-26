@@ -4,6 +4,7 @@ import api from '../services/api';
 import { Truck, Plus, Search, Filter, Edit, Trash2, Calendar, Package, User } from 'lucide-react';
 import SectionCard from '../components/SectionCard';
 import Card from '../components/Card';
+import Select from '../components/ui/radix/Select';
 
 export default function MedicationDeliveries() {
     const queryClient = useQueryClient();
@@ -909,18 +910,17 @@ function BulkMedicationDeliveryForm({ branches, residents, medications, isCaregi
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-900 mb-1">Branch *</label>
-                                    <select
-                                        value={commonFields.branch_id}
-                                        onChange={(e) => setCommonFields({ ...commonFields, branch_id: e.target.value })}
-                                        required
+                                    <Select
+                                        value={commonFields.branch_id?.toString() || ''}
+                                        onValueChange={(value) => setCommonFields({ ...commonFields, branch_id: value })}
+                                        placeholder="Select Branch"
+                                        options={branches?.data?.map(branch => ({
+                                            value: branch.id.toString(),
+                                            label: branch.name,
+                                        })) || []}
                                         disabled={isCaregiver}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-gray-900 bg-white"
-                                    >
-                                        <option value="">Select Branch</option>
-                                        {branches?.data?.map(branch => (
-                                            <option key={branch.id} value={branch.id}>{branch.name}</option>
-                                        ))}
-                                    </select>
+                                        className="w-full"
+                                    />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-900 mb-1">Pharmacy Name *</label>

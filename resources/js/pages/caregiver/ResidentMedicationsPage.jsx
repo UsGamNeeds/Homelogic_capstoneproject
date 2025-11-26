@@ -26,6 +26,7 @@ import {
     ArrowLeft,
     User,
 } from 'lucide-react';
+import Select from '../../components/ui/radix/Select';
 
 const INSTRUCTION_DISPLAY_MAP = {
     'q.i.d': 'Four times a day',
@@ -802,11 +803,16 @@ function QuickAdminister({ medication, onSuccess }) {
     return (
         <div className="mt-3">
             <div className="flex items-center gap-2">
-                <select value={status} onChange={(e)=>setStatus(e.target.value)} className="px-2 py-1 text-xs border rounded">
-                    <option value="completed">Completed</option>
-                    <option value="missed">Missed</option>
-                    <option value="refused">Refused</option>
-                </select>
+                <Select
+                    value={status}
+                    onValueChange={setStatus}
+                    options={[
+                        { value: 'completed', label: 'Completed' },
+                        { value: 'missed', label: 'Missed' },
+                        { value: 'refused', label: 'Refused' },
+                    ]}
+                    className="w-32"
+                />
                 <button 
                     onClick={() => {
                         if (!isMedicationPeriodActive) {

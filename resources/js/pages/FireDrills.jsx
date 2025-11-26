@@ -5,6 +5,7 @@ import { Flame, Plus, Search, Filter, Edit, Trash2, Calendar, Clock, CheckCircle
 import SectionCard from '../components/SectionCard';
 import Card from '../components/Card';
 import CalendarView from '../components/CalendarView';
+import Select from '../components/ui/radix/Select';
 
 export default function FireDrills() {
     const queryClient = useQueryClient();
@@ -229,28 +230,33 @@ export default function FireDrills() {
                     </div>
 
                     {!isCaregiver && (
-                        <select
+                        <Select
                             value={branchFilter}
-                            onChange={(e) => setBranchFilter(e.target.value)}
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                        >
-                            <option value="">All Branches</option>
-                            {branches.map(branch => (
-                                <option key={branch.id} value={branch.id}>{branch.name}</option>
-                            ))}
-                        </select>
+                            onValueChange={setBranchFilter}
+                            placeholder="All Branches"
+                            options={[
+                                { value: '', label: 'All Branches' },
+                                ...branches.map(branch => ({
+                                    value: branch.id.toString(),
+                                    label: branch.name,
+                                }))
+                            ]}
+                            className="w-48"
+                        />
                     )}
 
-                    <select
+                    <Select
                         value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                    >
-                        <option value="">All Status</option>
-                        <option value="scheduled">Scheduled</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
+                        onValueChange={setStatusFilter}
+                        placeholder="All Status"
+                        options={[
+                            { value: '', label: 'All Status' },
+                            { value: 'scheduled', label: 'Scheduled' },
+                            { value: 'completed', label: 'Completed' },
+                            { value: 'cancelled', label: 'Cancelled' },
+                        ]}
+                        className="w-48"
+                    />
 
                     <input
                         type="date"
@@ -535,33 +541,33 @@ function FireDrillForm({ record, branches, isCaregiver, caregiverBranchId, onClo
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Branch *</label>
-                                <select
-                                    value={formData.branch_id}
-                                    onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
-                                    required
+                                <Select
+                                    value={formData.branch_id?.toString() || ''}
+                                    onValueChange={(value) => setFormData({ ...formData, branch_id: value })}
+                                    placeholder="Select Branch"
+                                    options={branches.map(branch => ({
+                                        value: branch.id.toString(),
+                                        label: branch.name,
+                                    }))}
                                     disabled={isCaregiver}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                                >
-                                    <option value="">Select Branch</option>
-                                    {branches.map(branch => (
-                                        <option key={branch.id} value={branch.id}>{branch.name}</option>
-                                    ))}
-                                </select>
+                                    className="w-full"
+                                />
                                 {errors.branch_id && <p className="text-xs text-red-600 mt-1">{errors.branch_id[0]}</p>}
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Status *</label>
-                                <select
-                                    value={formData.status}
-                                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                                    required
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                                >
-                                    <option value="scheduled">Scheduled</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="cancelled">Cancelled</option>
-                                </select>
+                                <Select
+                                    value={formData.status || 'scheduled'}
+                                    onValueChange={(value) => setFormData({ ...formData, status: value })}
+                                    placeholder="Select Status"
+                                    options={[
+                                        { value: 'scheduled', label: 'Scheduled' },
+                                        { value: 'completed', label: 'Completed' },
+                                        { value: 'cancelled', label: 'Cancelled' },
+                                    ]}
+                                    className="w-full"
+                                />
                                 {errors.status && <p className="text-xs text-red-600 mt-1">{errors.status[0]}</p>}
                             </div>
 

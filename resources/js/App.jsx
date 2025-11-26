@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Residents from './pages/Residents';
@@ -66,6 +67,14 @@ import SleepCharts from './pages/reports/SleepCharts';
 import StaffCharts from './pages/reports/StaffCharts';
 
 function App() {
+    // Make toast available globally for backward compatibility
+    useEffect(() => {
+        window.toast = toast;
+        return () => {
+            delete window.toast;
+        };
+    }, []);
+
     return (
         <Routes>
             <Route path="/login" element={<Login />} />

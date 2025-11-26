@@ -1,5 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, MoreVertical, CheckSquare, Square } from 'lucide-react';
+import { useStaggerAnimation } from '../../hooks/useStaggerAnimation';
+import { fadeIn, shouldAnimate } from '../../utils/animationPresets';
+import Tooltip from './Tooltip';
 
 export default function DataTable({
     data = [],
@@ -19,6 +22,8 @@ export default function DataTable({
     const [columnVisibility, setColumnVisibility] = useState(
         columns.reduce((acc, col) => ({ ...acc, [col.key]: col.visible !== false }), {})
     );
+    const tbodyRef = useRef(null);
+    const prevPageRef = useRef(currentPage);
 
     const visibleColumns = useMemo(() => {
         return columns.filter(col => columnVisibility[col.key] !== false);
@@ -88,6 +93,31 @@ export default function DataTable({
         }
     };
 
+    // Animate rows on page change or data change
+    useEffect(() => {
+        if (tbodyRef.current && shouldAnimate() && paginatedData.length > 0) {
+            const rows = tbodyRef.current.querySelectorAll('tr');
+            if (rows.length > 0) {
+                // Reset and animate rows
+                const rowArray = Array.from(rows);
+                rowArray.forEach((row) => {
+                    row.style.opacity = '0';
+                    row.style.transform = 'translateY(10px)';
+                });
+
+                // Stagger animation for rows
+                rowArray.forEach((row, index) => {
+                    fadeIn(row, {
+                        duration: 300,
+                        delay: index * 50,
+                        easing: 'easeOutQuad',
+                    });
+                });
+            }
+        }
+        prevPageRef.current = currentPage;
+    }, [currentPage, paginatedData.length]);
+
     return (
         <div className={`bg-white rounded-lg shadow border border-gray-200 overflow-hidden ${className}`}>
             {/* Bulk Actions */}
@@ -138,21 +168,36 @@ export default function DataTable({
                                     }`}
                                     onClick={() => column.sortable !== false && handleSort(column.key)}
                                 >
-                                    <div className="flex items-center space-x-2">
-                                        <span>{column.label}</span>
-                                        {sortable && column.sortable !== false && sortColumn === column.key && (
-                                            sortDirection === 'asc' ? (
-                                                <ChevronUp className="w-4 h-4" />
-                                            ) : (
-                                                <ChevronDown className="w-4 h-4" />
-                                            )
-                                        )}
-                                    </div>
+                                    {column.tooltip ? (
+                                        <Tooltip content={column.tooltip} position="top">
+                                            <div className="flex items-center space-x-2">
+                                                <span>{column.label}</span>
+                                                {sortable && column.sortable !== false && sortColumn === column.key && (
+                                                    sortDirection === 'asc' ? (
+                                                        <ChevronUp className="w-4 h-4" />
+                                                    ) : (
+                                                        <ChevronDown className="w-4 h-4" />
+                                                    )
+                                                )}
+                                            </div>
+                                        </Tooltip>
+                                    ) : (
+                                        <div className="flex items-center space-x-2">
+                                            <span>{column.label}</span>
+                                            {sortable && column.sortable !== false && sortColumn === column.key && (
+                                                sortDirection === 'asc' ? (
+                                                    <ChevronUp className="w-4 h-4" />
+                                                ) : (
+                                                    <ChevronDown className="w-4 h-4" />
+                                                )
+                                            )}
+                                        </div>
+                                    )}
                                 </th>
                             ))}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody ref={tbodyRef} className="divide-y divide-gray-200">
                         {paginatedData.length === 0 ? (
                             <tr>
                                 <td
@@ -170,10 +215,13 @@ export default function DataTable({
                                 return (
                                     <tr
                                         key={rowId}
-                                        className={`hover:bg-gray-50 transition-colors ${
+                                        className={`hover:bg-gray-50 transition-all duration-200 ${
                                             isSelected ? 'bg-green-50' : ''
                                         } ${onRowClick ? 'cursor-pointer' : ''}`}
                                         onClick={() => onRowClick && onRowClick(row)}
+                                        style={{ 
+                                            transition: 'background-color 0.2s, transform 0.2s',
+                                        }}
                                     >
                                         {bulkActions.length > 0 && (
                                             <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>

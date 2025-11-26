@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, Eye, EyeOff, ShieldCheck, ClipboardList, Building2 } from 'lucide-react';
 import api from '../services/api';
+import { useAnimateOnMount } from '../hooks/useAnimateOnMount';
+import { slideInLeft, slideInRight, fadeIn, shake, shouldAnimate } from '../utils/animationPresets';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -11,6 +13,9 @@ export default function Login() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const brandPanelRef = useAnimateOnMount('slideUp', { delay: 0, duration: 600 });
+    const formRef = useAnimateOnMount('slideUp', { delay: 200, duration: 600 });
+    const errorRef = useRef(null);
 
     // Redirect if already logged in
     React.useEffect(() => {
@@ -19,6 +24,13 @@ export default function Login() {
             navigate('/dashboard', { replace: true });
         }
     }, [navigate]);
+
+    // Animate error message
+    useEffect(() => {
+        if (error && errorRef.current && shouldAnimate()) {
+            shake(errorRef.current, { duration: 500 });
+        }
+    }, [error]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -53,7 +65,11 @@ export default function Login() {
     return (
         <div className="min-h-screen flex flex-col md:flex-row bg-[var(--theme-bg-light,#F9FAFB)]">
             {/* Brand / Welcome Panel */}
-            <div className="md:w-1/2 relative overflow-hidden flex items-center justify-center text-white p-8 md:p-12" style={{ background: `linear-gradient(135deg, var(--theme-primary-dark, #152D4A), var(--theme-primary, #1E3A5F), var(--theme-primary-light, #2E5A8F))` }}>
+            <div 
+                ref={brandPanelRef}
+                className="md:w-1/2 relative overflow-hidden flex items-center justify-center text-white p-8 md:p-12" 
+                style={{ background: `linear-gradient(135deg, var(--theme-primary-dark, #152D4A), var(--theme-primary, #1E3A5F), var(--theme-primary-light, #2E5A8F))` }}
+            >
                 <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.45),_rgba(255,255,255,0))]"></div>
                 <div className="absolute inset-0 opacity-10 mix-blend-soft-light bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.45)_0%,_rgba(255,255,255,0)_65%)]"></div>
                 <div className="relative z-10 max-w-xl space-y-8 text-center md:text-left">
@@ -105,7 +121,7 @@ export default function Login() {
 
             {/* Authentication Panel */}
             <div className="md:w-1/2 flex items-center justify-center p-6 md:p-12 bg-white">
-                <div className="w-full max-w-md space-y-8">
+                <div ref={formRef} className="w-full max-w-md space-y-8">
                     <div className="space-y-2 text-center md:text-left">
                         <p className="text-xs uppercase tracking-[0.4em] text-[var(--theme-primary)] font-semibold">Welcome back</p>
                         <h2 className="text-2xl md:text-3xl font-semibold text-[var(--theme-primary-dark)]">Sign in to HomeLogic360</h2>
@@ -116,7 +132,7 @@ export default function Login() {
 
                     <div className="bg-white border border-[#E3E8E3] rounded-xl shadow-[0_18px_48px_-25px_rgba(27,64,45,0.35)] p-6 space-y-6">
                         {error && (
-                            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <div ref={errorRef} className="p-3 bg-red-50 border border-red-200 rounded-lg">
                                 <p className="text-sm text-red-800">{error}</p>
                             </div>
                         )}

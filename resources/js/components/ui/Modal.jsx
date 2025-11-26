@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { fadeIn, fadeOut, scaleFadeIn, scaleFadeOut, shouldAnimate } from '../../utils/animationPresets';
 
 export default function Modal({
     isOpen,
@@ -12,57 +14,16 @@ export default function Modal({
     className = '',
 }) {
     const modalRef = useRef(null);
-    const previousActiveElement = useRef(null);
+    const backdropRef = useRef(null);
+    const modalContentRef = useRef(null);
+    const animationRef = useRef(null);
 
+    // Radix Dialog handles focus trap, body overflow, and focus management automatically
     useEffect(() => {
         if (isOpen) {
-            previousActiveElement.current = document.activeElement;
             document.body.style.overflow = 'hidden';
-            
-            // Focus trap
-            const handleTabKey = (e) => {
-                if (e.key !== 'Tab') return;
-                
-                const focusableElements = modalRef.current?.querySelectorAll(
-                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-                );
-                
-                if (!focusableElements || focusableElements.length === 0) return;
-                
-                const firstElement = focusableElements[0];
-                const lastElement = focusableElements[focusableElements.length - 1];
-                
-                if (e.shiftKey) {
-                    if (document.activeElement === firstElement) {
-                        e.preventDefault();
-                        lastElement.focus();
-                    }
-                } else {
-                    if (document.activeElement === lastElement) {
-                        e.preventDefault();
-                        firstElement.focus();
-                    }
-                }
-            };
-            
-            document.addEventListener('keydown', handleTabKey);
-            
-            // Focus first element
-            setTimeout(() => {
-                const firstFocusable = modalRef.current?.querySelector(
-                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-                );
-                if (firstFocusable) {
-                    firstFocusable.focus();
-                }
-            }, 100);
-            
             return () => {
-                document.removeEventListener('keydown', handleTabKey);
                 document.body.style.overflow = '';
-                if (previousActiveElement.current) {
-                    previousActiveElement.current.focus();
-                }
             };
         }
     }, [isOpen]);
@@ -78,7 +39,65 @@ export default function Modal({
         return () => document.removeEventListener('keydown', handleEscape);
     }, [isOpen, onClose]);
 
-    if (!isOpen) return null;
+    // Animate modal entrance and exit
+    useEffect(() => {
+        if (!shouldAnimate()) return;
+
+        if (isOpen && backdropRef.current && modalContentRef.current) {
+            // Clean up any existing animations
+            if (animationRef.current) {
+                if (Array.isArray(animationRef.current)) {
+                    animationRef.current.forEach(anim => anim.pause());
+                } else {
+                    animationRef.current.pause();
+                }
+            }
+
+            // Set initial states
+            backdropRef.current.style.opacity = '0';
+            modalContentRef.current.style.opacity = '0';
+            modalContentRef.current.style.transform = 'scale(0.9)';
+
+            // Animate backdrop
+            const backdropAnim = fadeIn(backdropRef.current, { duration: 300 });
+
+            // Animate modal content
+            const modalAnim = scaleFadeIn(modalContentRef.current, { duration: 300, delay: 50 });
+
+            animationRef.current = [backdropAnim, modalAnim];
+        } else if (!isOpen && backdropRef.current && modalContentRef.current) {
+            // Animate exit
+            const backdropAnim = fadeOut(backdropRef.current, { duration: 200 });
+            const modalAnim = scaleFadeOut(modalContentRef.current, { duration: 200 });
+
+            animationRef.current = [backdropAnim, modalAnim];
+
+            // Clean up after animation
+            const timeout = setTimeout(() => {
+                if (backdropRef.current) {
+                    backdropRef.current.style.opacity = '';
+                }
+                if (modalContentRef.current) {
+                    modalContentRef.current.style.opacity = '';
+                    modalContentRef.current.style.transform = '';
+                }
+            }, 250);
+
+            return () => clearTimeout(timeout);
+        }
+
+        return () => {
+            if (animationRef.current) {
+                if (Array.isArray(animationRef.current)) {
+                    animationRef.current.forEach(anim => {
+                        if (anim && anim.pause) anim.pause();
+                    });
+                } else if (animationRef.current.pause) {
+                    animationRef.current.pause();
+                }
+            }
+        };
+    }, [isOpen]);
 
     const sizeClasses = {
         sm: 'max-w-md',
@@ -89,55 +108,51 @@ export default function Modal({
     };
 
     return (
-        <div
-            className="fixed inset-0 z-50 overflow-y-auto"
-            aria-labelledby="modal-title"
-            role="dialog"
-            aria-modal="true"
-        >
-            {/* Backdrop */}
-            <div
-                className="fixed inset-0 bg-black bg-opacity-50 transition-opacity backdrop-blur-sm"
-                onClick={closeOnBackdropClick ? onClose : undefined}
-            />
+        <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogPrimitive.Portal>
+                {/* Backdrop */}
+                <DialogPrimitive.Overlay
+                    ref={backdropRef}
+                    className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50"
+                    onClick={closeOnBackdropClick ? onClose : undefined}
+                />
 
-            {/* Modal */}
-            <div className="flex min-h-full items-center justify-center p-4">
-                <div
-                    ref={modalRef}
-                    className={`relative bg-white rounded-2xl shadow-xl w-full ${sizeClasses[size]} transform transition-all ${className}`}
+                {/* Modal */}
+                <DialogPrimitive.Content
+                    ref={modalContentRef}
+                    className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-xl w-full z-50 ${sizeClasses[size]} ${className}`}
                     onClick={(e) => e.stopPropagation()}
                 >
-                    {/* Header */}
-                    {(title || showCloseButton) && (
-                        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                            {title && (
-                                <h2
-                                    id="modal-title"
-                                    className="text-xl font-semibold text-gray-900"
-                                >
-                                    {title}
-                                </h2>
-                            )}
-                            {showCloseButton && (
-                                <button
-                                    onClick={onClose}
-                                    className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
-                                    aria-label="Close modal"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            )}
-                        </div>
-                    )}
+                    <div ref={modalRef}>
+                        {/* Header */}
+                        {(title || showCloseButton) && (
+                            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                                {title && (
+                                    <DialogPrimitive.Title
+                                        className="text-xl font-semibold text-gray-900"
+                                    >
+                                        {title}
+                                    </DialogPrimitive.Title>
+                                )}
+                                {showCloseButton && (
+                                    <DialogPrimitive.Close
+                                        className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+                                        aria-label="Close modal"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </DialogPrimitive.Close>
+                                )}
+                            </div>
+                        )}
 
-                    {/* Content */}
-                    <div className="p-6">
-                        {children}
+                        {/* Content */}
+                        <div className="p-6">
+                            {children}
+                        </div>
                     </div>
-                </div>
-            </div>
-        </div>
+                </DialogPrimitive.Content>
+            </DialogPrimitive.Portal>
+        </DialogPrimitive.Root>
     );
 }
 

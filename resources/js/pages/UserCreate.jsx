@@ -7,6 +7,7 @@ import {
     Shield, MapPin, Award, Clock, Building2, Upload, X, Eye, EyeOff
 } from 'lucide-react';
 import { useToastContext } from '../contexts/ToastContext';
+import Tabs, { TabsList, TabsTrigger, TabsContent } from '../components/ui/radix/Tabs';
 
 // Shared form state context
 const FormContext = React.createContext();
@@ -697,25 +698,6 @@ function UserCreateContent({
                     </button>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex gap-2 border-b overflow-x-auto">
-                    {tabs.map((tab) => {
-                        const Icon = tab.icon;
-                        return (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`px-4 py-2 font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${activeTab === tab.id
-                                    ? 'text-[var(--theme-primary)] border-b-2 border-[var(--theme-primary)] font-semibold'
-                                    : 'text-gray-600 hover:text-[var(--theme-primary)]'
-                                    }`}
-                            >
-                                <Icon className="w-4 h-4" />
-                                <span>{tab.label}</span>
-                            </button>
-                        );
-                    })}
-                </div>
             </div>
 
             {/* Error Summary */}
@@ -732,19 +714,44 @@ function UserCreateContent({
                 </div>
             )}
 
-            {/* Tab Content */}
-            <div className="bg-white rounded-lg shadow p-6">
-                {activeTab === 'personal' && <PersonalInfoTab />}
-                {activeTab === 'employment' && (
-                    <EmploymentTab
-                        roles={roles}
-                        branches={branches}
-                        facilities={facilities}
-                        isSuperAdmin={isSuperAdmin}
-                    />
-                )}
-                {activeTab === 'security' && <SecurityTab isEditing={false} />}
-            </div>
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="bg-white rounded-lg shadow">
+                <div className="p-6 pb-0">
+                    <TabsList className="w-full justify-start bg-transparent border-b border-gray-200 p-0 h-auto">
+                        {tabs.map((tab) => {
+                            const Icon = tab.icon;
+                            return (
+                                <TabsTrigger
+                                    key={tab.id}
+                                    value={tab.id}
+                                    className="flex items-center gap-2 whitespace-nowrap data-[state=active]:border-b-2 data-[state=active]:border-[var(--theme-primary)] rounded-none"
+                                >
+                                    <Icon className="w-4 h-4" />
+                                    <span>{tab.label}</span>
+                                </TabsTrigger>
+                            );
+                        })}
+                    </TabsList>
+                </div>
+
+                {/* Tab Content */}
+                <div className="p-6">
+                    <TabsContent value="personal">
+                        <PersonalInfoTab />
+                    </TabsContent>
+                    <TabsContent value="employment">
+                        <EmploymentTab
+                            roles={roles}
+                            branches={branches}
+                            facilities={facilities}
+                            isSuperAdmin={isSuperAdmin}
+                        />
+                    </TabsContent>
+                    <TabsContent value="security">
+                        <SecurityTab isEditing={false} />
+                    </TabsContent>
+                </div>
+            </Tabs>
         </div>
     );
 }

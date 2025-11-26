@@ -3,6 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { Search, Users, Plus, Edit, XCircle, CheckCircle, Filter, Eye } from 'lucide-react';
+import Select from '../components/ui/radix/Select';
+import ScrollReveal from '../components/ui/ScrollReveal';
+import Tooltip from '../components/ui/Tooltip';
+import TooltipIcon from '../components/ui/TooltipIcon';
 
 export default function Residents() {
     const navigate = useNavigate();

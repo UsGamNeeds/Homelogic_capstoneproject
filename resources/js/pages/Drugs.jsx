@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import api from '../services/api';
 import { Pill, Plus, Search, Edit, Trash2, X } from 'lucide-react';
 import SectionCard from '../components/SectionCard';
+import FormInput from '../components/forms/FormInput';
+import FormTextarea from '../components/forms/FormTextarea';
+import FormCheckbox from '../components/forms/FormCheckbox';
+import { useToastContext } from '../contexts/ToastContext';
 
 export default function Drugs() {
   const queryClient = useQueryClient();
@@ -149,35 +156,66 @@ export default function Drugs() {
   );
 }
 
+// Zod schema for drug form validation
+const drugSchema = z.object({
+  name: z.string().min(1, 'Drug name is required'),
+  generic_name: z.string().optional(),
+  description: z.string().optional(),
+  dosage_form: z.string().optional(),
+  strength: z.string().optional(),
+  indications: z.string().optional(),
+  contraindications: z.string().optional(),
+  side_effects: z.string().optional(),
+  storage_instructions: z.string().optional(),
+  is_active: z.boolean().default(true),
+});
+
 function DrugForm({ record, onClose, onSuccess }) {
-  const [form, setForm] = useState({
-    name: record?.name || '',
-    generic_name: record?.generic_name || '',
-    description: record?.description || '',
-    dosage_form: record?.dosage_form || '',
-    strength: record?.strength || '',
-    indications: record?.indications || '',
-    contraindications: record?.contraindications || '',
-    side_effects: record?.side_effects || '',
-    storage_instructions: record?.storage_instructions || '',
-    is_active: record?.is_active !== undefined ? record.is_active : true,
-  });
-  const [errors, setErrors] = useState({});
+  const toast = useToastContext();
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const methods = useForm({
+    resolver: zodResolver(drugSchema),
+    defaultValues: {
+      name: record?.name || '',
+      generic_name: record?.generic_name || '',
+      description: record?.description || '',
+      dosage_form: record?.dosage_form || '',
+      strength: record?.strength || '',
+      indications: record?.indications || '',
+      contraindications: record?.contraindications || '',
+      side_effects: record?.side_effects || '',
+      storage_instructions: record?.storage_instructions || '',
+      is_active: record?.is_active !== undefined ? record.is_active : true,
+    },
+  });
+
+  const onSubmit = async (data) => {
     setSubmitting(true);
-    setErrors({});
     try {
       if (record) {
-        await api.put(`/drugs/${record.id}`, form);
+        await api.put(`/drugs/${record.id}`, data);
+        toast.success('Drug updated successfully');
       } else {
-        await api.post('/drugs', form);
+        await api.post('/drugs', data);
+        toast.success('Drug created successfully');
       }
       onSuccess();
-    } catch (e) {
-      setErrors(e.response?.data?.errors || { general: e.response?.data?.message || 'Failed to save drug' });
+    } catch (error) {
+      const errorData = error.response?.data;
+      if (errorData?.errors) {
+        // Set field errors
+        Object.keys(errorData.errors).forEach((key) => {
+          methods.setError(key, {
+            type: 'server',
+            message: Array.isArray(errorData.errors[key]) 
+              ? errorData.errors[key][0] 
+              : errorData.errors[key],
+          });
+        });
+      } else {
+        toast.error('Failed to save drug', errorData?.message || 'An error occurred');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -198,150 +236,86 @@ function DrugForm({ record, onClose, onSuccess }) {
           </button>
         </div>
 
-        {errors.general && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-800">{errors.general}</p>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6" id="drug-form">
+        <FormProvider {...methods}>
+          <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6" id="drug-form">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Drug Name *
-                </label>
-                <input
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                />
-                {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name[0]}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Generic Name
-                </label>
-                <input
-                  value={form.generic_name}
-                  onChange={(e) => setForm({ ...form, generic_name: e.target.value })}
-                  placeholder="Enter generic name"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                />
-                {errors.generic_name && <p className="text-xs text-red-600 mt-1">{errors.generic_name[0]}</p>}
-              </div>
+              <FormInput
+                name="name"
+                label="Drug Name"
+                required
+                tooltip="The brand or trade name of the drug"
+              />
+              <FormInput
+                name="generic_name"
+                label="Generic Name"
+                placeholder="Enter generic name"
+                tooltip="The generic or chemical name of the drug"
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Dosage Form
-                </label>
-                <input
-                  value={form.dosage_form}
-                  onChange={(e) => setForm({ ...form, dosage_form: e.target.value })}
-                  placeholder="e.g., Tablet, Capsule, Liquid"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                />
-                {errors.dosage_form && <p className="text-xs text-red-600 mt-1">{errors.dosage_form[0]}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Strength
-                </label>
-                <input
-                  value={form.strength}
-                  onChange={(e) => setForm({ ...form, strength: e.target.value })}
-                  placeholder="e.g., 500mg, 10ml"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                />
-                {errors.strength && <p className="text-xs text-red-600 mt-1">{errors.strength[0]}</p>}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
-              </label>
-              <textarea
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                rows={3}
-                placeholder="Enter drug description"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+              <FormInput
+                name="dosage_form"
+                label="Dosage Form"
+                placeholder="e.g., Tablet, Capsule, Liquid"
+                tooltip="The physical form of the medication"
               />
-              {errors.description && <p className="text-xs text-red-600 mt-1">{errors.description[0]}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Indications
-              </label>
-              <textarea
-                value={form.indications}
-                onChange={(e) => setForm({ ...form, indications: e.target.value })}
-                rows={3}
-                placeholder="What conditions or diseases this drug is used to treat"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+              <FormInput
+                name="strength"
+                label="Strength"
+                placeholder="e.g., 500mg, 10ml"
+                tooltip="The strength or concentration of the drug"
               />
-              {errors.indications && <p className="text-xs text-red-600 mt-1">{errors.indications[0]}</p>}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contraindications
-              </label>
-              <textarea
-                value={form.contraindications}
-                onChange={(e) => setForm({ ...form, contraindications: e.target.value })}
-                rows={3}
-                placeholder="Conditions or situations where this drug should not be used"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-              />
-              {errors.contraindications && <p className="text-xs text-red-600 mt-1">{errors.contraindications[0]}</p>}
-            </div>
+            <FormTextarea
+              name="description"
+              label="Description"
+              rows={3}
+              placeholder="Enter drug description"
+              tooltip="General description of the drug"
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Side Effects
-              </label>
-              <textarea
-                value={form.side_effects}
-                onChange={(e) => setForm({ ...form, side_effects: e.target.value })}
-                rows={3}
-                placeholder="Known side effects of this drug"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-              />
-              {errors.side_effects && <p className="text-xs text-red-600 mt-1">{errors.side_effects[0]}</p>}
-            </div>
+            <FormTextarea
+              name="indications"
+              label="Indications"
+              rows={3}
+              placeholder="What conditions or diseases this drug is used to treat"
+              tooltip="Medical conditions this drug is prescribed for"
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Storage Instructions
-              </label>
-              <textarea
-                value={form.storage_instructions}
-                onChange={(e) => setForm({ ...form, storage_instructions: e.target.value })}
-                rows={2}
-                placeholder="e.g., Store at room temperature, Keep refrigerated"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-              />
-              {errors.storage_instructions && <p className="text-xs text-red-600 mt-1">{errors.storage_instructions[0]}</p>}
-            </div>
+            <FormTextarea
+              name="contraindications"
+              label="Contraindications"
+              rows={3}
+              placeholder="Conditions or situations where this drug should not be used"
+              tooltip="When this drug should NOT be used"
+            />
 
-            <div>
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={form.is_active}
-                  onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-                  className="rounded border-gray-300 text-[var(--theme-primary)] focus:ring-[var(--theme-primary)]"
-                />
-                <span className="text-sm font-medium text-gray-700">Active</span>
-              </label>
-            </div>
+            <FormTextarea
+              name="side_effects"
+              label="Side Effects"
+              rows={3}
+              placeholder="Known side effects of this drug"
+              tooltip="Potential adverse effects of the medication"
+            />
+
+            <FormTextarea
+              name="storage_instructions"
+              label="Storage Instructions"
+              rows={2}
+              placeholder="e.g., Store at room temperature, Keep refrigerated"
+              tooltip="How to properly store this medication"
+            />
+
+            <FormCheckbox
+              name="is_active"
+              label="Active"
+              tooltip="Whether this drug is currently active in the system"
+            />
 
           </form>
+        </FormProvider>
 
         <div className="flex justify-end space-x-3 mt-6">
           <button

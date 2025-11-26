@@ -23,6 +23,12 @@ import {
 } from 'lucide-react';
 import { DashboardSkeleton } from '../components/ui/SkeletonLoader';
 import MiniCalendar from '../components/ui/MiniCalendar';
+import { useStaggerAnimation } from '../hooks/useStaggerAnimation';
+import { countUp, shouldAnimate } from '../utils/animationPresets';
+import { useEffect, useRef } from 'react';
+import Select from '../components/ui/radix/Select';
+import Tooltip from '../components/ui/Tooltip';
+import ScrollReveal from '../components/ui/ScrollReveal';
 
 // Register Chart.js components
 ChartJS.register(
@@ -333,57 +339,13 @@ export default function Dashboard() {
                         </div>
 
                         {/* Stat Cards Grid */}
-                        <div className={`grid grid-cols-1 md:grid-cols-2 ${isCaregiver ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6 mb-8`}>
-                            {statCards.map((card, index) => {
-                                const Icon = card.icon;
-                                return (
-                                    <div
-                                        key={index}
-                                        onClick={() => card.link && navigate(card.link)}
-                                        className="group relative bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer border border-gray-100"
-                                    >
-                                        {/* Gradient decoration */}
-                                        <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${card.gradient}`}></div>
-                                        
-                                        {/* Content */}
-                                        <div className="p-6">
-                                            <div className="flex items-start justify-between mb-4">
-                                                <div className="flex-1">
-                                                    <p className="text-[var(--theme-secondary)] text-sm font-semibold uppercase tracking-wide mb-1">
-                                                        {card.title}
-                                                    </p>
-                                                    <div className="flex items-baseline space-x-2">
-                                                        <p className="text-4xl font-bold text-[var(--theme-primary)]">
-                                                            {card.value}
-                                                        </p>
-                                                        {card.trend === 'warning' && (
-                                                            <AlertCircle className="w-5 h-5 text-amber-500" />
-                                                        )}
-                                                    </div>
-                                                    {card.description && (
-                                                        <p className="text-gray-500 text-xs mt-2 flex items-center">
-                                                            <Clock className="w-3 h-3 mr-1" />
-                                                            {card.description}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                                <div className={`${card.iconBg} p-3 rounded-xl group-hover:scale-110 transition-transform duration-300`}>
-                                                    <Icon className={`w-6 h-6 ${card.iconColor}`} />
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Hover effect */}
-                                            {card.link && (
-                                                <div className="flex items-center text-[var(--theme-primary)] text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                                    <span>View details</span>
-                                                    <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform" />
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                        <ScrollReveal animationType="fade" threshold={0.1}>
+                            <StatCardsGrid 
+                                statCards={statCards} 
+                                isCaregiver={isCaregiver}
+                                onCardClick={(link) => link && navigate(link)}
+                            />
+                        </ScrollReveal>
 
                         {/* Two Column Layout */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -669,17 +631,16 @@ function ResidentVitalsTrendSection({ residents, defaultTrend }) {
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[var(--theme-primary)]"></div>
                         </div>
                     )}
-                    <select
-                        value={selectedResident || ''}
-                        onChange={(e) => handleResidentChange(e.target.value)}
-                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-[var(--theme-primary)] focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent bg-white"
-                    >
-                        {residents.map((resident) => (
-                            <option key={resident.id} value={resident.id}>
-                                {resident.name}
-                            </option>
-                        ))}
-                    </select>
+                    <Select
+                        value={selectedResident?.toString() || ''}
+                        onValueChange={(value) => handleResidentChange(value)}
+                        placeholder="Select resident..."
+                        options={residents.map((resident) => ({
+                            value: resident.id.toString(),
+                            label: resident.name,
+                        }))}
+                        className="w-48"
+                    />
                 </div>
             </div>
             <div className="p-6">
@@ -828,6 +789,99 @@ function ResidentVitalsChart({ data }) {
     return (
         <div style={{ height: '300px' }}>
             <Line data={chartData} options={options} />
+        </div>
+    );
+}
+
+// Stat Cards Grid Component with animations
+function StatCardsGrid({ statCards, isCaregiver, onCardClick }) {
+    const containerRef = useStaggerAnimation('.stat-card', 'slideUp', {
+        staggerDelay: 100,
+        duration: 500,
+        easing: 'easeOutExpo',
+    });
+
+    return (
+        <div 
+            ref={containerRef}
+            className={`grid grid-cols-1 md:grid-cols-2 ${isCaregiver ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6 mb-8`}
+        >
+            {statCards.map((card, index) => {
+                const Icon = card.icon;
+                const valueRef = useRef(null);
+
+                // Animate number counting
+                useEffect(() => {
+                    if (valueRef.current && shouldAnimate() && card.value > 0) {
+                        countUp(valueRef.current, card.value, {
+                            duration: 1500,
+                            delay: 200 + (index * 100),
+                            easing: 'easeOutExpo',
+                        });
+                    }
+                }, [card.value, index]);
+
+                return (
+                    <div
+                        key={index}
+                        className="stat-card group relative bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer border border-gray-100"
+                        onClick={() => onCardClick(card.link)}
+                    >
+                        {/* Gradient decoration */}
+                        <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${card.gradient}`}></div>
+                        
+                        {/* Content */}
+                        <div className="p-6">
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <p className="text-[var(--theme-secondary)] text-sm font-semibold uppercase tracking-wide">
+                                            {card.title}
+                                        </p>
+                                        {card.tooltip && (
+                                            <Tooltip content={card.tooltip} position="top">
+                                                <AlertCircle className="w-3 h-3 text-gray-400 cursor-help" />
+                                            </Tooltip>
+                                        )}
+                                    </div>
+                                    <div className="flex items-baseline space-x-2">
+                                        <p 
+                                            ref={valueRef}
+                                            className="text-4xl font-bold text-[var(--theme-primary)]"
+                                        >
+                                            {card.value}
+                                        </p>
+                                        {card.trend === 'warning' && (
+                                            <Tooltip content="Requires attention" position="top">
+                                                <AlertCircle className="w-5 h-5 text-amber-500 cursor-help" />
+                                            </Tooltip>
+                                        )}
+                                    </div>
+                                    {card.description && (
+                                        <p className="text-gray-500 text-xs mt-2 flex items-center">
+                                            <Clock className="w-3 h-3 mr-1" />
+                                            {card.description}
+                                        </p>
+                                    )}
+                                </div>
+                                <Tooltip content={card.title} position="left">
+                                    <div className={`${card.iconBg} p-3 rounded-xl group-hover:scale-110 transition-transform duration-300`}>
+                                        <Icon className={`w-6 h-6 ${card.iconColor}`} />
+                                    </div>
+                                </Tooltip>
+                            </div>
+                            
+                            {/* Hover effect */}
+                            {card.link && (
+                                <div className="flex items-center text-[var(--theme-primary)] text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <span>View details</span>
+                                    <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            })}
         </div>
     );
 }

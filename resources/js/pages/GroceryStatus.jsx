@@ -5,6 +5,7 @@ import { ShoppingCart, Plus, Search, Filter, Edit, Trash2, Calendar, Clock, Chec
 import SectionCard from '../components/SectionCard';
 import Card from '../components/Card';
 import WeeklyCalendarView from '../components/WeeklyCalendarView';
+import Select from '../components/ui/radix/Select';
 import { Doughnut } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -721,18 +722,17 @@ function GroceryStatusForm({ record, branches, isCaregiver, caregiverBranchId, o
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Branch *</label>
-                                <select
-                                    value={formData.branch_id}
-                                    onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
-                                    required
+                                <Select
+                                    value={formData.branch_id?.toString() || ''}
+                                    onValueChange={(value) => setFormData({ ...formData, branch_id: value })}
+                                    placeholder="Select Branch"
+                                    options={branches.map(branch => ({
+                                        value: branch.id.toString(),
+                                        label: branch.name,
+                                    }))}
                                     disabled={isCaregiver}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                                >
-                                    <option value="">Select Branch</option>
-                                    {branches.map(branch => (
-                                        <option key={branch.id} value={branch.id}>{branch.name}</option>
-                                    ))}
-                                </select>
+                                    className="w-full"
+                                />
                                 {errors.branch_id && <p className="text-xs text-red-600 mt-1">{errors.branch_id[0]}</p>}
                             </div>
 

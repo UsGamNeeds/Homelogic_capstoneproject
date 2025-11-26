@@ -53,9 +53,10 @@ export default function DropdownMenu({ trigger, children, align = 'end', ...prop
 }
 
 // Sub-components for convenience
-export const DropdownMenuItem = React.forwardRef(({ className = '', children, ...props }, ref) => (
+export const DropdownMenuItem = React.forwardRef(({ className = '', children, asChild = false, ...props }, ref) => (
     <DropdownMenuPrimitive.Item
         ref={ref}
+        asChild={asChild}
         className={`relative flex items-center px-4 py-2 text-sm text-gray-700 cursor-pointer select-none outline-none hover:bg-gray-100 focus:bg-gray-100 data-[disabled]:opacity-50 data-[disabled]:pointer-events-none ${className}`}
         {...props}
     >
