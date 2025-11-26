@@ -142,6 +142,7 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
     // Roles & permissions
     Route::apiResource('roles', RoleController::class)->middleware('auth:sanctum');
     Route::get('/permissions', [RoleController::class, 'permissions'])->middleware('auth:sanctum');
+    Route::post('/roles/ensure-exist', [RoleController::class, 'ensureRolesExist'])->middleware('auth:sanctum');
 
     // Users
     // Allow POST for file uploads (browser compatibility) - must come before apiResource

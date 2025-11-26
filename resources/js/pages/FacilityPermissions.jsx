@@ -88,6 +88,24 @@ export default function FacilityPermissions({ facilityId, facilityName, onBack }
     },
   });
 
+  // Ensure roles exist mutation
+  const ensureRolesMutation = useMutation({
+    mutationFn: async () => {
+      return api.post('/roles/ensure-exist');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['facility-permissions', facilityId]);
+      showToast('Roles created successfully. Refreshing...', 'success');
+      // Refetch after a short delay to show updated data
+      setTimeout(() => {
+        refetch();
+      }, 500);
+    },
+    onError: (error) => {
+      showToast(error.response?.data?.message || 'Failed to create roles', 'error');
+    },
+  });
+
   const [localModules, setLocalModules] = useState([]);
   const [localAdminPermissions, setLocalAdminPermissions] = useState({});
   const [localCaregiverPermissions, setLocalCaregiverPermissions] = useState({});
@@ -293,7 +311,24 @@ export default function FacilityPermissions({ facilityId, facilityName, onBack }
 
         {activeTab === 'admin' && !data?.role_permissions?.administrator && (
           <div className="text-center py-12">
-            <p className="text-gray-600">Administrator role not found. Please create the role first.</p>
+            <p className="text-gray-600 mb-4">Administrator role not found. Please create the role first.</p>
+            <button
+              onClick={() => ensureRolesMutation.mutate()}
+              disabled={ensureRolesMutation.isPending}
+              className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 flex items-center gap-2 mx-auto transition-all duration-200 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
+            >
+              {ensureRolesMutation.isPending ? (
+                <>
+                  <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Creating roles...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Create Required Roles</span>
+                </>
+              )}
+            </button>
           </div>
         )}
 
@@ -311,7 +346,24 @@ export default function FacilityPermissions({ facilityId, facilityName, onBack }
 
         {activeTab === 'caregiver' && !data?.role_permissions?.caregiver && (
           <div className="text-center py-12">
-            <p className="text-gray-600">Caregiver role not found. Please create the role first.</p>
+            <p className="text-gray-600 mb-4">Caregiver role not found. Please create the role first.</p>
+            <button
+              onClick={() => ensureRolesMutation.mutate()}
+              disabled={ensureRolesMutation.isPending}
+              className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 flex items-center gap-2 mx-auto transition-all duration-200 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
+            >
+              {ensureRolesMutation.isPending ? (
+                <>
+                  <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Creating roles...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Create Required Roles</span>
+                </>
+              )}
+            </button>
           </div>
         )}
       </div>
