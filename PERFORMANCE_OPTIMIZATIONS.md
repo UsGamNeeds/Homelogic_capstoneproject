@@ -102,3 +102,5 @@ Some dashboard queries could be optimized:
 - Code splitting is automatic based on route structure
 - Vendor chunks are optimized for better caching
 
+
+
