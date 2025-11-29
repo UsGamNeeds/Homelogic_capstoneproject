@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Visitor;
+use App\Models\Notification;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -53,9 +56,14 @@ class VisitorController extends Controller
             'checked_in_by' => $user->id,
         ]);
 
+        $visitor->load(['branch', 'visitingResident', 'visitingStaff', 'checkedInBy']);
+
+        // Create notifications for admins
+        $this->notifyVisitorCheckIn($visitor);
+
         return response()->json([
             'message' => 'Visitor checked in successfully',
-            'visitor' => $visitor->load(['branch', 'visitingResident', 'visitingStaff', 'checkedInBy']),
+            'visitor' => $visitor,
         ], 201);
     }
 
@@ -84,10 +92,116 @@ class VisitorController extends Controller
 
         $visitor->checkOut($user, $validated['notes'] ?? null);
 
+        $visitor->load(['branch', 'visitingResident', 'visitingStaff', 'checkedInBy', 'checkedOutBy']);
+
+        // Create notifications for admins
+        $this->notifyVisitorCheckOut($visitor);
+
         return response()->json([
             'message' => 'Visitor checked out successfully',
-            'visitor' => $visitor->fresh()->load(['branch', 'visitingResident', 'visitingStaff', 'checkedInBy', 'checkedOutBy']),
+            'visitor' => $visitor,
         ]);
+    }
+
+    /**
+     * Notify admins about visitor check-in
+     */
+    private function notifyVisitorCheckIn(Visitor $visitor): void
+    {
+        $visitor->load(['branch', 'visitingResident', 'visitingStaff', 'checkedInBy']);
+        
+        // Get admins and facility admins
+        $users = User::where(function($query) use ($visitor) {
+            $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
+            
+            // Filter by facility if applicable
+            if ($visitor->facility_id) {
+                $query->where(function($q) use ($visitor) {
+                    $q->where('facility_id', $visitor->facility_id)
+                      ->orWhereNull('facility_id'); // Super admins
+                });
+            }
+        })
+        ->where('is_active', true)
+        ->get();
+
+        $visitorName = trim(($visitor->first_name ?? '') . ' ' . ($visitor->last_name ?? ''));
+        $branchName = $visitor->branch?->name ?? 'Unknown Branch';
+        $visiting = $visitor->visiting_resident?->name ?? $visitor->visiting_staff?->name ?? 'N/A';
+        $purpose = $visitor->visit_purpose ?? 'N/A';
+        $time = Carbon::parse($visitor->check_in_at)->format('g:i A');
+        $expectedDuration = $visitor->expected_duration_minutes 
+            ? round($visitor->expected_duration_minutes / 60, 1) . ' hours'
+            : 'Not specified';
+
+        foreach ($users as $admin) {
+            Notification::create([
+                'user_id' => $admin->id,
+                'type' => 'visitor_check_in',
+                'title' => 'Visitor Checked In',
+                'message' => "{$visitorName} checked in at {$branchName} at {$time}. Visiting: {$visiting}. Purpose: {$purpose}. Expected duration: {$expectedDuration}",
+                'icon' => 'user-plus',
+                'icon_color' => 'text-blue-600',
+                'action_url' => '/check-in-dashboard',
+                'metadata' => [
+                    'visitor_id' => $visitor->id,
+                    'branch_id' => $visitor->branch_id,
+                    'facility_id' => $visitor->facility_id,
+                ],
+            ]);
+        }
+    }
+
+    /**
+     * Notify admins about visitor check-out
+     */
+    private function notifyVisitorCheckOut(Visitor $visitor): void
+    {
+        $visitor->load(['branch', 'visitingResident', 'visitingStaff', 'checkedInBy', 'checkedOutBy']);
+        
+        // Get admins and facility admins
+        $users = User::where(function($query) use ($visitor) {
+            $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
+            
+            // Filter by facility if applicable
+            if ($visitor->facility_id) {
+                $query->where(function($q) use ($visitor) {
+                    $q->where('facility_id', $visitor->facility_id)
+                      ->orWhereNull('facility_id'); // Super admins
+                });
+            }
+        })
+        ->where('is_active', true)
+        ->get();
+
+        $visitorName = trim(($visitor->first_name ?? '') . ' ' . ($visitor->last_name ?? ''));
+        $branchName = $visitor->branch?->name ?? 'Unknown Branch';
+        $time = Carbon::parse($visitor->check_out_at)->format('g:i A');
+        
+        // Calculate duration
+        $duration = 'N/A';
+        if ($visitor->check_in_at && $visitor->check_out_at) {
+            $hours = Carbon::parse($visitor->check_in_at)->diffInHours(Carbon::parse($visitor->check_out_at));
+            $minutes = Carbon::parse($visitor->check_in_at)->diffInMinutes(Carbon::parse($visitor->check_out_at)) % 60;
+            $duration = $hours > 0 ? "{$hours}h {$minutes}m" : "{$minutes}m";
+        }
+
+        foreach ($users as $admin) {
+            Notification::create([
+                'user_id' => $admin->id,
+                'type' => 'visitor_check_out',
+                'title' => 'Visitor Checked Out',
+                'message' => "{$visitorName} checked out from {$branchName} at {$time} (Duration: {$duration})",
+                'icon' => 'user-x',
+                'icon_color' => 'text-gray-600',
+                'action_url' => '/check-in-dashboard',
+                'metadata' => [
+                    'visitor_id' => $visitor->id,
+                    'branch_id' => $visitor->branch_id,
+                    'facility_id' => $visitor->facility_id,
+                ],
+            ]);
+        }
     }
 
     /**

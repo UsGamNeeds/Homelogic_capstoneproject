@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\StaffClockIn;
 use App\Models\User;
+use App\Models\Notification;
 use App\Services\LocationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -69,9 +70,14 @@ class StaffClockInController extends Controller
             'clock_method' => 'authenticated',
         ]);
 
+        $clockIn->load(['staff', 'branch', 'facility']);
+
+        // Create notifications for admins
+        $this->notifyStaffClockIn($clockIn);
+
         return response()->json([
             'message' => 'Successfully clocked in',
-            'clock_in' => $clockIn->load(['staff', 'branch', 'facility']),
+            'clock_in' => $clockIn,
         ], 201);
     }
 
@@ -111,9 +117,14 @@ class StaffClockInController extends Controller
             $activeClockIn->save();
         }
 
+        $activeClockIn->load(['staff', 'branch', 'facility']);
+
+        // Create notifications for admins
+        $this->notifyStaffClockOut($activeClockIn);
+
         return response()->json([
             'message' => 'Successfully clocked out',
-            'clock_in' => $activeClockIn->fresh()->load(['staff', 'branch', 'facility']),
+            'clock_in' => $activeClockIn,
         ]);
     }
 
@@ -160,10 +171,112 @@ class StaffClockInController extends Controller
             $clockIn->save();
         }
 
+        $clockIn->load(['staff', 'branch', 'facility']);
+
+        // Create notifications for admins
+        $this->notifyStaffClockOut($clockIn, $user);
+
         return response()->json([
             'message' => 'Successfully clocked out staff member',
-            'clock_in' => $clockIn->fresh()->load(['staff', 'branch', 'facility']),
+            'clock_in' => $clockIn,
         ]);
+    }
+
+    /**
+     * Notify admins about staff clock-in
+     */
+    private function notifyStaffClockIn(StaffClockIn $clockIn): void
+    {
+        $clockIn->load(['staff', 'branch', 'facility']);
+        
+        // Get admins and facility admins
+        $users = User::where(function($query) use ($clockIn) {
+            $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
+            
+            // Filter by facility if applicable
+            if ($clockIn->facility_id) {
+                $query->where(function($q) use ($clockIn) {
+                    $q->where('facility_id', $clockIn->facility_id)
+                      ->orWhereNull('facility_id'); // Super admins
+                });
+            }
+        })
+        ->where('is_active', true)
+        ->where('id', '!=', $clockIn->staff_id) // Don't notify the staff member themselves
+        ->get();
+
+        $branchName = $clockIn->branch?->name ?? 'Unknown Branch';
+        $staffName = $clockIn->staff?->name ?? 'Unknown Staff';
+        $time = Carbon::parse($clockIn->clock_in_at)->format('g:i A');
+
+        foreach ($users as $admin) {
+            Notification::create([
+                'user_id' => $admin->id,
+                'type' => 'staff_clock_in',
+                'title' => 'Staff Clocked In',
+                'message' => "{$staffName} clocked in at {$branchName} at {$time}",
+                'icon' => 'clock',
+                'icon_color' => 'text-green-600',
+                'action_url' => '/check-in-dashboard',
+                'metadata' => [
+                    'clock_in_id' => $clockIn->id,
+                    'staff_id' => $clockIn->staff_id,
+                    'branch_id' => $clockIn->branch_id,
+                    'facility_id' => $clockIn->facility_id,
+                ],
+            ]);
+        }
+    }
+
+    /**
+     * Notify admins about staff clock-out
+     */
+    private function notifyStaffClockOut(StaffClockIn $clockIn, ?User $actionBy = null): void
+    {
+        $clockIn->load(['staff', 'branch', 'facility']);
+        
+        // Get admins and facility admins
+        $users = User::where(function($query) use ($clockIn) {
+            $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
+            
+            // Filter by facility if applicable
+            if ($clockIn->facility_id) {
+                $query->where(function($q) use ($clockIn) {
+                    $q->where('facility_id', $clockIn->facility_id)
+                      ->orWhereNull('facility_id'); // Super admins
+                });
+            }
+        })
+        ->where('is_active', true)
+        ->where('id', '!=', $clockIn->staff_id) // Don't notify the staff member themselves
+        ->get();
+
+        $branchName = $clockIn->branch?->name ?? 'Unknown Branch';
+        $staffName = $clockIn->staff?->name ?? 'Unknown Staff';
+        $time = Carbon::parse($clockIn->clock_out_at)->format('g:i A');
+        $duration = $clockIn->total_hours ? round($clockIn->total_hours, 2) . ' hours' : 'N/A';
+        
+        $actionByText = $actionBy && $actionBy->id !== $clockIn->staff_id 
+            ? " by {$actionBy->name}" 
+            : '';
+
+        foreach ($users as $admin) {
+            Notification::create([
+                'user_id' => $admin->id,
+                'type' => 'staff_clock_out',
+                'title' => 'Staff Clocked Out',
+                'message' => "{$staffName} clocked out{$actionByText} at {$branchName} at {$time} (Duration: {$duration})",
+                'icon' => 'clock',
+                'icon_color' => 'text-blue-600',
+                'action_url' => '/check-in-dashboard',
+                'metadata' => [
+                    'clock_in_id' => $clockIn->id,
+                    'staff_id' => $clockIn->staff_id,
+                    'branch_id' => $clockIn->branch_id,
+                    'facility_id' => $clockIn->facility_id,
+                ],
+            ]);
+        }
     }
 
     /**

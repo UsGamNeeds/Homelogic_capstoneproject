@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Resident;
 use App\Models\ResidentSignOut;
+use App\Models\Notification;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -60,9 +62,14 @@ class ResidentSignOutController extends Controller
             'created_by' => $user->id,
         ]);
 
+        $signOut->load(['resident', 'branch', 'createdBy']);
+
+        // Create notifications for admins
+        $this->notifyResidentSignOut($signOut);
+
         return response()->json([
             'message' => 'Resident signed out successfully',
-            'sign_out' => $signOut->load(['resident', 'branch', 'createdBy']),
+            'sign_out' => $signOut,
         ], 201);
     }
 
@@ -95,10 +102,117 @@ class ResidentSignOutController extends Controller
 
         $activeSignOut->signIn($user, $validated['notes'] ?? null);
 
+        $activeSignOut->load(['resident', 'branch', 'createdBy', 'signedInBy']);
+
+        // Create notifications for admins
+        $this->notifyResidentSignIn($activeSignOut);
+
         return response()->json([
             'message' => 'Resident signed in successfully',
-            'sign_out' => $activeSignOut->fresh()->load(['resident', 'branch', 'createdBy', 'signedInBy']),
+            'sign_out' => $activeSignOut,
         ]);
+    }
+
+    /**
+     * Notify admins about resident sign-out
+     */
+    private function notifyResidentSignOut(ResidentSignOut $signOut): void
+    {
+        $signOut->load(['resident', 'branch', 'createdBy']);
+        
+        // Get admins and facility admins
+        $users = User::where(function($query) use ($signOut) {
+            $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
+            
+            // Filter by facility if applicable
+            if ($signOut->facility_id) {
+                $query->where(function($q) use ($signOut) {
+                    $q->where('facility_id', $signOut->facility_id)
+                      ->orWhereNull('facility_id'); // Super admins
+                });
+            }
+        })
+        ->where('is_active', true)
+        ->get();
+
+        $residentName = $signOut->resident?->name ?? 'Unknown Resident';
+        $branchName = $signOut->branch?->name ?? 'Unknown Branch';
+        $destination = $signOut->destination ?? 'Unknown destination';
+        $time = Carbon::parse($signOut->sign_out_at)->format('g:i A');
+        $expectedReturn = $signOut->expected_return_at 
+            ? Carbon::parse($signOut->expected_return_at)->format('M d, Y g:i A')
+            : 'Not specified';
+
+        foreach ($users as $admin) {
+            Notification::create([
+                'user_id' => $admin->id,
+                'type' => 'resident_sign_out',
+                'title' => 'Resident Signed Out',
+                'message' => "{$residentName} signed out from {$branchName} at {$time}. Destination: {$destination}. Expected return: {$expectedReturn}",
+                'icon' => 'user-x',
+                'icon_color' => 'text-orange-600',
+                'action_url' => '/check-in-dashboard',
+                'metadata' => [
+                    'sign_out_id' => $signOut->id,
+                    'resident_id' => $signOut->resident_id,
+                    'branch_id' => $signOut->branch_id,
+                    'facility_id' => $signOut->facility_id,
+                ],
+            ]);
+        }
+    }
+
+    /**
+     * Notify admins about resident sign-in
+     */
+    private function notifyResidentSignIn(ResidentSignOut $signOut): void
+    {
+        $signOut->load(['resident', 'branch', 'createdBy', 'signedInBy']);
+        
+        // Get admins and facility admins
+        $users = User::where(function($query) use ($signOut) {
+            $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
+            
+            // Filter by facility if applicable
+            if ($signOut->facility_id) {
+                $query->where(function($q) use ($signOut) {
+                    $q->where('facility_id', $signOut->facility_id)
+                      ->orWhereNull('facility_id'); // Super admins
+                });
+            }
+        })
+        ->where('is_active', true)
+        ->get();
+
+        $residentName = $signOut->resident?->name ?? 'Unknown Resident';
+        $branchName = $signOut->branch?->name ?? 'Unknown Branch';
+        $time = Carbon::parse($signOut->sign_in_at)->format('g:i A');
+        
+        // Calculate duration
+        $duration = 'N/A';
+        if ($signOut->sign_out_at && $signOut->sign_in_at) {
+            $hours = Carbon::parse($signOut->sign_out_at)->diffInHours(Carbon::parse($signOut->sign_in_at));
+            $minutes = Carbon::parse($signOut->sign_out_at)->diffInMinutes(Carbon::parse($signOut->sign_in_at)) % 60;
+            $duration = $hours > 0 ? "{$hours}h {$minutes}m" : "{$minutes}m";
+        }
+
+        foreach ($users as $admin) {
+            Notification::create([
+                'user_id' => $admin->id,
+                'type' => 'resident_sign_in',
+                'title' => 'Resident Signed In',
+                'message' => "{$residentName} signed in at {$branchName} at {$time} (Duration: {$duration})",
+                'icon' => 'user-check',
+                'icon_color' => 'text-green-600',
+                'action_url' => '/check-in-dashboard',
+                'metadata' => [
+                    'sign_out_id' => $signOut->id,
+                    'resident_id' => $signOut->resident_id,
+                    'branch_id' => $signOut->branch_id,
+                    'facility_id' => $signOut->facility_id,
+                ],
+            ]);
+        }
     }
 
     /**

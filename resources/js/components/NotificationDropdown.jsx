@@ -210,6 +210,18 @@ export default function NotificationDropdown() {
                     navUrl = '/fire-drills';
                 }
                 break;
+            case 'staff_clock_in':
+            case 'staff_clock_out':
+                navUrl = '/check-in-dashboard';
+                break;
+            case 'resident_sign_out':
+            case 'resident_sign_in':
+                navUrl = '/check-in-dashboard';
+                break;
+            case 'visitor_check_in':
+            case 'visitor_check_out':
+                navUrl = '/check-in-dashboard';
+                break;
             default:
                 navUrl = '/dashboard';
         }
@@ -264,6 +276,18 @@ export default function NotificationDropdown() {
                 return { Icon: Sparkles, color: 'text-green-600' };
             case 'housekeeping_task_skipped':
                 return { Icon: Sparkles, color: 'text-amber-600' };
+            case 'staff_clock_in':
+                return { Icon: Clock, color: 'text-green-600' };
+            case 'staff_clock_out':
+                return { Icon: Clock, color: 'text-blue-600' };
+            case 'resident_sign_out':
+                return { Icon: User, color: 'text-orange-600' };
+            case 'resident_sign_in':
+                return { Icon: UserCheck, color: 'text-green-600' };
+            case 'visitor_check_in':
+                return { Icon: UserPlus, color: 'text-blue-600' };
+            case 'visitor_check_out':
+                return { Icon: User, color: 'text-gray-600' };
             default:
                 return { Icon: Bell, color: 'text-gray-600' };
         }
