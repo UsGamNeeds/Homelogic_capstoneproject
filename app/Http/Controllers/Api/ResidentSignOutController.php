@@ -306,7 +306,7 @@ class ResidentSignOutController extends Controller
     }
 
     /**
-     * Get all resident sign-out history (for admins to generate reports)
+     * Get all resident sign-out history (for all users, filtered by access level)
      */
     public function history(Request $request): JsonResponse
     {
@@ -316,19 +316,22 @@ class ResidentSignOutController extends Controller
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        // Only admins can access history
-        $isAdmin = $user->role === 'super_admin' || $user->role === 'administrator' || $user->hasRole('administrator');
-        
-        if (!$isAdmin) {
-            return response()->json(['message' => 'Unauthorized. Admin access required.'], 403);
-        }
-
         $query = ResidentSignOut::with(['resident', 'branch', 'createdBy', 'signedInBy']);
 
-        // Apply facility filtering for non-super admins
-        if ($user->role !== 'super_admin' && $user->facility_id) {
+        // Apply access level filtering
+        $isAdmin = $user->role === 'super_admin' || $user->role === 'administrator' || $user->hasRole('administrator');
+        
+        if ($user->isCaregiver() && $user->assigned_branch_id) {
+            // Caregivers can only see sign-outs from their assigned branch
+            $query->where('branch_id', $user->assigned_branch_id);
+        } elseif (!$isAdmin && $user->facility_id) {
+            // Non-admin users see only their facility's sign-outs
+            $query->where('facility_id', $user->facility_id);
+        } elseif ($isAdmin && $user->role !== 'super_admin' && $user->facility_id) {
+            // Facility admins see only their facility's sign-outs
             $query->where('facility_id', $user->facility_id);
         }
+        // Super admins see all sign-outs (no filter)
 
         // Filter by resident
         if ($request->filled('resident_id')) {
