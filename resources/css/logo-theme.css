@@ -1,20 +1,20 @@
 /* HomeLogic360 - Theme Colors */
 /* Default fallback colors (Super Admin / HomeLogic360) */
 :root {
-    --theme-primary: #1E3A5F; /* Dark blue from logo */
-    --theme-secondary: #86EFAC; /* Light green from logo */
+    --theme-primary: #E0F2FE; /* Light blue/sky */
+    --theme-secondary: #F0FDF4; /* Very light green */
     --theme-accent: #FFFFFF; /* White from logo */
-    --theme-primary-hover: #152D4A;
-    --theme-primary-light: #2E5A8F;
-    --theme-primary-dark: #152D4A;
-    --theme-secondary-hover: #6EE7B7;
-    --theme-secondary-light: #A7F3D0;
-    --theme-text-on-primary: #FFFFFF;
-    --theme-text-on-secondary: #000000; /* Black text on light green */
-    --theme-border: rgba(30, 58, 95, 0.2);
-    --theme-border-light: rgba(30, 58, 95, 0.1);
-    --theme-primary-bg: rgba(30, 58, 95, 0.1);
-    --theme-primary-bg-light: rgba(30, 58, 95, 0.05);
+    --theme-primary-hover: #BAE6FD;
+    --theme-primary-light: #F0F9FF;
+    --theme-primary-dark: #BAE6FD;
+    --theme-secondary-hover: #DCFCE7;
+    --theme-secondary-light: #F7FEF9;
+    --theme-text-on-primary: #0C4A6E; /* Dark blue text on light background */
+    --theme-text-on-secondary: #166534; /* Dark green text on light background */
+    --theme-border: rgba(14, 165, 233, 0.2);
+    --theme-border-light: rgba(14, 165, 233, 0.1);
+    --theme-primary-bg: rgba(14, 165, 233, 0.1);
+    --theme-primary-bg-light: rgba(14, 165, 233, 0.05);
 }
 
 /* Apply accent background to the main app */

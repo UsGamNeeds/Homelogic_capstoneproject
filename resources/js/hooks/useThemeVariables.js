@@ -11,9 +11,9 @@ export function useThemeVariables(theme) {
         
         const root = document.documentElement;
         const {
-            primary_color = '#1E3A5F', // HomeLogic360 dark blue
-            secondary_color = '#86EFAC', // HomeLogic360 light green
-            accent_color = '#FFFFFF', // HomeLogic360 white
+            primary_color = '#E0F2FE', // Light blue/sky
+            secondary_color = '#F0FDF4', // Very light green
+            accent_color = '#FFFFFF', // White
         } = theme;
         
         // Primary color variants

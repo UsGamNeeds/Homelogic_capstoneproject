@@ -6,11 +6,12 @@ import {
   ArrowLeft, Save, Building2, Palette, Settings, Users, Shield,
   MapPin, Phone, Mail, Image as ImageIcon, CheckCircle, XCircle,
   Plus, Edit, Trash2, Search, Eye, AlertCircle, X, Calendar,
-  Briefcase, Award, Clock, User as UserIcon
+  Briefcase, Award, Clock, User as UserIcon, Navigation
 } from 'lucide-react';
 import { useToastContext } from '../contexts/ToastContext';
 import FacilityPermissions from './FacilityPermissions';
 import EmptyState from '../components/ui/EmptyState';
+import { getUserLocation } from '../utils/location';
 
 export default function FacilityEdit() {
   const { id } = useParams();
@@ -158,9 +159,13 @@ function OverviewTab({ facility }) {
     brochure_url: facility?.brochure_url || '',
     brochure_color: facility?.brochure_color || 'blue',
     is_active: facility?.is_active ?? true,
+    latitude: facility?.latitude || '',
+    longitude: facility?.longitude || '',
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(false);
 
   const updateMutation = useMutation({
     mutationFn: async (data) => {
@@ -272,6 +277,114 @@ function OverviewTab({ facility }) {
               rows={3}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-[var(--theme-primary)]"
             />
+          </div>
+
+          <div className="md:col-span-2 border-t pt-4 mt-4">
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-sm font-medium text-gray-900">
+                Location Coordinates
+              </label>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setGettingLocation(true);
+                    try {
+                      const location = await getUserLocation({
+                        timeout: 10000,
+                        maximumAge: 0,
+                        enableHighAccuracy: true,
+                      });
+                      if (location) {
+                        setForm({
+                          ...form,
+                          latitude: location.latitude,
+                          longitude: location.longitude,
+                        });
+                      } else {
+                        showToast('Unable to get your current location. Please allow location access or enter coordinates manually.', 'warning');
+                      }
+                    } catch (err) {
+                      showToast('Failed to get current location. Please enter coordinates manually.', 'error');
+                    } finally {
+                      setGettingLocation(false);
+                    }
+                  }}
+                  disabled={gettingLocation}
+                  className="text-sm px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                  title="Use your current GPS location"
+                >
+                  <Navigation className="w-4 h-4" />
+                  <span>{gettingLocation ? 'Getting Location...' : 'Use Current Location'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!form.address) {
+                      showToast('Please enter an address first', 'warning');
+                      return;
+                    }
+                    setGeocoding(true);
+                    try {
+                      const response = await api.post('/geocode', { address: form.address });
+                      if (response.data.success) {
+                        setForm({
+                          ...form,
+                          latitude: response.data.latitude,
+                          longitude: response.data.longitude,
+                        });
+                        showToast('Coordinates geocoded successfully', 'success');
+                      } else {
+                        showToast('Unable to geocode address. Please enter coordinates manually.', 'warning');
+                      }
+                    } catch (err) {
+                      showToast('Geocoding failed. Please enter coordinates manually.', 'error');
+                    } finally {
+                      setGeocoding(false);
+                    }
+                  }}
+                  disabled={geocoding || !form.address}
+                  className="text-sm px-3 py-1 bg-[var(--theme-primary)] text-white rounded hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                  title="Geocode from address field"
+                >
+                  <MapPin className="w-4 h-4" />
+                  <span>{geocoding ? 'Geocoding...' : 'Geocode from Address'}</span>
+                </button>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">Coordinates are used for location-based login restrictions (50 meters).</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Latitude
+                </label>
+                <input
+                  type="number"
+                  step="0.00000001"
+                  min="-90"
+                  max="90"
+                  value={form.latitude}
+                  onChange={(e) => setForm({ ...form, latitude: e.target.value })}
+                  placeholder="e.g., 47.6062"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-[var(--theme-primary)] text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Longitude
+                </label>
+                <input
+                  type="number"
+                  step="0.00000001"
+                  min="-180"
+                  max="180"
+                  value={form.longitude}
+                  onChange={(e) => setForm({ ...form, longitude: e.target.value })}
+                  placeholder="e.g., -122.3321"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-[var(--theme-primary)] text-sm"
+                />
+              </div>
+            </div>
           </div>
 
           <div>

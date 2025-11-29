@@ -33,7 +33,11 @@ import {
     Clock,
     Shield,
     DollarSign,
-    AlertTriangle
+    AlertTriangle,
+    UserCheck,
+    ArrowRightFromLine,
+    ArrowLeftToLine,
+    UserPlus
 } from 'lucide-react';
 import NotificationDropdown from './NotificationDropdown';
 import { useToastContext } from '../contexts/ToastContext';
@@ -97,6 +101,17 @@ const navigation = [
     { name: 'Fire Drills', icon: Flame, path: '/fire-drills', children: null },
     { name: 'Incidents', icon: AlertTriangle, path: '/incidents', children: null },
     { 
+        name: 'Check-In/Out', 
+        icon: UserCheck, 
+        path: '/staff/clock', 
+        children: [
+            { name: 'Staff Clock-In/Out', path: '/staff/clock' },
+            { name: 'View All Clock-Ins', path: '/staff/clock-ins' },
+            { name: 'Resident Sign-Outs', path: '/residents/sign-out' },
+            { name: 'Visitors', path: '/visitors' },
+        ]
+    },
+    { 
         name: 'Pharmacy', 
         icon: Building2, 
         path: '/pharmacy/suppliers', 
@@ -140,17 +155,10 @@ const navigation = [
 
 const superAdminNavigation = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/super-admin/dashboard', children: null },
-    { 
-        name: 'Super Admin', 
-        icon: ShieldCheck, 
-        path: '/super-admin', 
-        children: [
-            { name: 'Facility Registrations', path: '/super-admin/facility-registrations' },
-            { name: 'Facilities', path: '/super-admin/facilities' },
-            { name: 'Permissions', path: '/super-admin/permissions' },
-            { name: 'Settings', path: '/super-admin/settings' },
-        ]
-    },
+    { name: 'Facility Registrations', icon: Clock, path: '/super-admin/facility-registrations', children: null },
+    { name: 'Facilities', icon: Building2, path: '/super-admin/facilities', children: null },
+    { name: 'Permissions', icon: Shield, path: '/super-admin/permissions', children: null },
+    { name: 'Settings', icon: Settings, path: '/super-admin/settings', children: null },
 ];
 
 const caregiverNavigation = [

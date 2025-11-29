@@ -119,6 +119,16 @@ class CompleteDatabaseSeeder extends Seeder
         $this->command->info('✅ Phase 11 completed');
         $this->command->line('');
 
+        // PHASE 12: Check-in/Check-out system (depends on users, residents, branches)
+        $this->command->info('📋 Phase 12: Creating check-in/check-out records...');
+        $this->call([
+            StaffClockInSeeder::class,            // Staff clock-in/out records
+            ResidentSignOutSeeder::class,         // Resident sign-out/in records
+            VisitorSeeder::class,                 // Visitor check-in/out records
+        ]);
+        $this->command->info('✅ Phase 12 completed');
+        $this->command->line('');
+
         // Show final summary
         $this->showFinalSummary();
 
@@ -161,6 +171,9 @@ class CompleteDatabaseSeeder extends Seeder
             '📂 Behavior Categories' => \App\Models\BehaviorCategory::class,
             '🔐 Roles' => \App\Models\Role::class,
             '🔑 Permissions' => \App\Models\Permission::class,
+            '🕐 Staff Clock-Ins' => \App\Models\StaffClockIn::class,
+            '🚪 Resident Sign-Outs' => \App\Models\ResidentSignOut::class,
+            '👥 Visitors' => \App\Models\Visitor::class,
         ];
 
         foreach ($models as $label => $modelClass) {

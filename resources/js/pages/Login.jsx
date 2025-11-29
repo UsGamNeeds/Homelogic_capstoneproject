@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, Eye, EyeOff, ShieldCheck, ClipboardList, Building2 } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, ShieldCheck, ClipboardList, Building2, Clock } from 'lucide-react';
 import api from '../services/api';
 import { useAnimateOnMount } from '../hooks/useAnimateOnMount';
 import { slideInLeft, slideInRight, fadeIn, shake, shouldAnimate } from '../utils/animationPresets';
@@ -167,6 +167,20 @@ export default function Login() {
             {/* Authentication Panel */}
             <div className="md:w-1/2 flex items-center justify-center p-6 md:p-12 bg-white">
                 <div ref={formRef} className="w-full max-w-md space-y-8">
+                    {/* Quick Clock-In Button - Top - Highly Visible */}
+                    <button
+                        onClick={() => window.location.href = '/app/staff/clock-in'}
+                        className="flex items-center justify-center gap-3 w-full px-8 py-5 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 border-3 border-blue-900 text-white rounded-xl font-extrabold hover:from-blue-700 hover:via-blue-800 hover:to-blue-900 transition-all text-lg shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] mb-4 ring-4 ring-blue-300"
+                        style={{ 
+                            fontSize: '18px',
+                            fontWeight: '900',
+                            letterSpacing: '0.5px'
+                        }}
+                    >
+                        <Clock className="w-7 h-7" />
+                        <span>Quick Clock-In (No Login Required)</span>
+                    </button>
+
                     <div className="space-y-2 text-center md:text-left">
                         <p className="text-xs uppercase tracking-[0.4em] text-[var(--theme-primary)] font-semibold">Welcome back</p>
                         <h2 className="text-2xl md:text-3xl font-semibold text-[var(--theme-primary-dark)]">Sign in to HomeLogic360</h2>
@@ -267,13 +281,12 @@ export default function Login() {
                             </button>
                         </form>
 
-                        <div className="text-xs text-[#6F8276] leading-relaxed">
-                            <p>
-                                Trouble signing in?{' '}
+                        <div className="pt-4 border-t border-gray-200">
+                            <p className="text-xs text-[#6F8276] text-center leading-relaxed">
+                                Need help?{' '}
                                 <a href="mailto:support@homelogic360.com" className="text-[var(--theme-primary)] font-semibold hover:text-[var(--theme-primary-hover)] hover:underline transition-colors">
                                     Contact support
-                                </a>{' '}
-                                or access the Filament admin console directly.
+                                </a>
                             </p>
                         </div>
                     </div>

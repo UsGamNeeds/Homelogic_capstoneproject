@@ -34,9 +34,21 @@ use App\Http\Controllers\Api\BillingInvoiceController;
 use App\Http\Controllers\Api\ExpenseReportController;
 use App\Http\Controllers\Api\PaymentNotificationPreferenceController;
 use App\Http\Controllers\Api\GeocodingController;
+use App\Http\Controllers\Api\StaffClockInController;
+use App\Http\Controllers\Api\PublicStaffClockInController;
+use App\Http\Controllers\Api\ResidentSignOutController;
+use App\Http\Controllers\Api\VisitorController;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Session\Middleware\StartSession;
+
+// Public routes (no authentication required)
+Route::prefix('public')->group(function () {
+    // Public staff clock-in endpoints
+    Route::post('/staff/verify-employee', [PublicStaffClockInController::class, 'verifyEmployee']);
+    Route::post('/staff/clock-in', [PublicStaffClockInController::class, 'clockIn']);
+    Route::post('/staff/clock-out', [PublicStaffClockInController::class, 'clockOut']);
+});
 
 Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class])->group(function () {
     // Auth routes - login needs session support for Filament redirects
@@ -245,6 +257,33 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
         Route::get('/notification-preferences', [PaymentNotificationPreferenceController::class, 'index']);
         Route::post('/notification-preferences', [PaymentNotificationPreferenceController::class, 'store']);
         Route::put('/notification-preferences/{id}', [PaymentNotificationPreferenceController::class, 'update']);
+    });
+
+    // Staff Clock-In/Out
+    Route::prefix('staff')->middleware('auth:sanctum')->group(function () {
+        Route::post('/clock-in', [StaffClockInController::class, 'clockIn']);
+        Route::post('/clock-out', [StaffClockInController::class, 'clockOut']);
+        Route::get('/clock-ins/current', [StaffClockInController::class, 'current']);
+        Route::get('/clock-ins', [StaffClockInController::class, 'index']);
+        Route::get('/clock-ins/stats', [StaffClockInController::class, 'stats']);
+    });
+
+    // Resident Sign-Out/In
+    Route::prefix('residents')->middleware('auth:sanctum')->group(function () {
+        Route::post('/{id}/sign-out', [ResidentSignOutController::class, 'signOut']);
+        Route::post('/{id}/sign-in', [ResidentSignOutController::class, 'signIn']);
+        Route::get('/{id}/sign-outs', [ResidentSignOutController::class, 'index']);
+    });
+    Route::get('/residents/sign-outs/active', [ResidentSignOutController::class, 'active'])->middleware('auth:sanctum');
+    Route::get('/residents/sign-outs/overdue', [ResidentSignOutController::class, 'overdue'])->middleware('auth:sanctum');
+
+    // Visitors
+    Route::prefix('visitors')->middleware('auth:sanctum')->group(function () {
+        Route::post('/check-in', [VisitorController::class, 'checkIn']);
+        Route::post('/{id}/check-out', [VisitorController::class, 'checkOut']);
+        Route::get('/', [VisitorController::class, 'index']);
+        Route::get('/active', [VisitorController::class, 'active']);
+        Route::get('/{id}', [VisitorController::class, 'show']);
     });
 });
 

@@ -11,6 +11,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Hash;
 use App\Models\Notification;
 use App\Traits\Loggable;
 use App\Traits\FormatsPhoneNumbers;
@@ -50,6 +51,7 @@ class User extends Authenticatable implements FilamentUser
         'hire_date',
         'notes',
         'password',
+        'clock_pin',
     ];
 
     /**
@@ -84,6 +86,7 @@ class User extends Authenticatable implements FilamentUser
             'hire_date' => 'date',
             'is_active' => 'boolean',
             'location_check_bypass' => 'boolean',
+            'clock_pin' => 'hashed',
         ];
     }
 
@@ -194,6 +197,16 @@ class User extends Authenticatable implements FilamentUser
     public function appointments()
     {
         return $this->hasMany(Appointment::class, 'created_by');
+    }
+
+    public function clockIns()
+    {
+        return $this->hasMany(StaffClockIn::class, 'staff_id');
+    }
+
+    public function activeClockIn()
+    {
+        return $this->hasOne(StaffClockIn::class, 'staff_id')->where('is_active', true);
     }
 
     public function roles()
@@ -457,5 +470,30 @@ class User extends Authenticatable implements FilamentUser
     protected function phoneNumber(): Attribute
     {
         return $this->phoneAttribute();
+    }
+
+    /**
+     * Verify clock PIN for public clock-in
+     */
+    public function verifyClockPin(?string $pin): bool
+    {
+        if (!$this->clock_pin) {
+            // If no PIN is set, allow clock-in without PIN
+            return true;
+        }
+
+        if (!$pin) {
+            return false;
+        }
+
+        return Hash::check($pin, $this->clock_pin);
+    }
+
+    /**
+     * Check if user has an active clock-in
+     */
+    public function hasActiveClockIn(): bool
+    {
+        return $this->clockIns()->where('is_active', true)->exists();
     }
 }

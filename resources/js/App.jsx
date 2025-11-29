@@ -80,6 +80,11 @@ const AppointmentsCharts = lazy(() => import('./pages/reports/AppointmentsCharts
 const VitalsHistory = lazy(() => import('./pages/reports/VitalsHistory'));
 const SleepCharts = lazy(() => import('./pages/reports/SleepCharts'));
 const StaffCharts = lazy(() => import('./pages/reports/StaffCharts'));
+const PublicStaffClockIn = lazy(() => import('./pages/public/PublicStaffClockIn'));
+const StaffClock = lazy(() => import('./pages/StaffClock'));
+const StaffClockInsView = lazy(() => import('./pages/StaffClockInsView'));
+const ResidentSignOut = lazy(() => import('./pages/ResidentSignOut'));
+const Visitors = lazy(() => import('./pages/Visitors'));
 
 function App() {
     // Make toast available globally for backward compatibility
@@ -93,6 +98,7 @@ function App() {
     return (
         <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/staff/clock-in" element={<Suspense fallback={<PageLoader />}><PublicStaffClockIn /></Suspense>} />
             <Route
                 path="/"
                 element={
@@ -134,6 +140,10 @@ function App() {
                 <Route path="sleep" element={<Suspense fallback={<PageLoader />}><Sleep /></Suspense>} />
                 <Route path="sleep-patterns" element={<Suspense fallback={<PageLoader />}><SleepPatterns /></Suspense>} />
                 <Route path="leave-requests" element={<Suspense fallback={<PageLoader />}><LeaveRequests /></Suspense>} />
+                <Route path="staff/clock" element={<Suspense fallback={<PageLoader />}><StaffClock /></Suspense>} />
+                <Route path="staff/clock-ins" element={<Suspense fallback={<PageLoader />}><StaffClockInsView /></Suspense>} />
+                <Route path="residents/sign-out" element={<Suspense fallback={<PageLoader />}><ResidentSignOut /></Suspense>} />
+                <Route path="visitors" element={<Suspense fallback={<PageLoader />}><Visitors /></Suspense>} />
                 <Route path="my-residents" element={<Suspense fallback={<PageLoader />}><MyResidentsPage /></Suspense>} />
                 <Route path="my-residents/:residentId" element={<Suspense fallback={<PageLoader />}><ResidentDetailPage /></Suspense>} />
 
@@ -177,7 +187,8 @@ function App() {
 
                 <Route path="*" element={<Navigate to="dashboard" replace />} />
             </Route>
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            {/* Keep public routes before catch-all to prevent redirects */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
     );
 }

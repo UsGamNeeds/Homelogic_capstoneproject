@@ -13,6 +13,16 @@ Route::get('/register-facility', [FacilityRegistrationController::class, 'show']
 Route::post('/register-facility', [FacilityRegistrationController::class, 'store'])->name('facility-registration.store');
 Route::get('/register-facility/success', [FacilityRegistrationController::class, 'success'])->name('facility-registration.success');
 
+// Public staff clock-in page (no authentication required)
+// Serve at both paths for compatibility
+Route::get('/staff/clock-in', function () {
+    return view('react-app'); // Will be handled by React router
+})->name('public.staff.clock-in');
+
+Route::get('/app/staff/clock-in', function () {
+    return view('react-app'); // Will be handled by React router
+});
+
 // Redirect root to React app login
 Route::get('/', function () {
     return redirect('/app/login');

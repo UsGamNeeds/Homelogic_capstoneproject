@@ -163,13 +163,14 @@ export default function SuperAdminDashboard() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Hero Header */}
-      <div className="bg-[var(--theme-primary)] rounded-xl shadow-lg p-6 text-[var(--theme-text-on-primary)]">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="relative overflow-hidden bg-gradient-to-br from-[var(--theme-primary)] via-[var(--theme-primary-dark)] to-[var(--theme-primary)] rounded-2xl shadow-2xl p-8 text-[var(--theme-text-on-primary)] animate-in fade-in slide-in-from-top-4 duration-500">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
+        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-1">Super Admin Dashboard</h1>
-            <p className="opacity-90">System Administrator - Managing all facilities and system operations</p>
+            <h1 className="text-4xl font-extrabold mb-2 tracking-tight">Super Admin Dashboard</h1>
+            <p className="text-lg opacity-95 font-medium">System Administrator - Managing all facilities and system operations</p>
           </div>
         </div>
       </div>
@@ -182,25 +183,26 @@ export default function SuperAdminDashboard() {
             <div
               key={index}
               onClick={() => stat.link && navigate(stat.link)}
-              className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-all ${
-                stat.link ? 'cursor-pointer' : ''
-              } ${stat.highlight ? 'ring-2 ring-[var(--theme-primary)]' : ''}`}
+              className={`group bg-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-[var(--theme-primary)]/20 ${
+                stat.link ? 'cursor-pointer hover:-translate-y-1' : ''
+              } ${stat.highlight ? 'ring-2 ring-[var(--theme-primary)] ring-opacity-50' : ''} animate-in fade-in slide-in-from-bottom-4`}
+              style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-lg ${stat.color} text-white`}>
+                <div className="flex items-center justify-between mb-5">
+                  <div className={`p-3.5 rounded-xl bg-gradient-to-br ${stat.color} to-[var(--theme-primary-dark)] text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                     <Icon className="w-6 h-6" />
                   </div>
                   {stat.highlight && (
-                    <span className="px-2 py-1 text-xs font-semibold bg-[var(--theme-secondary)] text-[var(--theme-primary)] rounded-full">
+                    <span className="px-3 py-1 text-xs font-semibold bg-gradient-to-r from-[var(--theme-secondary)] to-[var(--theme-secondary-light)] text-[var(--theme-primary)] rounded-full shadow-sm animate-pulse">
                       Action Needed
                     </span>
                   )}
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</p>
-                  <p className="text-sm font-medium text-gray-900 mb-1">{stat.title}</p>
-                  <p className="text-xs text-gray-600">{stat.description}</p>
+                  <p className="text-4xl font-extrabold text-gray-900 mb-2 group-hover:text-[var(--theme-primary)] transition-colors">{stat.value}</p>
+                  <p className="text-sm font-semibold text-gray-900 mb-1">{stat.title}</p>
+                  <p className="text-xs text-gray-500 font-medium">{stat.description}</p>
                 </div>
               </div>
             </div>
@@ -215,17 +217,18 @@ export default function SuperAdminDashboard() {
           return (
             <div
               key={index}
-              className="bg-white rounded-lg shadow-md p-6"
+              className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-[var(--theme-primary)]/20 p-6 animate-in fade-in slide-in-from-bottom-4"
+              style={{ animationDelay: `${(index + 4) * 100}ms` }}
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-lg ${stat.color} text-white`}>
+              <div className="flex items-center justify-between mb-5">
+                <div className={`p-3.5 rounded-xl bg-gradient-to-br ${stat.color} to-[var(--theme-primary-dark)] text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                   <Icon className="w-6 h-6" />
                 </div>
               </div>
               <div>
-                <p className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</p>
-                <p className="text-sm font-medium text-gray-900 mb-1">{stat.title}</p>
-                <p className="text-xs text-gray-600">{stat.description}</p>
+                <p className="text-4xl font-extrabold text-gray-900 mb-2 group-hover:text-[var(--theme-primary)] transition-colors">{stat.value}</p>
+                <p className="text-sm font-semibold text-gray-900 mb-1">{stat.title}</p>
+                <p className="text-xs text-gray-500 font-medium">{stat.description}</p>
               </div>
             </div>
           );
@@ -233,27 +236,27 @@ export default function SuperAdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8 animate-in fade-in slide-in-from-bottom-4">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Quick Actions</h2>
-            <p className="text-sm text-gray-600">Fast access to common tasks</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-1">Quick Actions</h2>
+            <p className="text-sm text-gray-500 font-medium">Fast access to common tasks</p>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {quickActions.map((action, index) => {
             const Icon = action.icon;
             return (
               <button
                 key={index}
                 onClick={action.onClick}
-                className={`p-4 border-2 border-gray-200 rounded-lg ${action.hoverColor} transition-colors text-left group`}
+                className="group p-5 border-2 border-gray-200 rounded-xl hover:border-[var(--theme-primary)]/30 hover:shadow-lg transition-all duration-300 text-left bg-gradient-to-br from-white to-gray-50/50 hover:from-white hover:to-[var(--theme-primary-bg-light)] hover:-translate-y-1"
               >
-                <div className={`w-10 h-10 ${action.bgColor} rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                  <Icon className={`w-5 h-5 ${action.color}`} />
+                <div className={`w-12 h-12 bg-gradient-to-br ${action.bgColor} to-[var(--theme-primary-bg)] rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-md`}>
+                  <Icon className={`w-6 h-6 ${action.color} group-hover:scale-110 transition-transform`} />
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-1">{action.title}</h3>
-                <p className="text-sm text-gray-600">{action.description}</p>
+                <h3 className="font-bold text-gray-900 mb-1.5 group-hover:text-[var(--theme-primary)] transition-colors">{action.title}</h3>
+                <p className="text-sm text-gray-600 leading-relaxed">{action.description}</p>
               </button>
             );
           })}
@@ -262,54 +265,57 @@ export default function SuperAdminDashboard() {
 
       {/* Facilities Overview */}
       {stats?.facilities && stats.facilities.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Facilities Overview</h2>
-              <p className="text-sm text-gray-600">Recent facilities and their status</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-1">Facilities Overview</h2>
+              <p className="text-sm text-gray-500 font-medium">Recent facilities and their status</p>
             </div>
             <button
               onClick={() => navigate('/super-admin/facilities')}
-              className="text-sm text-[var(--theme-primary)] hover:underline"
+              className="text-sm font-semibold text-[var(--theme-primary)] hover:text-[var(--theme-primary-dark)] transition-colors flex items-center gap-1"
             >
               View All
+              <span className="text-lg">→</span>
             </button>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Facility Name</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Registered</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
+                <tr className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b border-gray-200">
+                  <th className="text-left py-4 px-6 text-sm font-bold text-gray-700 uppercase tracking-wider">Facility Name</th>
+                  <th className="text-left py-4 px-6 text-sm font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                  <th className="text-left py-4 px-6 text-sm font-bold text-gray-700 uppercase tracking-wider">Registered</th>
+                  <th className="text-right py-4 px-6 text-sm font-bold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-100">
                 {stats.facilities.slice(0, 5).map((facility) => (
-                  <tr key={facility.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-[var(--theme-primary)]" />
-                        <span className="font-medium text-gray-900">{facility.name}</span>
+                  <tr key={facility.id} className="hover:bg-gradient-to-r hover:from-[var(--theme-primary-bg-light)] hover:to-transparent transition-all duration-200 group">
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-[var(--theme-primary-bg-light)] group-hover:bg-[var(--theme-primary)] transition-colors">
+                          <Building2 className="w-4 h-4 text-[var(--theme-primary)] group-hover:text-white transition-colors" />
+                        </div>
+                        <span className="font-semibold text-gray-900 group-hover:text-[var(--theme-primary)] transition-colors">{facility.name}</span>
                       </div>
                     </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                    <td className="py-4 px-6">
+                      <span className={`inline-flex px-3 py-1.5 text-xs font-bold rounded-full shadow-sm ${
                         facility.is_active 
-                          ? 'bg-[var(--theme-secondary)] text-[var(--theme-primary)]' 
-                          : 'bg-gray-100 text-gray-800'
+                          ? 'bg-gradient-to-r from-[var(--theme-secondary)] to-[var(--theme-secondary-light)] text-[var(--theme-primary)]' 
+                          : 'bg-gray-100 text-gray-700'
                       }`}>
                         {facility.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
+                    <td className="py-4 px-6 text-sm text-gray-600 font-medium">
                       {facility.created_at ? new Date(facility.created_at).toLocaleDateString() : 'N/A'}
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-4 px-6 text-right">
                       <button
                         onClick={() => navigate(`/super-admin/facilities?edit=${facility.id}`)}
-                        className="text-[var(--theme-primary)] hover:underline flex items-center gap-1 ml-auto"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-[var(--theme-primary)] hover:bg-[var(--theme-primary-bg-light)] rounded-lg transition-all duration-200 hover:scale-105"
                       >
                         <Eye className="w-4 h-4" />
                         View
@@ -325,60 +331,63 @@ export default function SuperAdminDashboard() {
 
       {/* Recent Registrations */}
       {recentRegistrations && recentRegistrations.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Recent Facility Registrations</h2>
-              <p className="text-sm text-gray-600">Latest registration requests</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-1">Recent Facility Registrations</h2>
+              <p className="text-sm text-gray-500 font-medium">Latest registration requests</p>
             </div>
             <button
               onClick={() => navigate('/super-admin/facility-registrations')}
-              className="text-sm text-[var(--theme-primary)] hover:underline"
+              className="text-sm font-semibold text-[var(--theme-primary)] hover:text-[var(--theme-primary-dark)] transition-colors flex items-center gap-1"
             >
               View All
+              <span className="text-lg">→</span>
             </button>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Facility Name</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Contact</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Submitted</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
+                <tr className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b border-gray-200">
+                  <th className="text-left py-4 px-6 text-sm font-bold text-gray-700 uppercase tracking-wider">Facility Name</th>
+                  <th className="text-left py-4 px-6 text-sm font-bold text-gray-700 uppercase tracking-wider">Contact</th>
+                  <th className="text-left py-4 px-6 text-sm font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                  <th className="text-left py-4 px-6 text-sm font-bold text-gray-700 uppercase tracking-wider">Submitted</th>
+                  <th className="text-right py-4 px-6 text-sm font-bold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-100">
                 {recentRegistrations.slice(0, 5).map((registration) => (
-                  <tr key={registration.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-[var(--theme-primary)]" />
-                        <span className="font-medium text-gray-900">{registration.facility_name}</span>
+                  <tr key={registration.id} className="hover:bg-gradient-to-r hover:from-[var(--theme-primary-bg-light)] hover:to-transparent transition-all duration-200 group">
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-[var(--theme-primary-bg-light)] group-hover:bg-[var(--theme-primary)] transition-colors">
+                          <Building2 className="w-4 h-4 text-[var(--theme-primary)] group-hover:text-white transition-colors" />
+                        </div>
+                        <span className="font-semibold text-gray-900 group-hover:text-[var(--theme-primary)] transition-colors">{registration.facility_name}</span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
+                    <td className="py-4 px-6 text-sm text-gray-600 font-medium">
                       {registration.contact_name || registration.email || 'N/A'}
                     </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                    <td className="py-4 px-6">
+                      <span className={`inline-flex px-3 py-1.5 text-xs font-bold rounded-full shadow-sm ${
                         registration.status === 'pending' 
-                          ? 'bg-yellow-100 text-yellow-800' 
+                          ? 'bg-gradient-to-r from-yellow-100 to-yellow-50 text-yellow-800 border border-yellow-200' 
                           : registration.status === 'approved'
-                          ? 'bg-[var(--theme-secondary)] text-[var(--theme-primary)]'
-                          : 'bg-gray-100 text-gray-800'
+                          ? 'bg-gradient-to-r from-[var(--theme-secondary)] to-[var(--theme-secondary-light)] text-[var(--theme-primary)]'
+                          : 'bg-gray-100 text-gray-700'
                       }`}>
                         {registration.status || 'pending'}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
+                    <td className="py-4 px-6 text-sm text-gray-600 font-medium">
                       {registration.created_at ? new Date(registration.created_at).toLocaleDateString() : 'N/A'}
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-4 px-6 text-right">
                       <button
                         onClick={() => navigate(`/super-admin/facility-registrations?review=${registration.id}`)}
-                        className="text-[var(--theme-primary)] hover:underline flex items-center gap-1 ml-auto"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-[var(--theme-primary)] hover:bg-[var(--theme-primary-bg-light)] rounded-lg transition-all duration-200 hover:scale-105"
                       >
                         <Eye className="w-4 h-4" />
                         Review

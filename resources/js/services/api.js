@@ -35,10 +35,17 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // Clear token and redirect to login
+            // Don't redirect if we're on a public page
+            const currentPath = window.location.pathname;
+            const publicPaths = ['/app/login', '/app/staff/clock-in', '/staff/clock-in'];
+            const isPublicPath = publicPaths.some(path => currentPath === path || currentPath.startsWith(path));
+            
+            // Clear token
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user_name');
-            if (window.location.pathname !== '/app/login') {
+            
+            // Only redirect if not on a public path
+            if (!isPublicPath && currentPath !== '/app/login') {
                 window.location.href = '/app/login';
             }
         }

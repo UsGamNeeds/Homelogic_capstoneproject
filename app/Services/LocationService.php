@@ -13,6 +13,11 @@ class LocationService
     public const MAX_LOGIN_DISTANCE_KM = 0.05; // 50 meters
 
     /**
+     * Maximum allowed distance for check-in in kilometers (same as login)
+     */
+    public const MAX_CHECKIN_DISTANCE_KM = 0.05; // 50 meters
+
+    /**
      * Earth's radius in kilometers
      */
     private const EARTH_RADIUS_KM = 6371;
@@ -201,6 +206,95 @@ class LocationService
         }
 
         return number_format($distanceKm, 2) . ' km';
+    }
+
+    /**
+     * Validate check-in location for staff
+     * 
+     * @param \App\Models\User $user
+     * @param float $latitude
+     * @param float $longitude
+     * @return array|null Returns error array on failure, null on success
+     */
+    public function validateCheckInLocation($user, float $latitude, float $longitude): ?array
+    {
+        // Validate coordinates
+        if (!$this->validateCoordinates($latitude, $longitude)) {
+            return [
+                'message' => 'Invalid location coordinates provided.',
+                'error' => 'invalid_coordinates',
+            ];
+        }
+
+        // Get assigned branch or facility coordinates
+        $branch = $user->assignedBranch;
+        $facility = $user->facility ?? ($branch ? $branch->facility : null);
+
+        $targetLat = null;
+        $targetLon = null;
+        $targetName = null;
+
+        // Prefer branch coordinates, fallback to facility coordinates
+        if ($branch && $branch->hasCoordinates()) {
+            $targetLat = $branch->latitude;
+            $targetLon = $branch->longitude;
+            $targetName = $branch->name;
+        } elseif ($facility && $facility->hasCoordinates()) {
+            $targetLat = $facility->latitude;
+            $targetLon = $facility->longitude;
+            $targetName = $facility->name;
+        }
+
+        // If no coordinates available for branch/facility, reject
+        if ($targetLat === null || $targetLon === null) {
+            Log::warning('Check-in location validation failed - branch/facility has no coordinates', [
+                'user_id' => $user->id,
+                'branch_id' => $branch?->id,
+                'facility_id' => $facility?->id,
+            ]);
+            return [
+                'message' => 'Your assigned location does not have coordinates configured. Please contact your administrator.',
+                'error' => 'no_location_configured',
+            ];
+        }
+
+        // Calculate distance
+        $distanceKm = $this->calculateDistance(
+            $latitude,
+            $longitude,
+            $targetLat,
+            $targetLon
+        );
+
+        // Check if within allowed distance
+        if ($distanceKm > self::MAX_CHECKIN_DISTANCE_KM) {
+            $formattedDistance = $this->formatDistance($distanceKm);
+            $maxDistanceFormatted = self::MAX_CHECKIN_DISTANCE_KM < 1 
+                ? (self::MAX_CHECKIN_DISTANCE_KM * 1000) . ' meters'
+                : self::MAX_CHECKIN_DISTANCE_KM . ' km';
+            
+            Log::warning('Check-in blocked due to distance', [
+                'user_id' => $user->id,
+                'distance_km' => $distanceKm,
+                'target' => $targetName,
+            ]);
+            
+            return [
+                'message' => "You are too far from your assigned location ({$targetName}). You are {$formattedDistance} away, but must be within {$maxDistanceFormatted} to clock in.",
+                'error' => 'distance_exceeded',
+                'distance' => $distanceKm,
+                'max_distance' => self::MAX_CHECKIN_DISTANCE_KM,
+            ];
+        }
+
+        // Location check passed
+        Log::info('Check-in location validation passed', [
+            'user_id' => $user->id,
+            'distance_km' => $distanceKm,
+            'target' => $targetName,
+        ]);
+
+        return null;
     }
 }
 
