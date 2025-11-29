@@ -85,6 +85,7 @@ const StaffClock = lazy(() => import('./pages/StaffClock'));
 const StaffClockInsView = lazy(() => import('./pages/StaffClockInsView'));
 const ResidentSignOut = lazy(() => import('./pages/ResidentSignOut'));
 const Visitors = lazy(() => import('./pages/Visitors'));
+const CheckInDashboard = lazy(() => import('./pages/CheckInDashboard'));
 
 function App() {
     // Make toast available globally for backward compatibility
@@ -140,6 +141,7 @@ function App() {
                 <Route path="sleep" element={<Suspense fallback={<PageLoader />}><Sleep /></Suspense>} />
                 <Route path="sleep-patterns" element={<Suspense fallback={<PageLoader />}><SleepPatterns /></Suspense>} />
                 <Route path="leave-requests" element={<Suspense fallback={<PageLoader />}><LeaveRequests /></Suspense>} />
+                <Route path="check-in-dashboard" element={<Suspense fallback={<PageLoader />}><CheckInDashboard /></Suspense>} />
                 <Route path="staff/clock" element={<Suspense fallback={<PageLoader />}><StaffClock /></Suspense>} />
                 <Route path="staff/clock-ins" element={<Suspense fallback={<PageLoader />}><StaffClockInsView /></Suspense>} />
                 <Route path="residents/sign-out" element={<Suspense fallback={<PageLoader />}><ResidentSignOut /></Suspense>} />

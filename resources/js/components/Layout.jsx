@@ -103,8 +103,9 @@ const navigation = [
     { 
         name: 'Check-In/Out', 
         icon: UserCheck, 
-        path: '/staff/clock', 
+        path: '/check-in-dashboard', 
         children: [
+            { name: 'Dashboard', path: '/check-in-dashboard' },
             { name: 'Staff Clock-In/Out', path: '/staff/clock' },
             { name: 'View All Clock-Ins', path: '/staff/clock-ins' },
             { name: 'Resident Sign-Outs', path: '/residents/sign-out' },
