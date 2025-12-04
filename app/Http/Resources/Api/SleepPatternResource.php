@@ -42,3 +42,4 @@ class SleepPatternResource extends JsonResource
 
 
 
+
