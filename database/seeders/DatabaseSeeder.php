@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
         // For development with more data: Use ComprehensiveSeeder
         $this->call([
             CompleteDatabaseSeeder::class,
+            FacilitySettingsSeeder::class,
         ]);
         
         // Alternative: Use ComprehensiveSeeder for development (creates more test data)

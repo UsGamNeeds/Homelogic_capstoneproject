@@ -131,3 +131,8 @@ After logging in, navigate to:
 - Clock PIN is optional - if not set, no PIN required for public clock-in
 
 
+
+
+
+
+

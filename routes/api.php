@@ -38,6 +38,7 @@ use App\Http\Controllers\Api\StaffClockInController;
 use App\Http\Controllers\Api\PublicStaffClockInController;
 use App\Http\Controllers\Api\ResidentSignOutController;
 use App\Http\Controllers\Api\VisitorController;
+use App\Http\Controllers\Api\FacilitySettingsController;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Session\Middleware\StartSession;
@@ -286,6 +287,12 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
         Route::get('/', [VisitorController::class, 'index']);
         Route::get('/active', [VisitorController::class, 'active']);
         Route::get('/{id}', [VisitorController::class, 'show']);
+    });
+
+    // Facility Settings (per facility, per category)
+    Route::prefix('facilities')->middleware('auth:sanctum')->group(function () {
+        Route::get('/{facility}/settings/{category}', [FacilitySettingsController::class, 'show']);
+        Route::put('/{facility}/settings/{category}', [FacilitySettingsController::class, 'update']);
     });
 });
 

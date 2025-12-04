@@ -64,6 +64,12 @@ const PharmacyInventory = lazy(() => import('./pages/PharmacyInventory'));
 const PharmacyOrders = lazy(() => import('./pages/PharmacyOrders'));
 const SuperAdminDashboard = lazy(() => import('./pages/SuperAdminDashboard'));
 const SuperAdminSettings = lazy(() => import('./pages/SuperAdminSettings'));
+const SuperAdminEmailSettings = lazy(() => import('./pages/super-admin/EmailSettings'));
+const SuperAdminSecuritySettings = lazy(() => import('./pages/super-admin/SecuritySettings'));
+const SuperAdminGeneralSettings = lazy(() => import('./pages/super-admin/GeneralSettings'));
+const SuperAdminNotificationSettings = lazy(() => import('./pages/super-admin/NotificationSettings'));
+const SuperAdminDatabaseSettings = lazy(() => import('./pages/super-admin/DatabaseSettings'));
+const SuperAdminServerSettings = lazy(() => import('./pages/super-admin/ServerSettings'));
 const FacilityRegistrations = lazy(() => import('./pages/FacilityRegistrations'));
 const Permissions = lazy(() => import('./pages/Permissions'));
 const ExpenseCategories = lazy(() => import('./pages/ExpenseCategories'));
@@ -168,6 +174,12 @@ function App() {
                 {/* Super Admin */}
                 <Route path="super-admin/dashboard" element={<Suspense fallback={<PageLoader />}><SuperAdminDashboard /></Suspense>} />
                 <Route path="super-admin/settings" element={<Suspense fallback={<PageLoader />}><SuperAdminSettings /></Suspense>} />
+                <Route path="super-admin/settings/email" element={<Suspense fallback={<PageLoader />}><SuperAdminEmailSettings /></Suspense>} />
+                <Route path="super-admin/settings/security" element={<Suspense fallback={<PageLoader />}><SuperAdminSecuritySettings /></Suspense>} />
+                <Route path="super-admin/settings/general" element={<Suspense fallback={<PageLoader />}><SuperAdminGeneralSettings /></Suspense>} />
+                <Route path="super-admin/settings/notification" element={<Suspense fallback={<PageLoader />}><SuperAdminNotificationSettings /></Suspense>} />
+                <Route path="super-admin/settings/database" element={<Suspense fallback={<PageLoader />}><SuperAdminDatabaseSettings /></Suspense>} />
+                <Route path="super-admin/settings/server" element={<Suspense fallback={<PageLoader />}><SuperAdminServerSettings /></Suspense>} />
                 <Route path="super-admin/facility-registrations" element={<Suspense fallback={<PageLoader />}><FacilityRegistrations /></Suspense>} />
                 <Route path="super-admin/facilities" element={<Suspense fallback={<PageLoader />}><Facilities /></Suspense>} />
                 <Route path="super-admin/facilities/create" element={<Suspense fallback={<PageLoader />}><FacilityCreate /></Suspense>} />
