@@ -94,6 +94,7 @@ const ResidentSignOutsView = lazy(() => import('./pages/ResidentSignOutsView'));
 const Visitors = lazy(() => import('./pages/Visitors'));
 const VisitorsView = lazy(() => import('./pages/VisitorsView'));
 const CheckInDashboard = lazy(() => import('./pages/CheckInDashboard'));
+const Welcome = lazy(() => import('./pages/Welcome'));
 
 function App() {
     // Make toast available globally for backward compatibility
@@ -106,10 +107,11 @@ function App() {
 
     return (
         <Routes>
+            <Route path="/" element={<Suspense fallback={<PageLoader />}><Welcome /></Suspense>} />
             <Route path="/login" element={<Login />} />
             <Route path="/staff/clock-in" element={<Suspense fallback={<PageLoader />}><PublicStaffClockIn /></Suspense>} />
             <Route
-                path="/"
+                path="/app"
                 element={
                     <ProtectedRoute>
                         <Layout />

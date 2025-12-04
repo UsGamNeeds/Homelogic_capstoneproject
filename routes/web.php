@@ -23,7 +23,12 @@ Route::get('/app/staff/clock-in', function () {
     return view('react-app'); // Will be handled by React router
 });
 
-// Redirect root to React app login
+// Welcome page (public landing page)
 Route::get('/', function () {
-    return redirect('/app/login');
+    return view('react-app');
+});
+
+// Redirect /welcome to root for consistency
+Route::get('/welcome', function () {
+    return redirect('/');
 });
