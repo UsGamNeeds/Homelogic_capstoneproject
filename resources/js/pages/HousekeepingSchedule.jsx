@@ -884,7 +884,7 @@ function AreaModal({ onClose, branchId, onSaved, initialValues }) {
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div>
-                        <label htmlFor="area-name" className="block text-sm font-bold text-gray-900 mb-2">
+                        <label htmlFor="area-name" className="block text-base font-bold mb-2" style={{ color: '#111827' }}>
                             Area Name
                         </label>
                         <input
@@ -902,7 +902,7 @@ function AreaModal({ onClose, branchId, onSaved, initialValues }) {
 
                     <div className="grid gap-4 md:grid-cols-2">
                         <div>
-                            <label htmlFor="shift-label" className="block text-sm font-bold text-gray-900 mb-2">
+                            <label htmlFor="shift-label" className="block text-base font-bold mb-2" style={{ color: '#111827' }}>
                                 Shift / Assignment Label
                             </label>
                             <input
@@ -917,7 +917,7 @@ function AreaModal({ onClose, branchId, onSaved, initialValues }) {
                             />
                         </div>
                         <div>
-                            <label htmlFor="location" className="block text-sm font-bold text-gray-900 mb-2">
+                            <label htmlFor="location" className="block text-base font-bold mb-2" style={{ color: '#111827' }}>
                                 Location
                             </label>
                             <input
@@ -934,7 +934,7 @@ function AreaModal({ onClose, branchId, onSaved, initialValues }) {
                     </div>
 
                     <div>
-                        <label htmlFor="description" className="block text-sm font-bold text-gray-900 mb-2">
+                        <label htmlFor="description" className="block text-base font-bold mb-2" style={{ color: '#111827' }}>
                             Description / Notes
                         </label>
                         <textarea
@@ -951,7 +951,7 @@ function AreaModal({ onClose, branchId, onSaved, initialValues }) {
 
                     <div className="grid gap-4 md:grid-cols-2">
                         <div>
-                            <label htmlFor="display-order" className="block text-sm font-bold text-gray-900 mb-2">
+                            <label htmlFor="display-order" className="block text-base font-bold mb-2" style={{ color: '#111827' }}>
                                 Display Order
                             </label>
                             <input

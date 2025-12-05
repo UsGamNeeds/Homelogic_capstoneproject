@@ -79,6 +79,138 @@ class AdminPanelProvider extends PanelProvider
                     </style>
                 ',
             )
+            ->renderHook(
+                'panels::sidebar.end',
+                fn (): string => '
+                    <script>
+                        (function() {
+                            // Function to apply border highlight design to active navigation
+                            function applyBorderHighlightDesign() {
+                                // Find all navigation links and buttons in the sidebar
+                                const sidebar = document.querySelector(".fi-sidebar, aside");
+                                if (!sidebar) return;
+                                
+                                const navItems = sidebar.querySelectorAll("nav a, nav button, nav li a, nav li button");
+                                
+                                navItems.forEach(function(item) {
+                                    // Check for active state indicators
+                                    const isActive = item.getAttribute("aria-current") === "page" || 
+                                                   item.getAttribute("data-active") === "true" ||
+                                                   item.classList.contains("fi-active") ||
+                                                   item.className.includes("active") ||
+                                                   item.classList.contains("bg-white");
+                                    
+                                    if (isActive) {
+                                        // Get computed styles to determine text color
+                                        const styles = window.getComputedStyle(item);
+                                        const bgColor = styles.backgroundColor;
+                                        
+                                        // Check if background is white or very light
+                                        const rgbMatch = bgColor.match(/rgb\s*\(\s*(\d+),\s*(\d+),\s*(\d+)\)/);
+                                        const isWhiteBg = rgbMatch && 
+                                                         parseInt(rgbMatch[1]) > 240 && 
+                                                         parseInt(rgbMatch[2]) > 240 && 
+                                                         parseInt(rgbMatch[3]) > 240;
+                                        
+                                        // Apply border highlight design instead of white background
+                                        item.style.backgroundColor = "rgba(255, 255, 255, 0.15)";
+                                        item.style.setProperty("background-color", "rgba(255, 255, 255, 0.15)", "important");
+                                        
+                                        // Add border highlight
+                                        item.style.borderLeft = "4px solid var(--theme-text-on-primary, #FFFFFF)";
+                                        item.style.setProperty("border-left", "4px solid var(--theme-text-on-primary, #FFFFFF)", "important");
+                                        
+                                        // Add subtle shadow
+                                        item.style.boxShadow = "inset 0 0 10px rgba(255, 255, 255, 0.1)";
+                                        item.style.setProperty("box-shadow", "inset 0 0 10px rgba(255, 255, 255, 0.1)", "important");
+                                        
+                                        // Set text color based on theme
+                                        const textColor = isWhiteBg ? "#000000" : "var(--theme-text-on-primary, #FFFFFF)";
+                                        item.style.color = textColor;
+                                        item.style.setProperty("color", textColor, "important");
+                                        item.style.fontWeight = "600";
+                                        
+                                        // Adjust padding to account for border
+                                        const currentPadding = styles.paddingLeft;
+                                        if (currentPadding && !currentPadding.includes("calc")) {
+                                            item.style.paddingLeft = "calc(" + currentPadding + " - 4px)";
+                                        }
+                                        
+                                        // Apply text color to all children
+                                        const allChildren = item.querySelectorAll("*");
+                                        allChildren.forEach(function(child) {
+                                            child.style.color = textColor;
+                                            child.style.setProperty("color", textColor, "important");
+                                            
+                                            // For SVG elements, also set stroke and fill
+                                            if (child.tagName === "svg" || child.tagName === "SVG") {
+                                                child.style.stroke = textColor;
+                                                child.style.fill = textColor;
+                                                child.style.setProperty("stroke", textColor, "important");
+                                                child.style.setProperty("fill", textColor, "important");
+                                            }
+                                        });
+                                        
+                                        // Handle SVG icons directly
+                                        const svgs = item.querySelectorAll("svg");
+                                        svgs.forEach(function(svg) {
+                                            svg.style.color = textColor;
+                                            svg.style.stroke = textColor;
+                                            svg.style.fill = textColor;
+                                            svg.style.setProperty("color", textColor, "important");
+                                            svg.style.setProperty("stroke", textColor, "important");
+                                            svg.style.setProperty("fill", textColor, "important");
+                                        });
+                                    }
+                                });
+                            }
+                            
+                            // Run immediately
+                            applyBorderHighlightDesign();
+                            
+                            // Run after DOM is fully loaded
+                            if (document.readyState === "loading") {
+                                document.addEventListener("DOMContentLoaded", applyBorderHighlightDesign);
+                            }
+                            
+                            // Run after delays to catch dynamically loaded content
+                            setTimeout(applyBorderHighlightDesign, 100);
+                            setTimeout(applyBorderHighlightDesign, 500);
+                            setTimeout(applyBorderHighlightDesign, 1000);
+                            
+                            // Use MutationObserver to watch for changes in the sidebar
+                            const observer = new MutationObserver(function(mutations) {
+                                applyBorderHighlightDesign();
+                            });
+                            
+                            // Observe the sidebar for changes
+                            const sidebar = document.querySelector(".fi-sidebar, aside");
+                            if (sidebar) {
+                                observer.observe(sidebar, {
+                                    childList: true,
+                                    subtree: true,
+                                    attributes: true,
+                                    attributeFilter: ["class", "style", "aria-current", "data-active"]
+                                });
+                            }
+                            
+                            // Listen for Livewire updates (Filament uses Livewire)
+                            if (window.Livewire) {
+                                window.Livewire.hook("morph.updated", function() {
+                                    setTimeout(applyBorderHighlightDesign, 50);
+                                });
+                            }
+                            
+                            // Listen for Alpine.js updates (Filament uses Alpine.js)
+                            if (window.Alpine) {
+                                document.addEventListener("alpine:init", function() {
+                                    setTimeout(applyBorderHighlightDesign, 100);
+                                });
+                            }
+                        })();
+                    </script>
+                ',
+            )
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
