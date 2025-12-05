@@ -7,7 +7,7 @@ export default defineConfig({
     plugins: [
         react(),
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.jsx'],
+            input: ['resources/js/app.jsx'], // CSS is imported in app.jsx, don't include it here when cssCodeSplit is false
             refresh: true,
         }),
         tailwindcss(),
