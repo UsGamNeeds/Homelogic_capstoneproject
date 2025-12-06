@@ -46,8 +46,18 @@ class LeaveRequestController extends BaseApiController
 
     public function store(Request $request): JsonResponse
     {
-        if ($error = $this->requirePermission('create_leave_requests')) {
-            return $error;
+        $user = auth()->user();
+        
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        // Caregivers can always create their own leave requests
+        // Non-caregivers need the create_leave_requests permission
+        if (!$user->hasRole('caregiver')) {
+            if ($error = $this->requirePermission('create_leave_requests')) {
+                return $error;
+            }
         }
 
         try {
@@ -63,12 +73,6 @@ class LeaveRequestController extends BaseApiController
             // Set default leave_type if not provided
             if (!isset($validated['leave_type']) || empty($validated['leave_type'])) {
                 $validated['leave_type'] = 'Personal';
-            }
-            
-            $user = auth()->user();
-            
-            if (!$user) {
-                return response()->json(['message' => 'Unauthenticated'], 401);
             }
             
             // If user is a caregiver, force staff_id to be their own ID and status to pending
