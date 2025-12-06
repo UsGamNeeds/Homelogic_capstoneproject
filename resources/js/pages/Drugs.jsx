@@ -18,6 +18,25 @@ export default function Drugs() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
 
+  // Get current user to check permissions
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: async () => {
+      try {
+        const response = await api.get('/user');
+        return response.data;
+      } catch {
+        return null;
+      }
+    },
+  });
+
+  const isSuperAdmin = currentUser?.role === 'super_admin';
+  const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
+  const canCreate = isSuperAdmin || permissions.includes('create_drugs');
+  const canEdit = isSuperAdmin || permissions.includes('edit_drugs');
+  const canDelete = isSuperAdmin || permissions.includes('delete_drugs');
+
   const { data, isLoading } = useQuery({
     queryKey: ['drugs', search],
     queryFn: async () => {
@@ -56,13 +75,15 @@ export default function Drugs() {
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Drugs Management</h2>
             <p className="text-gray-600">View and manage drugs in the system.</p>
           </div>
-          <button
-            onClick={() => { setEditing(null); setShowForm(true); }}
-            className="w-full sm:w-auto px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Drug</span>
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => { setEditing(null); setShowForm(true); }}
+              className="w-full sm:w-auto px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Drug</span>
+            </button>
+          )}
         </div>
         
         <div className="relative max-w-md">
@@ -122,20 +143,24 @@ export default function Drugs() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end space-x-2">
-                          <button
-                            onClick={() => { setEditing(drug); setShowForm(true); }}
-                            className="p-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-hover)] rounded-lg transition-all duration-200 border-2 border-[var(--theme-primary)] shadow-md hover:shadow-lg transform hover:scale-105"
-                            title="Edit"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => window.confirm('Delete drug?') && deleteMutation.mutate(drug.id)}
-                            className="p-2 bg-red-600 text-white hover:bg-red-700 rounded-lg transition-all duration-200 border-2 border-red-600 shadow-md hover:shadow-lg transform hover:scale-105"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {canEdit && (
+                            <button
+                              onClick={() => { setEditing(drug); setShowForm(true); }}
+                              className="p-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-hover)] rounded-lg transition-all duration-200 border-2 border-[var(--theme-primary)] shadow-md hover:shadow-lg transform hover:scale-105"
+                              title="Edit"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              onClick={() => window.confirm('Delete drug?') && deleteMutation.mutate(drug.id)}
+                              className="p-2 bg-red-600 text-white hover:bg-red-700 rounded-lg transition-all duration-200 border-2 border-red-600 shadow-md hover:shadow-lg transform hover:scale-105"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

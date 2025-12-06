@@ -41,6 +41,15 @@ class DrugController extends BaseApiController
 
     public function store(Request $request): JsonResponse
     {
+        $user = auth()->user();
+        
+        // Check permission
+        if (!$user || !$user->hasPermission('create_drugs')) {
+            return response()->json([
+                'message' => 'Unauthorized. You do not have permission to create drugs.',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'generic_name' => 'nullable|string|max:255',
@@ -60,6 +69,15 @@ class DrugController extends BaseApiController
 
     public function update(Request $request, $id): JsonResponse
     {
+        $user = auth()->user();
+        
+        // Check permission
+        if (!$user || !$user->hasPermission('edit_drugs')) {
+            return response()->json([
+                'message' => 'Unauthorized. You do not have permission to edit drugs.',
+            ], 403);
+        }
+
         $drug = Drug::findOrFail($id);
 
         $validated = $request->validate([
@@ -81,6 +99,15 @@ class DrugController extends BaseApiController
 
     public function destroy($id): JsonResponse
     {
+        $user = auth()->user();
+        
+        // Check permission
+        if (!$user || !$user->hasPermission('delete_drugs')) {
+            return response()->json([
+                'message' => 'Unauthorized. You do not have permission to delete drugs.',
+            ], 403);
+        }
+
         $drug = Drug::findOrFail($id);
         $drug->delete();
         return response()->json(['message' => 'Drug deleted successfully']);
