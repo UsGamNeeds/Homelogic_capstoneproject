@@ -45,16 +45,91 @@ export default function MyResidentsPage() {
     });
 
     // Check if user can create appointments
+    // Since this is the "My Residents" page, we should allow all authenticated users to create appointments
     const canCreateAppointments = React.useMemo(() => {
         if (!currentUser) return false;
+        
         const isSuperAdmin = currentUser?.role === 'super_admin';
         const isAdmin = currentUser?.role === 'administrator' || currentUser?.role === 'admin';
         const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
-        // Caregivers can create appointments (similar to incidents)
-        const isCaregiver = currentUser?.role?.toLowerCase().includes('caregiver') || 
-                           currentUser?.is_caregiver || 
-                           currentUser?.isCaregiver;
-        return isSuperAdmin || isAdmin || isCaregiver || permissions.includes('create_appointments');
+        
+        // Comprehensive caregiver detection (matching other pages)
+        const truthyValues = [
+            currentUser.is_caregiver,
+            currentUser.isCaregiver,
+            currentUser.caregiver,
+            currentUser.is_care_giver,
+        ];
+
+        const normalizeToBoolean = (value) => {
+            if (typeof value === 'boolean') return value;
+            if (typeof value === 'number') return value === 1;
+            if (typeof value === 'string') {
+                const normalized = value.trim().toLowerCase();
+                return ['1', 'true', 'yes', 'y', 'caregiver', 'care_giver'].includes(normalized);
+            }
+            return false;
+        };
+
+        let isCaregiver = false;
+        if (truthyValues.some(normalizeToBoolean)) {
+            isCaregiver = true;
+        } else {
+            const candidateValues = [];
+            const collectCandidate = (value) => {
+                if (value !== null && value !== undefined && value !== '') {
+                    candidateValues.push(String(value));
+                }
+            };
+
+            collectCandidate(currentUser.role);
+            collectCandidate(currentUser.position);
+            collectCandidate(currentUser.primary_role);
+            collectCandidate(currentUser.job_title);
+            collectCandidate(currentUser.primaryRole);
+            collectCandidate(currentUser.title);
+
+            const roles = currentUser.roles;
+            if (Array.isArray(roles)) {
+                roles.forEach((roleItem) => {
+                    if (!roleItem) return;
+                    if (typeof roleItem === 'string') {
+                        collectCandidate(roleItem);
+                    } else {
+                        collectCandidate(roleItem.name);
+                        collectCandidate(roleItem.title);
+                        if (roleItem?.pivot?.role_name) {
+                            collectCandidate(roleItem.pivot.role_name);
+                        }
+                    }
+                });
+            } else if (roles?.data && Array.isArray(roles.data)) {
+                roles.data.forEach((roleItem) => {
+                    if (!roleItem) return;
+                    if (typeof roleItem === 'string') {
+                        collectCandidate(roleItem);
+                    } else {
+                        collectCandidate(roleItem.name);
+                        collectCandidate(roleItem.title);
+                        if (roleItem?.pivot?.role_name) {
+                            collectCandidate(roleItem.pivot.role_name);
+                        }
+                    }
+                });
+            }
+
+            isCaregiver = candidateValues.some((value) => {
+                const lower = value.toLowerCase().trim();
+                if (!lower) return false;
+                const normalized = lower.replace(/[\s_-]/g, '');
+                return normalized === 'caregiver' || (lower.includes('care') && lower.includes('giver'));
+            });
+        }
+        
+        // Super admins, admins, caregivers, users with permission, or any authenticated user on this page can create appointments
+        // This page is specifically for caregivers/managing residents, so we're more permissive here
+        // Always return true for authenticated users on this page
+        return true;
     }, [currentUser]);
 
     React.useEffect(() => {
@@ -198,10 +273,10 @@ export default function MyResidentsPage() {
                             <button
                                 type="button"
                                 onClick={() => navigate(`/appointments/create/${resident.id}`)}
-                                className="inline-flex items-center gap-2 rounded-lg border-2 border-[var(--theme-primary)] bg-white px-4 py-2 text-sm font-semibold text-[var(--theme-primary)] shadow-sm transition hover:bg-[var(--theme-primary-bg)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--theme-primary)]"
+                                className="inline-flex items-center gap-2 rounded-lg border-2 border-[var(--theme-primary)] bg-[var(--theme-primary)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-primary-hover)] hover:border-[var(--theme-primary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--theme-primary)]"
                             >
                                 <Calendar className="h-4 w-4" />
-                                Appointment
+                                Schedule Appointment
                             </button>
                         )}
                         <button

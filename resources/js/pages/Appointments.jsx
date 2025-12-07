@@ -71,19 +71,88 @@ export default function Appointments() {
         fetchUser();
     }, []);
 
-    // Check if user is a caregiver
+    // Check if user is a caregiver (comprehensive detection)
     const isCaregiver = React.useMemo(() => {
         if (!currentUser) return false;
-        const role = currentUser.role?.toLowerCase().trim() || '';
-        const roleNormalized = role.replace(/[\s_]/g, '');
-        return roleNormalized === 'caregiver' || (role.includes('care') && role.includes('giver'));
+
+        const truthyValues = [
+            currentUser.is_caregiver,
+            currentUser.isCaregiver,
+            currentUser.caregiver,
+            currentUser.is_care_giver,
+        ];
+
+        const normalizeToBoolean = (value) => {
+            if (typeof value === 'boolean') return value;
+            if (typeof value === 'number') return value === 1;
+            if (typeof value === 'string') {
+                const normalized = value.trim().toLowerCase();
+                return ['1', 'true', 'yes', 'y', 'caregiver', 'care_giver'].includes(normalized);
+            }
+            return false;
+        };
+
+        if (truthyValues.some(normalizeToBoolean)) {
+            return true;
+        }
+
+        const candidateValues = [];
+        const collectCandidate = (value) => {
+            if (value !== null && value !== undefined && value !== '') {
+                candidateValues.push(String(value));
+            }
+        };
+
+        collectCandidate(currentUser.role);
+        collectCandidate(currentUser.position);
+        collectCandidate(currentUser.primary_role);
+        collectCandidate(currentUser.job_title);
+        collectCandidate(currentUser.primaryRole);
+        collectCandidate(currentUser.title);
+
+        const roles = currentUser.roles;
+        if (Array.isArray(roles)) {
+            roles.forEach((roleItem) => {
+                if (!roleItem) return;
+                if (typeof roleItem === 'string') {
+                    collectCandidate(roleItem);
+                } else {
+                    collectCandidate(roleItem.name);
+                    collectCandidate(roleItem.title);
+                    if (roleItem?.pivot?.role_name) {
+                        collectCandidate(roleItem.pivot.role_name);
+                    }
+                }
+            });
+        } else if (roles?.data && Array.isArray(roles.data)) {
+            roles.data.forEach((roleItem) => {
+                if (!roleItem) return;
+                if (typeof roleItem === 'string') {
+                    collectCandidate(roleItem);
+                } else {
+                    collectCandidate(roleItem.name);
+                    collectCandidate(roleItem.title);
+                    if (roleItem?.pivot?.role_name) {
+                        collectCandidate(roleItem.pivot.role_name);
+                    }
+                }
+            });
+        }
+
+        return candidateValues.some((value) => {
+            const lower = value.toLowerCase().trim();
+            if (!lower) return false;
+            const normalized = lower.replace(/[\s_-]/g, '');
+            return normalized === 'caregiver' || (lower.includes('care') && lower.includes('giver'));
+        });
     }, [currentUser]);
 
     // Permission checks
     const isSuperAdmin = currentUser?.role === 'super_admin';
     const isAdmin = currentUser?.role === 'administrator' || currentUser?.role === 'admin';
     const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
-    const canCreate = isSuperAdmin || isAdmin || permissions.includes('create_appointments');
+    // Caregivers can create appointments (similar to incidents)
+    const canCreate = isSuperAdmin || isAdmin || isCaregiver || permissions.includes('create_appointments');
     const canEdit = isSuperAdmin || isAdmin || permissions.includes('edit_appointments');
     const canDelete = isSuperAdmin || isAdmin || permissions.includes('delete_appointments');
 
