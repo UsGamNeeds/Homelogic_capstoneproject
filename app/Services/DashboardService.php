@@ -122,20 +122,46 @@ class DashboardService
      */
     public function getAdminStats(?User $user = null): array
     {
-        // If user provided, filter by facility (FacilityScope should handle this, but ensure it works)
-        // The FacilityScope should automatically filter, but let's ensure we get the right context
+        // Get facility from user or app context to ensure proper filtering
+        $facilityId = null;
+        if ($user && $user->facility_id) {
+            $facilityId = $user->facility_id;
+        } else {
+            try {
+                $facility = app()->bound('facility') ? app('facility') : null;
+                if ($facility) {
+                    $facilityId = $facility->id;
+                }
+            } catch (\Exception $e) {
+                // Facility not bound, continue without it
+            }
+        }
+        
+        // Build queries - FacilityScope should automatically filter, but if it's not working,
+        // we'll filter by facility through the branch relationship as a fallback
         $residentsQuery = Resident::where('is_active', true);
+        
+        // If FacilityScope isn't working (returns 0 but we have a facility), 
+        // filter through branch relationship as fallback
+        $totalResidents = $residentsQuery->count();
+        if ($totalResidents === 0 && $facilityId) {
+            // Try filtering through branch relationship
+            $residentsQuery = Resident::withoutGlobalScopes()
+                ->where('is_active', true)
+                ->whereHas('branch', function($q) use ($facilityId) {
+                    $q->where('facility_id', $facilityId);
+                });
+            $totalResidents = $residentsQuery->count();
+        }
+        
         $appointmentsQuery = Appointment::query();
         $vitalsQuery = VitalSign::query();
         $staffQuery = User::where('is_active', true)->where('role', '!=', 'super_admin');
         $assessmentsQuery = Assessment::whereNotIn('status', ['approved', 'archived']);
 
-        // FacilityScope should handle filtering, but ensure it's applied
-        // Models with FacilityScope will automatically filter by facility
-        
         return [
-            'total_residents' => $residentsQuery->count(),
-            'active_residents' => $residentsQuery->count(),
+            'total_residents' => $totalResidents,
+            'active_residents' => $totalResidents,
             'today_appointments' => $appointmentsQuery->whereDate('appointment_date', today())->count(),
             'upcoming_appointments' => $appointmentsQuery->whereDate('appointment_date', '>=', today())
                 ->whereNotIn('status', ['cancelled', 'completed'])
