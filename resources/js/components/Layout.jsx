@@ -100,6 +100,7 @@ const navigation = [
     { name: 'Grocery Status', icon: ShoppingCart, path: '/grocery-status', children: null },
     { name: 'Fire Drills', icon: Flame, path: '/fire-drills', children: null },
     { name: 'Incidents', icon: AlertTriangle, path: '/incidents', children: null },
+    { name: 'T-Logs', icon: FileText, path: '/t-logs', children: null },
     { 
         name: 'Check-In/Out', 
         icon: UserCheck, 
@@ -189,6 +190,7 @@ const caregiverNavigation = [
     { name: 'Grocery Status', icon: ShoppingCart, path: '/grocery-status', children: null },
     { name: 'Fire Drills', icon: Flame, path: '/fire-drills', children: null },
     { name: 'Incidents', icon: AlertTriangle, path: '/incidents', children: null },
+    { name: 'T-Logs', icon: FileText, path: '/t-logs', children: null },
     { name: 'Appointments', icon: Calendar, path: '/appointments', children: null },
     { name: 'Leave Requests', icon: CalendarClock, path: '/leave-requests', children: null },
 ];

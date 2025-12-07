@@ -128,6 +128,7 @@ const Expenses = lazyWithRetry(() => import('./pages/Expenses'));
 const BillingInvoices = lazyWithRetry(() => import('./pages/BillingInvoices'));
 const ExpenseReports = lazyWithRetry(() => import('./pages/reports/ExpenseReports'));
 const Incidents = lazyWithRetry(() => import('./pages/Incidents'));
+const TLogs = lazyWithRetry(() => import('./pages/TLogs'));
 const ChartReports = lazyWithRetry(() => import('./pages/reports/ChartReports'));
 const ResidentCharts = lazyWithRetry(() => import('./pages/reports/ResidentCharts'));
 const VitalsCharts = lazyWithRetry(() => import('./pages/reports/VitalsCharts'));
@@ -217,6 +218,7 @@ function App() {
                 <Route path="grocery-status" element={<Suspense fallback={<PageLoader />}><GroceryStatus /></Suspense>} />
                 <Route path="fire-drills" element={<Suspense fallback={<PageLoader />}><FireDrills /></Suspense>} />
                 <Route path="incidents" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="incidents"><Incidents /></ModuleProtectedRoute></Suspense>} />
+                <Route path="t-logs" element={<Suspense fallback={<PageLoader />}><TLogs /></Suspense>} />
                 <Route path="pharmacy/suppliers" element={<Suspense fallback={<PageLoader />}><PharmacySuppliers /></Suspense>} />
                 <Route path="pharmacy/inventory" element={<Suspense fallback={<PageLoader />}><PharmacyInventory /></Suspense>} />
                 <Route path="pharmacy/orders" element={<Suspense fallback={<PageLoader />}><PharmacyOrders /></Suspense>} />

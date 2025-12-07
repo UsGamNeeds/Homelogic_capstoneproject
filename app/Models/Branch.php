@@ -58,6 +58,11 @@ class Branch extends Model
         return $this->hasMany(Assignment::class);
     }
 
+    public function tLogs()
+    {
+        return $this->hasMany(TLog::class);
+    }
+
     // Scopes
     public function scopeActive($query)
     {

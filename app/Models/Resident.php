@@ -123,6 +123,11 @@ class Resident extends Model
         return $this->hasMany(ResidentDocument::class);
     }
 
+    public function tLogs(): HasMany
+    {
+        return $this->hasMany(TLog::class);
+    }
+
     protected function phone(): Attribute
     {
         return $this->phoneAttribute();
