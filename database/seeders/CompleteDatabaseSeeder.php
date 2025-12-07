@@ -107,6 +107,7 @@ class CompleteDatabaseSeeder extends Seeder
         $this->call([
             BehaviorSeeder::class,                // Behavior records
             IncidentSeeder::class,                // Incident reports
+            TLogSeeder::class,                    // T-Log entries
         ]);
         $this->command->info('✅ Phase 10 completed');
         $this->command->line('');
@@ -167,6 +168,7 @@ class CompleteDatabaseSeeder extends Seeder
             '🏖️ Leave Requests' => \App\Models\LeaveRequest::class,
             '📁 Employee Documents' => \App\Models\EmployeeDocument::class,
             '🚨 Incidents' => \App\Models\Incident::class,
+            '📝 T-Logs' => \App\Models\TLog::class,
             '🎭 Behaviors' => \App\Models\Behavior::class,
             '📂 Behavior Categories' => \App\Models\BehaviorCategory::class,
             '🔐 Roles' => \App\Models\Role::class,

@@ -67,8 +67,17 @@ class MedicationController extends BaseApiController
 
     public function store(Request $request): JsonResponse
     {
-        if ($error = $this->requirePermission('create_medications')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to create medications even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('create_medications')) {
+                return $error;
+            }
         }
 
         $validated = $request->validate([
@@ -131,8 +140,17 @@ class MedicationController extends BaseApiController
 
     public function update(Request $request, $id): JsonResponse
     {
-        if ($error = $this->requirePermission('edit_medications')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to edit medications even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('edit_medications')) {
+                return $error;
+            }
         }
 
         $medication = Medication::with('resident')->findOrFail($id);
@@ -193,8 +211,17 @@ class MedicationController extends BaseApiController
 
     public function destroy($id): JsonResponse
     {
-        if ($error = $this->requirePermission('delete_medications')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to delete medications even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('delete_medications')) {
+                return $error;
+            }
         }
 
         $medication = Medication::findOrFail($id);
