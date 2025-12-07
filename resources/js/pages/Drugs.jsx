@@ -32,10 +32,11 @@ export default function Drugs() {
   });
 
   const isSuperAdmin = currentUser?.role === 'super_admin';
+  const isAdmin = currentUser?.role === 'administrator' || currentUser?.role === 'admin';
   const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
-  const canCreate = isSuperAdmin || permissions.includes('create_drugs');
-  const canEdit = isSuperAdmin || permissions.includes('edit_drugs');
-  const canDelete = isSuperAdmin || permissions.includes('delete_drugs');
+  const canCreate = isSuperAdmin || isAdmin || permissions.includes('create_drugs');
+  const canEdit = isSuperAdmin || isAdmin || permissions.includes('edit_drugs');
+  const canDelete = isSuperAdmin || isAdmin || permissions.includes('delete_drugs');
 
   const { data, isLoading } = useQuery({
     queryKey: ['drugs', search],

@@ -26,12 +26,12 @@ export default function Branches() {
   });
 
   const isSuperAdmin = currentUser?.role === 'super_admin';
-  const isFacilityAdmin = currentUser?.role === 'administrator' || currentUser?.role === 'admin' || currentUser?.role === 'facility_admin';
+  const isAdmin = currentUser?.role === 'administrator' || currentUser?.role === 'admin' || currentUser?.role === 'facility_admin';
   
   const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
-  const canCreate = isSuperAdmin || permissions.includes('create_branches');
-  const canEdit = isSuperAdmin || permissions.includes('edit_branches');
-  const canDelete = isSuperAdmin || permissions.includes('delete_branches');
+  const canCreate = isSuperAdmin || isAdmin || permissions.includes('create_branches');
+  const canEdit = isSuperAdmin || isAdmin || permissions.includes('edit_branches');
+  const canDelete = isSuperAdmin || isAdmin || permissions.includes('delete_branches');
 
   const { data: facilities } = useQuery({
     queryKey: ['facilities-options'],

@@ -43,10 +43,11 @@ export default function Residents() {
     }, [currentUser]);
 
     const isSuperAdmin = currentUser?.role === 'super_admin';
+    const isAdmin = currentUser?.role === 'administrator' || currentUser?.role === 'admin';
     const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
-    const canCreate = isSuperAdmin || permissions.includes('create_residents');
-    const canEdit = isSuperAdmin || permissions.includes('edit_residents');
-    const canDelete = isSuperAdmin || permissions.includes('delete_residents');
+    const canCreate = isSuperAdmin || isAdmin || permissions.includes('create_residents');
+    const canEdit = isSuperAdmin || isAdmin || permissions.includes('edit_residents');
+    const canDelete = isSuperAdmin || isAdmin || permissions.includes('delete_residents');
 
     React.useEffect(() => {
         if (isCaregiver && currentUser?.assigned_branch_id) {

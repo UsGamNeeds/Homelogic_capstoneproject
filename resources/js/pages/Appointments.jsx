@@ -81,10 +81,11 @@ export default function Appointments() {
 
     // Permission checks
     const isSuperAdmin = currentUser?.role === 'super_admin';
+    const isAdmin = currentUser?.role === 'administrator' || currentUser?.role === 'admin';
     const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
-    const canCreate = isSuperAdmin || permissions.includes('create_appointments');
-    const canEdit = isSuperAdmin || permissions.includes('edit_appointments');
-    const canDelete = isSuperAdmin || permissions.includes('delete_appointments');
+    const canCreate = isSuperAdmin || isAdmin || permissions.includes('create_appointments');
+    const canEdit = isSuperAdmin || isAdmin || permissions.includes('edit_appointments');
+    const canDelete = isSuperAdmin || isAdmin || permissions.includes('delete_appointments');
 
     // Define queries FIRST before using them in useEffect
     const { data, isLoading, error: appointmentsError, refetch } = useQuery({

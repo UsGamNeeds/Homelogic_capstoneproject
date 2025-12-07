@@ -214,8 +214,17 @@ class AssessmentController extends BaseApiController
 
     public function store(Request $request): JsonResponse
     {
-        if ($error = $this->requirePermission('create_assessments')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to create assessments even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('create_assessments')) {
+                return $error;
+            }
         }
 
         // Check module access
@@ -249,8 +258,17 @@ class AssessmentController extends BaseApiController
 
     public function update(Request $request, $id): JsonResponse
     {
-        if ($error = $this->requirePermission('edit_assessments')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to edit assessments even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('edit_assessments')) {
+                return $error;
+            }
         }
 
         // Check module access
@@ -292,8 +310,17 @@ class AssessmentController extends BaseApiController
 
     public function destroy($id): JsonResponse
     {
-        if ($error = $this->requirePermission('delete_assessments')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to delete assessments even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('delete_assessments')) {
+                return $error;
+            }
         }
 
         // Check module access

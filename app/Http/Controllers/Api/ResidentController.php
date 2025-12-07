@@ -154,8 +154,17 @@ class ResidentController extends BaseApiController
 
     public function store(StoreResidentRequest $request): JsonResponse
     {
-        if ($error = $this->requirePermission('create_residents')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to create residents even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('create_residents')) {
+                return $error;
+            }
         }
 
         $validated = $request->validated();
@@ -200,8 +209,17 @@ class ResidentController extends BaseApiController
 
     public function update(UpdateResidentRequest $request, $id): JsonResponse
     {
-        if ($error = $this->requirePermission('edit_residents')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to edit residents even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('edit_residents')) {
+                return $error;
+            }
         }
 
         // Find resident without global scope to check permissions manually
@@ -319,8 +337,17 @@ class ResidentController extends BaseApiController
 
     public function destroy($id): JsonResponse
     {
-        if ($error = $this->requirePermission('delete_residents')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to delete residents even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('delete_residents')) {
+                return $error;
+            }
         }
 
         $resident = Resident::findOrFail($id);

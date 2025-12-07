@@ -107,8 +107,17 @@ class VitalSignController extends BaseApiController
 
     public function store(Request $request): JsonResponse
     {
-        if ($error = $this->requirePermission('create_vitals')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to create vitals even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('create_vitals')) {
+                return $error;
+            }
         }
 
         $validated = $request->validate([
@@ -151,8 +160,17 @@ class VitalSignController extends BaseApiController
 
     public function update(Request $request, $id): JsonResponse
     {
-        if ($error = $this->requirePermission('edit_vitals')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to edit vitals even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('edit_vitals')) {
+                return $error;
+            }
         }
 
         $vital = VitalSign::findOrFail($id);
@@ -188,8 +206,17 @@ class VitalSignController extends BaseApiController
 
     public function destroy($id): JsonResponse
     {
-        if ($error = $this->requirePermission('delete_vitals')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to delete vitals even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('delete_vitals')) {
+                return $error;
+            }
         }
 
         $vital = VitalSign::findOrFail($id);

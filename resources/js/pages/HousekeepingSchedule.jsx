@@ -1,5 +1,6 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm, FormProvider } from 'react-hook-form';
 import {
     Sparkles,
     Plus,
@@ -13,9 +14,13 @@ import {
     Edit3,
     Trash2,
     Building2,
+    ArrowLeft,
 } from 'lucide-react';
 import api from '../services/api';
 import { getLocalDateString } from '../utils/pacificTime';
+import FormInput from '../components/forms/FormInput';
+import FormTextarea from '../components/forms/FormTextarea';
+import FormCheckbox from '../components/forms/FormCheckbox';
 
 const frequencyOptions = [
     { value: 'daily', label: 'Daily' },
@@ -503,26 +508,17 @@ const closeAssignmentModal = () => {
             ) : null}
 
             {isAreaModalOpen ? (
-                <AreaModal
+                <AreaForm
                     onClose={() => {
                         setIsAreaModalOpen(false);
                         setEditingArea(null);
                     }}
                     branchId={branchId}
                     initialValues={editingArea}
-                    onSaved={async (payload) => {
-                        try {
-                            if (editingArea) {
-                                await api.put(`/cleaning/areas/${editingArea.id}`, payload);
-                            } else {
-                                await api.post('/cleaning/areas', payload);
-                            }
-                            await queryClient.invalidateQueries({ queryKey: ['cleaning-areas'] });
-                            setIsAreaModalOpen(false);
-                            setEditingArea(null);
-                        } catch (err) {
-                            window.alert(err?.response?.data?.message || err.message);
-                        }
+                    onSuccess={async () => {
+                        await queryClient.invalidateQueries({ queryKey: ['cleaning-areas'] });
+                        setIsAreaModalOpen(false);
+                        setEditingArea(null);
                     }}
                 />
             ) : null}
@@ -819,184 +815,159 @@ function TaskModal({ onClose, onSubmit, initialValues, isSaving }) {
     );
 }
 
-function AreaModal({ onClose, branchId, onSaved, initialValues }) {
-    const [formValues, setFormValues] = React.useState({
-        name: initialValues?.name ?? '',
-        shift_label: initialValues?.shift_label ?? '',
-        location: initialValues?.location ?? '',
-        description: initialValues?.description ?? '',
-        display_order: initialValues?.display_order ?? 0,
-        is_active: initialValues?.is_active ?? true,
+function AreaForm({ onClose, branchId, initialValues, onSuccess }) {
+    const queryClient = useQueryClient();
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+    const methods = useForm({
+        defaultValues: {
+            name: initialValues?.name ?? '',
+            shift_label: initialValues?.shift_label ?? '',
+            location: initialValues?.location ?? '',
+            description: initialValues?.description ?? '',
+            display_order: initialValues?.display_order ?? 0,
+            is_active: initialValues?.is_active ?? true,
+        },
     });
 
-    const handleChange = (event) => {
-        const { name, value, type, checked } = event.target;
-        setFormValues((prev) => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value,
-        }));
-    };
-
-    const handleSubmit = async (event) => {
-        event.preventDefault();
+    const onSubmit = async (data) => {
         if (!branchId) {
             window.alert('Please assign a branch to your profile first.');
             return;
         }
 
-        await onSaved({
-            ...formValues,
-            branch_id: branchId,
-            name: formValues.name.trim(),
-            shift_label: formValues.shift_label?.trim() || null,
-            location: formValues.location?.trim() || null,
-            description: formValues.description?.trim() || null,
-            display_order: Number(formValues.display_order ?? 0),
-        });
+        setIsSubmitting(true);
+        try {
+            const payload = {
+                ...data,
+                branch_id: branchId,
+                name: data.name.trim(),
+                shift_label: data.shift_label?.trim() || null,
+                location: data.location?.trim() || null,
+                description: data.description?.trim() || null,
+                display_order: Number(data.display_order ?? 0),
+            };
+
+            if (initialValues) {
+                await api.put(`/cleaning/areas/${initialValues.id}`, payload);
+            } else {
+                await api.post('/cleaning/areas', payload);
+            }
+            
+            await queryClient.invalidateQueries({ queryKey: ['cleaning-areas'] });
+            onSuccess();
+        } catch (err) {
+            window.alert(err?.response?.data?.message || err.message || 'Failed to save area');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
-        <div 
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-            onClick={(e) => {
-                if (e.target === e.currentTarget) {
-                    onClose();
-                }
-            }}
-        >
-            <div className="max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
-                <div className="mb-6 flex items-center justify-between">
-                    <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--theme-primary)' }}>
-                            {initialValues ? 'Edit Area' : 'New Area'}
-                        </p>
-                        <h2 className="text-2xl font-semibold text-gray-900">Cleaning Area</h2>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
-                        aria-label="Close modal"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    <div>
-                        <label htmlFor="area-name" className="block text-base font-bold mb-2" style={{ color: '#111827' }}>
-                            Area Name
-                        </label>
-                        <input
-                            id="area-name"
-                            type="text"
-                            name="name"
-                            value={formValues.name}
-                            onChange={handleChange}
-                            required
-                            className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:border-[var(--theme-primary)]"
-                            style={{ '--tw-ring-color': 'var(--theme-primary-bg)' }}
-                            placeholder="e.g. Kitchen, Float #1"
-                        />
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label htmlFor="shift-label" className="block text-base font-bold mb-2" style={{ color: '#111827' }}>
-                                Shift / Assignment Label
-                            </label>
-                            <input
-                                id="shift-label"
-                                type="text"
-                                name="shift_label"
-                                value={formValues.shift_label}
-                                onChange={handleChange}
-                                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:border-[var(--theme-primary)]"
-                                style={{ '--tw-ring-color': 'var(--theme-primary-bg)' }}
-                                placeholder="e.g. Day Shift"
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="location" className="block text-base font-bold mb-2" style={{ color: '#111827' }}>
-                                Location
-                            </label>
-                            <input
-                                id="location"
-                                type="text"
-                                name="location"
-                                value={formValues.location}
-                                onChange={handleChange}
-                                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:border-[var(--theme-primary)]"
-                                style={{ '--tw-ring-color': 'var(--theme-primary-bg)' }}
-                                placeholder="e.g. Main Level"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="description" className="block text-base font-bold mb-2" style={{ color: '#111827' }}>
-                            Description / Notes
-                        </label>
-                        <textarea
-                            id="description"
-                            name="description"
-                            value={formValues.description}
-                            onChange={handleChange}
-                            rows={3}
-                            className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:border-[var(--theme-primary)]"
-                            style={{ '--tw-ring-color': 'var(--theme-primary-bg)' }}
-                            placeholder="Responsibilities, reminders, etc."
-                        />
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label htmlFor="display-order" className="block text-base font-bold mb-2" style={{ color: '#111827' }}>
-                                Display Order
-                            </label>
-                            <input
-                                id="display-order"
-                                type="number"
-                                name="display_order"
-                                value={formValues.display_order}
-                                onChange={handleChange}
-                                min={0}
-                                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:border-[var(--theme-primary)]"
-                                style={{ '--tw-ring-color': 'var(--theme-primary-bg)' }}
-                            />
-                        </div>
-                        <label className="flex items-center gap-3 rounded-2xl border border-gray-200 px-4 py-3">
-                            <input
-                                type="checkbox"
-                                name="is_active"
-                                checked={formValues.is_active}
-                                onChange={handleChange}
-                            />
+        <div className="min-h-screen bg-gray-50">
+            <div className="max-w-4xl mx-auto px-4 py-8">
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                    {/* Header */}
+                    <div className="mb-6 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                aria-label="Go back"
+                            >
+                                <ArrowLeft className="w-5 h-5 text-gray-600" />
+                            </button>
                             <div>
-                                <div className="text-sm font-semibold text-gray-800">Active area</div>
-                                <p className="text-xs text-gray-500">Inactive areas stay hidden but aren’t deleted.</p>
+                                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--theme-primary)' }}>
+                                    {initialValues ? 'Edit Area' : 'New Area'}
+                                </p>
+                                <h2 className="text-2xl font-semibold text-gray-900">Cleaning Area</h2>
                             </div>
-                        </label>
+                        </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-3">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="inline-flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--theme-primary-hover)]"
-                            style={{ backgroundColor: 'var(--theme-primary)' }}
-                        >
-                            <Building2 className="h-4 w-4" />
-                            {initialValues ? 'Save Changes' : 'Save Area'}
-                        </button>
-                    </div>
-                </form>
+                    {/* Form */}
+                    <FormProvider {...methods}>
+                        <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
+                            <FormInput
+                                name="name"
+                                label="Area Name"
+                                placeholder="e.g. Kitchen, Float #1"
+                                required
+                            />
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <FormInput
+                                    name="shift_label"
+                                    label="Shift / Assignment Label"
+                                    placeholder="e.g. Day Shift"
+                                />
+                                <FormInput
+                                    name="location"
+                                    label="Location"
+                                    placeholder="e.g. Main Level"
+                                />
+                            </div>
+
+                            <FormTextarea
+                                name="description"
+                                label="Description / Notes"
+                                placeholder="Responsibilities, reminders, etc."
+                                rows={3}
+                            />
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <FormInput
+                                    name="display_order"
+                                    label="Display Order"
+                                    type="number"
+                                    min={0}
+                                />
+                                <div>
+                                    <div className="text-sm font-medium text-gray-700 mb-2">Status</div>
+                                    <div className="rounded-lg border border-gray-300 px-4 py-3 hover:bg-gray-50">
+                                        <div className="flex items-center gap-3">
+                                            <FormCheckbox
+                                                name="is_active"
+                                                label="Active area"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-2 ml-7">Inactive areas stay hidden but aren't deleted.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t">
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white rounded-lg shadow-sm transition-colors hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ backgroundColor: 'var(--theme-primary)' }}
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Building2 className="h-4 w-4" />
+                                            {initialValues ? 'Save Changes' : 'Save Area'}
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </FormProvider>
+                </div>
             </div>
         </div>
     );

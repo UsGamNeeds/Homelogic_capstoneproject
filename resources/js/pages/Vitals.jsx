@@ -29,10 +29,11 @@ export default function Vitals() {
     });
 
     const isSuperAdmin = currentUser?.role === 'super_admin';
+    const isAdmin = currentUser?.role === 'administrator' || currentUser?.role === 'admin';
     const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
-    const canCreate = isSuperAdmin || permissions.includes('create_vitals');
-    const canEdit = isSuperAdmin || permissions.includes('edit_vitals');
-    const canDelete = isSuperAdmin || permissions.includes('delete_vitals');
+    const canCreate = isSuperAdmin || isAdmin || permissions.includes('create_vitals');
+    const canEdit = isSuperAdmin || isAdmin || permissions.includes('edit_vitals');
+    const canDelete = isSuperAdmin || isAdmin || permissions.includes('delete_vitals');
 
     const { data, isLoading } = useQuery({
         queryKey: ['vitals', dateFilter, residentFilter],

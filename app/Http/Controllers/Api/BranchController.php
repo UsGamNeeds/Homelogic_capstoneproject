@@ -30,8 +30,17 @@ class BranchController extends BaseApiController
 
     public function store(Request $request): JsonResponse
     {
-        if ($error = $this->requirePermission('create_branches')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to create branches even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('create_branches')) {
+                return $error;
+            }
         }
 
         $validated = $request->validate([
@@ -56,8 +65,17 @@ class BranchController extends BaseApiController
 
     public function update(Request $request, $id): JsonResponse
     {
-        if ($error = $this->requirePermission('edit_branches')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to edit branches even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('edit_branches')) {
+                return $error;
+            }
         }
 
         $branch = Branch::findOrFail($id);
@@ -77,8 +95,17 @@ class BranchController extends BaseApiController
 
     public function destroy($id): JsonResponse
     {
-        if ($error = $this->requirePermission('delete_branches')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to delete branches even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('delete_branches')) {
+                return $error;
+            }
         }
 
         $branch = Branch::findOrFail($id);

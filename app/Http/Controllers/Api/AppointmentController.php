@@ -52,8 +52,17 @@ class AppointmentController extends BaseApiController
 
     public function store(Request $request): JsonResponse
     {
-        if ($error = $this->requirePermission('create_appointments')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to create appointments even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('create_appointments')) {
+                return $error;
+            }
         }
 
         $validated = $request->validate([

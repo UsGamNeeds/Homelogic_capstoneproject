@@ -113,8 +113,17 @@ class IncidentController extends BaseApiController
 
     public function store(Request $request): JsonResponse
     {
-        if ($error = $this->requirePermission('create_incidents')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to create incidents even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('create_incidents')) {
+                return $error;
+            }
         }
 
         // Check module access
@@ -218,8 +227,17 @@ class IncidentController extends BaseApiController
 
     public function update(Request $request, $id): JsonResponse
     {
-        if ($error = $this->requirePermission('edit_incidents')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to edit incidents even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('edit_incidents')) {
+                return $error;
+            }
         }
 
         // Check module access
@@ -271,8 +289,17 @@ class IncidentController extends BaseApiController
 
     public function destroy($id): JsonResponse
     {
-        if ($error = $this->requirePermission('delete_incidents')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to delete incidents even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('delete_incidents')) {
+                return $error;
+            }
         }
 
         // Check module access

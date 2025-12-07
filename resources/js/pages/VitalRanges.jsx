@@ -22,10 +22,11 @@ export default function VitalRanges() {
   });
 
   const isSuperAdmin = currentUser?.role === 'super_admin';
+  const isAdmin = currentUser?.role === 'administrator' || currentUser?.role === 'admin';
   const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
-  const canCreate = isSuperAdmin || permissions.includes('create_vital_ranges');
-  const canEdit = isSuperAdmin || permissions.includes('edit_vital_ranges');
-  const canDelete = isSuperAdmin || permissions.includes('delete_vital_ranges');
+  const canCreate = isSuperAdmin || isAdmin || permissions.includes('create_vital_ranges');
+  const canEdit = isSuperAdmin || isAdmin || permissions.includes('edit_vital_ranges');
+  const canDelete = isSuperAdmin || isAdmin || permissions.includes('delete_vital_ranges');
 
   const { data, isLoading } = useQuery({
     queryKey: ['vital-ranges'],

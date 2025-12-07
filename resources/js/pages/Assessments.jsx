@@ -39,11 +39,18 @@ export default function Assessments() {
     const enabledModules = currentUser?.enabled_modules || [];
     const hasModuleAccessCheck = isSuperAdmin || hasModuleAccess('/assessments', enabledModules, isSuperAdmin);
     
+    // Check if user is an admin (needed for permission checks)
+    const isAdmin = useMemo(() => {
+        if (!currentUser) return false;
+        const role = currentUser.role?.toLowerCase().trim() || '';
+        return role === 'administrator' || role === 'admin' || role === 'super_admin';
+    }, [currentUser]);
+    
     // Permission checks
     const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
-    const canCreate = isSuperAdmin || permissions.includes('create_assessments');
-    const canEdit = isSuperAdmin || permissions.includes('edit_assessments');
-    const canDelete = isSuperAdmin || permissions.includes('delete_assessments');
+    const canCreate = isSuperAdmin || isAdmin || permissions.includes('create_assessments');
+    const canEdit = isSuperAdmin || isAdmin || permissions.includes('edit_assessments');
+    const canDelete = isSuperAdmin || isAdmin || permissions.includes('delete_assessments');
 
     // Show loading state
     if (isLoadingUser) {
@@ -84,13 +91,6 @@ export default function Assessments() {
         const role = currentUser.role?.toLowerCase().trim() || '';
         const roleNormalized = role.replace(/[\s_]/g, '');
         return roleNormalized === 'caregiver' || (role.includes('care') && role.includes('giver'));
-    }, [currentUser]);
-
-    // Check if user is an admin
-    const isAdmin = React.useMemo(() => {
-        if (!currentUser) return false;
-        const role = currentUser.role?.toLowerCase().trim() || '';
-        return role === 'administrator' || role === 'admin' || role === 'super_admin';
     }, [currentUser]);
 
     // Fetch residents for form

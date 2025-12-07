@@ -59,10 +59,16 @@ export default function UsersPage() {
         return role === 'super_admin' || role === 'superadmin';
     }, [currentUser]);
 
+    const isAdmin = React.useMemo(() => {
+        if (!currentUser) return false;
+        const role = String(currentUser.role || '').toLowerCase().trim();
+        return role === 'administrator' || role === 'admin';
+    }, [currentUser]);
+
     const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
-    const canCreate = isSuperAdmin || permissions.includes('create_users');
-    const canEdit = isSuperAdmin || permissions.includes('edit_users');
-    const canDelete = isSuperAdmin || permissions.includes('delete_users');
+    const canCreate = isSuperAdmin || isAdmin || permissions.includes('create_users');
+    const canEdit = isSuperAdmin || isAdmin || permissions.includes('edit_users');
+    const canDelete = isSuperAdmin || isAdmin || permissions.includes('delete_users');
 
     const { data: facilitiesData } = useQuery({
         queryKey: ['facilities-options'],

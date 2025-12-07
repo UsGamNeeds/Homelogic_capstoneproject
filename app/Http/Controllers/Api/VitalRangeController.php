@@ -18,8 +18,17 @@ class VitalRangeController extends BaseApiController
 
     public function store(Request $request): JsonResponse
     {
-        if ($error = $this->requirePermission('create_vital_ranges')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to create vital ranges even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('create_vital_ranges')) {
+                return $error;
+            }
         }
 
         $validated = $request->validate([
@@ -40,8 +49,17 @@ class VitalRangeController extends BaseApiController
 
     public function update(Request $request, $id): JsonResponse
     {
-        if ($error = $this->requirePermission('edit_vital_ranges')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to edit vital ranges even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('edit_vital_ranges')) {
+                return $error;
+            }
         }
 
         $range = VitalRange::findOrFail($id);
@@ -63,8 +81,17 @@ class VitalRangeController extends BaseApiController
 
     public function destroy($id): JsonResponse
     {
-        if ($error = $this->requirePermission('delete_vital_ranges')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to delete vital ranges even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('delete_vital_ranges')) {
+                return $error;
+            }
         }
 
         VitalRange::findOrFail($id)->delete();

@@ -32,8 +32,17 @@ class FacilityController extends BaseApiController
 
     public function store(Request $request): JsonResponse
     {
-        if ($error = $this->requirePermission('create_facilities')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to create facilities even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('create_facilities')) {
+                return $error;
+            }
         }
 
         $rules = [
@@ -179,8 +188,17 @@ class FacilityController extends BaseApiController
 
     public function update(Request $request, $id): JsonResponse
     {
-        if ($error = $this->requirePermission('edit_facilities')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to edit facilities even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('edit_facilities')) {
+                return $error;
+            }
         }
 
         $facility = Facility::findOrFail($id);
@@ -368,8 +386,17 @@ class FacilityController extends BaseApiController
 
     public function destroy($id): JsonResponse
     {
-        if ($error = $this->requirePermission('delete_facilities')) {
-            return $error;
+        $user = auth()->user();
+        
+        // Allow administrators and super admins to delete facilities even without specific permission
+        $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
+        $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
+        
+        // Check permission only if user is not an admin or super admin
+        if (!$isSuperAdmin && !$isAdmin) {
+            if ($error = $this->requirePermission('delete_facilities')) {
+                return $error;
+            }
         }
 
         $facility = Facility::findOrFail($id);
