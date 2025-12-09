@@ -4,6 +4,7 @@ import api from '../services/api';
 import { Building2, Plus, Search, Edit, Trash2, MapPin, Phone, Mail, Building, Navigation } from 'lucide-react';
 import SectionCard from '../components/SectionCard';
 import { getUserLocation } from '../utils/location';
+import { formatPhoneNumber } from '../utils/phoneFormatter';
 
 export default function Branches() {
   const queryClient = useQueryClient();
@@ -429,8 +430,11 @@ function BranchForm({ record, facilities, currentUser, isSuperAdmin, isFacilityA
                   Phone
                 </label>
                 <input
+                  type="tel"
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  onChange={(e) => setForm({ ...form, phone: formatPhoneNumber(e.target.value) })}
+                  placeholder="(425) 555-0123"
+                  maxLength={14}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                 />
               </div>
