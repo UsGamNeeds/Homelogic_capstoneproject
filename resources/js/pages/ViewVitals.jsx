@@ -529,7 +529,6 @@ export default function ViewVitals() {
             'Pulse',
             'Oxygen Saturation',
             'Pain',
-            'Reason Declined',
             'Vital Status',
             'Notes',
         ];
@@ -542,7 +541,6 @@ export default function ViewVitals() {
                 v.pulse || '-',
                 v.oxygen_saturation ? `${v.oxygen_saturation}%` : '-',
                 v.pain_level || '-',
-                v.reason_declined || '-',
                 v.status || 'approved',
                 v.notes || '-',
             ];
@@ -748,7 +746,6 @@ export default function ViewVitals() {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-[var(--theme-primary)] uppercase tracking-wider">Pulse</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-[var(--theme-primary)] uppercase tracking-wider">Oxygen Saturation</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-[var(--theme-primary)] uppercase tracking-wider">Pain</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--theme-primary)] uppercase tracking-wider">Reason Declined</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-[var(--theme-primary)] uppercase tracking-wider">Vital Status</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-[var(--theme-primary)] uppercase tracking-wider">Action</th>
                                 </tr>
@@ -756,7 +753,7 @@ export default function ViewVitals() {
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan="9" className="px-6 py-4 text-center">
+                                        <td colSpan="8" className="px-6 py-4 text-center">
                                             <div className="flex items-center justify-center">
                                                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--theme-primary)]"></div>
                                             </div>
@@ -764,7 +761,7 @@ export default function ViewVitals() {
                                     </tr>
                                         ) : error ? (
                                             <tr>
-                                                <td colSpan="9" className="px-6 py-4 text-center text-red-600 text-sm">
+                                                <td colSpan="8" className="px-6 py-4 text-center text-red-600 text-sm">
                                                     {error.message || 'Unable to load vitals data.'}
                                                 </td>
                                             </tr>
@@ -790,9 +787,6 @@ export default function ViewVitals() {
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                             {vital.pain_level || '-'}
-                                                        </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                            {vital.reason_declined || '-'}
                                                         </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                                                     <span className={`px-2 py-1 rounded-full text-xs ${
@@ -847,7 +841,7 @@ export default function ViewVitals() {
                                             })
                                         ) : (
                                             <tr>
-                                                <td colSpan="9" className="px-6 py-4 text-center text-gray-500">
+                                                <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
                                                     No vitals data found for the selected period
                                                 </td>
                                             </tr>

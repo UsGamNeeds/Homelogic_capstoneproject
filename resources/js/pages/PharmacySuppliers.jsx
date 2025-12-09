@@ -4,6 +4,7 @@ import api from '../services/api';
 import { Building2, Plus, Search, Edit, Trash2, Phone, Mail, MapPin, CheckCircle, XCircle } from 'lucide-react';
 import SectionCard from '../components/SectionCard';
 import Card from '../components/Card';
+import { formatPhoneNumber } from '../utils/phoneFormatter';
 
 export default function PharmacySuppliers() {
     const queryClient = useQueryClient();
@@ -175,8 +176,13 @@ export default function PharmacySuppliers() {
                                 </label>
                                 <input
                                     type="tel"
-                                    value={formData.phone}
-                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    value={formData.phone || ''}
+                                    onChange={(e) => {
+                                        const formatted = formatPhoneNumber(e.target.value);
+                                        setFormData({ ...formData, phone: formatted });
+                                    }}
+                                    placeholder="(425) 555-0123"
+                                    maxLength={14}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                                 />
                             </div>
