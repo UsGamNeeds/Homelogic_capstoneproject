@@ -209,7 +209,15 @@ export default function ResidentDocuments({ residentId }) {
                 <>
                     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                         <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
+                            <table className="w-full divide-y divide-gray-200 table-fixed">
+                                <colgroup>
+                                    <col style={{ width: '25%' }} />
+                                    <col style={{ width: '12%' }} />
+                                    <col style={{ width: '20%' }} />
+                                    <col style={{ width: '15%' }} />
+                                    <col style={{ width: '13%' }} />
+                                    <col style={{ width: '15%' }} />
+                                </colgroup>
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -235,23 +243,23 @@ export default function ResidentDocuments({ residentId }) {
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {documents.map((document) => (
                                         <tr key={document.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900">
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm font-medium text-gray-900 truncate">
                                                     {document.document_name}
                                                 </div>
                                                 {document.notes && (
-                                                    <div className="text-xs text-gray-500 mt-1 line-clamp-1">
+                                                    <div className="text-xs text-gray-500 mt-1 truncate">
                                                         {document.notes}
                                                     </div>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-6 py-4">
                                                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${documentTypeColors[document.document_type] || documentTypeColors.other}`}>
                                                     {documentTypeOptions[document.document_type] || 'Other'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm text-gray-900 truncate">
                                                     {document.file_name || 'N/A'}
                                                 </div>
                                                 {document.file_size && (
@@ -260,7 +268,7 @@ export default function ResidentDocuments({ residentId }) {
                                                     </div>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-6 py-4">
                                                 {document.appointment ? (
                                                     <div className="text-sm text-gray-900">
                                                         {new Date(document.appointment.appointment_date).toLocaleDateString()}
@@ -269,19 +277,21 @@ export default function ResidentDocuments({ residentId }) {
                                                     <span className="text-sm text-gray-400">—</span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <td className="px-6 py-4 text-sm text-gray-500">
                                                 {document.created_at ? new Date(document.created_at).toLocaleDateString() : 'N/A'}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <td className="px-6 py-4 text-right text-sm font-medium">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
+                                                        type="button"
                                                         onClick={() => handleDownload(document)}
-                                                        className="text-[var(--theme-primary)] hover:text-[var(--theme-primary-hover)]"
+                                                        className="p-2 rounded-md bg-[var(--theme-primary-bg)] text-[var(--theme-primary)] hover:bg-[var(--theme-primary)] hover:text-white transition-colors border border-[var(--theme-primary-light)]"
                                                         title="Download"
                                                     >
-                                                        <Download className="h-4 w-4" />
+                                                        <Download className="h-5 w-5" />
                                                     </button>
                                                     <button
+                                                        type="button"
                                                         onClick={() => {
                                                             setEditing(document);
                                                             setShowForm(true);
@@ -293,17 +303,18 @@ export default function ResidentDocuments({ residentId }) {
                                                                 }
                                                             }, 100);
                                                         }}
-                                                        className="text-blue-600 hover:text-blue-900"
+                                                        className="p-2 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-colors border border-blue-200"
                                                         title="Edit"
                                                     >
-                                                        <Edit className="h-4 w-4" />
+                                                        <Edit className="h-5 w-5" />
                                                     </button>
                                                     <button
+                                                        type="button"
                                                         onClick={() => handleDelete(document.id)}
-                                                        className="text-red-600 hover:text-red-900"
+                                                        className="p-2 rounded-md bg-red-50 text-red-700 hover:bg-red-600 hover:text-white transition-colors border border-red-200"
                                                         title="Delete"
                                                     >
-                                                        <Trash2 className="h-4 w-4" />
+                                                        <Trash2 className="h-5 w-5" />
                                                     </button>
                                                 </div>
                                             </td>
