@@ -239,11 +239,24 @@ function BranchForm({ record, facilities, currentUser, isSuperAdmin, isFacilityA
     setSubmitting(true);
     setErrors({});
     try {
-      // Prepare form data - strip phone formatting before sending
+      // Prepare form data - ensure proper formatting
       const submitData = {
-        ...form,
+        name: form.name.trim(),
+        facility_id: form.facility_id || (isFacilityAdmin && currentUser?.facility_id ? currentUser.facility_id : null),
+        address: form.address?.trim() || null,
         phone: form.phone ? unformatPhoneNumber(form.phone) : null,
+        email: form.email?.trim() || null,
+        is_active: Boolean(form.is_active),
+        latitude: form.latitude ? parseFloat(form.latitude) : null,
+        longitude: form.longitude ? parseFloat(form.longitude) : null,
       };
+
+      // Remove null/empty values for optional fields
+      if (!submitData.phone) delete submitData.phone;
+      if (!submitData.email) delete submitData.email;
+      if (!submitData.address) delete submitData.address;
+      if (submitData.latitude === null) delete submitData.latitude;
+      if (submitData.longitude === null) delete submitData.longitude;
       
       if (record) {
         await api.put(`/branches/${record.id}`, submitData);
@@ -252,7 +265,13 @@ function BranchForm({ record, facilities, currentUser, isSuperAdmin, isFacilityA
       }
       onSuccess();
     } catch (e) {
-      setErrors(e.response?.data?.errors || { general: e.response?.data?.message || 'Failed to save branch' });
+      console.error('Branch save error:', e.response?.data);
+      const errorData = e.response?.data;
+      if (errorData?.errors) {
+        setErrors(errorData.errors);
+      } else {
+        setErrors({ general: errorData?.message || 'Failed to save branch. Please check all required fields.' });
+      }
     } finally {
       setSubmitting(false);
     }
