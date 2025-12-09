@@ -29,6 +29,7 @@ export default function ResidentDocuments({ residentId }) {
     const [editing, setEditing] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
 
+
     const { data, isLoading } = useQuery({
         queryKey: ['resident-documents', residentId, search, typeFilter, currentPage],
         queryFn: async () => {
@@ -89,16 +90,51 @@ export default function ResidentDocuments({ residentId }) {
                     <p className="text-sm text-gray-500 mt-1">Manage resident documents and files</p>
                 </div>
                 <button
-                    onClick={() => {
-                        setEditing(null);
-                        setShowForm(true);
+                    type="button"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!residentId) {
+                            console.error('Cannot add document: residentId is missing!');
+                            alert('Error: Resident ID is missing. Please refresh the page.');
+                            return;
+                        }
+                        if (showForm) {
+                            // If form is already showing, close it
+                            setShowForm(false);
+                            setEditing(null);
+                        } else {
+                            // Show form for new document
+                            setEditing(null);
+                            setShowForm(true);
+                        }
                     }}
                     className="inline-flex items-center gap-2 rounded-lg border-2 border-[var(--theme-primary)] bg-[var(--theme-primary)] px-4 py-2 text-sm font-semibold text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-hover)] transition-colors shadow-sm"
                 >
                     <Plus className="h-4 w-4" />
-                    Add Document
+                    {showForm && !editing ? 'Cancel' : 'Add Document'}
                 </button>
             </div>
+
+            {/* Inline Form */}
+            {showForm && (
+                <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+                    <DocumentFormInline
+                        residentId={residentId}
+                        appointments={appointments}
+                        record={editing}
+                        onClose={() => {
+                            setShowForm(false);
+                            setEditing(null);
+                        }}
+                        onSuccess={() => {
+                            setShowForm(false);
+                            setEditing(null);
+                            queryClient.invalidateQueries(['resident-documents']);
+                        }}
+                    />
+                </div>
+            )}
 
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
@@ -151,7 +187,17 @@ export default function ResidentDocuments({ residentId }) {
                     </p>
                     {!search && !typeFilter && (
                         <button
-                            onClick={() => setShowForm(true)}
+                            onClick={() => {
+                                setEditing(null);
+                                setShowForm(true);
+                                // Scroll to form
+                                setTimeout(() => {
+                                    const formElement = document.querySelector('[data-document-form]');
+                                    if (formElement) {
+                                        formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    }
+                                }, 100);
+                            }}
                             className="inline-flex items-center gap-2 rounded-lg border-2 border-[var(--theme-primary)] bg-[var(--theme-primary)] px-4 py-2 text-sm font-semibold text-[var(--theme-text-on-primary)] shadow-sm transition hover:bg-[var(--theme-primary-hover)]"
                         >
                             <Plus className="h-4 w-4" />
@@ -239,6 +285,13 @@ export default function ResidentDocuments({ residentId }) {
                                                         onClick={() => {
                                                             setEditing(document);
                                                             setShowForm(true);
+                                                            // Scroll to form
+                                                            setTimeout(() => {
+                                                                const formElement = document.querySelector('[data-document-form]');
+                                                                if (formElement) {
+                                                                    formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                                                }
+                                                            }, 100);
                                                         }}
                                                         className="text-blue-600 hover:text-blue-900"
                                                         title="Edit"
@@ -287,11 +340,12 @@ export default function ResidentDocuments({ residentId }) {
                     )}
                 </>
             )}
+
         </div>
     );
 }
 
-function DocumentFormModal({ residentId, appointments, record, onClose, onSuccess }) {
+function DocumentFormInline({ residentId, appointments, record, onClose, onSuccess }) {
     // Log and validate residentId
     useEffect(() => {
         console.log('DocumentFormModal received residentId:', residentId, typeof residentId);
@@ -388,131 +442,133 @@ function DocumentFormModal({ residentId, appointments, record, onClose, onSucces
     };
 
     return (
-        <div className="bg-white rounded-lg shadow p-6">
+        <div data-document-form>
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-900">
                     {record ? 'Edit Document' : 'Add Document'}
                 </h2>
                 <button
+                    type="button"
                     onClick={onClose}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label="Close form"
                 >
                     <X className="w-6 h-6" />
                 </button>
             </div>
 
-                    {errors.general && (
-                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                            <p className="text-sm text-red-800">{errors.general}</p>
-                        </div>
-                    )}
+            {errors.general && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-800">{errors.general}</p>
+                </div>
+            )}
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Document Name *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.document_name}
-                                    onChange={(e) => setFormData({...formData, document_name: e.target.value})}
-                                    required
-                                    maxLength={255}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                                />
-                                {errors.document_name && <p className="text-xs text-red-600 mt-1">{errors.document_name[0]}</p>}
-                            </div>
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Document Name *
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.document_name}
+                            onChange={(e) => setFormData({...formData, document_name: e.target.value})}
+                            required
+                            maxLength={255}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                        />
+                        {errors.document_name && <p className="text-xs text-red-600 mt-1">{errors.document_name[0]}</p>}
+                    </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Document Type *
-                                </label>
-                                <select
-                                    value={formData.document_type}
-                                    onChange={(e) => setFormData({...formData, document_type: e.target.value})}
-                                    required
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                                >
-                                    <option value="">Select Type</option>
-                                    {Object.entries(documentTypeOptions).map(([value, label]) => (
-                                        <option key={value} value={value}>{label}</option>
-                                    ))}
-                                </select>
-                                {errors.document_type && <p className="text-xs text-red-600 mt-1">{errors.document_type[0]}</p>}
-                            </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Document Type *
+                        </label>
+                        <select
+                            value={formData.document_type}
+                            onChange={(e) => setFormData({...formData, document_type: e.target.value})}
+                            required
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                        >
+                            <option value="">Select Type</option>
+                            {Object.entries(documentTypeOptions).map(([value, label]) => (
+                                <option key={value} value={value}>{label}</option>
+                            ))}
+                        </select>
+                        {errors.document_type && <p className="text-xs text-red-600 mt-1">{errors.document_type[0]}</p>}
+                    </div>
 
-                            <div className="col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Related Appointment (Optional)
-                                </label>
-                                <select
-                                    value={formData.appointment_id || ''}
-                                    onChange={(e) => setFormData({...formData, appointment_id: e.target.value || null})}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                                >
-                                    <option value="">None</option>
-                                    {appointments.map((apt) => (
-                                        <option key={apt.id} value={apt.id}>
-                                            {new Date(apt.appointment_date).toLocaleDateString()} - {apt.provider_name || 'Appointment'}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Related Appointment (Optional)
+                        </label>
+                        <select
+                            value={formData.appointment_id || ''}
+                            onChange={(e) => setFormData({...formData, appointment_id: e.target.value || null})}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                        >
+                            <option value="">None</option>
+                            {appointments.map((apt) => (
+                                <option key={apt.id} value={apt.id}>
+                                    {new Date(apt.appointment_date).toLocaleDateString()} - {apt.provider_name || 'Appointment'}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
-                            <div className="col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Document File {record ? '(leave blank to keep current)' : '*'}
-                                </label>
-                                <input
-                                    type="file"
-                                    onChange={handleFileChange}
-                                    accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx"
-                                    required={!record}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                                />
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Accepted: PDF, Images (JPG, PNG, GIF), Word Docs (DOC, DOCX). Max size: 10MB
-                                </p>
-                                {record?.file_name && (
-                                    <p className="text-xs text-gray-600 mt-1">
-                                        Current file: {record.file_name}
-                                    </p>
-                                )}
-                                {errors.file_path && <p className="text-xs text-red-600 mt-1">{errors.file_path[0]}</p>}
-                            </div>
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Document File {record ? '(leave blank to keep current)' : '*'}
+                        </label>
+                        <input
+                            type="file"
+                            onChange={handleFileChange}
+                            accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx"
+                            required={!record}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            Accepted: PDF, Images (JPG, PNG, GIF), Word Docs (DOC, DOCX). Max size: 10MB
+                        </p>
+                        {record?.file_name && (
+                            <p className="text-xs text-gray-600 mt-1">
+                                Current file: {record.file_name}
+                            </p>
+                        )}
+                        {errors.file_path && <p className="text-xs text-red-600 mt-1">{errors.file_path[0]}</p>}
+                    </div>
 
-                            <div className="col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Notes
-                                </label>
-                                <textarea
-                                    value={formData.notes}
-                                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                                    rows={3}
-                                    placeholder="Any additional notes about this document..."
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                                />
-                            </div>
-                        </div>
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Notes
+                        </label>
+                        <textarea
+                            value={formData.notes}
+                            onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                            rows={3}
+                            placeholder="Any additional notes about this document..."
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent resize-vertical"
+                        />
+                    </div>
+                </div>
 
-                        <div className="flex items-center justify-end space-x-3 pt-4 border-t">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="px-4 py-2 border-2 border-[var(--theme-primary)] bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                            >
-                                {isSubmitting ? 'Saving...' : (record ? 'Update' : 'Create')}
-                            </button>
-                        </div>
-                    </form>
+                <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="px-4 py-2 border-2 border-[var(--theme-primary)] bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                    >
+                        {isSubmitting ? 'Saving...' : (record ? 'Update' : 'Create')}
+                    </button>
+                </div>
+            </form>
         </div>
     );
 }

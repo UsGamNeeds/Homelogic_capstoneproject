@@ -12,6 +12,7 @@ use App\Models\Resident;
 use App\Models\User;
 use App\Models\VitalSign;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardService
 {
@@ -20,12 +21,17 @@ class DashboardService
      */
     public function getStatsForUser(User $user): array
     {
+        // Cache stats for 2 minutes to reduce database load
+        $cacheKey = "dashboard.stats.{$user->id}.{$user->role}";
+        
+        return Cache::remember($cacheKey, 120, function () use ($user) {
         if (UserRoles::isCaregiverRole($user->role)) {
             return $this->getCaregiverStats($user);
         }
 
         // Pass user to admin stats for potential facility filtering
         return $this->getAdminStats($user);
+        });
     }
 
     /**
@@ -54,52 +60,83 @@ class DashboardService
             ];
         }
 
-        // Get all residents in this caregiver's branch
-        $assignedResidents = Resident::where('branch_id', $branchId)
+        // Optimize: Use joins instead of whereHas for better performance
+        $residentIds = Resident::where('branch_id', $branchId)
             ->where('is_active', true)
+            ->pluck('id');
+
+        if ($residentIds->isEmpty()) {
+            return [
+                'assigned_residents' => 0,
+                'todays_appointments' => 0,
+                'pending_assessments' => 0,
+                'today_vitals' => 0,
+                'pending_leave_requests' => 0,
+                'week_appointments' => 0,
+                'user_type' => 'caregiver',
+                'weekly_activity' => [],
+                'medication_reminders' => [],
+                'upcoming_appointments_list' => [],
+                'resident_list' => [],
+                'resident_vitals_trend' => null,
+            ];
+        }
+
+        // Get all residents in this caregiver's branch
+        $assignedResidents = $residentIds->count();
+
+        // Today's appointments for residents in this branch (optimized with whereIn)
+        $todayAppointments = Appointment::whereIn('resident_id', $residentIds)
+            ->whereDate('appointment_date', today())
             ->count();
 
-        // Today's appointments for residents in this branch
-        $todayAppointments = Appointment::whereHas('resident', function ($q) use ($branchId) {
-            $q->where('branch_id', $branchId)->where('is_active', true);
-        })->whereDate('appointment_date', today())->count();
+        // Pending assessments for residents in this branch (optimized)
+        $pendingAssessments = Assessment::whereIn('resident_id', $residentIds)
+            ->whereNotIn('status', ['approved', 'archived'])
+            ->count();
 
-        // Pending assessments for residents in this branch
-        $pendingAssessments = Assessment::whereHas('resident', function ($q) use ($branchId) {
-            $q->where('branch_id', $branchId)->where('is_active', true);
-        })->whereNotIn('status', ['approved', 'archived'])->count();
-
-        // Vitals recorded today for residents in this branch
-        $todayVitals = VitalSign::whereHas('resident', function ($q) use ($branchId) {
-            $q->where('branch_id', $branchId)->where('is_active', true);
-        })->whereDate('measurement_date', today())->count();
+        // Vitals recorded today for residents in this branch (optimized)
+        $todayVitals = VitalSign::whereIn('resident_id', $residentIds)
+            ->whereDate('measurement_date', today())
+            ->count();
 
         // Pending leave requests
         $pendingLeaveRequests = LeaveRequest::where('staff_id', $userId)
-            ->where('status', 'pending')->count();
+            ->where('status', 'pending')
+            ->count();
 
-        // Upcoming appointments this week for residents in this branch
-        $weekAppointments = Appointment::whereHas('resident', function ($q) use ($branchId) {
-            $q->where('branch_id', $branchId)->where('is_active', true);
-        })->whereBetween('appointment_date', [today(), today()->addDays(7)])->count();
+        // Upcoming appointments this week for residents in this branch (optimized)
+        $weekAppointments = Appointment::whereIn('resident_id', $residentIds)
+            ->whereBetween('appointment_date', [today(), today()->addDays(7)])
+            ->count();
 
-        // Weekly activity data for charts
-        $weeklyActivity = $this->getWeeklyActivity($branchId);
+        // Weekly activity data for charts (cached)
+        $weeklyActivity = Cache::remember("weekly.activity.{$branchId}", 300, function () use ($branchId) {
+            return $this->getWeeklyActivity($branchId);
+        });
 
-        // Medication reminders for next hour
-        $medicationReminders = $this->getMedicationReminders($branchId);
+        // Medication reminders for next hour (cached for 1 minute)
+        $medicationReminders = Cache::remember("medication.reminders.{$branchId}", 60, function () use ($branchId) {
+            return $this->getMedicationReminders($branchId);
+        });
 
-        // Upcoming appointments with details
-        $upcomingAppointmentsList = $this->getUpcomingAppointments($branchId);
+        // Upcoming appointments with details (cached)
+        $upcomingAppointmentsList = Cache::remember("upcoming.appointments.{$branchId}", 300, function () use ($branchId) {
+            return $this->getUpcomingAppointments($branchId);
+        });
 
-        // Resident list
-        $residentList = $this->getResidentList($branchId);
+        // Resident list (cached)
+        $residentList = Cache::remember("resident.list.{$branchId}", 600, function () use ($branchId) {
+            return $this->getResidentList($branchId);
+        });
 
-        // Resident vitals trend for first resident (default)
+        // Resident vitals trend for first resident (default) - cached
         $defaultResident = Resident::where('branch_id', $branchId)
             ->where('is_active', true)
             ->first();
-        $residentVitalsTrend = $defaultResident ? $this->getResidentVitalsTrend($defaultResident->id) : null;
+        $residentVitalsTrend = $defaultResident ? Cache::remember("resident.vitals.trend.{$defaultResident->id}", 300, function () use ($defaultResident) {
+            return $this->getResidentVitalsTrend($defaultResident->id);
+        }) : null;
 
         return [
             'assigned_residents' => $assignedResidents,
@@ -183,27 +220,45 @@ class DashboardService
     {
         $now = now();
         $weekStart = $now->copy()->startOfWeek();
+        $weekEnd = $weekStart->copy()->addDays(6);
+        
+        // Optimize: Get all assessments and vitals for the week in 2 queries instead of 14
+        $assessmentsQuery = Assessment::whereBetween('assessment_date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->whereHas('resident', function ($q) use ($branchId) {
+                    if ($branchId) {
+                        $q->where('branch_id', $branchId)->where('is_active', true);
+                    } else {
+                        $q->where('is_active', true);
+                    }
+            });
+        
+        $vitalsQuery = VitalSign::whereBetween('measurement_date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->whereHas('resident', function ($q) use ($branchId) {
+                    if ($branchId) {
+                        $q->where('branch_id', $branchId)->where('is_active', true);
+                    } else {
+                        $q->where('is_active', true);
+                    }
+            });
+        
+        // Get all data at once
+        $assessments = $assessmentsQuery->get()->groupBy(function ($item) {
+            return $item->assessment_date->format('Y-m-d');
+        });
+        
+        $vitals = $vitalsQuery->get()->groupBy(function ($item) {
+            return $item->measurement_date->format('Y-m-d');
+        });
+        
         $days = [];
-
         for ($i = 0; $i < 7; $i++) {
             $day = $weekStart->copy()->addDays($i);
+            $dateStr = $day->format('Y-m-d');
             $days[] = [
-                'date' => $day->format('Y-m-d'),
+                'date' => $dateStr,
                 'day' => $day->format('D'),
-                'assessments' => Assessment::whereHas('resident', function ($q) use ($branchId) {
-                    if ($branchId) {
-                        $q->where('branch_id', $branchId)->where('is_active', true);
-                    } else {
-                        $q->where('is_active', true);
-                    }
-                })->whereDate('assessment_date', $day->toDateString())->count(),
-                'vitals' => VitalSign::whereHas('resident', function ($q) use ($branchId) {
-                    if ($branchId) {
-                        $q->where('branch_id', $branchId)->where('is_active', true);
-                    } else {
-                        $q->where('is_active', true);
-                    }
-                })->whereDate('measurement_date', $day->toDateString())->count(),
+                'assessments' => $assessments->get($dateStr)?->count() ?? 0,
+                'vitals' => $vitals->get($dateStr)?->count() ?? 0,
             ];
         }
 
@@ -441,6 +496,10 @@ class DashboardService
      */
     public function getDailyActivities(User $user, int $days = 30): array
     {
+        // Cache for 5 minutes to reduce load
+        $cacheKey = "daily.activities.{$user->id}.{$days}";
+        
+        return Cache::remember($cacheKey, 300, function () use ($user, $days) {
         $startDate = Carbon::now()->subDays($days);
         $endDate = Carbon::now();
         
@@ -449,48 +508,68 @@ class DashboardService
             $branchId = $user->assigned_branch_id;
         }
         
-        $activities = [];
-        $currentDate = $startDate->copy();
-        
-        while ($currentDate <= $endDate) {
-            $dateStr = $currentDate->format('Y-m-d');
-            
-            // Count appointments for this date
-            $appointmentsCount = Appointment::whereHas('resident', function ($q) use ($branchId) {
+            // Optimize: Get all data in 3 queries instead of 90+ queries (30 days × 3 queries)
+            $residentQuery = function ($q) use ($branchId) {
                 if ($branchId) {
                     $q->where('branch_id', $branchId)->where('is_active', true);
                 } else {
                     $q->where('is_active', true);
                 }
-            })->whereDate('appointment_date', $dateStr)->count();
+            };
             
-            // Count medications due on this date
-            $medicationsDue = Medication::whereHas('resident', function ($q) use ($branchId) {
-                if ($branchId) {
-                    $q->where('branch_id', $branchId)->where('is_active', true);
-                } else {
-                    $q->where('is_active', true);
-                }
-            })
+            // Get all appointments for the date range
+            $appointments = Appointment::whereHas('resident', $residentQuery)
+                ->whereBetween('appointment_date', [$startDate->toDateString(), $endDate->toDateString()])
+                ->get()
+                ->groupBy(function ($item) {
+                    return $item->appointment_date->format('Y-m-d');
+                });
+            
+            // Get all medications active in the date range
+            $medications = Medication::whereHas('resident', $residentQuery)
             ->where('is_active', true)
-            ->where(function ($q) use ($dateStr) {
-                $q->whereNull('start_date')
-                  ->orWhere('start_date', '<=', $dateStr);
-            })
-            ->where(function ($q) use ($dateStr) {
-                $q->whereNull('end_date')
-                  ->orWhere('end_date', '>=', $dateStr);
-            })
-            ->count();
+                ->where(function ($q) use ($startDate, $endDate) {
+                    $q->where(function ($subQ) use ($startDate) {
+                        $subQ->whereNull('start_date')->orWhere('start_date', '<=', $startDate);
+                    })
+                    ->where(function ($subQ) use ($endDate) {
+                        $subQ->whereNull('end_date')->orWhere('end_date', '>=', $endDate);
+                    });
+                })
+                ->get();
             
-            // Count vitals recorded on this date
-            $vitalsRecorded = VitalSign::whereHas('resident', function ($q) use ($branchId) {
-                if ($branchId) {
-                    $q->where('branch_id', $branchId)->where('is_active', true);
-                } else {
-                    $q->where('is_active', true);
+            // Count medications per day (simplified - medications span multiple days)
+            $medicationsByDay = [];
+            foreach ($medications as $medication) {
+                $medStart = $medication->start_date ? Carbon::parse($medication->start_date) : $startDate;
+                $medEnd = $medication->end_date ? Carbon::parse($medication->end_date) : $endDate;
+                $current = max($medStart, $startDate);
+                $end = min($medEnd, $endDate);
+                
+                while ($current <= $end) {
+                    $dateStr = $current->format('Y-m-d');
+                    $medicationsByDay[$dateStr] = ($medicationsByDay[$dateStr] ?? 0) + 1;
+                    $current->addDay();
                 }
-            })->whereDate('measurement_date', $dateStr)->count();
+            }
+            
+            // Get all vitals for the date range
+            $vitals = VitalSign::whereHas('resident', $residentQuery)
+                ->whereBetween('measurement_date', [$startDate->toDateString(), $endDate->toDateString()])
+                ->get()
+                ->groupBy(function ($item) {
+                    return $item->measurement_date->format('Y-m-d');
+                });
+            
+            $activities = [];
+            $currentDate = $startDate->copy();
+            
+            while ($currentDate <= $endDate) {
+                $dateStr = $currentDate->format('Y-m-d');
+                
+                $appointmentsCount = $appointments->get($dateStr)?->count() ?? 0;
+                $medicationsDue = $medicationsByDay[$dateStr] ?? 0;
+                $vitalsRecorded = $vitals->get($dateStr)?->count() ?? 0;
             
             if ($appointmentsCount > 0 || $medicationsDue > 0 || $vitalsRecorded > 0) {
                 $activities[] = [
@@ -505,6 +584,7 @@ class DashboardService
         }
         
         return $activities;
+        });
     }
 }
 
