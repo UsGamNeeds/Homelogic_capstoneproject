@@ -4,7 +4,7 @@ import api from '../services/api';
 import { Building2, Plus, Search, Edit, Trash2, MapPin, Phone, Mail, Building, Navigation } from 'lucide-react';
 import SectionCard from '../components/SectionCard';
 import { getUserLocation } from '../utils/location';
-import { formatPhoneNumber } from '../utils/phoneFormatter';
+import { formatPhoneNumber, unformatPhoneNumber } from '../utils/phoneFormatter';
 
 export default function Branches() {
   const queryClient = useQueryClient();
@@ -239,10 +239,16 @@ function BranchForm({ record, facilities, currentUser, isSuperAdmin, isFacilityA
     setSubmitting(true);
     setErrors({});
     try {
+      // Prepare form data - strip phone formatting before sending
+      const submitData = {
+        ...form,
+        phone: form.phone ? unformatPhoneNumber(form.phone) : null,
+      };
+      
       if (record) {
-        await api.put(`/branches/${record.id}`, form);
+        await api.put(`/branches/${record.id}`, submitData);
       } else {
-        await api.post('/branches', form);
+        await api.post('/branches', submitData);
       }
       onSuccess();
     } catch (e) {
