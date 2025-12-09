@@ -272,14 +272,27 @@ export default function ViewVitals() {
     // Close menu when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (openMenuId && menuRefs.current[openMenuId] && !menuRefs.current[openMenuId].contains(event.target)) {
-                setOpenMenuId(null);
+            if (openMenuId && menuRefs.current[openMenuId]) {
+                const menuElement = menuRefs.current[openMenuId];
+                if (menuElement && !menuElement.contains(event.target)) {
+                    setOpenMenuId(null);
+                }
             }
         };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
+        
+        if (openMenuId) {
+            // Use a small delay to avoid closing immediately when opening
+            const timeoutId = setTimeout(() => {
+                document.addEventListener('mousedown', handleClickOutside);
+                document.addEventListener('touchstart', handleClickOutside);
+            }, 10);
+            
+            return () => {
+                clearTimeout(timeoutId);
+                document.removeEventListener('mousedown', handleClickOutside);
+                document.removeEventListener('touchstart', handleClickOutside);
+            };
+        }
     }, [openMenuId]);
 
     const handleApprove = (vitalId) => {
@@ -794,19 +807,31 @@ export default function ViewVitals() {
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 relative">
                                                             <div className="relative" ref={(el) => (menuRefs.current[vital.id] = el)}>
                                                                 <button
-                                                                    onClick={() => setOpenMenuId(openMenuId === vital.id ? null : vital.id)}
-                                                                    className="p-1 hover:bg-gray-100 rounded text-gray-600 hover:text-gray-900"
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        setOpenMenuId(openMenuId === vital.id ? null : vital.id);
+                                                                    }}
+                                                                    className="p-2 hover:bg-gray-100 rounded text-gray-600 hover:text-gray-900 transition-colors"
+                                                                    title="Actions"
                                                                 >
-                                                                    <MoreVertical className="w-4 h-4" />
+                                                                    <MoreVertical className="w-5 h-5" />
                                                                 </button>
                                                                 {openMenuId === vital.id && (
-                                                                    <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                                                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50" style={{ zIndex: 9999 }}>
                                                                         <div className="py-1">
                                                                             {vital.status === 'pending_review' && (
                                                                                 <button
-                                                                                    onClick={() => handleApprove(vital.id)}
+                                                                                    type="button"
+                                                                                    onClick={(e) => {
+                                                                                        e.preventDefault();
+                                                                                        e.stopPropagation();
+                                                                                        handleApprove(vital.id);
+                                                                                        setOpenMenuId(null);
+                                                                                    }}
                                                                                     disabled={updateStatusMutation.isPending}
-                                                                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                                                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                                                 >
                                                                                     <CheckCircle className="w-4 h-4 text-green-600" />
                                                                                     Approve
