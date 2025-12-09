@@ -300,21 +300,40 @@ function InvoiceForm({ record, onClose, onSuccess }) {
     name: 'items',
   });
 
+  // Watch all items fields to ensure calculation updates
   const watchItems = methods.watch('items');
-  const watchTax = methods.watch('tax_amount') || '0';
-  const watchDiscount = methods.watch('discount_amount') || '0';
+  const watchTax = methods.watch('tax_amount');
+  const watchDiscount = methods.watch('discount_amount');
 
-  // Calculate totals
+  // Calculate totals - ensure we properly parse all values
   const subtotal = React.useMemo(() => {
-    return watchItems.reduce((sum, item) => {
-      const qty = parseFloat(item.quantity || 0);
-      const price = parseFloat(item.unit_price || 0);
-      return sum + (qty * price);
+    if (!watchItems || !Array.isArray(watchItems) || watchItems.length === 0) {
+      return 0;
+    }
+    const calculated = watchItems.reduce((sum, item) => {
+      if (!item) return sum;
+      // Handle both string and number inputs
+      const qtyStr = String(item.quantity || '0').trim();
+      const priceStr = String(item.unit_price || '0').trim();
+      const qty = qtyStr === '' ? 0 : parseFloat(qtyStr);
+      const price = priceStr === '' ? 0 : parseFloat(priceStr);
+      
+      if (isNaN(qty) || isNaN(price)) {
+        return sum;
+      }
+      
+      const lineTotal = qty * price;
+      return sum + (isNaN(lineTotal) ? 0 : lineTotal);
     }, 0);
+    
+    return isNaN(calculated) ? 0 : calculated;
   }, [watchItems]);
 
-  const tax = parseFloat(watchTax || 0);
-  const discount = parseFloat(watchDiscount || 0);
+  // Parse tax and discount with proper handling
+  const taxStr = String(watchTax || '0').trim();
+  const discountStr = String(watchDiscount || '0').trim();
+  const tax = taxStr === '' ? 0 : (parseFloat(taxStr) || 0);
+  const discount = discountStr === '' ? 0 : (parseFloat(discountStr) || 0);
   const total = subtotal + tax - discount;
 
   const onSubmit = async (data) => {
