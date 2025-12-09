@@ -864,28 +864,32 @@ function AreaForm({ onClose, branchId, initialValues, onSuccess }) {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <div className="max-w-4xl mx-auto px-4 py-8">
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                    {/* Header */}
-                    <div className="mb-6 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                aria-label="Go back"
-                            >
-                                <ArrowLeft className="w-5 h-5 text-gray-600" />
-                            </button>
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--theme-primary)' }}>
-                                    {initialValues ? 'Edit Area' : 'New Area'}
-                                </p>
-                                <h2 className="text-2xl font-semibold text-gray-900">Cleaning Area</h2>
-                            </div>
-                        </div>
+        <div 
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4"
+            onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                    onClose();
+                }
+            }}
+        >
+            <div className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+                {/* Header */}
+                <div className="mb-6 flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--theme-primary)' }}>
+                            {initialValues ? 'Edit Area' : 'New Area'}
+                        </p>
+                        <h2 className="text-2xl font-semibold text-gray-900">Cleaning Area</h2>
                     </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+                        aria-label="Close modal"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
 
                     {/* Form */}
                     <FormProvider {...methods}>

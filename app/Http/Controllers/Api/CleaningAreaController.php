@@ -48,24 +48,44 @@ class CleaningAreaController extends BaseApiController
 
     public function store(Request $request)
     {
-        $this->ensureCanManage($request, 'create_cleaning_areas');
+        try {
+            $this->ensureCanManage($request, 'create_cleaning_areas');
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage() ?: 'You do not have permission to create cleaning areas.',
+            ], 403);
+        }
 
-        $data = $request->validate([
-            'branch_id' => 'required|exists:branches,id',
-            'name' => 'required|string|max:255',
-            'shift_label' => 'nullable|string|max:255',
-            'location' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'display_order' => 'nullable|integer|min:0',
-            'is_active' => 'boolean',
-        ]);
+        try {
+            $data = $request->validate([
+                'branch_id' => 'required|exists:branches,id',
+                'name' => 'required|string|max:255',
+                'shift_label' => 'nullable|string|max:255',
+                'location' => 'nullable|string|max:255',
+                'description' => 'nullable|string',
+                'display_order' => 'nullable|integer|min:0',
+                'is_active' => 'boolean',
+            ]);
 
-        $area = CleaningArea::create($data);
+            $area = CleaningArea::create($data);
 
-        return response()->json([
-            'message' => 'Cleaning area created.',
-            'data' => $area,
-        ], 201);
+            return response()->json([
+                'message' => 'Cleaning area created.',
+                'data' => $area,
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Error creating cleaning area: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'message' => 'An error occurred while creating the cleaning area: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function update(Request $request, CleaningArea $cleaningArea)
