@@ -40,6 +40,7 @@ import {
     UserPlus
 } from 'lucide-react';
 import NotificationDropdown from './NotificationDropdown';
+import ReminderPanel from './ReminderPanel';
 import { useToastContext } from '../contexts/ToastContext';
 import { useTheme } from '../contexts/ThemeContext';
 import CommandPalette from './ui/CommandPalette';
@@ -76,6 +77,7 @@ const navigation = [
         children: [
             { name: 'Medications', path: '/medications' },
             { name: 'Medication Deliveries', path: '/medication-deliveries' },
+            { name: 'Medication Report', path: '/medications/report' },
         ]
     },
     { 
@@ -707,15 +709,6 @@ export default function Layout() {
                         </div>
                     </div>
                     <div className="flex items-center space-x-2 md:space-x-4">
-                        {appClock.time && (
-                            <div className="hidden md:flex flex-col items-end text-sm text-gray-600 mr-2">
-                                <span className="font-semibold">{appClock.time}</span>
-                                <span className="text-xs text-gray-500">
-                                    {appClock.date}
-                                    {appTimezoneLabel ? ` • ${appTimezoneLabel}` : ''}
-                                </span>
-                            </div>
-                        )}
                         {/* Hide search, notifications, and calendar for super admin */}
                         {currentUser?.role !== 'super_admin' && (
                             <>
@@ -731,6 +724,7 @@ export default function Layout() {
                                     </button>
                                 )}
                                 <NotificationDropdown />
+                                <ReminderPanel />
                                 <Link
                                     to={leaveRequestsPath}
                                     className="p-2 rounded-full hover:bg-gray-100 transition-colors relative"

@@ -76,6 +76,8 @@ const Appointments = lazyWithRetry(() => import('./pages/Appointments'));
 const CreateAppointment = lazyWithRetry(() => import('./pages/CreateAppointment'));
 const Vitals = lazyWithRetry(() => import('./pages/Vitals'));
 const Medications = lazyWithRetry(() => import('./pages/Medications'));
+const MedicationsReport = lazyWithRetry(() => import('./pages/MedicationsReport'));
+const Reminders = lazyWithRetry(() => import('./pages/Reminders'));
 const MedicationHistory = lazyWithRetry(() => import('./pages/MedicationHistory'));
 const CaregiverMedicationsResidents = lazyWithRetry(() => import('./pages/caregiver/CaregiverMedicationsResidents'));
 const ResidentMedicationsPage = lazyWithRetry(() => import('./pages/caregiver/ResidentMedicationsPage'));
@@ -211,8 +213,10 @@ function App() {
                 <Route path="vitals" element={<Suspense fallback={<PageLoader />}><Vitals /></Suspense>} />
                 <Route path="view-vitals" element={<Suspense fallback={<PageLoader />}><ViewVitals /></Suspense>} />
                 <Route path="medications" element={<Suspense fallback={<PageLoader />}><Medications /></Suspense>} />
+                <Route path="medications/report" element={<Suspense fallback={<PageLoader />}><MedicationsReport /></Suspense>} />
                 <Route path="medications/residents" element={<Suspense fallback={<PageLoader />}><CaregiverMedicationsResidents /></Suspense>} />
                 <Route path="medications/residents/:residentId" element={<Suspense fallback={<PageLoader />}><ResidentMedicationsPage /></Suspense>} />
+                <Route path="reminders" element={<Suspense fallback={<PageLoader />}><Reminders /></Suspense>} />
                 <Route path="medication-history" element={<Suspense fallback={<PageLoader />}><MedicationHistory /></Suspense>} />
                 <Route path="medication-deliveries" element={<Suspense fallback={<PageLoader />}><MedicationDeliveries /></Suspense>} />
                 <Route path="grocery-status" element={<Suspense fallback={<PageLoader />}><GroceryStatus /></Suspense>} />
