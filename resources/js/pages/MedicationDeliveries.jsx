@@ -505,6 +505,8 @@ function MedicationDeliveryForm({ record, branches, residents, medications, phar
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const availableSuppliers = pharmacySuppliers || [];
+
     // Filter residents by branch
     const filteredResidents = React.useMemo(() => {
         if (!residents || residents.length === 0) return [];
