@@ -198,28 +198,28 @@ export default function EmployeeDocuments() {
                 </div>
             ) : (
                 <div className="bg-white rounded-lg shadow overflow-hidden">
-                    <table className="min-w-full divide-y divide-gray-200">
+                    <table className="w-full table-auto divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Employee
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Document Name
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Type
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     File
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Expires
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Status
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-right">
                                     Actions
                                 </th>
                             </tr>
@@ -243,12 +243,12 @@ export default function EmployeeDocuments() {
                                                     {documentTypeOptions[document.document_type] || document.document_type}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 py-4 whitespace-nowrap">
                                                 <div className="text-sm text-gray-500 truncate max-w-xs" title={document.file_name}>
                                                     {document.file_name || 'N/A'}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 py-4 whitespace-nowrap">
                                                 <div className="text-sm">
                                                     {document.expiration_date ? (
                                                         <>
@@ -268,7 +268,7 @@ export default function EmployeeDocuments() {
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 py-4 whitespace-nowrap">
                                                 <div className="flex items-center space-x-2">
                                                     {document.is_expired && (
                                                         <AlertCircle className="w-4 h-4 text-red-500" title="Expired" />
@@ -282,17 +282,17 @@ export default function EmployeeDocuments() {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <div className="flex items-center space-x-2">
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-right min-w-[180px]">
+                                                <div className="flex items-center justify-end gap-2">
                                                     {document.file_path && (
                                                         <a
                                                             href={`/storage/${document.file_path}`}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="text-[var(--theme-primary)] hover:text-[var(--theme-primary-hover)]"
+                                                            className="p-2 rounded-lg bg-[var(--theme-primary)]/10 text-[var(--theme-primary)] hover:bg-[var(--theme-primary)] hover:text-white transition-colors"
                                                             title="Download"
                                                         >
-                                                            <Download className="w-4 h-4" />
+                                                            <Download className="w-5 h-5" />
                                                         </a>
                                                     )}
                                                     <button
@@ -300,10 +300,10 @@ export default function EmployeeDocuments() {
                                                             setEditing(document);
                                                             setShowForm(true);
                                                         }}
-                                                        className="text-[var(--theme-primary)] hover:text-[var(--theme-primary-hover)]"
+                                                        className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors"
                                                         title="Edit"
                                                     >
-                                                        <Edit className="w-4 h-4" />
+                                                        <Edit className="w-5 h-5" />
                                                     </button>
                                                     <button
                                                         onClick={() => {
@@ -311,10 +311,10 @@ export default function EmployeeDocuments() {
                                                                 deleteMutation.mutate(document.id);
                                                             }
                                                         }}
-                                                        className="text-[var(--theme-secondary)] hover:text-[var(--theme-secondary-hover)]"
+                                                        className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-600 hover:text-white transition-colors"
                                                         title="Delete"
                                                     >
-                                                        <Trash2 className="w-4 h-4" />
+                                                        <Trash2 className="w-5 h-5" />
                                                     </button>
                                                 </div>
                                             </td>
