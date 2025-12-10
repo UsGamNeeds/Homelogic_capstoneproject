@@ -208,9 +208,9 @@ function BranchForm({ record, facilities, currentUser, isSuperAdmin, isFacilityA
   // For facility admins, automatically use their facility_id
   const initialFacilityId = React.useMemo(() => {
     if (record?.facility_id) return record.facility_id;
-    if (isFacilityAdmin && currentUser?.facility_id) return currentUser.facility_id;
+    if (currentUser?.facility_id) return currentUser.facility_id;
     return '';
-  }, [record, isFacilityAdmin, currentUser]);
+  }, [record, currentUser]);
 
   const [form, setForm] = useState({
     name: record?.name || '',
@@ -232,7 +232,7 @@ function BranchForm({ record, facilities, currentUser, isSuperAdmin, isFacilityA
     if (initialFacilityId && !form.facility_id) {
       setForm(prev => ({ ...prev, facility_id: initialFacilityId }));
     }
-  }, [initialFacilityId]);
+  }, [initialFacilityId, form.facility_id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -247,10 +247,7 @@ function BranchForm({ record, facilities, currentUser, isSuperAdmin, isFacilityA
     }
 
     // Ensure facility_id is set
-    let facilityId = form.facility_id;
-    if (!facilityId && isFacilityAdmin && currentUser?.facility_id) {
-      facilityId = currentUser.facility_id;
-    }
+    let facilityId = form.facility_id || currentUser?.facility_id || initialFacilityId;
     if (!facilityId) {
       setErrors({ facility_id: ['Facility is required'] });
       setSubmitting(false);
