@@ -115,8 +115,8 @@ class VitalSignController extends BaseApiController
         
         // Check permission only if user is not an admin or super admin
         if (!$isSuperAdmin && !$isAdmin) {
-            if ($error = $this->requirePermission('create_vitals')) {
-                return $error;
+        if ($error = $this->requirePermission('create_vitals')) {
+            return $error;
             }
         }
 
@@ -168,8 +168,8 @@ class VitalSignController extends BaseApiController
         
         // Check permission only if user is not an admin or super admin
         if (!$isSuperAdmin && !$isAdmin) {
-            if ($error = $this->requirePermission('edit_vitals')) {
-                return $error;
+        if ($error = $this->requirePermission('edit_vitals')) {
+            return $error;
             }
         }
 
@@ -214,8 +214,8 @@ class VitalSignController extends BaseApiController
         
         // Check permission only if user is not an admin or super admin
         if (!$isSuperAdmin && !$isAdmin) {
-            if ($error = $this->requirePermission('delete_vitals')) {
-                return $error;
+        if ($error = $this->requirePermission('delete_vitals')) {
+            return $error;
             }
         }
 

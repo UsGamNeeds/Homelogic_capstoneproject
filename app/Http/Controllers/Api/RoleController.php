@@ -44,8 +44,8 @@ class RoleController extends BaseApiController
         
         // Check permission only if user is not an admin or super admin
         if (!$isSuperAdmin && !$isAdmin) {
-            if ($error = $this->requirePermission('create_roles')) {
-                return $error;
+        if ($error = $this->requirePermission('create_roles')) {
+            return $error;
             }
         }
 
@@ -70,8 +70,8 @@ class RoleController extends BaseApiController
         
         // Check permission only if user is not an admin or super admin
         if (!$isSuperAdmin && !$isAdmin) {
-            if ($error = $this->requirePermission('edit_roles')) {
-                return $error;
+        if ($error = $this->requirePermission('edit_roles')) {
+            return $error;
             }
         }
 
@@ -100,8 +100,8 @@ class RoleController extends BaseApiController
         
         // Check permission only if user is not an admin or super admin
         if (!$isSuperAdmin && !$isAdmin) {
-            if ($error = $this->requirePermission('delete_roles')) {
-                return $error;
+        if ($error = $this->requirePermission('delete_roles')) {
+            return $error;
             }
         }
 

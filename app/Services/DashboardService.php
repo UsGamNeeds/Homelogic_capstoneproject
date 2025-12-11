@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\VitalSign;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class DashboardService
 {
@@ -159,29 +160,41 @@ class DashboardService
      */
     public function getAdminStats(?User $user = null): array
     {
-        // Get facility from user, context, or assigned branch
-        $facilityId = null;
-        if ($user && $user->facility_id) {
-            $facilityId = $user->facility_id;
-        } else {
-            // Try facility from current request context
+        $user = $user ?? auth()->user();
+        
+        // Use the same facility resolution logic as BaseApiController
+        $facility = null;
+        
+        // Super admins can float between facilities; prefer explicit context
+        if ($user && $user->role === 'super_admin') {
             try {
                 $facility = app()->bound('facility') ? app('facility') : null;
-                if ($facility) {
-                    $facilityId = $facility->id;
-                }
             } catch (\Exception $e) {
-                // Facility not bound, continue without it
+                $facility = null;
+            }
+        } else {
+            // Try facility from current request context (set by middleware)
+            try {
+                $facility = app()->bound('facility') ? app('facility') : null;
+            } catch (\Exception $e) {
+                $facility = null;
+            }
+
+            // Fallback to user's facility_id
+            if (!$facility && $user && $user->facility_id) {
+                $facility = \App\Models\Facility::find($user->facility_id);
             }
 
             // Derive facility from assigned branch if still unknown
-            if (!$facilityId && $user && $user->assigned_branch_id) {
-                $branchFacilityId = \App\Models\Branch::where('id', $user->assigned_branch_id)->value('facility_id');
-                if ($branchFacilityId) {
-                    $facilityId = $branchFacilityId;
+            if (!$facility && $user && $user->assigned_branch_id) {
+                $branch = \App\Models\Branch::find($user->assigned_branch_id);
+                if ($branch && $branch->facility_id) {
+                    $facility = \App\Models\Facility::find($branch->facility_id);
                 }
             }
         }
+        
+        $facilityId = $facility ? $facility->id : null;
         
         // Build queries without global scopes and apply explicit facility filters
         $residentsQuery = Resident::withoutGlobalScopes()->where('is_active', true);
@@ -234,34 +247,35 @@ class DashboardService
             });
         }
 
-        $totalResidents = $residentsQuery->count();
-
-        // Ensure facility scoping across related models (appointments, vitals, assessments, medications)
-        if ($facilityId) {
-            $appointmentsQuery->whereHas('branch', function ($q) use ($facilityId) {
-                $q->where('facility_id', $facilityId);
-            });
-
-            $vitalsQuery->whereHas('resident', function ($q) use ($facilityId) {
-                $q->whereHas('branch', function ($branchQ) use ($facilityId) {
-                    $branchQ->where('facility_id', $facilityId);
-                })->where('is_active', true);
-            });
-
-            $assessmentsQuery->whereHas('resident', function ($q) use ($facilityId) {
-                $q->whereHas('branch', function ($branchQ) use ($facilityId) {
-                    $branchQ->where('facility_id', $facilityId);
-                })->where('is_active', true);
-            });
-
-            $staffQuery->where('facility_id', $facilityId);
-
-            $activeMedicationsQuery->whereHas('resident', function ($q) use ($facilityId) {
-                $q->whereHas('branch', function ($branchQ) use ($facilityId) {
-                    $branchQ->where('facility_id', $facilityId);
-                })->where('is_active', true);
-            });
+        // If no facility found, return zeros (administrator should have facility context)
+        if (!$facilityId) {
+            Log::warning('DashboardService: No facility context found for administrator', [
+                'user_id' => $user?->id,
+                'user_role' => $user?->role,
+                'user_facility_id' => $user?->facility_id,
+                'user_assigned_branch_id' => $user?->assigned_branch_id,
+            ]);
+            
+            return [
+                'total_residents' => 0,
+                'active_residents' => 0,
+                'today_appointments' => 0,
+                'upcoming_appointments' => 0,
+                'today_vitals' => 0,
+                'last_30_appointments' => 0,
+                'last_30_vitals' => 0,
+                'last_30_assessments' => 0,
+                'total_staff' => 0,
+                'pending_assessments' => 0,
+                'active_medications' => 0,
+                'user_type' => 'admin',
+                'upcoming_appointments_list' => [],
+                'resident_list' => [],
+                'medication_reminders' => [],
+            ];
         }
+
+        $totalResidents = $residentsQuery->count();
 
         // Last 30 days filters
         $appointmentsLast30 = (clone $appointmentsQuery)

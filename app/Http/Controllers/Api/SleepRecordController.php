@@ -111,8 +111,8 @@ class SleepRecordController extends BaseApiController
         
         // Check permission only if user is not an admin or super admin
         if (!$isSuperAdmin && !$isAdmin) {
-            if ($error = $this->requirePermission('create_sleep_records')) {
-                return $error;
+        if ($error = $this->requirePermission('create_sleep_records')) {
+            return $error;
             }
         }
 
@@ -163,8 +163,8 @@ class SleepRecordController extends BaseApiController
         
         // Check permission only if user is not an admin or super admin
         if (!$isSuperAdmin && !$isAdmin) {
-            if ($error = $this->requirePermission('edit_sleep_records')) {
-                return $error;
+        if ($error = $this->requirePermission('edit_sleep_records')) {
+            return $error;
             }
         }
 
@@ -215,8 +215,8 @@ class SleepRecordController extends BaseApiController
         
         // Check permission only if user is not an admin or super admin
         if (!$isSuperAdmin && !$isAdmin) {
-            if ($error = $this->requirePermission('delete_sleep_records')) {
-                return $error;
+        if ($error = $this->requirePermission('delete_sleep_records')) {
+            return $error;
             }
         }
 

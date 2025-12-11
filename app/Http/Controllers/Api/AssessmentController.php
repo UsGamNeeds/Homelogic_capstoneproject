@@ -222,8 +222,8 @@ class AssessmentController extends BaseApiController
         
         // Check permission only if user is not an admin or super admin
         if (!$isSuperAdmin && !$isAdmin) {
-            if ($error = $this->requirePermission('create_assessments')) {
-                return $error;
+        if ($error = $this->requirePermission('create_assessments')) {
+            return $error;
             }
         }
 
@@ -266,8 +266,8 @@ class AssessmentController extends BaseApiController
         
         // Check permission only if user is not an admin or super admin
         if (!$isSuperAdmin && !$isAdmin) {
-            if ($error = $this->requirePermission('edit_assessments')) {
-                return $error;
+        if ($error = $this->requirePermission('edit_assessments')) {
+            return $error;
             }
         }
 
@@ -318,8 +318,8 @@ class AssessmentController extends BaseApiController
         
         // Check permission only if user is not an admin or super admin
         if (!$isSuperAdmin && !$isAdmin) {
-            if ($error = $this->requirePermission('delete_assessments')) {
-                return $error;
+        if ($error = $this->requirePermission('delete_assessments')) {
+            return $error;
             }
         }
 

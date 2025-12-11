@@ -26,8 +26,8 @@ class VitalRangeController extends BaseApiController
         
         // Check permission only if user is not an admin or super admin
         if (!$isSuperAdmin && !$isAdmin) {
-            if ($error = $this->requirePermission('create_vital_ranges')) {
-                return $error;
+        if ($error = $this->requirePermission('create_vital_ranges')) {
+            return $error;
             }
         }
 
@@ -57,8 +57,8 @@ class VitalRangeController extends BaseApiController
         
         // Check permission only if user is not an admin or super admin
         if (!$isSuperAdmin && !$isAdmin) {
-            if ($error = $this->requirePermission('edit_vital_ranges')) {
-                return $error;
+        if ($error = $this->requirePermission('edit_vital_ranges')) {
+            return $error;
             }
         }
 
@@ -89,8 +89,8 @@ class VitalRangeController extends BaseApiController
         
         // Check permission only if user is not an admin or super admin
         if (!$isSuperAdmin && !$isAdmin) {
-            if ($error = $this->requirePermission('delete_vital_ranges')) {
-                return $error;
+        if ($error = $this->requirePermission('delete_vital_ranges')) {
+            return $error;
             }
         }
 
