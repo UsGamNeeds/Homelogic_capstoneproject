@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, Clock3, Check, AlarmClockOff } from 'lucide-react';
+import { Bell, Clock3, Check, AlarmClockOff, Flame } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
@@ -31,8 +31,28 @@ export default function ReminderPanel() {
         onSuccess: () => queryClient.invalidateQueries(['reminders', 'upcoming']),
     });
 
-    const snooze = (eventId, minutes = 15) => snoozeMutation.mutate({ id: eventId, minutes });
-    const acknowledge = (eventId) => acknowledgeMutation.mutate(eventId);
+    const snooze = (eventId, minutes = 15) => {
+        // Only snooze reminder events, not fire drills
+        if (eventId.startsWith('reminder_')) {
+            const actualId = eventId.replace('reminder_', '');
+            snoozeMutation.mutate({ id: actualId, minutes });
+        }
+    };
+    
+    const acknowledge = (eventId) => {
+        // Only acknowledge reminder events, not fire drills
+        if (eventId.startsWith('reminder_')) {
+            const actualId = eventId.replace('reminder_', '');
+            acknowledgeMutation.mutate(actualId);
+        }
+    };
+    
+    const handleEventClick = (event) => {
+        if (event.type === 'fire_drill' && event.action_url) {
+            setIsOpen(false);
+            navigate(event.action_url);
+        }
+    };
 
     const formatWhen = (value) => {
         if (!value) return '';
@@ -72,7 +92,7 @@ export default function ReminderPanel() {
                     <div className="fixed md:absolute top-16 md:top-auto md:mt-2 right-2 md:right-0 w-[calc(100vw-1rem)] md:w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-[calc(100vh-5rem)] md:max-h-[600px] overflow-hidden flex flex-col">
                         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-900">Reminders</h3>
+                                <h3 className="text-lg font-semibold text-gray-900">Reminders & Fire Drills</h3>
                                 <p className="text-xs text-gray-500">Upcoming and due items</p>
                             </div>
                             <button
@@ -94,37 +114,61 @@ export default function ReminderPanel() {
                                 </div>
                             ) : events.length > 0 ? (
                                 <div className="divide-y divide-gray-200">
-                                    {events.map((event) => (
-                                        <div key={event.id} className="p-4 hover:bg-gray-50 transition-colors">
-                                            <div className="flex items-start justify-between space-x-3">
-                                                <div className="flex-1">
-                                                    <p className="text-sm font-semibold text-gray-900">{event.title}</p>
-                                                    <p className="text-xs text-gray-500 capitalize">
-                                                        {event.category || 'general'} • {formatWhen(event.scheduled_for)}
+                                    {events.map((event) => {
+                                        const isFireDrill = event.type === 'fire_drill';
+                                        return (
+                                            <div 
+                                                key={event.id} 
+                                                className={`p-4 transition-colors ${isFireDrill ? 'hover:bg-orange-50 cursor-pointer' : 'hover:bg-gray-50'}`}
+                                                onClick={() => isFireDrill && handleEventClick(event)}
+                                            >
+                                                <div className="flex items-start justify-between space-x-3">
+                                                    <div className="flex-1 flex items-start gap-2">
+                                                        {isFireDrill && (
+                                                            <Flame className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                                                        )}
+                                                        <div className="flex-1">
+                                                            <p className={`text-sm font-semibold ${isFireDrill ? 'text-orange-900' : 'text-gray-900'}`}>
+                                                                {event.title}
+                                                            </p>
+                                                            <p className={`text-xs capitalize ${isFireDrill ? 'text-orange-600' : 'text-gray-500'}`}>
+                                                                {event.category === 'fire_drill' ? 'Fire Drill' : event.category || 'general'} • {formatWhen(event.scheduled_for)}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    {!isFireDrill && (
+                                                        <div className="flex items-center space-x-2">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    acknowledge(event.id);
+                                                                }}
+                                                                className="p-2 rounded-full bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+                                                                title="Acknowledge"
+                                                            >
+                                                                <Check className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    snooze(event.id);
+                                                                }}
+                                                                className="p-2 rounded-full bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
+                                                                title="Snooze 15m"
+                                                            >
+                                                                <AlarmClockOff className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {(event.metadata?.note || event.metadata?.notes) && (
+                                                    <p className={`mt-2 text-xs ${isFireDrill ? 'text-orange-700' : 'text-gray-600'}`}>
+                                                        {event.metadata.note || event.metadata.notes}
                                                     </p>
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <button
-                                                        onClick={() => acknowledge(event.id)}
-                                                        className="p-2 rounded-full bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
-                                                        title="Acknowledge"
-                                                    >
-                                                        <Check className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => snooze(event.id)}
-                                                        className="p-2 rounded-full bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
-                                                        title="Snooze 15m"
-                                                    >
-                                                    <AlarmClockOff className="w-4 h-4" />
-                                                    </button>
-                                                </div>
+                                                )}
                                             </div>
-                                            {event.metadata?.note && (
-                                                <p className="mt-2 text-xs text-gray-600">{event.metadata.note}</p>
-                                            )}
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             ) : (
                                 <div className="p-8 text-center">

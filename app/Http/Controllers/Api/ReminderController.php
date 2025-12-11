@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Reminder;
 use App\Models\ReminderEvent;
+use App\Models\FireDrill;
 use App\Services\ReminderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Carbon\Carbon;
 
 class ReminderController extends BaseApiController
 {
@@ -110,9 +112,10 @@ class ReminderController extends BaseApiController
     public function upcoming(Request $request): JsonResponse
     {
         $user = $request->user();
-        $limit = max(1, min(100, (int) $request->get('limit', 25)));
+        $limit = max(1, min(100, (int) $request->get('limit', 50)));
 
-        $events = ReminderEvent::with('reminder')
+        // Fetch reminder events
+        $reminderEvents = ReminderEvent::with('reminder')
             ->whereHas('reminder', function ($q) use ($user) {
                 $q->where('user_id', $user->id)
                     ->where('status', 'active');
@@ -127,22 +130,69 @@ class ReminderController extends BaseApiController
             ->where(function ($q) {
                 $q->whereNull('snoozed_until')->orWhere('snoozed_until', '<=', now());
             })
-            ->orderBy('scheduled_for')
-            ->limit($limit)
             ->get();
 
+        // Fetch upcoming fire drills (scheduled status, date >= today, and if today, time must be in future)
+        $fireDrills = FireDrill::with(['branch', 'createdBy'])
+            ->where('status', 'scheduled')
+            ->where(function ($q) {
+                $today = now()->toDateString();
+                $now = now();
+                $q->whereDate('scheduled_date', '>', $today)
+                  ->orWhere(function ($subQ) use ($today, $now) {
+                      $subQ->whereDate('scheduled_date', $today)
+                           ->whereTime('scheduled_time', '>', $now->format('H:i:s'));
+                  });
+            })
+            ->orderBy('scheduled_date')
+            ->orderBy('scheduled_time')
+            ->get();
+
+        // Format reminder events
+        $formattedReminders = $reminderEvents->map(fn ($event) => [
+            'id' => 'reminder_' . $event->id,
+            'type' => 'reminder',
+            'reminder_id' => $event->id,
+            'title' => $event->reminder?->title,
+            'category' => $event->reminder?->category ?? 'general',
+            'status' => $event->status,
+            'scheduled_for' => $event->scheduled_for,
+            'snoozed_until' => $event->snoozed_until,
+            'action_url' => $event->reminder?->action_url ?? '/reminders',
+            'metadata' => $event->reminder?->metadata,
+        ]);
+
+        // Format fire drills
+        $formattedFireDrills = $fireDrills->map(function ($drill) {
+            // Combine scheduled_date and scheduled_time into a datetime
+            $scheduledDateTime = Carbon::parse($drill->scheduled_date->format('Y-m-d') . ' ' . $drill->scheduled_time);
+            
+            return [
+                'id' => 'firedrill_' . $drill->id,
+                'type' => 'fire_drill',
+                'firedrill_id' => $drill->id,
+                'title' => 'Fire Drill: ' . ($drill->branch?->name ?? 'Unknown Branch'),
+                'category' => 'fire_drill',
+                'status' => $drill->status,
+                'scheduled_for' => $scheduledDateTime->toIso8601String(),
+                'snoozed_until' => null,
+                'action_url' => '/fire-drills',
+                'metadata' => [
+                    'branch_id' => $drill->branch_id,
+                    'branch_name' => $drill->branch?->name,
+                    'notes' => $drill->notes,
+                ],
+            ];
+        });
+
+        // Merge and sort by scheduled_for
+        $allEvents = $formattedReminders->concat($formattedFireDrills)
+            ->sortBy('scheduled_for')
+            ->take($limit)
+            ->values();
+
         return response()->json([
-            'events' => $events->map(fn ($event) => [
-                'id' => $event->id,
-                'reminder_id' => $event->reminder_id,
-                'title' => $event->reminder?->title,
-                'category' => $event->reminder?->category,
-                'status' => $event->status,
-                'scheduled_for' => $event->scheduled_for,
-                'snoozed_until' => $event->snoozed_until,
-                'action_url' => $event->reminder?->action_url,
-                'metadata' => $event->reminder?->metadata,
-            ]),
+            'events' => $allEvents,
         ]);
     }
 

@@ -95,6 +95,7 @@ export default function FireDrills() {
         onSuccess: () => {
             toast.success('Fire drill deleted');
             queryClient.invalidateQueries(['fire-drills']);
+            queryClient.invalidateQueries(['reminders', 'upcoming']);
         },
         onError: (error) => {
             toast.error(error?.response?.data?.message || 'Delete failed');
@@ -108,6 +109,7 @@ export default function FireDrills() {
         onSuccess: () => {
             toast.success('Fire drill marked complete');
             queryClient.invalidateQueries(['fire-drills']);
+            queryClient.invalidateQueries(['reminders', 'upcoming']);
         },
         onError: (error) => {
             toast.error(error?.response?.data?.message || 'Action failed');
@@ -121,6 +123,7 @@ export default function FireDrills() {
         onSuccess: () => {
             toast.success('Fire drill cancelled');
             queryClient.invalidateQueries(['fire-drills']);
+            queryClient.invalidateQueries(['reminders', 'upcoming']);
         },
         onError: (error) => {
             toast.error(error?.response?.data?.message || 'Action failed');
@@ -134,6 +137,7 @@ export default function FireDrills() {
         onSuccess: () => {
             toast.success('Fire drills scheduled from template');
             queryClient.invalidateQueries(['fire-drills']);
+            queryClient.invalidateQueries(['reminders', 'upcoming']);
         },
         onError: (error) => {
             toast.error(error?.response?.data?.message || 'Could not create from template');
@@ -236,6 +240,7 @@ export default function FireDrills() {
                     onSuccess={() => {
                         handleCloseForm();
                         queryClient.invalidateQueries(['fire-drills']);
+                        queryClient.invalidateQueries(['reminders', 'upcoming']);
                     }}
                     onOpenTemplateModal={() => setShowTemplateModal(true)}
                 />
@@ -559,6 +564,7 @@ export default function FireDrills() {
                     onClose={handleCloseForm}
                     onSuccess={() => {
                         queryClient.invalidateQueries(['fire-drills']);
+                        queryClient.invalidateQueries(['reminders', 'upcoming']);
                         handleCloseForm();
                     }}
                     onOpenTemplateModal={() => setShowTemplateModal(true)}
@@ -574,6 +580,7 @@ export default function FireDrills() {
                     onSubmit={async (payload) => {
                         await createFromTemplateMutation.mutateAsync(payload);
                         queryClient.invalidateQueries(['fire-drills']);
+                        queryClient.invalidateQueries(['reminders', 'upcoming']);
                         setShowCreateFromTemplateModal(false);
                     }}
                 />
