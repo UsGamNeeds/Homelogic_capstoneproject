@@ -1,9 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
-import { Calendar, Plus, Edit, Trash2, Grid, List } from 'lucide-react';
-import { getLocalDateString } from '../utils/pacificTime';
-import CalendarComponent from '../components/ui/Calendar';
+import { Calendar, Plus, Edit, Trash2 } from 'lucide-react';
 import SectionCard from '../components/SectionCard';
 
 export default function LeaveRequests() {
@@ -12,8 +10,6 @@ export default function LeaveRequests() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState(null);
-  const [showCalendar, setShowCalendar] = useState(false); // Hidden by default
 
   // Fetch current user
   React.useEffect(() => {
@@ -42,25 +38,11 @@ export default function LeaveRequests() {
     enabled: false,
   });
 
-  // Fetch all leave requests for calendar
-  const { data: allLeaveRequests } = useQuery({
-    queryKey: ['leave-requests-calendar', statusFilter],
-    queryFn: async () => {
-      const params = { per_page: 1000 }; // Get all for calendar
-      if (statusFilter !== 'all') params.status = statusFilter;
-      return (await api.get('/leave-requests', { params })).data;
-    },
-  });
-
   const { data, isLoading } = useQuery({
-    queryKey: ['leave-requests', statusFilter, selectedCalendarDate],
+    queryKey: ['leave-requests', statusFilter],
     queryFn: async () => {
       const params = { per_page: 20 };
       if (statusFilter !== 'all') params.status = statusFilter;
-      if (selectedCalendarDate) {
-        params.date_from = selectedCalendarDate;
-        params.date_to = selectedCalendarDate;
-      }
       return (await api.get('/leave-requests', { params })).data;
     },
   });
@@ -69,96 +51,8 @@ export default function LeaveRequests() {
     mutationFn: async (id) => api.delete(`/leave-requests/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries(['leave-requests']);
-      queryClient.invalidateQueries(['leave-requests-calendar']);
     },
   });
-
-  // Process leave requests for calendar - handle date ranges
-  const calendarData = useMemo(() => {
-    if (!allLeaveRequests?.data) return [];
-
-    const dateMap = new Map();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    allLeaveRequests.data.forEach((leaveRequest) => {
-      if (!leaveRequest.start_date || !leaveRequest.end_date) return;
-
-      const startDate = new Date(leaveRequest.start_date);
-      const endDate = new Date(leaveRequest.end_date);
-      startDate.setHours(0, 0, 0, 0);
-      endDate.setHours(0, 0, 0, 0);
-
-      // Iterate through each day in the date range
-      const currentDate = new Date(startDate);
-      while (currentDate <= endDate) {
-        const dateStr = currentDate.toISOString().split('T')[0];
-
-        if (!dateMap.has(dateStr)) {
-          dateMap.set(dateStr, {
-            date: dateStr,
-            indicators: [],
-            count: 0,
-            staffCount: 0,
-            approvedCount: 0,
-            pendingCount: 0,
-          });
-        }
-
-        const dayData = dateMap.get(dateStr);
-        dayData.count += 1;
-        dayData.staffCount += 1;
-
-        // Add indicator based on status
-        if (leaveRequest.status === 'approved') {
-          dayData.approvedCount += 1;
-          dayData.indicators.push({
-            type: 'approved_leave',
-            color: 'bg-blue-500',
-            status: 'approved'
-          });
-        } else if (leaveRequest.status === 'pending') {
-          dayData.pendingCount += 1;
-          dayData.indicators.push({
-            type: 'pending_leave',
-            color: 'bg-yellow-500',
-            status: 'pending'
-          });
-        } else if (leaveRequest.status === 'rejected' || leaveRequest.status === 'declined') {
-          dayData.indicators.push({
-            type: 'rejected_leave',
-            color: 'bg-gray-400',
-            status: 'rejected'
-          });
-        }
-
-        // Move to next day
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-    });
-
-    // Calculate coverage gaps (assuming we need at least 50% staff available)
-    // This is a simple heuristic - you may want to adjust based on your needs
-    const calendarDays = Array.from(dateMap.values());
-    calendarDays.forEach(day => {
-      // If more than 50% of staff are on approved leave, mark as coverage gap
-      // Note: This assumes you have a total staff count - you may need to fetch this
-      if (day.approvedCount > 5) { // Threshold can be adjusted
-        day.indicators.push({
-          type: 'coverage_gap',
-          color: 'bg-red-500',
-          status: 'coverage_gap'
-        });
-        day.backgroundColor = 'bg-red-100';
-      }
-    });
-
-    return calendarDays;
-  }, [allLeaveRequests]);
-
-  const handleCalendarDateSelect = (dateStr) => {
-    setSelectedCalendarDate(dateStr);
-  };
 
   const handleCloseForm = () => {
     setShowForm(false);
@@ -176,7 +70,6 @@ export default function LeaveRequests() {
           onSuccess={() => {
             handleCloseForm();
             queryClient.invalidateQueries(['leave-requests']);
-            queryClient.invalidateQueries(['leave-requests-calendar']);
           }}
         />
       </div>
@@ -185,57 +78,19 @@ export default function LeaveRequests() {
 
   return (
     <div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Calendar Widget - Hidden by default */}
-        {showCalendar && (
-          <div className="lg:col-span-1">
-            <CalendarComponent
-              selectedDate={selectedCalendarDate}
-              onDateSelect={handleCalendarDateSelect}
-              calendarData={calendarData}
-              showIndicators={true}
-            />
-            {selectedCalendarDate && (
-              <button
-                onClick={() => setSelectedCalendarDate(null)}
-                className="mt-2 w-full px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Clear Date Filter
-              </button>
-            )}
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Leave Requests Management</h2>
+            <p className="text-gray-600">View and manage staff leave requests.</p>
           </div>
-        )}
-
-        {/* Filters Section */}
-        <div className={`bg-white rounded-lg shadow p-6 ${showCalendar ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Leave Requests Management</h2>
-              <p className="text-gray-600">View and manage staff leave requests.</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowCalendar(!showCalendar)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm font-medium"
-              >
-                {showCalendar ? (
-                  <>
-                    <List className="w-4 h-4" />
-                    Hide Calendar
-                  </>
-                ) : (
-                  <>
-                    <Grid className="w-4 h-4" />
-                    Show Calendar
-                  </>
-                )}
-              </button>
-              <button onClick={() => { setEditing(null); setShowForm(true); }} className="w-full sm:w-auto px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base">
-                <Plus className="w-4 h-4" />
-                <span>New Request</span>
-              </button>
-            </div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => { setEditing(null); setShowForm(true); }} className="w-full sm:w-auto px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base">
+              <Plus className="w-4 h-4" />
+              <span>New Request</span>
+            </button>
           </div>
+        </div>
 
           <div className="flex flex-wrap gap-2">
             {['all', 'pending', 'approved', 'rejected'].map((s) => (
