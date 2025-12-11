@@ -702,11 +702,7 @@ export default function Layout() {
                             <h1 className="text-lg md:text-xl font-semibold text-[var(--theme-primary)]">
                                 {facilityBranding.name}
                             </h1>
-                            {appClock.time && (
-                                <span className="md:hidden text-xs text-gray-500">
-                                    {appClock.time} • {appTimezoneLabel}
-                                </span>
-                            )}
+                            {/* Mobile time/date hidden per request */}
                         </div>
                     </div>
                     <div className="flex items-center space-x-2 md:space-x-4">
