@@ -226,6 +226,38 @@ const closeAssignmentModal = () => {
         );
     }
 
+    // If assignment form is open, show the form instead of the main content
+    if (isAssignmentModalOpen && assignmentTask) {
+        // Find the latest task data from the query to ensure we have up-to-date assignments
+        const latestTask = tasksData?.find(t => t.id === assignmentTask.id) || assignmentTask;
+        
+        return (
+            <AssignmentForm
+                task={latestTask}
+                date={assignmentDate}
+                caregivers={caregivers}
+                onAssign={async (userId) => {
+                    try {
+                        await assignCaregiver.mutateAsync({ taskId: assignmentTask.id, userId });
+                        await queryClient.invalidateQueries({ queryKey: ['cleaning-tasks'] });
+                    } catch (err) {
+                        window.alert(err?.response?.data?.message || err.message);
+                    }
+                }}
+                onRemove={async (assignmentId) => {
+                    try {
+                        await removeAssignment.mutateAsync(assignmentId);
+                        await queryClient.invalidateQueries({ queryKey: ['cleaning-tasks'] });
+                    } catch (err) {
+                        window.alert(err?.response?.data?.message || err.message);
+                    }
+                }}
+                isSaving={assignCaregiver.isLoading || removeAssignment.isLoading}
+                onClose={closeAssignmentModal}
+            />
+        );
+    }
+
     return (
         <div className="space-y-6">
             <header 
@@ -528,34 +560,6 @@ const closeAssignmentModal = () => {
                 />
             ) : null}
 
-            {isAssignmentModalOpen && assignmentTask ? (
-                <AssignmentModal
-                    task={assignmentTask}
-                    date={assignmentDate}
-                    caregivers={caregivers}
-                    onAssign={async (userId) => {
-                        try {
-                            await assignCaregiver.mutateAsync({ taskId: assignmentTask.id, userId });
-                            await queryClient.invalidateQueries({ queryKey: ['cleaning-tasks'] });
-                        } catch (err) {
-                            window.alert(err?.response?.data?.message || err.message);
-                        }
-                    }}
-                    onRemove={async (assignmentId) => {
-                        try {
-                            // Close the modal immediately for snappier UX
-                            setAssignmentTask(null);
-                            setIsAssignmentModalOpen(false);
-                            await removeAssignment.mutateAsync(assignmentId);
-                            await queryClient.invalidateQueries({ queryKey: ['cleaning-tasks'] });
-                        } catch (err) {
-                            window.alert(err?.response?.data?.message || err.message);
-                        }
-                    }}
-                    isSaving={assignCaregiver.isLoading || removeAssignment.isLoading}
-                    onClose={closeAssignmentModal}
-                />
-            ) : null}
         </div>
     );
 }
@@ -981,7 +985,7 @@ function AreaForm({ onClose, branchId, currentUser, initialValues, onSuccess }) 
     );
 }
 
-function AssignmentModal({ task, date, caregivers, onAssign, onRemove, isSaving, onClose }) {
+function AssignmentForm({ task, date, caregivers, onAssign, onRemove, isSaving, onClose }) {
     const [selectedCaregiver, setSelectedCaregiver] = React.useState('');
     const assignments = task.assignments ?? [];
 
@@ -992,105 +996,110 @@ function AssignmentModal({ task, date, caregivers, onAssign, onRemove, isSaving,
             return;
         }
         const userId = selectedCaregiver;
-        // Close immediately per request, then perform the mutation in background
-        onClose?.();
         await onAssign(userId);
         setSelectedCaregiver('');
     };
 
     return (
-        <div 
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-            onClick={(e) => {
-                if (e.target === e.currentTarget) {
-                    onClose();
-                }
-            }}
-        >
-            <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
-                <div className="mb-6 flex items-center justify-between">
-                    <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--theme-primary)' }}>Assignments</p>
-                        <h2 className="text-2xl font-semibold text-gray-900">{task.title}</h2>
-                        <p className="text-sm text-gray-500">For {new Date(date).toLocaleDateString()}</p>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
-                        aria-label="Close modal"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
+        <div className="space-y-6">
+            <div className="flex items-center gap-3">
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-100"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to schedule
+                </button>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Assign Caregiver
+                </p>
+            </div>
+
+            <div className="rounded-3xl bg-white shadow-lg ring-1 ring-gray-100">
+                <div className="border-b border-gray-100 px-6 py-4 sm:px-8 sm:py-5">
+                    <h2 className="text-xl font-semibold text-gray-900">{task.title}</h2>
+                    <p className="mt-1 text-sm text-gray-500">
+                        Assign caregivers for {new Date(date).toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                        })}
+                    </p>
                 </div>
 
-                <div className="space-y-4">
-                    <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-                        <h3 className="text-sm font-semibold text-gray-800">Assign Caregiver</h3>
-                        <form onSubmit={handleAssign} className="mt-3 flex flex-col gap-3 md:flex-row">
-                            <select
-                                value={selectedCaregiver}
-                                onChange={(event) => setSelectedCaregiver(event.target.value)}
-                                className="flex-1 rounded-2xl border border-gray-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:border-[var(--theme-primary)]"
-                                style={{ '--tw-ring-color': 'var(--theme-primary-bg)' }}
-                            >
-                                <option value="">Select caregiver</option>
-                                {caregivers.map((caregiver) => (
-                                    <option key={caregiver.id} value={caregiver.id}>
-                                        {caregiver.name}
-                                    </option>
-                                ))}
-                            </select>
-                            <button
-                                type="submit"
-                                disabled={isSaving || !selectedCaregiver}
-                                className="inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--theme-primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--theme-primary-bg)]"
-                                style={{ backgroundColor: 'var(--theme-primary)' }}
-                            >
-                                Assign
-                            </button>
-                        </form>
-                    </div>
+                <div className="px-6 py-6 sm:px-8 sm:py-8">
+                    <div className="space-y-6">
+                        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+                            <h3 className="text-sm font-semibold text-gray-900 mb-4">Assign New Caregiver</h3>
+                            <form onSubmit={handleAssign} className="flex flex-col gap-3 md:flex-row">
+                                <select
+                                    value={selectedCaregiver}
+                                    onChange={(event) => setSelectedCaregiver(event.target.value)}
+                                    className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:border-[var(--theme-primary)]"
+                                    style={{ '--tw-ring-color': 'var(--theme-primary-bg)' }}
+                                >
+                                    <option value="">Select caregiver</option>
+                                    {caregivers.map((caregiver) => (
+                                        <option key={caregiver.id} value={caregiver.id}>
+                                            {caregiver.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <button
+                                    type="submit"
+                                    disabled={isSaving || !selectedCaregiver}
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--theme-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                                    style={{ backgroundColor: 'var(--theme-primary)' }}
+                                >
+                                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                                    Assign
+                                </button>
+                            </form>
+                        </div>
 
-                    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-                        <h3 className="text-sm font-semibold text-gray-800">
-                            Assigned Caregivers ({assignments.length})
-                        </h3>
-                        {assignments.length === 0 ? (
-                            <p className="mt-2 text-sm text-gray-500">No caregivers assigned for this date.</p>
-                        ) : (
-                            <ul className="mt-3 space-y-2">
-                                {assignments.map((assignment) => (
-                                    <li
-                                        key={assignment.id}
-                                        className="flex items-center justify-between rounded-xl border border-gray-100 px-4 py-2 text-sm"
-                                    >
-                                        <div>
-                                            <div className="font-semibold text-gray-900">
-                                                {assignment.user?.name || 'Caregiver'}
-                                            </div>
-                                            <p className="text-xs text-gray-500 capitalize">{assignment.status}</p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={async () => {
-                                                if (!window.confirm('Remove this caregiver from the task for this date?')) {
-                                                    return;
-                                                }
-                                                const id = assignment.id;
-                                                onClose?.();
-                                                await onRemove(id);
-                                            }}
-                                            disabled={isSaving}
-                                            className="rounded-lg border px-3 py-1 text-xs font-semibold transition-colors hover:bg-[var(--theme-primary-bg-light)] disabled:cursor-not-allowed"
-                                            style={{ borderColor: 'var(--theme-primary-bg)', color: 'var(--theme-primary)' }}
+                        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                            <h3 className="text-sm font-semibold text-gray-900 mb-4">
+                                Assigned Caregivers ({assignments.length})
+                            </h3>
+                            {assignments.length === 0 ? (
+                                <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-6 text-center">
+                                    <p className="text-sm text-gray-500">No caregivers assigned for this date.</p>
+                                    <p className="mt-1 text-xs text-gray-400">Use the form above to assign a caregiver.</p>
+                                </div>
+                            ) : (
+                                <ul className="space-y-3">
+                                    {assignments.map((assignment) => (
+                                        <li
+                                            key={assignment.id}
+                                            className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 bg-white hover:bg-gray-50 transition-colors"
                                         >
-                                            Remove
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
+                                            <div className="flex-1">
+                                                <div className="font-semibold text-gray-900">
+                                                    {assignment.user?.name || 'Caregiver'}
+                                                </div>
+                                                <p className="text-xs text-gray-500 capitalize mt-0.5">{assignment.status}</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    if (!window.confirm('Remove this caregiver from the task for this date?')) {
+                                                        return;
+                                                    }
+                                                    await onRemove(assignment.id);
+                                                }}
+                                                disabled={isSaving}
+                                                className="rounded-lg border-2 px-4 py-1.5 text-xs font-semibold transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                style={{ borderColor: 'var(--theme-primary-bg)', color: 'var(--theme-primary)' }}
+                                            >
+                                                {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Remove'}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
