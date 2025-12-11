@@ -11,7 +11,8 @@ class LeaveRequestController extends BaseApiController
 {
     public function index(Request $request): JsonResponse
     {
-        $query = LeaveRequest::with(['staff', 'approvedBy', 'branch']);
+        // Use withoutGlobalScopes to prevent any global scope from adding facility_id directly
+        $query = LeaveRequest::withoutGlobalScopes()->with(['staff', 'approvedBy', 'branch']);
         $currentUser = auth()->user();
         
         // If user is a caregiver, only show their own leave requests
@@ -39,6 +40,14 @@ class LeaveRequestController extends BaseApiController
         
         if ($request->has('status')) {
             $query->where('status', $request->get('status'));
+        }
+        
+        // Filter by date range if provided
+        if ($request->has('date_from')) {
+            $query->whereDate('start_date', '>=', $request->get('date_from'));
+        }
+        if ($request->has('date_to')) {
+            $query->whereDate('end_date', '<=', $request->get('date_to'));
         }
         
         $leaves = $query->orderBy('start_date', 'desc')

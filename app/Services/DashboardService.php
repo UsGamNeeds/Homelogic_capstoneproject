@@ -102,7 +102,7 @@ class DashboardService
             ->count();
 
         // Pending leave requests
-        $pendingLeaveRequests = LeaveRequest::where('staff_id', $userId)
+        $pendingLeaveRequests = LeaveRequest::withoutGlobalScopes()->where('staff_id', $userId)
             ->where('status', 'pending')
             ->count();
 
