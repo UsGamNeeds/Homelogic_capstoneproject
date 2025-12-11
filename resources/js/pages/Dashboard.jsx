@@ -76,7 +76,8 @@ export default function Dashboard() {
                 return response.data;
             } catch (err) {
                 console.error('Dashboard API error:', err);
-                return {
+                // Keep stale stats if available so dashboard doesn't flash zeros
+                return stats ?? {
                     total_residents: 0,
                     today_appointments: 0,
                     today_vitals: 0,
@@ -143,23 +144,23 @@ export default function Dashboard() {
         queryFn: async () => {
             try {
                 const [assessmentsRes, sleepRes, housekeepingRes, incidentsRes, groceryRes, pharmacyRes, billingRes] = await Promise.all([
-                    api.get('/assessments?per_page=1').catch(() => ({ data: { total: 0 } })),
-                    api.get('/sleep?per_page=1').catch(() => ({ data: { total: 0 } })),
-                    api.get('/cleaning/tasks?per_page=1').catch(() => ({ data: { total: 0 } })),
-                    api.get('/incidents?per_page=1').catch(() => ({ data: { total: 0 } })),
-                    api.get('/grocery-status?per_page=1').catch(() => ({ data: { total: 0 } })),
-                    api.get('/pharmacy/inventory?per_page=1').catch(() => ({ data: { total: 0 } })),
-                    api.get('/billing/expenses?per_page=1').catch(() => ({ data: { total: 0 } })),
+                    api.get('/assessments?per_page=1').catch(() => ({ data: { meta: { total: 0 } } })),
+                    api.get('/sleep?per_page=1').catch(() => ({ data: { meta: { total: 0 } } })),
+                    api.get('/cleaning/tasks?per_page=1').catch(() => ({ data: { meta: { total: 0 } } })),
+                    api.get('/incidents?per_page=1').catch(() => ({ data: { meta: { total: 0 } } })),
+                    api.get('/grocery-status?per_page=1').catch(() => ({ data: { meta: { total: 0 } } })),
+                    api.get('/pharmacy/inventory?per_page=1').catch(() => ({ data: { meta: { total: 0 } } })),
+                    api.get('/billing/expenses?per_page=1').catch(() => ({ data: { meta: { total: 0 } } })),
                 ]);
                 
                 return {
-                    assessments: assessmentsRes.data?.total || 0,
-                    sleep: sleepRes.data?.total || 0,
-                    housekeeping: housekeepingRes.data?.total || 0,
-                    incidents: incidentsRes.data?.total || 0,
-                    grocery: groceryRes.data?.total || 0,
-                    pharmacy: pharmacyRes.data?.total || 0,
-                    billing: billingRes.data?.total || 0,
+                    assessments: assessmentsRes.data?.meta?.total || assessmentsRes.data?.total || 0,
+                    sleep: sleepRes.data?.meta?.total || sleepRes.data?.total || 0,
+                    housekeeping: housekeepingRes.data?.meta?.total || housekeepingRes.data?.total || 0,
+                    incidents: incidentsRes.data?.meta?.total || incidentsRes.data?.total || 0,
+                    grocery: groceryRes.data?.meta?.total || groceryRes.data?.total || 0,
+                    pharmacy: pharmacyRes.data?.meta?.total || pharmacyRes.data?.total || 0,
+                    billing: billingRes.data?.meta?.total || billingRes.data?.total || 0,
                 };
             } catch (err) {
                 console.error('Module stats API error:', err);

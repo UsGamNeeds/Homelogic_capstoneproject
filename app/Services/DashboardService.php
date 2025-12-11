@@ -198,6 +198,33 @@ class DashboardService
         $assessmentsQuery = Assessment::whereNotIn('status', ['approved', 'archived']);
         $activeMedicationsQuery = Medication::where('is_active', true);
 
+        // Ensure facility scoping across related models (appointments, vitals, assessments, medications)
+        if ($facilityId) {
+            $appointmentsQuery->whereHas('branch', function ($q) use ($facilityId) {
+                $q->where('facility_id', $facilityId);
+            });
+
+            $vitalsQuery->whereHas('resident', function ($q) use ($facilityId) {
+                $q->whereHas('branch', function ($branchQ) use ($facilityId) {
+                    $branchQ->where('facility_id', $facilityId);
+                })->where('is_active', true);
+            });
+
+            $assessmentsQuery->whereHas('resident', function ($q) use ($facilityId) {
+                $q->whereHas('branch', function ($branchQ) use ($facilityId) {
+                    $branchQ->where('facility_id', $facilityId);
+                })->where('is_active', true);
+            });
+
+            $staffQuery->where('facility_id', $facilityId);
+
+            $activeMedicationsQuery->whereHas('resident', function ($q) use ($facilityId) {
+                $q->whereHas('branch', function ($branchQ) use ($facilityId) {
+                    $branchQ->where('facility_id', $facilityId);
+                })->where('is_active', true);
+            });
+        }
+
         // Last 30 days filters
         $appointmentsLast30 = (clone $appointmentsQuery)
             ->whereBetween('appointment_date', [$rangeStart, now()])
