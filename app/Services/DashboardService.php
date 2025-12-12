@@ -212,10 +212,7 @@ class DashboardService
             }
         }
         
-        // Branch context (for facility admins/administrators assigned to a branch)
-        $branchId = $user?->assigned_branch_id;
-
-        // Build queries without global scopes and apply explicit facility/branch filters
+        // Build queries without global scopes and apply explicit facility filters
         $residentsQuery = Resident::withoutGlobalScopes()->where('is_active', true);
         $rangeStart = now()->subDays(30)->startOfDay();
         $appointmentsQuery = Appointment::withoutGlobalScopes();
@@ -263,25 +260,6 @@ class DashboardService
                             $b->where('facility_id', $facilityId);
                         });
                 })->where('is_active', true);
-            });
-        }
-
-        // If user is tied to a specific branch (facility admin/administrator), narrow to that branch
-        if ($branchId) {
-            $residentsQuery->where('branch_id', $branchId);
-
-            $appointmentsQuery->where('branch_id', $branchId);
-
-            $vitalsQuery->whereHas('resident', function ($q) use ($branchId) {
-                $q->where('branch_id', $branchId)->where('is_active', true);
-            });
-
-            $assessmentsQuery->whereHas('resident', function ($q) use ($branchId) {
-                $q->where('branch_id', $branchId)->where('is_active', true);
-            });
-
-            $activeMedicationsQuery->whereHas('resident', function ($q) use ($branchId) {
-                $q->where('branch_id', $branchId)->where('is_active', true);
             });
         }
 
