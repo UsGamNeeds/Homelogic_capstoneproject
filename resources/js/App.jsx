@@ -22,7 +22,7 @@ function retryLazyImport(importFn, retries = 3, delay = 1000) {
         // Check if we've already tried reloading (prevent infinite loops)
         const reloadKey = 'module_reload_attempted';
         const hasReloaded = sessionStorage.getItem(reloadKey);
-        
+
         const attempt = (remainingRetries) => {
             importFn()
                 .then((module) => {
@@ -292,7 +292,7 @@ function App() {
                 <Route path="administration/activity-logs" element={<Suspense fallback={<PageLoader />}><ActivityLogs /></Suspense>} />
                 <Route path="administration/deactivated" element={<Suspense fallback={<PageLoader />}><DeactivatedRecords /></Suspense>} />
 
-                <Route path="*" element={<Navigate to="dashboard" replace />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Route>
             {/* Keep public routes before catch-all to prevent redirects */}
             <Route path="*" element={<Navigate to="/login" replace />} />

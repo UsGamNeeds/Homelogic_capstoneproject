@@ -1624,7 +1624,7 @@ class DashboardService
                         'location' => $resident->room_number ?? $resident->room ?? 'N/A',
                         'category' => 'Vitals',
                         'category_color' => 'green',
-                        'link' => '/residents/' . $resident->id . '/vitals',
+                        'link' => '/vitals?resident=' . $resident->id,
                     ];
                 });
         }
