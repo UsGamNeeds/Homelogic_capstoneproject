@@ -57,6 +57,12 @@ class SetFacilityContext
             
             // If no facility found from subdomain (or no subdomain), try user's facility_id then branch
             if (!$facility) {
+                \Illuminate\Support\Facades\Log::info('SetFacilityContext: No facility from subdomain, trying fallback', [
+                    'user_id' => $user->id,
+                    'facility_id' => $user->facility_id,
+                    'assigned_branch_id' => $user->assigned_branch_id,
+                ]);
+
                 if ($user->facility_id) {
                     $facility = Cache::remember("facility.{$user->facility_id}", 3600, function () use ($user) {
                         return $user->facility;
@@ -67,6 +73,11 @@ class SetFacilityContext
                         $branch = \App\Models\Branch::find($user->assigned_branch_id);
                         return $branch ? $branch->facility : null;
                     });
+                    
+                    \Illuminate\Support\Facades\Log::info('SetFacilityContext: Branch fallback result', [
+                        'branch_id' => $user->assigned_branch_id,
+                        'facility_found' => $facility ? $facility->id : 'null',
+                    ]);
                 }
             }
         }
