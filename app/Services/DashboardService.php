@@ -884,10 +884,13 @@ class DashboardService
                         }
                         $reminders[] = [
                             'medication_id' => $medication->id,
+                            'resident_id' => $medication->resident_id,
                             'resident_name' => $residentName,
                             'medication_name' => $medication->drug?->name ?? $medication->name,
                             'medication_dosage' => $medication->instructions ?? '',
-                            'due_time' => Carbon::parse($time)->format('g:i A'),
+                            'due_time' => Carbon::parse($time)->format('H:i'), // 24-hour format for easier parsing
+                            'due_at' => $timeToday->toIso8601String(), // Full datetime for frontend
+                            'due_time_display' => Carbon::parse($time)->format('g:i A'), // Display format
                             'room' => $medication->resident->room_number ?? $medication->resident->room ?? 'N/A',
                         ];
                     }
