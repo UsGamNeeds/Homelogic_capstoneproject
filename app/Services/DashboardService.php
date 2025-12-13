@@ -446,11 +446,8 @@ class DashboardService
                 });
             } else {
                 // Fallback to facility-based filtering using whereHas
-                $residentsQuery->where(function ($q) use ($facilityId) {
-                    $q->where('facility_id', $facilityId)
-                        ->orWhereHas('branch', function ($b) use ($facilityId) {
-                            $b->where('facility_id', $facilityId);
-                        });
+                $residentsQuery->whereHas('branch', function ($q) use ($facilityId) {
+                    $q->where('facility_id', $facilityId);
                 });
 
                 $appointmentsQuery->whereHas('branch', function ($q) use ($facilityId) {
@@ -458,29 +455,20 @@ class DashboardService
                 });
 
                 $vitalsQuery->whereHas('resident', function ($q) use ($facilityId) {
-                    $q->where(function ($r) use ($facilityId) {
-                        $r->where('facility_id', $facilityId)
-                            ->orWhereHas('branch', function ($b) use ($facilityId) {
-                                $b->where('facility_id', $facilityId);
-                            });
+                    $q->whereHas('branch', function ($b) use ($facilityId) {
+                        $b->where('facility_id', $facilityId);
                     })->where('is_active', true);
                 });
 
                 $assessmentsQuery->whereHas('resident', function ($q) use ($facilityId) {
-                    $q->where(function ($r) use ($facilityId) {
-                        $r->where('facility_id', $facilityId)
-                            ->orWhereHas('branch', function ($b) use ($facilityId) {
-                                $b->where('facility_id', $facilityId);
-                            });
+                    $q->whereHas('branch', function ($b) use ($facilityId) {
+                        $b->where('facility_id', $facilityId);
                     })->where('is_active', true);
                 });
 
                 $activeMedicationsQuery->whereHas('resident', function ($q) use ($facilityId) {
-                    $q->where(function ($r) use ($facilityId) {
-                        $r->where('facility_id', $facilityId)
-                            ->orWhereHas('branch', function ($b) use ($facilityId) {
-                                $b->where('facility_id', $facilityId);
-                            });
+                    $q->whereHas('branch', function ($b) use ($facilityId) {
+                        $b->where('facility_id', $facilityId);
                     })->where('is_active', true);
                 });
             }
