@@ -135,21 +135,21 @@ export default function ActionableItemsSection({ items = [], onItemClick, onDism
                                 </div>
                                 
                                 {/* Actions */}
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                    {item.link && (
+                                <div className="flex items-center gap-3 flex-shrink-0">
+                                    {(item.link || onItemClick) && (
                                         <button
                                             onClick={(e) => handleView(e, item)}
-                                            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+                                            className="text-sm font-medium text-blue-600 hover:text-blue-700 underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
                                         >
                                             View
                                         </button>
                                     )}
                                     <button
                                         onClick={(e) => handleDismiss(e, item)}
-                                        className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                                        className="text-gray-400 hover:text-gray-600 transition-colors p-1 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 rounded"
                                         aria-label="Dismiss"
                                     >
-                                        <X className="w-4 h-4" />
+                                        <X className="w-5 h-5" />
                                     </button>
                                 </div>
                             </div>
