@@ -448,8 +448,15 @@ class DashboardService
                 });
             }
             
-            // Staff query always uses facility_id directly
-            $staffQuery->where('facility_id', $facilityId);
+            // Staff query - check if facility_id column exists before using it
+            if (Schema::hasColumn('users', 'facility_id')) {
+                $staffQuery->where('facility_id', $facilityId);
+            } else {
+                // Fallback: filter by users who have assigned_branch_id in facility branches
+                if ($facilityBranchIds && !empty($facilityBranchIds)) {
+                    $staffQuery->whereIn('assigned_branch_id', $facilityBranchIds);
+                }
+            }
         }
 
         // If no facility found, try additional fallback methods for administrators
@@ -518,7 +525,15 @@ class DashboardService
                         $q->whereIn('branch_id', $facilityBranchIds)->where('is_active', true);
                     });
                 }
-                $staffQuery->where('facility_id', $facilityId);
+                // Staff query - check if facility_id column exists before using it
+                if (Schema::hasColumn('users', 'facility_id')) {
+                    $staffQuery->where('facility_id', $facilityId);
+                } else {
+                    // Fallback: filter by users who have assigned_branch_id in facility branches
+                    if ($facilityBranchIds && !empty($facilityBranchIds)) {
+                        $staffQuery->whereIn('assigned_branch_id', $facilityBranchIds);
+                    }
+                }
             }
         }
 
