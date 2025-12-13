@@ -14,3 +14,6 @@ Schedule::command('notifications:generate')->hourly();
 // Reminders
 Schedule::command('reminders:generate')->everyThirtyMinutes();
 Schedule::command('reminders:dispatch')->everyFiveMinutes();
+
+// Medications
+Schedule::command('medications:mark-missed')->hourly();
