@@ -75,8 +75,33 @@ export default function TodaysSchedule() {
         return styles[color] || styles.blue;
     };
 
-    const handleEventClick = (event) => {
-        navigate(`/appointments/${event.id}`);
+    const handleEventClick = (e, event) => {
+        // Prevent default behavior and stop propagation to avoid page reload
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Use the link field if available, otherwise construct based on event type
+        if (event.link) {
+            navigate(event.link);
+        } else {
+            // Fallback navigation based on event type
+            switch (event.type) {
+                case 'appointment':
+                    navigate('/appointments');
+                    break;
+                case 'vitals':
+                    // Extract resident ID from id (format: vitals_resident_{id})
+                    const residentId = event.id?.replace('vitals_resident_', '');
+                    navigate(`/vitals${residentId ? `?resident=${residentId}` : ''}`);
+                    break;
+                case 'medication':
+                    navigate('/medications');
+                    break;
+                default:
+                    // Default to dashboard if unknown type
+                    navigate('/dashboard');
+            }
+        }
     };
 
     return (
@@ -104,7 +129,7 @@ export default function TodaysSchedule() {
                             <div
                                 key={event.id}
                                 className="relative flex gap-4 cursor-pointer group"
-                                onClick={() => handleEventClick(event)}
+                                onClick={(e) => handleEventClick(e, event)}
                             >
                                 {/* Time indicator */}
                                 <div className="relative z-10 flex-shrink-0">

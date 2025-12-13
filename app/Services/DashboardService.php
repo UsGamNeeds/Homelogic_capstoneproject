@@ -1586,6 +1586,7 @@ class DashboardService
                         'category' => $appointment->appointmentType?->name ?? 'Appointment',
                         'category_color' => 'blue',
                         'link' => '/appointments',
+                        'appointment_id' => $appointment->id,
                     ];
                 });
         }
