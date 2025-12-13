@@ -10,10 +10,6 @@ use Illuminate\Support\Facades\Log;
 
 class UserObserver
 {
-    public function __construct(
-        private DashboardService $dashboardService
-    ) {
-    }
 
     /**
      * Handle the User "created" event.
@@ -62,7 +58,8 @@ class UserObserver
         // Clear dashboard cache if facility_id or assigned_branch_id changed
         if ($user->wasChanged(['facility_id', 'assigned_branch_id', 'role'])) {
             try {
-                $this->dashboardService->clearCacheForUser($user);
+                $dashboardService = app(DashboardService::class);
+                $dashboardService->clearCacheForUser($user);
                 Log::info('UserObserver: Cleared dashboard cache after user update', [
                     'user_id' => $user->id,
                     'changed_fields' => $user->getChanges(),
