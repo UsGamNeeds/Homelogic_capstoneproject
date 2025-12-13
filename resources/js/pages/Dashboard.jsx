@@ -37,6 +37,7 @@ import ActionableItemsSection from '../components/dashboard/ActionableItemsSecti
 import MobileDashboard from '../components/dashboard/MobileDashboard';
 import UpcomingEventsWidget from '../components/dashboard/UpcomingEventsWidget';
 import TodaysSchedule from '../components/dashboard/TodaysSchedule';
+import CaregiverDashboard from '../components/dashboard/CaregiverDashboard';
 
 // Register Chart.js components
 ChartJS.register(
@@ -763,6 +764,38 @@ export default function Dashboard() {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
+    // Fetch today's schedule for caregiver
+    const { data: todaysSchedule } = useQuery({
+        queryKey: ['dashboard-todays-schedule'],
+        queryFn: async () => {
+            try {
+                const response = await api.get('/dashboard/todays-schedule');
+                return response.data;
+            } catch (err) {
+                console.error('Schedule API error:', err);
+                return [];
+            }
+        },
+        enabled: !!isCaregiver,
+        refetchInterval: 60000,
+    });
+
+    // Fetch upcoming events
+    const { data: upcomingEvents } = useQuery({
+        queryKey: ['dashboard-upcoming-events'],
+        queryFn: async () => {
+            try {
+                const response = await api.get('/dashboard/upcoming-events');
+                return response.data;
+            } catch (err) {
+                console.error('Upcoming events API error:', err);
+                return [];
+            }
+        },
+        enabled: !!isCaregiver,
+        refetchInterval: 300000,
+    });
+
     // Mobile view
     if (isMobile && !isLoading) {
         return (
@@ -775,6 +808,22 @@ export default function Dashboard() {
                 onStatClick={(card) => card.link && navigate(card.link)}
                 onItemClick={(item) => item.link && navigate(item.link)}
             />
+        );
+    }
+
+    // Caregiver Dashboard View
+    if (isCaregiver && !isLoading) {
+        return (
+            <div className="min-h-screen bg-gray-50">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+                    <CaregiverDashboard
+                        user={currentUser}
+                        stats={stats}
+                        todaysSchedule={todaysSchedule?.data || todaysSchedule || []}
+                        upcomingEvents={upcomingEvents?.data || upcomingEvents || []}
+                    />
+                </div>
+            </div>
         );
     }
 
