@@ -170,6 +170,10 @@ class UserController extends BaseApiController
         if (array_key_exists('assigned_branch_id', $validated)) {
             $validated['assigned_branch_id'] = $validated['assigned_branch_id'] ?: null;
         }
+        // For super admins, preserve their facility_id selection (or null if not provided)
+        if ($currentUser && $currentUser->role === 'super_admin' && array_key_exists('facility_id', $validated)) {
+            $validated['facility_id'] = $validated['facility_id'] ?: null;
+        }
         
         // Remove position if column doesn't exist in database or if it's empty
         if (!Schema::hasColumn('users', 'position')) {
