@@ -37,7 +37,6 @@ import ActionableItemsSection from '../components/dashboard/ActionableItemsSecti
 import MobileDashboard from '../components/dashboard/MobileDashboard';
 import UpcomingEventsWidget from '../components/dashboard/UpcomingEventsWidget';
 import TodaysSchedule from '../components/dashboard/TodaysSchedule';
-import TodaysSchedule from '../components/dashboard/TodaysSchedule';
 
 // Register Chart.js components
 ChartJS.register(
