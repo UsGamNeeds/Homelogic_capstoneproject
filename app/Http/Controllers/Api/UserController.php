@@ -211,6 +211,20 @@ class UserController extends BaseApiController
             // Always set to creator's facility_id - they can only create users for their facility
             $validated['facility_id'] = $facilityId;
         }
+        
+        // IMPORTANT: If creating an admin/administrator user and no facility_id is set,
+        // try to derive it from assigned_branch_id if provided
+        $isCreatingAdmin = in_array($validated['role'] ?? '', ['administrator', 'admin']);
+        if ($isCreatingAdmin && empty($validated['facility_id']) && !empty($validated['assigned_branch_id'])) {
+            $branch = Branch::find($validated['assigned_branch_id']);
+            if ($branch && $branch->facility_id) {
+                $validated['facility_id'] = $branch->facility_id;
+                Log::info('UserController: Derived facility_id from assigned_branch_id for admin user', [
+                    'branch_id' => $validated['assigned_branch_id'],
+                    'facility_id' => $branch->facility_id,
+                ]);
+            }
+        }
 
         // Extract role_ids if provided
         $roleIds = $validated['role_ids'] ?? null;
