@@ -639,14 +639,37 @@ class DashboardService
         // Final check: Ensure facilityBranchIds is set if we have facilityId but it wasn't set earlier
         if ($facilityId && (!$facilityBranchIds || empty($facilityBranchIds))) {
             $facilityBranchIds = \App\Models\Branch::where('facility_id', $facilityId)->pluck('id')->toArray();
+            Log::info('DashboardService: Set facilityBranchIds from facilityId in final check', [
+                'facility_id' => $facilityId,
+                'branch_count' => count($facilityBranchIds),
+            ]);
         }
         
         // Also check if we have branch with facility but facilityId wasn't resolved
+        // This is a critical fallback - if user has branch assigned, we MUST derive facility
         if (!$facilityId && $branchId) {
             $assignedBranch = \App\Models\Branch::find($branchId);
-            if ($assignedBranch && $assignedBranch->facility_id) {
-                $facilityId = $assignedBranch->facility_id;
-                $facilityBranchIds = \App\Models\Branch::where('facility_id', $facilityId)->pluck('id')->toArray();
+            if ($assignedBranch) {
+                if ($assignedBranch->facility_id) {
+                    $facilityId = $assignedBranch->facility_id;
+                    $facilityBranchIds = \App\Models\Branch::where('facility_id', $facilityId)->pluck('id')->toArray();
+                    Log::info('DashboardService: Final check - Derived facility from branch', [
+                        'branch_id' => $branchId,
+                        'facility_id' => $facilityId,
+                        'branch_count' => count($facilityBranchIds),
+                    ]);
+                } else {
+                    Log::warning('DashboardService: User has branch assigned but branch has no facility_id', [
+                        'user_id' => $user->id,
+                        'branch_id' => $branchId,
+                        'branch_name' => $assignedBranch->name,
+                    ]);
+                }
+            } else {
+                Log::warning('DashboardService: User has assigned_branch_id but branch not found', [
+                    'user_id' => $user->id,
+                    'branch_id' => $branchId,
+                ]);
             }
         }
 
@@ -663,6 +686,19 @@ class DashboardService
                              $user && 
                              $user->role !== 'super_admin' && 
                              $isAdministrator;
+
+        // Log final context determination for debugging
+        Log::info('DashboardService: Final context determination', [
+            'user_id' => $user->id,
+            'user_role' => $user->role,
+            'user_facility_id' => $user->facility_id,
+            'user_assigned_branch_id' => $branchId,
+            'resolved_facility_id' => $facilityId,
+            'facility_branch_ids_count' => $facilityBranchIds ? count($facilityBranchIds) : 0,
+            'has_valid_context' => $hasValidContext,
+            'should_show_warning' => $shouldShowWarning,
+            'is_administrator' => $isAdministrator,
+        ]);
 
         return [
             'total_residents' => $totalResidents,
