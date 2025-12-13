@@ -325,13 +325,14 @@ class DashboardService
         }
         
         $facilityId = $facility ? $facility->id : null;
+        $branchId = $user->assigned_branch_id ?? null;
 
         // Log facility resolution for debugging
         Log::info('DashboardService: Facility context resolution', [
             'user_id' => $user->id,
             'user_role' => $user->role,
             'user_facility_id' => $user->facility_id,
-            'user_assigned_branch_id' => $user->assigned_branch_id,
+            'user_assigned_branch_id' => $branchId,
             'resolved_facility_id' => $facilityId,
             'app_facility_bound' => app()->bound('facility'),
             'facility_name' => $facility ? $facility->name : null,
@@ -358,46 +359,97 @@ class DashboardService
         $assessmentsQuery = Assessment::withoutGlobalScopes()->whereNotIn('status', ['approved', 'archived']);
         $activeMedicationsQuery = Medication::withoutGlobalScopes()->where('is_active', true);
 
+        // If admin has assigned_branch_id but no facility_id, use branch-based filtering
+        // This ensures admins see data even if facility_id isn't set on their user record
+        if ($branchId && !$facilityId && $isAdministrator) {
+            // Get all branch IDs in the same facility as the assigned branch
+            $assignedBranch = \App\Models\Branch::find($branchId);
+            if ($assignedBranch && $assignedBranch->facility_id) {
+                $facilityId = $assignedBranch->facility_id;
+                $facility = \App\Models\Facility::find($facilityId);
+                
+                Log::info('DashboardService: Derived facility from assigned branch', [
+                    'user_id' => $user->id,
+                    'branch_id' => $branchId,
+                    'derived_facility_id' => $facilityId,
+                ]);
+            }
+        }
+
+        // Get all branch IDs in the facility for more efficient and reliable querying
+        $facilityBranchIds = null;
         if ($facilityId) {
-            $residentsQuery->where(function ($q) use ($facilityId) {
-                $q->where('facility_id', $facilityId)
-                    ->orWhereHas('branch', function ($b) use ($facilityId) {
-                        $b->where('facility_id', $facilityId);
-                    });
-            });
+            $facilityBranchIds = \App\Models\Branch::where('facility_id', $facilityId)->pluck('id')->toArray();
+            Log::info('DashboardService: Facility branches', [
+                'facility_id' => $facilityId,
+                'branch_ids' => $facilityBranchIds,
+                'branch_count' => count($facilityBranchIds),
+            ]);
+        }
 
-            $appointmentsQuery->whereHas('branch', function ($q) use ($facilityId) {
-                $q->where('facility_id', $facilityId);
-            });
-
-            $vitalsQuery->whereHas('resident', function ($q) use ($facilityId) {
-                $q->where(function ($r) use ($facilityId) {
-                    $r->where('facility_id', $facilityId)
+        if ($facilityId) {
+            // Use branch-based filtering if we have branch IDs (more efficient and reliable than whereHas)
+            if ($facilityBranchIds && !empty($facilityBranchIds)) {
+                // Filter by branch IDs directly (similar to caregiver approach but for all branches in facility)
+                $residentsQuery->whereIn('branch_id', $facilityBranchIds);
+                
+                $appointmentsQuery->whereIn('branch_id', $facilityBranchIds);
+                
+                // For vitals, assessments, medications - filter by resident's branch
+                $vitalsQuery->whereHas('resident', function ($q) use ($facilityBranchIds) {
+                    $q->whereIn('branch_id', $facilityBranchIds)->where('is_active', true);
+                });
+                
+                $assessmentsQuery->whereHas('resident', function ($q) use ($facilityBranchIds) {
+                    $q->whereIn('branch_id', $facilityBranchIds)->where('is_active', true);
+                });
+                
+                $activeMedicationsQuery->whereHas('resident', function ($q) use ($facilityBranchIds) {
+                    $q->whereIn('branch_id', $facilityBranchIds)->where('is_active', true);
+                });
+            } else {
+                // Fallback to facility-based filtering using whereHas
+                $residentsQuery->where(function ($q) use ($facilityId) {
+                    $q->where('facility_id', $facilityId)
                         ->orWhereHas('branch', function ($b) use ($facilityId) {
                             $b->where('facility_id', $facilityId);
                         });
-                })->where('is_active', true);
-            });
+                });
 
-            $assessmentsQuery->whereHas('resident', function ($q) use ($facilityId) {
-                $q->where(function ($r) use ($facilityId) {
-                    $r->where('facility_id', $facilityId)
-                        ->orWhereHas('branch', function ($b) use ($facilityId) {
-                            $b->where('facility_id', $facilityId);
-                        });
-                })->where('is_active', true);
-            });
+                $appointmentsQuery->whereHas('branch', function ($q) use ($facilityId) {
+                    $q->where('facility_id', $facilityId);
+                });
 
+                $vitalsQuery->whereHas('resident', function ($q) use ($facilityId) {
+                    $q->where(function ($r) use ($facilityId) {
+                        $r->where('facility_id', $facilityId)
+                            ->orWhereHas('branch', function ($b) use ($facilityId) {
+                                $b->where('facility_id', $facilityId);
+                            });
+                    })->where('is_active', true);
+                });
+
+                $assessmentsQuery->whereHas('resident', function ($q) use ($facilityId) {
+                    $q->where(function ($r) use ($facilityId) {
+                        $r->where('facility_id', $facilityId)
+                            ->orWhereHas('branch', function ($b) use ($facilityId) {
+                                $b->where('facility_id', $facilityId);
+                            });
+                    })->where('is_active', true);
+                });
+
+                $activeMedicationsQuery->whereHas('resident', function ($q) use ($facilityId) {
+                    $q->where(function ($r) use ($facilityId) {
+                        $r->where('facility_id', $facilityId)
+                            ->orWhereHas('branch', function ($b) use ($facilityId) {
+                                $b->where('facility_id', $facilityId);
+                            });
+                    })->where('is_active', true);
+                });
+            }
+            
+            // Staff query always uses facility_id directly
             $staffQuery->where('facility_id', $facilityId);
-
-            $activeMedicationsQuery->whereHas('resident', function ($q) use ($facilityId) {
-                $q->where(function ($r) use ($facilityId) {
-                    $r->where('facility_id', $facilityId)
-                        ->orWhereHas('branch', function ($b) use ($facilityId) {
-                            $b->where('facility_id', $facilityId);
-                        });
-                })->where('is_active', true);
-            });
         }
 
         // If no facility found, log warning and try to get data without facility filter
