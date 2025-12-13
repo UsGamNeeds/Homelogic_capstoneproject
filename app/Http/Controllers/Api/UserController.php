@@ -22,24 +22,36 @@ class UserController extends BaseApiController
         $currentUser = Auth::user();
         $requestedFacilityId = $request->get('facility_id');
         
+        // Check if facility_id column exists on users table
+        $hasFacilityIdColumn = Schema::hasColumn('users', 'facility_id');
+        
         if ($currentUser && $currentUser->role !== 'super_admin') {
             // For non-super admins, ensure they can only see users from their facility
-            // If facility_id is requested, verify it matches their facility
-            if ($requestedFacilityId && $requestedFacilityId != $currentUser->facility_id) {
-                // Facility admin trying to access different facility - return empty result
-                return response()->json([
-                    'data' => [],
-                    'current_page' => 1,
-                    'last_page' => 1,
-                    'per_page' => $request->get('per_page', 20),
-                    'total' => 0
-                ]);
+            if ($hasFacilityIdColumn) {
+                // If facility_id is requested, verify it matches their facility
+                if ($requestedFacilityId && $requestedFacilityId != $currentUser->facility_id) {
+                    // Facility admin trying to access different facility - return empty result
+                    return response()->json([
+                        'data' => [],
+                        'current_page' => 1,
+                        'last_page' => 1,
+                        'per_page' => $request->get('per_page', 20),
+                        'total' => 0
+                    ]);
+                }
+                // Filter by user's facility
+                if ($currentUser->facility_id) {
+                    $query->where('facility_id', $currentUser->facility_id);
+                }
+            } else {
+                // Fallback: filter by assigned_branch_id if facility_id column doesn't exist
+                if ($currentUser->assigned_branch_id) {
+                    $query->where('assigned_branch_id', $currentUser->assigned_branch_id);
+                }
             }
-            // Filter by user's facility
-            $query->where('facility_id', $currentUser->facility_id);
         } else {
             // For super admins, filter by facility_id if provided
-            if ($requestedFacilityId) {
+            if ($hasFacilityIdColumn && $requestedFacilityId) {
                 $query->where('facility_id', $requestedFacilityId);
             }
         }
