@@ -552,7 +552,7 @@ export default function ResidentDetailPage() {
                                 </p>
                             </div>
                             <Link
-                                to={`/medications?resident=${resident.id}`}
+                                to={`/medications/residents/${resident.id}`}
                                 className="rounded-lg border-2 border-[var(--theme-primary)] bg-[var(--theme-primary)] px-4 py-2 text-sm font-semibold text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-hover)] transition-colors shadow-sm"
                             >
                                 Manage Medications
@@ -566,9 +566,52 @@ export default function ResidentDetailPage() {
                             />
                         ) : (
                             <ul className="space-y-3 text-sm text-gray-700">
-                                {medications.map((item, index) => (
-                                    <li key={`${item}-${index}`} className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
-                                        {typeof item === 'string' ? item : JSON.stringify(item)}
+                                {medications.map((medication) => (
+                                    <li key={medication.id || `med-${medication.name}`} className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="font-semibold text-gray-900">
+                                                        {medication.name || medication.drug?.name || 'Unnamed Medication'}
+                                                    </h3>
+                                                    {medication.is_active && (
+                                                        <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600">
+                                                            Active
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {medication.instructions && (
+                                                    <p className="mt-1 text-sm text-gray-600">
+                                                        {medication.instructions}
+                                                    </p>
+                                                )}
+                                                <div className="mt-2 flex flex-wrap gap-4 text-xs text-gray-500">
+                                                    {medication.quantity && (
+                                                        <span>Quantity: {medication.quantity}</span>
+                                                    )}
+                                                    {medication.start_date && (
+                                                        <span>Start: {formatDate(medication.start_date)}</span>
+                                                    )}
+                                                    {medication.end_date && (
+                                                        <span>End: {formatDate(medication.end_date)}</span>
+                                                    )}
+                                                    {[medication.time_1, medication.time_2, medication.time_3, medication.time_4]
+                                                        .filter(Boolean)
+                                                        .length > 0 && (
+                                                        <span>
+                                                            Times: {[medication.time_1, medication.time_2, medication.time_3, medication.time_4]
+                                                                .filter(Boolean)
+                                                                .join(', ')}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {medication.notes && (
+                                                    <p className="mt-2 text-xs text-gray-500 line-clamp-2">
+                                                        {medication.notes}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
                                     </li>
                                 ))}
                             </ul>

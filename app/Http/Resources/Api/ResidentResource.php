@@ -48,6 +48,29 @@ class ResidentResource extends JsonResource
             'vital_signs' => VitalSignResource::collection($this->whenLoaded('vitalSigns')),
             'sleep_records' => SleepRecordResource::collection($this->whenLoaded('sleepRecords')),
             'sleep_patterns' => SleepPatternResource::collection($this->whenLoaded('sleepPatterns')),
+            'medications' => $this->whenLoaded('medications', function() {
+                return $this->medications->map(function($medication) {
+                    return [
+                        'id' => $medication->id,
+                        'name' => $medication->name,
+                        'instructions' => $medication->instructions,
+                        'quantity' => $medication->quantity,
+                        'start_date' => $medication->start_date?->format('Y-m-d'),
+                        'end_date' => $medication->end_date?->format('Y-m-d'),
+                        'prescription_date' => $medication->prescription_date?->format('Y-m-d'),
+                        'is_active' => $medication->is_active,
+                        'time_1' => $medication->time_1,
+                        'time_2' => $medication->time_2,
+                        'time_3' => $medication->time_3,
+                        'time_4' => $medication->time_4,
+                        'notes' => $medication->notes,
+                        'drug' => $medication->drug ? [
+                            'id' => $medication->drug->id,
+                            'name' => $medication->drug->name,
+                        ] : null,
+                    ];
+                });
+            }),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

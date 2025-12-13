@@ -95,6 +95,10 @@ class ResidentController extends BaseApiController
                 'vitalSigns',
                 'sleepRecords',
                 'sleepPatterns',
+                'medications' => function($query) {
+                    $query->orderBy('start_date', 'desc');
+                },
+                'medications.drug',
             ])
             ->findOrFail($id);
 
