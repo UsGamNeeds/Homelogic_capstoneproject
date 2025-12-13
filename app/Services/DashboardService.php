@@ -592,42 +592,6 @@ class DashboardService
                 ->whereBetween('created_at', [$rangeStart, now()])
                 ->count();
 
-            // Low inventory count (pharmacy inventory)
-            $lowInventoryCount = 0;
-            if (Schema::hasTable('pharmacy_inventory')) {
-                $lowInventoryQuery = \App\Models\PharmacyInventory::withoutGlobalScopes();
-                
-                if ($facilityId && $facilityBranchIds && !empty($facilityBranchIds)) {
-                    $lowInventoryQuery->whereIn('branch_id', $facilityBranchIds);
-                } elseif ($facilityId) {
-                    $lowInventoryQuery->whereHas('branch', function ($q) use ($facilityId) {
-                        $q->where('facility_id', $facilityId);
-                    });
-                }
-                
-                $lowInventoryCount = $lowInventoryQuery->lowStock()->count();
-            }
-
-            // Pending leave requests for admins
-            $pendingLeaveRequests = 0;
-            if (Schema::hasTable('leave_requests')) {
-                $leaveRequestQuery = LeaveRequest::withoutGlobalScopes()->where('status', 'pending');
-                
-                if ($facilityId && $facilityBranchIds && !empty($facilityBranchIds)) {
-                    $leaveRequestQuery->whereHas('staff', function ($q) use ($facilityBranchIds) {
-                        $q->whereIn('assigned_branch_id', $facilityBranchIds);
-                    });
-                } elseif ($facilityId) {
-                    $leaveRequestQuery->whereHas('staff', function ($q) use ($facilityId) {
-                        if (Schema::hasColumn('users', 'facility_id')) {
-                            $q->where('facility_id', $facilityId);
-                        }
-                    });
-                }
-                
-                $pendingLeaveRequests = $leaveRequestQuery->count();
-            }
-
             // Log all results for debugging
             Log::info('DashboardService: Query results', [
                 'facility_id' => $facilityId,
@@ -641,8 +605,6 @@ class DashboardService
                 'total_staff' => $totalStaff,
                 'pending_assessments' => $pendingAssessments,
                 'active_medications' => $activeMedications,
-                'low_inventory_count' => $lowInventoryCount,
-                'pending_leave_requests' => $pendingLeaveRequests,
             ]);
 
             // Log warning if zero results with facility context
@@ -750,8 +712,6 @@ class DashboardService
             'total_staff' => $totalStaff,
             'pending_assessments' => $pendingAssessments,
             'active_medications' => $activeMedications,
-            'low_inventory_count' => $lowInventoryCount ?? 0,
-            'pending_leave_requests' => $pendingLeaveRequests ?? 0,
             'user_type' => 'admin',
             'upcoming_appointments_list' => $this->getAdminUpcomingAppointments(),
             'resident_list' => $this->getAdminResidentList(),
@@ -884,13 +844,10 @@ class DashboardService
                         }
                         $reminders[] = [
                             'medication_id' => $medication->id,
-                            'resident_id' => $medication->resident_id,
                             'resident_name' => $residentName,
                             'medication_name' => $medication->drug?->name ?? $medication->name,
                             'medication_dosage' => $medication->instructions ?? '',
-                            'due_time' => Carbon::parse($time)->format('H:i'), // 24-hour format for easier parsing
-                            'due_at' => $timeToday->toIso8601String(), // Full datetime for frontend
-                            'due_time_display' => Carbon::parse($time)->format('g:i A'), // Display format
+                            'due_time' => Carbon::parse($time)->format('g:i A'),
                             'room' => $medication->resident->room_number ?? $medication->resident->room ?? 'N/A',
                         ];
                     }
@@ -990,74 +947,6 @@ class DashboardService
         }
 
         return $days;
-    }
-
-    /**
-     * Get today's schedule (appointments for today)
-     */
-    public function getTodaysSchedule(?User $user = null): array
-    {
-        $user = $user ?? auth()->user();
-        $isCaregiver = UserRoles::isCaregiverRole($user->role);
-        
-        $query = Appointment::with(['resident', 'appointmentType', 'branch'])
-            ->whereDate('appointment_date', today())
-            ->whereNotIn('status', ['cancelled', 'completed']);
-        
-        // Filter by branch for caregivers
-        if ($isCaregiver && $user->assigned_branch_id) {
-            $query->whereHas('resident', function ($q) use ($user) {
-                $q->where('branch_id', $user->assigned_branch_id)->where('is_active', true);
-            });
-        }
-        
-        return $query->orderBy('appointment_time')
-            ->get()
-            ->map(function ($appointment) {
-                $residentName = 'Unknown';
-                if ($appointment->resident) {
-                    $name = trim(($appointment->resident->first_name ?? '') . ' ' . ($appointment->resident->last_name ?? ''));
-                    $residentName = !empty($name) ? $name : ($appointment->resident->name ?? 'Unknown');
-                }
-                
-                // Determine category/type
-                $category = 'Appointment';
-                $categoryColor = 'blue';
-                $appointmentType = $appointment->appointmentType?->name ?? $appointment->description ?? 'Appointment';
-                if (stripos($appointmentType, 'therapy') !== false || stripos($appointmentType, 'physical') !== false) {
-                    $category = 'Therapy';
-                    $categoryColor = 'purple';
-                } elseif (stripos($appointmentType, 'review') !== false || stripos($appointmentType, 'medication') !== false) {
-                    $category = 'Review';
-                    $categoryColor = 'green';
-                } elseif (stripos($appointmentType, 'visit') !== false || stripos($appointmentType, 'family') !== false) {
-                    $category = 'Visit';
-                    $categoryColor = 'pink';
-                }
-                
-                $time = $appointment->appointment_time
-                    ? Carbon::parse($appointment->appointment_time)->format('g:i A')
-                    : 'TBD';
-                
-                $timeShort = $appointment->appointment_time
-                    ? Carbon::parse($appointment->appointment_time)->format('g A')
-                    : 'TBD';
-                
-                return [
-                    'id' => $appointment->id,
-                    'title' => $appointmentType,
-                    'resident_name' => $residentName,
-                    'time' => $time,
-                    'time_short' => $timeShort,
-                    'time_24h' => $appointment->appointment_time ? Carbon::parse($appointment->appointment_time)->format('H:i') : null,
-                    'location' => $appointment->location ?? ($appointment->resident->room_number ?? 'Consultation Room'),
-                    'room' => $appointment->resident->room_number ?? null,
-                    'category' => $category,
-                    'category_color' => $categoryColor,
-                    'status' => $appointment->status ?? 'scheduled',
-                ];
-            })
-            ->toArray();
     }
 
     /**
