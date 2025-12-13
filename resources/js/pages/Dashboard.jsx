@@ -805,6 +805,7 @@ export default function Dashboard() {
                                             Debug: UserID: {stats.debug_user_id || 'N/A'} |
                                             FacID: {stats.debug_facility_id || 'N/A'} |
                                             BranchID: {stats.debug_branch_id || 'N/A'}
+                                            {stats.debug_error && <span className="block mt-1 text-red-600">Error: {stats.debug_error}</span>}
                                         </p>
                                     </div>
                                 </div>

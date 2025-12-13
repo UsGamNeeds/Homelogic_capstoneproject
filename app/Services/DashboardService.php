@@ -51,7 +51,7 @@ class DashboardService
             ]);
             
             // Return empty stats on error rather than failing
-            return $this->getEmptyStats($user);
+            return $this->getEmptyStats($user, $e->getMessage());
         }
     }
     
@@ -96,7 +96,7 @@ class DashboardService
     /**
      * Get empty stats structure for error cases
      */
-    private function getEmptyStats(User $user): array
+    private function getEmptyStats(User $user, ?string $errorMessage = null): array
     {
         if (UserRoles::isCaregiverRole($user->role)) {
             return [
@@ -112,6 +112,10 @@ class DashboardService
                 'upcoming_appointments_list' => [],
                 'resident_list' => [],
                 'resident_vitals_trend' => null,
+                'debug_user_id' => $user->id,
+                'debug_facility_id' => $user->facility_id,
+                'debug_branch_id' => $user->assigned_branch_id,
+                'debug_error' => $errorMessage,
             ];
         }
         
@@ -138,6 +142,10 @@ class DashboardService
             'staff_utilization' => 0,
             'facility_id' => null,
             'facility_context_missing' => true,
+            'debug_user_id' => $user->id,
+            'debug_facility_id' => $user->facility_id,
+            'debug_branch_id' => $user->assigned_branch_id,
+            'debug_error' => $errorMessage,
         ];
     }
 
