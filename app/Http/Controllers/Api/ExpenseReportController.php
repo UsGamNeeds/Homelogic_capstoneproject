@@ -73,13 +73,17 @@ class ExpenseReportController extends BaseApiController
         $endDate = $request->get('end_date', now()->endOfMonth()->toDateString());
 
         // Get expenses by category
-        $expenseQuery = Expense::whereBetween('expense_date', [$startDate, $endDate])
+        // Use withoutGlobalScopes to avoid facility scope conflicts
+        $expenseQuery = Expense::withoutGlobalScopes()
+            ->whereBetween('expense_date', [$startDate, $endDate])
             ->with('category');
         $this->applyBranchFilter($expenseQuery, $request);
         $expenses = $expenseQuery->get();
 
         // Get invoices and their items (which have expense categories)
-        $invoiceQuery = BillingInvoice::whereBetween('invoice_date', [$startDate, $endDate])
+        // Use withoutGlobalScopes to avoid facility scope conflicts
+        $invoiceQuery = BillingInvoice::withoutGlobalScopes()
+            ->whereBetween('invoice_date', [$startDate, $endDate])
             ->with(['items.category']);
         $this->applyBranchFilter($invoiceQuery, $request);
         $invoices = $invoiceQuery->get();
@@ -102,8 +106,8 @@ class ExpenseReportController extends BaseApiController
                 
                 return [
                     'category_id' => $category->id,
-                    'category_name' => $category->name,
-                    'category_type' => $category->type,
+                    'category_name' => $category->name ?? 'Uncategorized',
+                    'category_type' => $category->type ?? null,
                     'total_amount' => $expenses->sum('amount'),
                     'count' => $expenses->count(),
                 ];
@@ -112,21 +116,43 @@ class ExpenseReportController extends BaseApiController
         // Group invoice items by category
         $invoiceItemsByCategory = collect();
         foreach ($invoices as $invoice) {
+            if (!$invoice->items || $invoice->items->isEmpty()) {
+                continue;
+            }
+            
             foreach ($invoice->items as $item) {
-                $categoryId = $item->expense_category_id;
-                $key = $categoryId === null ? 'null' : (string)$categoryId;
-                
-                if (!$invoiceItemsByCategory->has($key)) {
-                    $invoiceItemsByCategory[$key] = [
-                        'category_id' => $categoryId,
-                        'category_name' => $item->category ? $item->category->name : 'Uncategorized',
-                        'category_type' => $item->category ? $item->category->type : null,
-                        'total_amount' => 0,
-                        'count' => 0,
-                    ];
+                try {
+                    $categoryId = $item->expense_category_id;
+                    $key = $categoryId === null ? 'null' : (string)$categoryId;
+                    
+                    // Safely access category
+                    $category = null;
+                    if ($item->relationLoaded('category')) {
+                        $category = $item->category;
+                    } elseif ($categoryId) {
+                        $category = \App\Models\ExpenseCategory::find($categoryId);
+                    }
+                    
+                    if (!$invoiceItemsByCategory->has($key)) {
+                        $invoiceItemsByCategory[$key] = [
+                            'category_id' => $categoryId,
+                            'category_name' => $category ? ($category->name ?? 'Uncategorized') : 'Uncategorized',
+                            'category_type' => $category ? ($category->type ?? null) : null,
+                            'total_amount' => 0,
+                            'count' => 0,
+                        ];
+                    }
+                    $invoiceItemsByCategory[$key]['total_amount'] += $item->total ?? 0;
+                    $invoiceItemsByCategory[$key]['count'] += 1;
+                } catch (\Exception $e) {
+                    // Log error but continue processing other items
+                    \Log::warning('Error processing invoice item in expense report', [
+                        'item_id' => $item->id ?? null,
+                        'invoice_id' => $invoice->id ?? null,
+                        'error' => $e->getMessage(),
+                    ]);
+                    continue;
                 }
-                $invoiceItemsByCategory[$key]['total_amount'] += $item->total;
-                $invoiceItemsByCategory[$key]['count'] += 1;
             }
         }
 
