@@ -1631,8 +1631,9 @@ class DashboardService
                 });
         }
 
-        // 3. Medications due today (for residents in context) - limit to first 10 medications, only show times for today
+        // 3. Medications due today (for residents in context) - only show upcoming/not yet administered
         if (Schema::hasTable('medications')) {
+            $now = Carbon::now();
             $medicationsQuery = Medication::withoutGlobalScopes()
                 ->with(['resident', 'drug'])
                 ->where('is_active', true)
@@ -1659,34 +1660,69 @@ class DashboardService
                 });
             }
 
-            // Limit medications to prevent too many entries
-            $medicationsQuery->limit(10)
+            $medicationsQuery->limit(20) // Get more to filter
                 ->get()
-                ->each(function ($medication) use (&$schedule) {
-                    $times = [];
+                ->each(function ($medication) use (&$schedule, $now) {
+                    $upcomingTimes = [];
+                    $allTimes = [];
+                    
+                    // Get all scheduled times for this medication
                     for ($i = 1; $i <= 4; $i++) {
                         if ($medication->{"time_{$i}"}) {
-                            $times[] = Carbon::parse($medication->{"time_{$i}"})->format('g:i A');
+                            $timeStr = $medication->{"time_{$i}"};
+                            $timeToday = Carbon::today()->setTimeFromTimeString($timeStr);
+                            $allTimes[] = [
+                                'time' => Carbon::parse($timeStr)->format('g:i A'),
+                                'time24h' => Carbon::parse($timeStr)->format('H:i'),
+                                'timeObj' => $timeToday,
+                            ];
+                            
+                            // Check if medication has been administered at this time today
+                            $alreadyAdministered = false;
+                            if (Schema::hasTable('medication_administrations')) {
+                                $alreadyAdministered = MedicationAdministration::where('medication_id', $medication->id)
+                                    ->whereDate('administered_at', today())
+                                    ->whereTime('administered_at', $timeStr)
+                                    ->where('status', 'completed')
+                                    ->exists();
+                            }
+                            
+                            // Include if not yet administered (regardless of whether time has passed)
+                            // This shows medications that still need to be given today
+                            if (!$alreadyAdministered) {
+                                $upcomingTimes[] = [
+                                    'time' => Carbon::parse($timeStr)->format('g:i A'),
+                                    'time24h' => Carbon::parse($timeStr)->format('H:i'),
+                                    'timeObj' => $timeToday,
+                                ];
+                            }
                         }
                     }
-                    $residentName = 'Unknown';
-                    if ($medication->resident) {
-                        $name = trim(($medication->resident->first_name ?? '') . ' ' . ($medication->resident->last_name ?? ''));
-                        $residentName = !empty($name) ? $name : ($medication->resident->name ?? 'Unknown');
-                    }
-
-                    // Only add one entry per medication (use first time or "Multiple times")
-                    if (count($times) > 0) {
-                        $time = count($times) > 1 ? 'Multiple times' : $times[0];
-                        $time24h = count($times) > 1 ? '00:00' : (Carbon::parse($medication->time_1)->format('H:i'));
+                    
+                    // Only add if there are upcoming times (not yet administered)
+                    if (count($upcomingTimes) > 0) {
+                        $residentName = 'Unknown';
+                        if ($medication->resident) {
+                            $name = trim(($medication->resident->first_name ?? '') . ' ' . ($medication->resident->last_name ?? ''));
+                            $residentName = !empty($name) ? $name : ($medication->resident->name ?? 'Unknown');
+                        }
+                        
+                        // Use the earliest upcoming time for display
+                        usort($upcomingTimes, function ($a, $b) {
+                            return $a['timeObj']->gt($b['timeObj']) ? 1 : -1;
+                        });
+                        
+                        $displayTime = count($upcomingTimes) > 1 ? 'Multiple times' : $upcomingTimes[0]['time'];
+                        $displayTime24h = count($upcomingTimes) > 1 ? '00:00' : $upcomingTimes[0]['time24h'];
+                        
                         $schedule[] = [
                             'id' => 'medication_' . $medication->id,
                             'type' => 'medication',
                             'title' => $medication->drug?->name ?? $medication->name ?? 'Medication',
                             'resident_name' => $residentName,
-                            'time' => $time,
-                            'time_24h' => $time24h,
-                            'time_short' => $time,
+                            'time' => $displayTime,
+                            'time_24h' => $displayTime24h,
+                            'time_short' => $displayTime,
                             'location' => $medication->resident->room_number ?? $medication->resident->room ?? 'N/A',
                             'category' => 'Medication',
                             'category_color' => 'blue',
