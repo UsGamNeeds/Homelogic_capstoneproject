@@ -24,6 +24,7 @@ class CompleteDatabaseSeeder extends Seeder
         $this->command->info('📋 Phase 1: Setting up core system...');
         $this->call([
             UnifiedProductionSeeder::class,  // Roles, permissions, facilities, branches, admin user, vital ranges
+            SuperAdminSeeder::class,        // Super admin user
         ]);
         $this->command->info('✅ Phase 1 completed');
         $this->command->line('');
