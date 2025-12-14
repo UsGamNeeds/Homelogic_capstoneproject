@@ -15,7 +15,7 @@ class CaregiverSeeder extends Seeder
     public function run(): void
     {
         // Use withoutGlobalScopes to ensure we get all branches during seeding
-        $branches = Branch::withoutGlobalScopes()->all();
+        $branches = Branch::withoutGlobalScopes()->get();
         
         if ($branches->isEmpty()) {
             $this->command->warn('No branches found. Please run BranchSeeder first.');
