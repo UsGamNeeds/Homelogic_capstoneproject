@@ -369,6 +369,9 @@ export default function ResidentDetailPage() {
                         <div>
                             <div className="flex flex-wrap items-center gap-3">
                                 <h1 className="text-3xl font-semibold text-gray-900">{fullName || 'Resident Profile'}</h1>
+                                <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                                    ID: {resident?.id ?? 'N/A'}
+                                </span>
                                 <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ${statusBadge.className}`}>
                                     {statusBadge.label}
                                 </span>
