@@ -68,7 +68,30 @@ class LeaveRequestResource extends Resource
 
     public static function canCreate(): bool
     {
-        return true; // Both admins and caregivers can create leave requests
+        $user = auth()->user();
+        
+        if (!$user) {
+            return false;
+        }
+        
+        // Caregivers can always create their own leave requests
+        $roleValue = strtolower(trim($user->role ?? ''));
+        $roleValueNormalized = str_replace([' ', '_'], '', $roleValue);
+        $isCaregiver = $user->hasRole('caregiver') || 
+                       $user->hasRole('care_giver') || 
+                       $roleValueNormalized === 'caregiver' ||
+                       (stripos($roleValue, 'care') !== false && stripos($roleValue, 'giver') !== false);
+        
+        if ($isCaregiver) {
+            return true;
+        }
+        
+        // Non-caregivers need the create_leave_requests permission or be admin/super_admin
+        if ($user->hasRole('administrator') || $user->hasRole('super_admin')) {
+            return true;
+        }
+        
+        return $user->hasPermission('create_leave_requests');
     }
 
     public static function canEdit($record): bool
