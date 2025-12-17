@@ -241,7 +241,11 @@ const closeAssignmentModal = () => {
                         await assignCaregiver.mutateAsync({ taskId: assignmentTask.id, userId });
                         await queryClient.invalidateQueries({ queryKey: ['cleaning-tasks'] });
                     } catch (err) {
-                        window.alert(err?.response?.data?.message || err.message);
+                        const errorMessage = err?.response?.data?.message 
+                            || err?.response?.data?.error 
+                            || err?.message 
+                            || 'Failed to assign caregiver. Please try again.';
+                        window.alert(errorMessage);
                     }
                 }}
                 onRemove={async (assignmentId) => {

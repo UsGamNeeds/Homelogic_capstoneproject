@@ -64,17 +64,20 @@ class LeaveRequestController extends BaseApiController
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        // Caregivers can always create their own leave requests
-        // Non-caregivers need the create_leave_requests permission
-        // Check both the role column and Spatie roles
+        // All authenticated users can create their own leave requests
+        // Check if user is creating for themselves or for another staff member
         $isCaregiver = $user->isCaregiver() || $user->hasRole('caregiver') || 
                        strtolower(trim($user->role ?? '')) === 'caregiver';
         
-        if (!$isCaregiver) {
+        // If creating for another staff member (not themselves), need permission
+        $requestedStaffId = $request->input('staff_id');
+        if ($requestedStaffId && $requestedStaffId != $user->id) {
+            // Creating leave request for someone else - need permission
             if ($error = $this->requirePermission('create_leave_requests')) {
                 return $error;
             }
         }
+        // If creating for themselves, no permission check needed
 
         try {
             $validated = $request->validate([
@@ -91,40 +94,28 @@ class LeaveRequestController extends BaseApiController
                 $validated['leave_type'] = 'Personal';
             }
             
-            // If user is a caregiver, force staff_id to be their own ID and status to pending
-            if ($isCaregiver) {
+            // If staff_id is not provided, assume user is creating for themselves
+            if (!isset($validated['staff_id'])) {
                 $validated['staff_id'] = $user->id;
+            }
+            
+            // If user is creating for themselves, force status to pending
+            if ($validated['staff_id'] == $user->id) {
                 $validated['status'] = 'pending';
-                // Set branch_id from user's assigned branch
-                if ($user->assigned_branch_id) {
-                    $validated['branch_id'] = $user->assigned_branch_id;
-                } else {
-                    return response()->json([
-                        'message' => 'You must be assigned to a branch to submit leave requests. Please contact an administrator.',
-                        'errors' => ['branch_id' => ['No branch assigned to your account']]
-                    ], 422);
-                }
             } else {
-                // Admins must provide staff_id
-                if (!isset($validated['staff_id'])) {
-                    return response()->json([
-                        'message' => 'Staff member is required',
-                        'errors' => ['staff_id' => ['Please select a staff member']]
-                    ], 422);
-                }
-                // Default status to pending if not provided
+                // Creating for someone else - default to pending if not provided
                 $validated['status'] = $validated['status'] ?? 'pending';
-                
-                // Get branch_id from the selected staff member
-                $staff = \App\Models\User::find($validated['staff_id']);
-                if ($staff && $staff->assigned_branch_id) {
-                    $validated['branch_id'] = $staff->assigned_branch_id;
-                } else {
-                    return response()->json([
-                        'message' => 'The selected staff member must be assigned to a branch.',
-                        'errors' => ['staff_id' => ['Selected staff member has no branch assignment']]
-                    ], 422);
-                }
+            }
+            
+            // Get branch_id from the selected staff member
+            $staff = \App\Models\User::find($validated['staff_id']);
+            if ($staff && $staff->assigned_branch_id) {
+                $validated['branch_id'] = $staff->assigned_branch_id;
+            } else {
+                return response()->json([
+                    'message' => 'The selected staff member must be assigned to a branch.',
+                    'errors' => ['staff_id' => ['Selected staff member has no branch assignment']]
+                ], 422);
             }
             
             // Ensure branch_id is set (required by database)
