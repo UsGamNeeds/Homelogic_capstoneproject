@@ -163,12 +163,15 @@ class HousekeepingReportController extends BaseApiController
             ->orderBy('completed_at', 'desc')
             ->get();
 
-        $report = $logs->map(function ($log) {
+        $report = $logs->filter(function ($log) {
+            // Filter out logs with missing task or area relationships
+            return $log->task && $log->task->area;
+        })->map(function ($log) {
             return [
                 'id' => $log->id,
                 'date' => $log->scheduled_date->toDateString(),
                 'area' => $log->task->area->name ?? 'Unknown',
-                'shift' => $log->shift_label ?? 'N/A',
+                'shift' => $log->shift_label ?? ($log->task->area->shift_label ?? 'N/A'),
                 'task' => $log->task->title ?? 'Unknown Task',
                 'status' => $log->status,
                 'completed_by' => $log->completedBy ? [

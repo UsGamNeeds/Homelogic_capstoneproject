@@ -27,7 +27,7 @@ export default function HousekeepingDashboard() {
     const [selectedDate, setSelectedDate] = React.useState(() => getLocalDateString());
     const [areaId, setAreaId] = React.useState('');
     const [status, setStatus] = React.useState('');
-    const [showCompletionReport, setShowCompletionReport] = React.useState(false);
+    const [showCompletionReport, setShowCompletionReport] = React.useState(true);
     const [reportDateFrom, setReportDateFrom] = React.useState(() => {
         const date = new Date();
         date.setDate(date.getDate() - 7);
@@ -49,15 +49,22 @@ export default function HousekeepingDashboard() {
         },
     });
 
-    const { data: completionReport, isLoading: reportLoading } = useQuery({
+    const { data: completionReport, isLoading: reportLoading, error: reportError } = useQuery({
         queryKey: ['housekeeping-completion-report', reportDateFrom, reportDateTo],
         queryFn: async () => {
             const params = { date_from: reportDateFrom, date_to: reportDateTo };
-            const response = await api.get('/cleaning/completion-report', { params });
-            return response.data;
+            try {
+                const response = await api.get('/cleaning/completion-report', { params });
+                console.log('Completion report response:', response.data);
+                return response.data;
+            } catch (error) {
+                console.error('Error fetching completion report:', error);
+                throw error;
+            }
         },
         enabled: showCompletionReport,
         staleTime: 60 * 1000, // Cache for 1 minute - reports don't change as frequently
+        retry: 1, // Only retry once on failure
     });
 
     const summary = data?.summary ?? { total: 0, completed: 0, skipped: 0, pending: 0, required_missing: 0 };
@@ -266,12 +273,40 @@ export default function HousekeepingDashboard() {
                             </label>
                         </div>
 
+                        {/* Debug info - remove in production */}
+                        {process.env.NODE_ENV === 'development' && (
+                            <div className="rounded-lg border border-gray-300 bg-gray-50 p-3 text-xs text-gray-600">
+                                <p><strong>Debug:</strong> showCompletionReport={showCompletionReport ? 'true' : 'false'}, 
+                                loading={reportLoading ? 'true' : 'false'}, 
+                                hasError={reportError ? 'true' : 'false'}, 
+                                hasData={completionReport ? 'true' : 'false'}, 
+                                recordCount={completionReport?.records?.length ?? 0}</p>
+                            </div>
+                        )}
+
                         {reportLoading ? (
                             <div className="flex items-center justify-center py-12 text-sm text-gray-500">
                                 <div className="h-6 w-6 animate-spin rounded-full border-2" style={{ borderColor: 'var(--theme-primary-bg)', borderTopColor: 'var(--theme-primary)' }}></div>
                                 <span className="ml-3">Loading report...</span>
                             </div>
-                        ) : completionReport?.records?.length > 0 ? (
+                        ) : reportError ? (
+                            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                                <p className="font-semibold mb-1">Unable to load completion report</p>
+                                <p className="text-xs">
+                                    {reportError.response?.data?.message || 
+                                     reportError.response?.data?.error || 
+                                     reportError.message || 
+                                     'Please check your connection and try again.'}
+                                </p>
+                                {reportError.response?.data?.errors && (
+                                    <ul className="mt-2 text-xs list-disc list-inside">
+                                        {Object.entries(reportError.response.data.errors).map(([key, messages]) => (
+                                            <li key={key}>{Array.isArray(messages) ? messages.join(', ') : messages}</li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        ) : completionReport && Array.isArray(completionReport.records) && completionReport.records.length > 0 ? (
                             <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-100">
                                     <thead>
@@ -339,8 +374,26 @@ export default function HousekeepingDashboard() {
                                 </div>
                             </div>
                         ) : (
+                            // Show empty state if no data or if data structure is unexpected
                             <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-8 text-center text-sm text-gray-500">
-                                No completion records found for the selected date range.
+                                <p className="font-medium text-gray-700 mb-1">
+                                    {!completionReport 
+                                        ? 'Report not loaded' 
+                                        : 'No completion records found'}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                    {!completionReport ? (
+                                        <>
+                                            The completion report has not been loaded yet. 
+                                            If this persists, check the browser console for errors.
+                                        </>
+                                    ) : (
+                                        <>
+                                            No completed or skipped tasks found for the selected date range ({reportDateFrom} to {reportDateTo}).
+                                            Try adjusting the date range or complete some tasks to see them here.
+                                        </>
+                                    )}
+                                </p>
                             </div>
                         )}
                     </div>

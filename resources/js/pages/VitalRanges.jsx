@@ -1,7 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import api from '../services/api';
-import { Activity, Plus, Edit, Trash2 } from 'lucide-react';
+import { Activity, Plus, Edit, Trash2, X } from 'lucide-react';
+import FormInput from '../components/forms/FormInput';
+import FormSelect from '../components/forms/FormSelect';
+import FormTextarea from '../components/forms/FormTextarea';
+import { useToastContext } from '../contexts/ToastContext';
 
 export default function VitalRanges() {
   const queryClient = useQueryClient();
@@ -37,6 +44,23 @@ export default function VitalRanges() {
     mutationFn: async (id) => api.delete(`/vital-ranges/${id}`),
     onSuccess: () => queryClient.invalidateQueries(['vital-ranges']),
   });
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditing(null);
+  };
+
+  if (showForm) {
+    return (
+      <div>
+        <RangeForm
+          record={editing}
+          onClose={handleCloseForm}
+          onSuccess={() => { handleCloseForm(); queryClient.invalidateQueries(['vital-ranges']); }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -99,160 +123,168 @@ export default function VitalRanges() {
           )}
         </div>
       )}
-
-      {showForm && (
-        <RangeForm
-          record={editing}
-          onClose={() => { setShowForm(false); setEditing(null); }}
-          onSuccess={() => { setShowForm(false); setEditing(null); queryClient.invalidateQueries(['vital-ranges']); }}
-        />
-      )}
     </div>
   );
 }
 
+// Zod schema for vital range form validation
+const vitalRangeSchema = z.object({
+  parameter: z.string().min(1, 'Parameter is required'),
+  min_normal: z.union([z.string(), z.number()]).optional().transform((val) => {
+    if (val === '' || val === null || val === undefined) return null;
+    return typeof val === 'string' ? parseFloat(val) || null : val;
+  }),
+  max_normal: z.union([z.string(), z.number()]).optional().transform((val) => {
+    if (val === '' || val === null || val === undefined) return null;
+    return typeof val === 'string' ? parseFloat(val) || null : val;
+  }),
+  unit: z.string().optional(),
+  description: z.string().optional(),
+});
+
 function RangeForm({ record, onClose, onSuccess }) {
-  const [form, setForm] = useState({
-    parameter: record?.parameter || '',
-    min_normal: record?.min_normal ?? '',
-    max_normal: record?.max_normal ?? '',
-    unit: record?.unit || '',
-    description: record?.description || '',
-  });
-  const [errors, setErrors] = useState({});
+  const toast = useToastContext();
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const methods = useForm({
+    resolver: zodResolver(vitalRangeSchema),
+    defaultValues: {
+      parameter: record?.parameter || '',
+      min_normal: record?.min_normal ?? '',
+      max_normal: record?.max_normal ?? '',
+      unit: record?.unit || '',
+      description: record?.description || '',
+    },
+  });
+
+  // Reset form when record changes
+  useEffect(() => {
+    methods.reset({
+      parameter: record?.parameter || '',
+      min_normal: record?.min_normal ?? '',
+      max_normal: record?.max_normal ?? '',
+      unit: record?.unit || '',
+      description: record?.description || '',
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [record]);
+
+  const onSubmit = async (data) => {
     setSubmitting(true);
-    setErrors({});
     try {
       if (record) {
-        await api.put(`/vital-ranges/${record.id}`, form);
+        await api.put(`/vital-ranges/${record.id}`, data);
+        toast.success('Vital range updated successfully');
       } else {
-        await api.post('/vital-ranges', form);
+        await api.post('/vital-ranges', data);
+        toast.success('Vital range created successfully');
       }
       onSuccess();
-    } catch (e) {
-      setErrors(e.response?.data?.errors || { general: e.response?.data?.message || 'Failed to save range' });
+    } catch (error) {
+      const errorData = error.response?.data;
+      if (errorData?.errors) {
+        // Set field errors
+        Object.keys(errorData.errors).forEach((key) => {
+          methods.setError(key, {
+            type: 'server',
+            message: Array.isArray(errorData.errors[key]) 
+              ? errorData.errors[key][0] 
+              : errorData.errors[key],
+          });
+        });
+      } else {
+        toast.error('Failed to save vital range', errorData?.message || 'An error occurred');
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
+  const parameterOptions = [
+    { value: 'systolic', label: 'Systolic' },
+    { value: 'diastolic', label: 'Diastolic' },
+    { value: 'temperature', label: 'Temperature' },
+    { value: 'pulse', label: 'Pulse' },
+    { value: 'oxygen_saturation', label: 'Oxygen Saturation' },
+  ];
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        {/* Header - Fixed */}
-        <div className="flex-shrink-0 p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">
-              {record ? 'Edit Range' : 'Add Range'}
-            </h2>
-            <button
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              ✕
-            </button>
+    <div className="bg-white rounded-lg shadow p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-semibold text-gray-900">
+          {record ? 'Edit Range' : 'Add Range'}
+        </h2>
+        <button
+          onClick={onClose}
+          className="text-gray-400 hover:text-gray-600"
+        >
+          <X className="w-6 h-6" />
+        </button>
+      </div>
+
+      <FormProvider {...methods}>
+        <form id="vital-range-form" onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
+          <FormSelect
+            name="parameter"
+            label="Parameter"
+            options={parameterOptions}
+            placeholder="Select parameter"
+            required
+            tooltip="The vital sign parameter to define ranges for"
+          />
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormInput
+              name="min_normal"
+              label="Min Normal"
+              type="number"
+              step="0.01"
+              placeholder="Enter minimum normal value"
+              tooltip="Minimum value for normal range"
+            />
+            <FormInput
+              name="max_normal"
+              label="Max Normal"
+              type="number"
+              step="0.01"
+              placeholder="Enter maximum normal value"
+              tooltip="Maximum value for normal range"
+            />
           </div>
-        </div>
-        
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {errors.general && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg"><p className="text-sm text-red-800">{errors.general}</p></div>
-          )}
-          <form id="vital-range-form" onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Parameter *
-              </label>
-              <select
-                value={form.parameter}
-                onChange={(e) => setForm({ ...form, parameter: e.target.value })}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-              >
-                <option value="">Select parameter</option>
-                <option value="systolic">Systolic</option>
-                <option value="diastolic">Diastolic</option>
-                <option value="temperature">Temperature</option>
-                <option value="pulse">Pulse</option>
-                <option value="oxygen_saturation">Oxygen Saturation</option>
-              </select>
-              {errors.parameter && <p className="text-xs text-red-600 mt-1">{errors.parameter[0]}</p>}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Min Normal
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={form.min_normal}
-                  onChange={(e) => setForm({ ...form, min_normal: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Max Normal
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={form.max_normal}
-                  onChange={(e) => setForm({ ...form, max_normal: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Unit
-              </label>
-              <input
-                value={form.unit}
-                onChange={(e) => setForm({ ...form, unit: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
-              </label>
-              <textarea
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-              />
-            </div>
-          </form>
-        </div>
-        
-        {/* Footer - Fixed */}
-        <div className="flex-shrink-0 p-6 border-t border-gray-200">
-          <div className="flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              form="vital-range-form"
-              disabled={submitting}
-              className="px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors disabled:opacity-50"
-            >
-              {submitting ? 'Saving...' : (record ? 'Update' : 'Create')}
-            </button>
-          </div>
-        </div>
+
+          <FormInput
+            name="unit"
+            label="Unit"
+            placeholder="e.g., mmHg, °F, bpm, %"
+            tooltip="Unit of measurement for this vital sign"
+          />
+
+          <FormTextarea
+            name="description"
+            label="Description"
+            rows={2}
+            placeholder="Enter description (optional)"
+            tooltip="Additional notes or description for this vital range"
+          />
+        </form>
+      </FormProvider>
+
+      <div className="flex justify-end space-x-3 mt-6">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          form="vital-range-form"
+          disabled={submitting}
+          className="px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors disabled:opacity-50"
+        >
+          {submitting ? 'Saving...' : (record ? 'Update' : 'Create')}
+        </button>
       </div>
     </div>
   );
