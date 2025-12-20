@@ -203,6 +203,7 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
     // Users
     // Allow POST for file uploads (browser compatibility) - must come before apiResource
     Route::post('/users/{id}', [UserController::class, 'update'])->middleware('auth:sanctum');
+    Route::get('/users/{id}/stats', [UserController::class, 'stats'])->middleware('auth:sanctum');
     Route::apiResource('users', UserController::class)->middleware('auth:sanctum');
 
     // Staff Email Preferences

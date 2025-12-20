@@ -182,7 +182,7 @@ export default function UsersPage() {
                     </div>
                     <div className="flex space-x-2 ml-2 flex-shrink-0">
                         <button
-                            onClick={() => setViewingProfile(user)}
+                            onClick={() => navigate(`/administration/users/${user.id}`)}
                             className="p-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-hover)] rounded-lg transition-all duration-200 border-2 border-[var(--theme-primary)] shadow-md hover:shadow-lg transform hover:scale-105"
                             title="View Profile"
                         >

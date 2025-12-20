@@ -101,7 +101,13 @@ export default function EmailSettings() {
 
   const handleTestEmail = (event) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    // Find the form element
+    const form = event.target.closest('form');
+    if (!form) {
+      toast.showToast('Form not found', 'error');
+      return;
+    }
+    const formData = new FormData(form);
     const recipient = formData.get('test_recipient');
     if (!recipient) {
       toast.showToast('Please enter a test recipient email address', 'error');

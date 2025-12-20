@@ -100,6 +100,7 @@ const Roles = lazyWithRetry(() => import('./pages/Roles'));
 const Users = lazyWithRetry(() => import('./pages/Users'));
 const UserCreate = lazyWithRetry(() => import('./pages/UserCreate'));
 const UserEdit = lazyWithRetry(() => import('./pages/UserEdit'));
+const ViewUser = lazyWithRetry(() => import('./pages/ViewUser'));
 const EmployeeDocuments = lazyWithRetry(() => import('./pages/EmployeeDocuments'));
 const Drugs = lazyWithRetry(() => import('./pages/Drugs'));
 const Profile = lazyWithRetry(() => import('./pages/Profile'));

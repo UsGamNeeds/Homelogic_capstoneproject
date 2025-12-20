@@ -107,6 +107,37 @@ class UserController extends BaseApiController
         return response()->json($user);
     }
 
+    public function stats($id): JsonResponse
+    {
+        $currentUser = Auth::user();
+        $user = User::findOrFail($id);
+
+        // Check if current user has permission to view stats
+        if ($currentUser->role !== 'super_admin' && $currentUser->role !== 'administrator') {
+            // Only allow users to view their own stats
+            if ($currentUser->id != $id) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+        }
+
+        // Get user statistics
+        $stats = [
+            'active_assignments' => \App\Models\Assignment::where('caregiver_id', $id)
+                ->where('is_active', true)
+                ->count(),
+            'vitals_recorded' => \App\Models\VitalSign::where('taken_by', $id)
+                ->count(),
+            'assessments' => \App\Models\Assessment::where('assessor_id', $id)
+                ->count(),
+            'leave_requests' => \App\Models\LeaveRequest::where('staff_id', $id)
+                ->count(),
+            'appointments_created' => \App\Models\Appointment::where('created_by', $id)
+                ->count(),
+        ];
+
+        return response()->json($stats);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $user = auth()->user();
