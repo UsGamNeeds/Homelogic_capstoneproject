@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\LeaveRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 class ChartController extends BaseApiController
@@ -563,18 +564,104 @@ class ChartController extends BaseApiController
     }
 
     // Staff Charts
-    public function staffStats(): JsonResponse
+    public function staffStats(Request $request): JsonResponse
     {
+        $user = $request->user();
+        
+        // Build staff queries with facility filtering
+        $staffQuery = User::where('is_active', true);
+        $caregiverQuery = User::whereHas('roles', function($q) {
+            $q->where('name', 'caregiver');
+        })->where('is_active', true);
+        
+        // Apply facility filtering for non-super admins
+        if ($user && $user->role !== 'super_admin') {
+            if ($user->facility_id) {
+                // Check if facility_id column exists
+                if (Schema::hasColumn('users', 'facility_id')) {
+                    $staffQuery->where('facility_id', $user->facility_id);
+                    $caregiverQuery->where('facility_id', $user->facility_id);
+                } else {
+                    // Fallback: filter by assigned_branch_id if facility_id column doesn't exist
+                    $facilityBranchIds = \App\Models\Branch::where('facility_id', $user->facility_id)->pluck('id')->toArray();
+                    if (!empty($facilityBranchIds)) {
+                        $staffQuery->whereIn('assigned_branch_id', $facilityBranchIds);
+                        $caregiverQuery->whereIn('assigned_branch_id', $facilityBranchIds);
+                    } else {
+                        // No branches for this facility, return zero counts
+                        return response()->json([
+                            'total_staff' => 0,
+                            'total_caregivers' => 0,
+                            'active_assignments' => 0,
+                            'pending_leave' => 0,
+                            'leave_by_status' => [],
+                        ]);
+                    }
+                }
+            } else {
+                // User has no facility assigned, return zero counts
+                return response()->json([
+                    'total_staff' => 0,
+                    'total_caregivers' => 0,
+                    'active_assignments' => 0,
+                    'pending_leave' => 0,
+                    'leave_by_status' => [],
+                ]);
+            }
+        }
+        
+        // Build assignment query with facility filtering
+        $assignmentQuery = \App\Models\Assignment::where('is_active', true);
+        if ($user && $user->role !== 'super_admin' && $user->facility_id) {
+            $facilityBranchIds = \App\Models\Branch::where('facility_id', $user->facility_id)->pluck('id')->toArray();
+            if (!empty($facilityBranchIds)) {
+                $assignmentQuery->whereHas('resident', function($q) use ($facilityBranchIds) {
+                    $q->whereIn('branch_id', $facilityBranchIds);
+                });
+            } else {
+                $assignmentQuery->whereRaw('1 = 0'); // No results
+            }
+        }
+        
+        // Build leave request query with facility filtering
+        $leaveQuery = LeaveRequest::where('status', 'pending');
+        if ($user && $user->role !== 'super_admin' && $user->facility_id) {
+            $facilityBranchIds = \App\Models\Branch::where('facility_id', $user->facility_id)->pluck('id')->toArray();
+            if (!empty($facilityBranchIds)) {
+                $leaveQuery->whereHas('user', function($q) use ($user, $facilityBranchIds) {
+                    if (Schema::hasColumn('users', 'facility_id')) {
+                        $q->where('facility_id', $user->facility_id);
+                    } else {
+                        $q->whereIn('assigned_branch_id', $facilityBranchIds);
+                    }
+                });
+            } else {
+                $leaveQuery->whereRaw('1 = 0'); // No results
+            }
+        }
+        
+        $leaveByStatusQuery = LeaveRequest::selectRaw('status, COUNT(*) as count');
+        if ($user && $user->role !== 'super_admin' && $user->facility_id) {
+            $facilityBranchIds = \App\Models\Branch::where('facility_id', $user->facility_id)->pluck('id')->toArray();
+            if (!empty($facilityBranchIds)) {
+                $leaveByStatusQuery->whereHas('user', function($q) use ($user, $facilityBranchIds) {
+                    if (Schema::hasColumn('users', 'facility_id')) {
+                        $q->where('facility_id', $user->facility_id);
+                    } else {
+                        $q->whereIn('assigned_branch_id', $facilityBranchIds);
+                    }
+                });
+            } else {
+                $leaveByStatusQuery->whereRaw('1 = 0'); // No results
+            }
+        }
+        
         $stats = [
-            'total_staff' => User::where('is_active', true)->count(),
-            'total_caregivers' => User::whereHas('roles', function($q) {
-                $q->where('name', 'caregiver');
-            })->where('is_active', true)->count(),
-            'active_assignments' => \App\Models\Assignment::where('is_active', true)->count(),
-            'pending_leave' => LeaveRequest::where('status', 'pending')->count(),
-            'leave_by_status' => LeaveRequest::selectRaw('status, COUNT(*) as count')
-                ->groupBy('status')
-                ->get(),
+            'total_staff' => $staffQuery->count(),
+            'total_caregivers' => $caregiverQuery->count(),
+            'active_assignments' => $assignmentQuery->count(),
+            'pending_leave' => $leaveQuery->count(),
+            'leave_by_status' => $leaveByStatusQuery->groupBy('status')->get(),
         ];
 
         return response()->json($stats);
