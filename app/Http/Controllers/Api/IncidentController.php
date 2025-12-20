@@ -158,7 +158,7 @@ class IncidentController extends BaseApiController
             'follow_up' => 'nullable|string',
             'assigned_to' => 'nullable|exists:users,id',
             'attachments' => 'nullable|array',
-            'attachments.*.file' => 'required_with:attachments|file|max:10240|mimes:pdf,jpeg,jpg,png,gif,doc,docx,webp',
+            'attachments.*.file' => 'required_with:attachments|file|max:2048|mimes:pdf,jpeg,jpg,png,gif,doc,docx,webp',
             'attachments.*.file_type' => 'nullable|in:photo,document,video,other',
             'attachments.*.description' => 'nullable|string',
         ]);

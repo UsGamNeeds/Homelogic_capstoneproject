@@ -311,24 +311,39 @@ export default function Dashboard() {
         queryKey: ['dashboard-module-stats'],
         queryFn: async () => {
             try {
-                const [assessmentsRes, sleepRes, housekeepingRes, incidentsRes, groceryRes, pharmacyRes, billingRes] = await Promise.all([
+                const [assessmentsRes, sleepRes, housekeepingRes, incidentsRes, groceryRes, pharmacyRes, billingRes, fireDrillsRes] = await Promise.all([
                     api.get('/assessments?per_page=1').catch(() => ({ data: { meta: { total: 0 } } })),
-                    api.get('/sleep?per_page=1').catch(() => ({ data: { meta: { total: 0 } } })),
+                    api.get('/sleep-records?per_page=1').catch(() => ({ data: { meta: { total: 0 } } })),
                     api.get('/cleaning/tasks?per_page=1').catch(() => ({ data: { meta: { total: 0 } } })),
                     api.get('/incidents?per_page=1').catch(() => ({ data: { meta: { total: 0 } } })),
-                    api.get('/grocery-status?per_page=1').catch(() => ({ data: { meta: { total: 0 } } })),
+                    api.get('/grocery-status-updates?per_page=1').catch(() => ({ data: { meta: { total: 0 } } })),
                     api.get('/pharmacy/inventory?per_page=1').catch(() => ({ data: { meta: { total: 0 } } })),
                     api.get('/billing/expenses?per_page=1').catch(() => ({ data: { meta: { total: 0 } } })),
+                    api.get('/fire-drills?per_page=1').catch(() => ({ data: { meta: { total: 0 } } })),
                 ]);
 
+                // Helper function to extract count from various response structures
+                const getCount = (response) => {
+                    if (!response?.data) return 0;
+                    // Try paginated response first (meta.total)
+                    if (response.data.meta?.total !== undefined) return response.data.meta.total;
+                    // Try direct total property
+                    if (response.data.total !== undefined) return response.data.total;
+                    // Try data array length
+                    if (Array.isArray(response.data.data)) return response.data.data.length;
+                    if (Array.isArray(response.data)) return response.data.length;
+                    return 0;
+                };
+
                 return {
-                    assessments: assessmentsRes.data?.meta?.total || assessmentsRes.data?.total || 0,
-                    sleep: sleepRes.data?.meta?.total || sleepRes.data?.total || 0,
-                    housekeeping: housekeepingRes.data?.meta?.total || housekeepingRes.data?.total || 0,
-                    incidents: incidentsRes.data?.meta?.total || incidentsRes.data?.total || 0,
-                    grocery: groceryRes.data?.meta?.total || groceryRes.data?.total || 0,
-                    pharmacy: pharmacyRes.data?.meta?.total || pharmacyRes.data?.total || 0,
-                    billing: billingRes.data?.meta?.total || billingRes.data?.total || 0,
+                    assessments: getCount(assessmentsRes),
+                    sleep: getCount(sleepRes),
+                    housekeeping: getCount(housekeepingRes),
+                    incidents: getCount(incidentsRes),
+                    grocery: getCount(groceryRes),
+                    pharmacy: getCount(pharmacyRes),
+                    billing: getCount(billingRes),
+                    fireDrills: getCount(fireDrillsRes),
                 };
             } catch (err) {
                 console.error('Module stats API error:', err);
@@ -340,6 +355,7 @@ export default function Dashboard() {
                     grocery: 0,
                     pharmacy: 0,
                     billing: 0,
+                    fireDrills: 0,
                 };
             }
         },
@@ -1177,7 +1193,7 @@ function ModulesOverview({ stats, moduleStats, navigate }) {
             name: 'Fire Drills',
             icon: Flame,
             path: '/fire-drills',
-            count: 0, // Will be populated from upcomingFireDrills
+            count: moduleStats?.fireDrills || 0,
             color: 'from-[var(--theme-primary)] to-[var(--theme-primary-dark)]',
             bgColor: 'bg-[var(--theme-primary-bg-light)]',
             iconColor: 'text-[var(--theme-primary)]',

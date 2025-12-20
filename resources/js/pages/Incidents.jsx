@@ -167,7 +167,11 @@ export default function Incidents() {
         },
         onError: (error) => {
             console.error('Error creating incident:', error);
-            toast.error(error.response?.data?.message || 'Failed to create incident');
+            if (error.response?.status === 413) {
+                toast.error('File size too large. Maximum file size is 2MB per file, and total request size is 8MB. Please reduce file sizes and try again.');
+            } else {
+                toast.error(error.response?.data?.message || 'Failed to create incident');
+            }
         },
     });
 
@@ -271,6 +275,31 @@ export default function Incidents() {
         if (selectedIncident) {
             updateMutation.mutate({ id: selectedIncident.id, data });
         } else {
+            // Validate file sizes before submission
+            const maxFileSize = 2 * 1024 * 1024; // 2MB in bytes
+            const maxTotalSize = 8 * 1024 * 1024; // 8MB in bytes
+            let totalSize = 0;
+            const oversizedFiles = [];
+
+            attachments.forEach((file, index) => {
+                if (file instanceof File) {
+                    if (file.size > maxFileSize) {
+                        oversizedFiles.push(`${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+                    }
+                    totalSize += file.size;
+                }
+            });
+
+            if (oversizedFiles.length > 0) {
+                toast.error(`File size too large. Maximum file size is 2MB per file. Please reduce the size of: ${oversizedFiles.join(', ')}`);
+                return;
+            }
+
+            if (totalSize > maxTotalSize) {
+                toast.error(`Total file size too large. Maximum total size is 8MB. Current total: ${(totalSize / 1024 / 1024).toFixed(2)}MB. Please reduce file sizes and try again.`);
+                return;
+            }
+
             // For create, we need to handle file uploads
             const formDataToSend = new FormData();
             
@@ -535,6 +564,31 @@ function IncidentForm({ record, branches, residents, users, attachments, setAtta
         if (record) {
             updateMutation.mutate({ id: record.id, data });
         } else {
+            // Validate file sizes before submission
+            const maxFileSize = 2 * 1024 * 1024; // 2MB in bytes
+            const maxTotalSize = 8 * 1024 * 1024; // 8MB in bytes
+            let totalSize = 0;
+            const oversizedFiles = [];
+
+            attachments.forEach((file, index) => {
+                if (file instanceof File) {
+                    if (file.size > maxFileSize) {
+                        oversizedFiles.push(`${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+                    }
+                    totalSize += file.size;
+                }
+            });
+
+            if (oversizedFiles.length > 0) {
+                toast.error(`File size too large. Maximum file size is 2MB per file. Please reduce the size of: ${oversizedFiles.join(', ')}`);
+                return;
+            }
+
+            if (totalSize > maxTotalSize) {
+                toast.error(`Total file size too large. Maximum total size is 8MB. Current total: ${(totalSize / 1024 / 1024).toFixed(2)}MB. Please reduce file sizes and try again.`);
+                return;
+            }
+
             // For create, we need to handle file uploads
             const formDataToSend = new FormData();
             
