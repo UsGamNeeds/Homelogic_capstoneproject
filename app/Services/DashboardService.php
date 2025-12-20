@@ -1591,45 +1591,47 @@ class DashboardService
                 });
         }
 
-        // 2. Vitals due today (for residents in context) - limit to 5
-        if (Schema::hasTable('vital_signs')) {
-            $vitalsQuery = Resident::withoutGlobalScopes()
-                ->where('is_active', true)
-                ->whereDoesntHave('vitalSigns', function ($q) {
-                    $q->whereDate('measurement_date', today());
-                });
+        // 2. Vitals due today (for residents in context) - DISABLED
+        // Removed automatic vital recording reminders from schedule since some facilities
+        // don't record vitals every day. Vitals can still be recorded manually via the Vitals module.
+        // if (Schema::hasTable('vital_signs')) {
+        //     $vitalsQuery = Resident::withoutGlobalScopes()
+        //         ->where('is_active', true)
+        //         ->whereDoesntHave('vitalSigns', function ($q) {
+        //             $q->whereDate('measurement_date', today());
+        //         });
 
-            if ($facilityBranchIds && !empty($facilityBranchIds)) {
-                $vitalsQuery->whereIn('branch_id', $facilityBranchIds);
-            } elseif ($facilityId) {
-                $vitalsQuery->whereHas('branch', function ($q) use ($facilityId) {
-                    $q->where('facility_id', $facilityId);
-                });
-            } elseif ($branchId) {
-                $vitalsQuery->where('branch_id', $branchId);
-            }
+        //     if ($facilityBranchIds && !empty($facilityBranchIds)) {
+        //         $vitalsQuery->whereIn('branch_id', $facilityBranchIds);
+        //     } elseif ($facilityId) {
+        //         $vitalsQuery->whereHas('branch', function ($q) use ($facilityId) {
+        //             $q->where('facility_id', $facilityId);
+        //         });
+        //     } elseif ($branchId) {
+        //         $vitalsQuery->where('branch_id', $branchId);
+        //     }
 
-            $vitalsQuery->limit(5)
-                ->get()
-                ->each(function ($resident) use (&$schedule) {
-                    $name = trim(($resident->first_name ?? '') . ' ' . ($resident->last_name ?? ''));
-                    $residentName = !empty($name) ? $name : ($resident->name ?? 'Unknown');
-                    // Use a default morning time (9:00 AM) for vitals so they appear in timeline
-                    $schedule[] = [
-                        'id' => 'vitals_resident_' . $resident->id,
-                        'type' => 'vitals',
-                        'title' => 'Record Vitals',
-                        'resident_name' => $residentName,
-                        'time' => '9:00 AM',
-                        'time_24h' => '09:00',
-                        'time_short' => '9:00 AM',
-                        'location' => $resident->room_number ?? $resident->room ?? 'N/A',
-                        'category' => 'Vitals',
-                        'category_color' => 'green',
-                        'link' => '/vitals?resident=' . $resident->id,
-                    ];
-                });
-        }
+        //     $vitalsQuery->limit(5)
+        //         ->get()
+        //         ->each(function ($resident) use (&$schedule) {
+        //             $name = trim(($resident->first_name ?? '') . ' ' . ($resident->last_name ?? ''));
+        //             $residentName = !empty($name) ? $name : ($resident->name ?? 'Unknown');
+        //             // Use a default morning time (9:00 AM) for vitals so they appear in timeline
+        //             $schedule[] = [
+        //                 'id' => 'vitals_resident_' . $resident->id,
+        //                 'type' => 'vitals',
+        //                 'title' => 'Record Vitals',
+        //                 'resident_name' => $residentName,
+        //                 'time' => '9:00 AM',
+        //                 'time_24h' => '09:00',
+        //                 'time_short' => '9:00 AM',
+        //                 'location' => $resident->room_number ?? $resident->room ?? 'N/A',
+        //                 'category' => 'Vitals',
+        //                 'category_color' => 'green',
+        //                 'link' => '/vitals?resident=' . $resident->id,
+        //             ];
+        //         });
+        // }
 
         // 3. Medications due today (for residents in context) - only show upcoming/not yet administered
         if (Schema::hasTable('medications')) {
