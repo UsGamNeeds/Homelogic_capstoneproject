@@ -786,36 +786,8 @@ function MedicationDeliveryForm({ record, branches, residents, medications, phar
                                 </>
                             )}
 
-                            <div className="space-y-2">
-                                <div className="flex gap-2">
-                                    <div className="flex-1">
-                                        <label className="block text-sm font-medium text-gray-900 mb-1">Apply Pharmacy Template</label>
-                                        <Select
-                                            value={selectedTemplateId}
-                                            onValueChange={(value) => {
-                                                setSelectedTemplateId(value);
-                                                if (value) applyTemplate(value);
-                                            }}
-                                            placeholder="Choose a template"
-                                            options={pharmacyTemplates.map(t => ({
-                                                value: t.id.toString(),
-                                                label: t.name,
-                                            }))}
-                                            className="w-full"
-                                            disabled={!pharmacyTemplates.length}
-                                        />
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={saveAsTemplate}
-                                        className="px-3 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg self-end disabled:opacity-50"
-                                        disabled={!formData.pharmacy_name || !formData.branch_id}
-                                    >
-                                        Save Template
-                                    </button>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-900 mb-1">Pharmacy Supplier (Optional)</label>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-900 mb-1">Pharmacy Supplier (Optional)</label>
                                     <select
                                         value=""
                                         onChange={(e) => {
@@ -1166,32 +1138,6 @@ function BulkMedicationDeliveryForm({ branches, residents, medications, pharmacy
                                         <option value="verified">Verified</option>
                                         <option value="stored">Stored</option>
                                     </select>
-                                </div>
-                            </div>
-                            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-900 mb-1">Apply Pharmacy Template</label>
-                                    <Select
-                                        value={selectedTemplateId}
-                                        onValueChange={(value) => {
-                                            setSelectedTemplateId(value);
-                                            if (value) applyTemplate(value);
-                                        }}
-                                        placeholder="Choose a template"
-                                        options={pharmacyTemplates.map(t => ({ value: t.id.toString(), label: t.name }))}
-                                        className="w-full"
-                                        disabled={!pharmacyTemplates.length}
-                                    />
-                                </div>
-                                <div className="flex items-end">
-                                    <button
-                                        type="button"
-                                        onClick={saveAsTemplate}
-                                        className="px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 w-full"
-                                        disabled={!commonFields.branch_id || !commonFields.pharmacy_name}
-                                    >
-                                        Save as Template
-                                    </button>
                                 </div>
                             </div>
                         </div>
