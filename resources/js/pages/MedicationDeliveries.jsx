@@ -788,36 +788,35 @@ function MedicationDeliveryForm({ record, branches, residents, medications, phar
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-900 mb-1">Pharmacy Supplier (Optional)</label>
-                                    <select
-                                        value=""
-                                        onChange={(e) => {
-                                            if (e.target.value) {
-                                                const supplier = availableSuppliers.find(s => s.id == e.target.value);
-                                                if (supplier) {
-                                                    setFormData({
-                                                        ...formData,
-                                                        pharmacy_name: supplier.name,
-                                                        notes: supplier.notes || formData.notes,
-                                                    });
-                                                }
+                                <select
+                                    value=""
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            const supplier = availableSuppliers.find(s => s.id == e.target.value);
+                                            if (supplier) {
+                                                setFormData({
+                                                    ...formData,
+                                                    pharmacy_name: supplier.name,
+                                                    notes: supplier.notes || formData.notes,
+                                                });
                                             }
-                                        }}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent mb-2 text-gray-900 bg-white"
-                                    >
-                                        <option value="">Select a supplier...</option>
-                                        {availableSuppliers && availableSuppliers.length > 0 ? (
-                                            availableSuppliers.map(supplier => (
-                                                <option key={supplier.id} value={supplier.id}>
-                                                    {supplier.name}
-                                                </option>
-                                            ))
-                                        ) : (
-                                            <option value="" disabled>
-                                                {pharmacySuppliersError ? 'Error loading suppliers' : 'No suppliers available'}
+                                        }
+                                    }}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-gray-900 bg-white"
+                                >
+                                    <option value="">Select a supplier...</option>
+                                    {availableSuppliers && availableSuppliers.length > 0 ? (
+                                        availableSuppliers.map(supplier => (
+                                            <option key={supplier.id} value={supplier.id}>
+                                                {supplier.name}
                                             </option>
-                                        )}
-                                    </select>
-                                </div>
+                                        ))
+                                    ) : (
+                                        <option value="" disabled>
+                                            {pharmacySuppliersError ? 'Error loading suppliers' : 'No suppliers available'}
+                                        </option>
+                                    )}
+                                </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-900 mb-1">Pharmacy Name *</label>
