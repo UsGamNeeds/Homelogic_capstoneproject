@@ -85,12 +85,48 @@ export default function Reports() {
                 });
                 const sleepCount = sleepRes.data?.total || sleepRes.data?.data?.length || 0;
                 
+                // Get housekeeping tasks
+                const housekeepingRes = await api.get('/cleaning/tasks', {
+                    params: {
+                        per_page: 1,
+                    }
+                });
+                const housekeepingCount = housekeepingRes.data?.meta?.total || housekeepingRes.data?.total || housekeepingRes.data?.data?.length || 0;
+                
+                // Get grocery status updates
+                const groceryRes = await api.get('/grocery-status-updates', {
+                    params: {
+                        per_page: 1,
+                    }
+                });
+                const groceryCount = groceryRes.data?.meta?.total || groceryRes.data?.total || groceryRes.data?.data?.length || 0;
+                
+                // Get fire drills
+                const fireDrillsRes = await api.get('/fire-drills', {
+                    params: {
+                        per_page: 1,
+                    }
+                });
+                const fireDrillsCount = fireDrillsRes.data?.meta?.total || fireDrillsRes.data?.total || fireDrillsRes.data?.data?.length || 0;
+                
+                // Get incidents
+                const incidentsRes = await api.get('/incidents', {
+                    params: {
+                        per_page: 1,
+                    }
+                });
+                const incidentsCount = incidentsRes.data?.meta?.total || incidentsRes.data?.total || incidentsRes.data?.data?.length || 0;
+                
                 return {
                     appointments: appointmentsCount,
                     vitals: vitalsCount,
                     residents: residentsCount,
                     assessments: assessmentsCount,
                     sleep: sleepCount,
+                    housekeeping: housekeepingCount,
+                    grocery: groceryCount,
+                    fireDrills: fireDrillsCount,
+                    incidents: incidentsCount,
                 };
             } catch (error) {
                 console.error('Error fetching monthly stats:', error);
@@ -99,6 +135,11 @@ export default function Reports() {
                     vitals: 0,
                     residents: 0,
                     assessments: 0,
+                    sleep: 0,
+                    housekeeping: 0,
+                    grocery: 0,
+                    fireDrills: 0,
+                    incidents: 0,
                 };
             }
         },
@@ -125,9 +166,9 @@ export default function Reports() {
                     icon: Activity,
                     link: '/reports/vitals-charts',
                     value: statsData?.vitals || 0,
-                    gradient: 'from-red-500 to-red-600',
-                    iconBg: 'bg-red-50',
-                    iconColor: 'text-red-600',
+                    gradient: 'from-[var(--theme-secondary)] to-[var(--theme-secondary-dark)]',
+                    iconBg: 'bg-[var(--theme-secondary-bg-light)]',
+                    iconColor: 'text-[var(--theme-secondary)]',
                 },
                 {
                     title: 'Vitals Reports',
@@ -135,9 +176,9 @@ export default function Reports() {
                     icon: History,
                     link: '/reports/vitals-reports',
                     value: statsData?.vitals || 0,
-                    gradient: 'from-orange-500 to-orange-600',
-                    iconBg: 'bg-orange-50',
-                    iconColor: 'text-orange-600',
+                    gradient: 'from-[var(--theme-secondary)] to-[var(--theme-secondary-dark)]',
+                    iconBg: 'bg-[var(--theme-secondary-bg-light)]',
+                    iconColor: 'text-[var(--theme-secondary)]',
                 },
                 {
                     title: 'Vitals History',
@@ -145,9 +186,9 @@ export default function Reports() {
                     icon: Clock,
                     link: '/reports/vitals-history',
                     value: statsData?.vitals || 0,
-                    gradient: 'from-teal-500 to-teal-600',
-                    iconBg: 'bg-teal-50',
-                    iconColor: 'text-teal-600',
+                    gradient: 'from-[var(--theme-secondary)] to-[var(--theme-secondary-dark)]',
+                    iconBg: 'bg-[var(--theme-secondary-bg-light)]',
+                    iconColor: 'text-[var(--theme-secondary)]',
                 },
                 {
                     title: 'Assessment Charts',
@@ -155,9 +196,9 @@ export default function Reports() {
                     icon: Brain,
                     link: '/reports/assessment-charts',
                     value: statsData?.assessments || 0,
-                    gradient: 'from-indigo-500 to-indigo-600',
-                    iconBg: 'bg-indigo-50',
-                    iconColor: 'text-indigo-600',
+                    gradient: 'from-[var(--theme-primary)] to-[var(--theme-primary-dark)]',
+                    iconBg: 'bg-[var(--theme-primary-bg-light)]',
+                    iconColor: 'text-[var(--theme-primary)]',
                 },
                 {
                     title: 'Appointments Charts',
@@ -165,9 +206,9 @@ export default function Reports() {
                     icon: Calendar,
                     link: '/reports/appointments-charts',
                     value: statsData?.appointments || 0,
-                    gradient: 'from-green-500 to-green-600',
-                    iconBg: 'bg-green-50',
-                    iconColor: 'text-green-600',
+                    gradient: 'from-[var(--theme-primary)] to-[var(--theme-primary-dark)]',
+                    iconBg: 'bg-[var(--theme-primary-bg-light)]',
+                    iconColor: 'text-[var(--theme-primary)]',
                 },
                 {
                     title: 'Sleep Charts',
@@ -175,9 +216,9 @@ export default function Reports() {
                     icon: Moon,
                     link: '/reports/sleep-charts',
                     value: statsData?.sleep || 0,
-                    gradient: 'from-slate-500 to-slate-600',
-                    iconBg: 'bg-slate-50',
-                    iconColor: 'text-slate-600',
+                    gradient: 'from-[var(--theme-primary)] to-[var(--theme-primary-dark)]',
+                    iconBg: 'bg-[var(--theme-primary-bg-light)]',
+                    iconColor: 'text-[var(--theme-primary)]',
                 },
             ],
         },
@@ -190,40 +231,40 @@ export default function Reports() {
                     description: 'Task completion and schedules',
                     icon: Sparkles,
                     link: '/housekeeping',
-                    value: 0,
-                    gradient: 'from-purple-500 to-purple-600',
-                    iconBg: 'bg-purple-50',
-                    iconColor: 'text-purple-600',
+                    value: statsData?.housekeeping || 0,
+                    gradient: 'from-[var(--theme-primary)] to-[var(--theme-primary-dark)]',
+                    iconBg: 'bg-[var(--theme-primary-bg-light)]',
+                    iconColor: 'text-[var(--theme-primary)]',
                 },
                 {
                     title: 'Grocery Status',
                     description: 'Grocery inventory and status updates',
                     icon: ShoppingCart,
                     link: '/grocery-status',
-                    value: 0,
-                    gradient: 'from-teal-500 to-teal-600',
-                    iconBg: 'bg-teal-50',
-                    iconColor: 'text-teal-600',
+                    value: statsData?.grocery || 0,
+                    gradient: 'from-[var(--theme-primary)] to-[var(--theme-primary-dark)]',
+                    iconBg: 'bg-[var(--theme-primary-bg-light)]',
+                    iconColor: 'text-[var(--theme-primary)]',
                 },
                 {
                     title: 'Fire Drills',
                     description: 'Fire drill schedules and completion',
                     icon: Flame,
                     link: '/fire-drills',
-                    value: 0,
-                    gradient: 'from-orange-500 to-orange-600',
-                    iconBg: 'bg-orange-50',
-                    iconColor: 'text-orange-600',
+                    value: statsData?.fireDrills || 0,
+                    gradient: 'from-[var(--theme-primary)] to-[var(--theme-primary-dark)]',
+                    iconBg: 'bg-[var(--theme-primary-bg-light)]',
+                    iconColor: 'text-[var(--theme-primary)]',
                 },
                 {
                     title: 'Incidents',
                     description: 'Incident reports and tracking',
                     icon: AlertTriangle,
                     link: '/incidents',
-                    value: 0,
-                    gradient: 'from-rose-500 to-rose-600',
-                    iconBg: 'bg-rose-50',
-                    iconColor: 'text-rose-600',
+                    value: statsData?.incidents || 0,
+                    gradient: 'from-[var(--theme-primary)] to-[var(--theme-primary-dark)]',
+                    iconBg: 'bg-[var(--theme-primary-bg-light)]',
+                    iconColor: 'text-[var(--theme-primary)]',
                 },
             ],
         },
