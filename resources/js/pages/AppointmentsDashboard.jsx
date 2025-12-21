@@ -222,13 +222,13 @@ export default function AppointmentsDashboard() {
                         <List className="h-4 w-4" />
                         View All
                     </Link>
-                    <button
-                        onClick={() => navigate('/appointments?action=create')}
+                    <Link
+                        to="/appointments"
                         className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors flex items-center gap-2"
                     >
                         <Plus className="w-5 h-5" />
                         Add Appointment
-                    </button>
+                    </Link>
                 </div>
             </div>
 
