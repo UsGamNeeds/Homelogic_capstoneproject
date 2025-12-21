@@ -20,7 +20,14 @@ class AppointmentController extends BaseApiController
                 // Use optimized whereIn pattern instead of whereHas for better performance
                 $branchIds = $this->getFacilityBranchIds($user->facility_id);
                 if (!empty($branchIds)) {
-                    $query->whereIn('branch_id', $branchIds);
+                    // Include appointments with branch_id in facility branches
+                    // OR appointments where resident's branch is in facility branches (for NULL branch_id cases)
+                    $query->where(function($q) use ($branchIds) {
+                        $q->whereIn('branch_id', $branchIds)
+                          ->orWhereHas('resident', function($residentQuery) use ($branchIds) {
+                              $residentQuery->whereIn('branch_id', $branchIds);
+                          });
+                    });
                 } else {
                     // No branches for facility, return empty results
                     return response()->json([
@@ -54,6 +61,14 @@ class AppointmentController extends BaseApiController
             } elseif ($filter === 'today') {
                 $query->whereDate('appointment_date', today());
             }
+        }
+
+        // Filter by date range
+        if ($request->has('date_from')) {
+            $query->whereDate('appointment_date', '>=', $request->get('date_from'));
+        }
+        if ($request->has('date_to')) {
+            $query->whereDate('appointment_date', '<=', $request->get('date_to'));
         }
 
         // Filter by status
@@ -265,7 +280,15 @@ class AppointmentController extends BaseApiController
             if ($user->facility_id) {
                 $branchIds = $this->getFacilityBranchIds($user->facility_id);
                 if (!empty($branchIds)) {
-                    $query->whereIn('branch_id', $branchIds);
+                    // Include appointments where:
+                    // 1. Appointment's branch_id is in facility branches, OR
+                    // 2. Resident's branch_id is in facility branches (handles NULL appointment branch_id)
+                    $query->where(function($q) use ($branchIds) {
+                        $q->whereIn('branch_id', $branchIds)
+                          ->orWhereHas('resident', function($residentQuery) use ($branchIds) {
+                              $residentQuery->whereIn('branch_id', $branchIds);
+                          });
+                    });
                 } else {
                     return response()->json([
                         'today' => 0,
@@ -296,20 +319,21 @@ class AppointmentController extends BaseApiController
         $startOfMonth = now()->startOfMonth()->toDateString();
         $endOfMonth = now()->endOfMonth()->toDateString();
 
-        $baseQuery = clone $query;
-
+        // Build each statistic query separately to avoid cloning issues
         return response()->json([
-            'today' => (clone $baseQuery)->whereDate('appointment_date', $today)->count(),
-            'upcoming' => (clone $baseQuery)->where('status', 'scheduled')
-                ->whereDate('appointment_date', '>=', $today)
-                ->count(),
-            'completed' => (clone $baseQuery)->where('status', 'completed')->count(),
-            'cancelled' => (clone $baseQuery)->where('status', 'cancelled')->count(),
-            'total' => (clone $baseQuery)->count(),
-            'this_week' => (clone $baseQuery)
+            'today' => (clone $query)->whereDate('appointment_date', $today)->count(),
+            'upcoming' => (clone $query)->where(function($q) use ($today) {
+                $q->where('status', 'scheduled')
+                  ->orWhere('status', 'confirmed')
+                  ->orWhere('status', 'in_progress');
+            })->whereDate('appointment_date', '>=', $today)->count(),
+            'completed' => (clone $query)->where('status', 'completed')->count(),
+            'cancelled' => (clone $query)->where('status', 'cancelled')->count(),
+            'total' => (clone $query)->count(),
+            'this_week' => (clone $query)
                 ->whereBetween('appointment_date', [$startOfWeek, $endOfWeek])
                 ->count(),
-            'this_month' => (clone $baseQuery)
+            'this_month' => (clone $query)
                 ->whereBetween('appointment_date', [$startOfMonth, $endOfMonth])
                 ->count(),
         ]);

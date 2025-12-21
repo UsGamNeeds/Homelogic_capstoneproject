@@ -26,6 +26,7 @@ export default function AppointmentsDashboard() {
     const [statusFilter, setStatusFilter] = useState('all');
     const [dateFilter, setDateFilter] = useState('upcoming');
     const [search, setSearch] = useState('');
+    const [activeTab, setActiveTab] = useState('upcoming'); // 'today', 'upcoming', 'completed', 'this_month'
 
     // Fetch current user
     const { data: currentUser } = useQuery({
@@ -54,7 +55,7 @@ export default function AppointmentsDashboard() {
 
     // Fetch appointments based on filters
     const { data: appointmentsData, isLoading: appointmentsLoading, refetch } = useQuery({
-        queryKey: ['appointments-dashboard', statusFilter, dateFilter, search],
+        queryKey: ['appointments-dashboard', statusFilter, dateFilter, search, activeTab],
         queryFn: async () => {
             const params = {
                 per_page: 50,
@@ -70,6 +71,17 @@ export default function AppointmentsDashboard() {
                 params.date_filter = 'past';
             } else if (dateFilter === 'today') {
                 params.date_filter = 'today';
+            } else if (activeTab === 'this_month') {
+                // For this month, we need to filter by date range
+                const startOfMonth = new Date();
+                startOfMonth.setDate(1);
+                startOfMonth.setHours(0, 0, 0, 0);
+                const endOfMonth = new Date(startOfMonth);
+                endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+                endOfMonth.setDate(0);
+                endOfMonth.setHours(23, 59, 59, 999);
+                params.date_from = startOfMonth.toISOString().split('T')[0];
+                params.date_to = endOfMonth.toISOString().split('T')[0];
             }
             
             if (search) {
@@ -183,52 +195,81 @@ export default function AppointmentsDashboard() {
                 </div>
             </div>
 
-            {/* Statistics Cards */}
+            {/* Statistics Cards - Clickable Tabs */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="p-6">
+                <Card 
+                    className={`p-6 cursor-pointer transition-all hover:shadow-lg ${activeTab === 'today' ? 'ring-2 ring-[var(--theme-primary)] bg-[var(--theme-primary)]/5' : ''}`}
+                    onClick={() => {
+                        setActiveTab('today');
+                        setDateFilter('today');
+                        setStatusFilter('all');
+                    }}
+                >
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Today</p>
                             <p className="text-2xl font-bold text-gray-900 mt-1">{stats.today}</p>
                         </div>
-                        <div className="p-3 bg-blue-100 rounded-lg">
-                            <Calendar className="w-6 h-6 text-blue-600" />
+                        <div className={`p-3 rounded-lg ${activeTab === 'today' ? 'bg-[var(--theme-primary)]' : 'bg-blue-100'}`}>
+                            <Calendar className={`w-6 h-6 ${activeTab === 'today' ? 'text-white' : 'text-blue-600'}`} />
                         </div>
                     </div>
                 </Card>
 
-                <Card className="p-6">
+                <Card 
+                    className={`p-6 cursor-pointer transition-all hover:shadow-lg ${activeTab === 'upcoming' ? 'ring-2 ring-[var(--theme-primary)] bg-[var(--theme-primary)]/5' : ''}`}
+                    onClick={() => {
+                        setActiveTab('upcoming');
+                        setDateFilter('upcoming');
+                        setStatusFilter('all');
+                    }}
+                >
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Upcoming</p>
                             <p className="text-2xl font-bold text-gray-900 mt-1">{stats.upcoming}</p>
                         </div>
-                        <div className="p-3 bg-green-100 rounded-lg">
-                            <Clock className="w-6 h-6 text-green-600" />
+                        <div className={`p-3 rounded-lg ${activeTab === 'upcoming' ? 'bg-[var(--theme-primary)]' : 'bg-green-100'}`}>
+                            <Clock className={`w-6 h-6 ${activeTab === 'upcoming' ? 'text-white' : 'text-green-600'}`} />
                         </div>
                     </div>
                 </Card>
 
-                <Card className="p-6">
+                <Card 
+                    className={`p-6 cursor-pointer transition-all hover:shadow-lg ${activeTab === 'completed' ? 'ring-2 ring-[var(--theme-primary)] bg-[var(--theme-primary)]/5' : ''}`}
+                    onClick={() => {
+                        setActiveTab('completed');
+                        setDateFilter('all');
+                        setStatusFilter('completed');
+                    }}
+                >
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">Completed</p>
                             <p className="text-2xl font-bold text-gray-900 mt-1">{stats.completed}</p>
                         </div>
-                        <div className="p-3 bg-purple-100 rounded-lg">
-                            <CheckCircle className="w-6 h-6 text-purple-600" />
+                        <div className={`p-3 rounded-lg ${activeTab === 'completed' ? 'bg-[var(--theme-primary)]' : 'bg-purple-100'}`}>
+                            <CheckCircle className={`w-6 h-6 ${activeTab === 'completed' ? 'text-white' : 'text-purple-600'}`} />
                         </div>
                     </div>
                 </Card>
 
-                <Card className="p-6">
+                <Card 
+                    className={`p-6 cursor-pointer transition-all hover:shadow-lg ${activeTab === 'this_month' ? 'ring-2 ring-[var(--theme-primary)] bg-[var(--theme-primary)]/5' : ''}`}
+                    onClick={() => {
+                        setActiveTab('this_month');
+                        setDateFilter('all');
+                        setStatusFilter('all');
+                        // We'll need to add a custom filter for this month
+                    }}
+                >
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm font-medium text-gray-600">This Month</p>
                             <p className="text-2xl font-bold text-gray-900 mt-1">{stats.this_month}</p>
                         </div>
-                        <div className="p-3 bg-orange-100 rounded-lg">
-                            <TrendingUp className="w-6 h-6 text-orange-600" />
+                        <div className={`p-3 rounded-lg ${activeTab === 'this_month' ? 'bg-[var(--theme-primary)]' : 'bg-orange-100'}`}>
+                            <TrendingUp className={`w-6 h-6 ${activeTab === 'this_month' ? 'text-white' : 'text-orange-600'}`} />
                         </div>
                     </div>
                 </Card>
@@ -282,8 +323,10 @@ export default function AppointmentsDashboard() {
             {/* Appointments List */}
             <SectionCard>
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                    {dateFilter === 'today' ? 'Today\'s Appointments' : 
-                     dateFilter === 'upcoming' ? 'Upcoming Appointments' : 
+                    {activeTab === 'today' ? 'Today\'s Appointments' : 
+                     activeTab === 'upcoming' ? 'Upcoming Appointments' : 
+                     activeTab === 'completed' ? 'Completed Appointments' : 
+                     activeTab === 'this_month' ? 'This Month\'s Appointments' :
                      dateFilter === 'past' ? 'Past Appointments' : 
                      'All Appointments'}
                 </h2>
