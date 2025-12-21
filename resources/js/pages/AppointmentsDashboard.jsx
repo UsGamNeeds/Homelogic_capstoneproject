@@ -532,7 +532,7 @@ export default function AppointmentsDashboard() {
                                             </button>
                                         )}
                                         <Link
-                                            to={`/appointments?id=${appointment.id}`}
+                                            to={`/appointments?resident_id=${appointment.resident_id}`}
                                             className="px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm font-medium flex items-center gap-1.5"
                                         >
                                             View
