@@ -273,23 +273,32 @@ class AppointmentController extends BaseApiController
 
     public function statistics(Request $request): JsonResponse
     {
-        $user = $request->user();
-        
         try {
+            $user = $request->user();
+            
+            // Initialize with zeros
+            $stats = [
+                'today' => 0,
+                'upcoming' => 0,
+                'completed' => 0,
+                'cancelled' => 0,
+                'total' => 0,
+                'this_week' => 0,
+                'this_month' => 0,
+            ];
+            
             // Get branch IDs for facility filtering
             $branchIds = [];
             if ($user && $user->role !== 'super_admin' && $user->facility_id) {
-                $branchIds = $this->getFacilityBranchIds($user->facility_id);
+                try {
+                    $branchIds = $this->getFacilityBranchIds($user->facility_id);
+                } catch (\Exception $e) {
+                    \Log::error('Error getting facility branch IDs', ['error' => $e->getMessage()]);
+                    return response()->json($stats);
+                }
+                
                 if (empty($branchIds)) {
-                    return response()->json([
-                        'today' => 0,
-                        'upcoming' => 0,
-                        'completed' => 0,
-                        'cancelled' => 0,
-                        'total' => 0,
-                        'this_week' => 0,
-                        'this_month' => 0,
-                    ]);
+                    return response()->json($stats);
                 }
             }
 
@@ -299,57 +308,126 @@ class AppointmentController extends BaseApiController
             $startOfMonth = now()->startOfMonth()->toDateString();
             $endOfMonth = now()->endOfMonth()->toDateString();
 
-            // Get resident IDs for this facility to avoid complex whereHas queries
+            // Get resident IDs for this facility
             $residentIds = [];
             if (!empty($branchIds)) {
-                $residentIds = DB::table('residents')
-                    ->whereIn('branch_id', $branchIds)
-                    ->pluck('id')
-                    ->toArray();
+                try {
+                    $residentIds = DB::table('residents')
+                        ->whereIn('branch_id', $branchIds)
+                        ->pluck('id')
+                        ->toArray();
+                } catch (\Exception $e) {
+                    \Log::error('Error fetching resident IDs', ['error' => $e->getMessage()]);
+                    // Continue without resident IDs
+                }
             }
 
-            // Build base query with facility filtering - simpler approach
-            $buildQuery = function() use ($branchIds, $residentIds) {
-                $query = Appointment::query();
-                
-                if (!empty($branchIds)) {
-                    // Filter by appointments in facility branches OR residents in facility branches
-                    $query->where(function($q) use ($branchIds, $residentIds) {
+            // Build base query - use raw query builder for maximum reliability
+            if (!empty($branchIds)) {
+                // Today
+                $stats['today'] = DB::table('appointments')
+                    ->where(function($q) use ($branchIds, $residentIds) {
                         $q->whereIn('branch_id', $branchIds);
                         if (!empty($residentIds)) {
                             $q->orWhereIn('resident_id', $residentIds);
                         }
-                    });
-                }
-                
-                return $query;
-            };
+                    })
+                    ->whereDate('appointment_date', $today)
+                    ->whereNull('deleted_at')
+                    ->count();
 
-            // Build each statistic query
-            $stats = [
-                'today' => $buildQuery()->whereDate('appointment_date', $today)->count(),
-                'upcoming' => $buildQuery()->whereIn('status', ['scheduled', 'confirmed', 'in_progress'])
-                    ->whereDate('appointment_date', '>=', $today)->count(),
-                'completed' => $buildQuery()->where('status', 'completed')->count(),
-                'cancelled' => $buildQuery()->where('status', 'cancelled')->count(),
-                'total' => $buildQuery()->count(),
-                'this_week' => $buildQuery()
+                // Upcoming
+                $stats['upcoming'] = DB::table('appointments')
+                    ->where(function($q) use ($branchIds, $residentIds) {
+                        $q->whereIn('branch_id', $branchIds);
+                        if (!empty($residentIds)) {
+                            $q->orWhereIn('resident_id', $residentIds);
+                        }
+                    })
+                    ->whereIn('status', ['scheduled', 'confirmed', 'in_progress'])
+                    ->whereDate('appointment_date', '>=', $today)
+                    ->whereNull('deleted_at')
+                    ->count();
+
+                // Completed
+                $stats['completed'] = DB::table('appointments')
+                    ->where(function($q) use ($branchIds, $residentIds) {
+                        $q->whereIn('branch_id', $branchIds);
+                        if (!empty($residentIds)) {
+                            $q->orWhereIn('resident_id', $residentIds);
+                        }
+                    })
+                    ->where('status', 'completed')
+                    ->whereNull('deleted_at')
+                    ->count();
+
+                // Cancelled
+                $stats['cancelled'] = DB::table('appointments')
+                    ->where(function($q) use ($branchIds, $residentIds) {
+                        $q->whereIn('branch_id', $branchIds);
+                        if (!empty($residentIds)) {
+                            $q->orWhereIn('resident_id', $residentIds);
+                        }
+                    })
+                    ->where('status', 'cancelled')
+                    ->whereNull('deleted_at')
+                    ->count();
+
+                // Total
+                $stats['total'] = DB::table('appointments')
+                    ->where(function($q) use ($branchIds, $residentIds) {
+                        $q->whereIn('branch_id', $branchIds);
+                        if (!empty($residentIds)) {
+                            $q->orWhereIn('resident_id', $residentIds);
+                        }
+                    })
+                    ->whereNull('deleted_at')
+                    ->count();
+
+                // This week
+                $stats['this_week'] = DB::table('appointments')
+                    ->where(function($q) use ($branchIds, $residentIds) {
+                        $q->whereIn('branch_id', $branchIds);
+                        if (!empty($residentIds)) {
+                            $q->orWhereIn('resident_id', $residentIds);
+                        }
+                    })
                     ->whereBetween('appointment_date', [$startOfWeek, $endOfWeek])
-                    ->count(),
-                'this_month' => $buildQuery()
+                    ->whereNull('deleted_at')
+                    ->count();
+
+                // This month
+                $stats['this_month'] = DB::table('appointments')
+                    ->where(function($q) use ($branchIds, $residentIds) {
+                        $q->whereIn('branch_id', $branchIds);
+                        if (!empty($residentIds)) {
+                            $q->orWhereIn('resident_id', $residentIds);
+                        }
+                    })
                     ->whereBetween('appointment_date', [$startOfMonth, $endOfMonth])
-                    ->count(),
-            ];
+                    ->whereNull('deleted_at')
+                    ->count();
+            } else {
+                // Super admin - no filtering
+                $stats['today'] = DB::table('appointments')->whereDate('appointment_date', $today)->whereNull('deleted_at')->count();
+                $stats['upcoming'] = DB::table('appointments')->whereIn('status', ['scheduled', 'confirmed', 'in_progress'])->whereDate('appointment_date', '>=', $today)->whereNull('deleted_at')->count();
+                $stats['completed'] = DB::table('appointments')->where('status', 'completed')->whereNull('deleted_at')->count();
+                $stats['cancelled'] = DB::table('appointments')->where('status', 'cancelled')->whereNull('deleted_at')->count();
+                $stats['total'] = DB::table('appointments')->whereNull('deleted_at')->count();
+                $stats['this_week'] = DB::table('appointments')->whereBetween('appointment_date', [$startOfWeek, $endOfWeek])->whereNull('deleted_at')->count();
+                $stats['this_month'] = DB::table('appointments')->whereBetween('appointment_date', [$startOfMonth, $endOfMonth])->whereNull('deleted_at')->count();
+            }
 
             return response()->json($stats);
+            
         } catch (\Exception $e) {
             \Log::error('Error fetching appointment statistics', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'user_id' => $user->id ?? null,
-                'facility_id' => $user->facility_id ?? null,
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
             ]);
 
+            // Always return 200 with zeros to prevent frontend errors
             return response()->json([
                 'today' => 0,
                 'upcoming' => 0,
@@ -358,7 +436,7 @@ class AppointmentController extends BaseApiController
                 'total' => 0,
                 'this_week' => 0,
                 'this_month' => 0,
-            ], 200); // Return 200 with zeros instead of 500
+            ], 200);
         }
     }
 }
