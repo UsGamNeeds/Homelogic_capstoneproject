@@ -66,3 +66,4 @@ After deploying, you can verify the role exists by:
 
 - `app/Http/Controllers/Api/RoleController.php` - Added `ensureRequiredRolesExist()` method that runs before returning roles
 
+

@@ -86,9 +86,9 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
 
     // Appointments
     Route::get('/appointment-types', [AppointmentController::class, 'types'])->middleware('auth:sanctum');
+    Route::get('/appointments/statistics', [AppointmentController::class, 'statistics'])->middleware('auth:sanctum'); // Must come BEFORE apiResource
     Route::apiResource('appointments', AppointmentController::class)->middleware('auth:sanctum');
     Route::patch('/appointments/{id}/status', [AppointmentController::class, 'updateStatus'])->middleware('auth:sanctum');
-    Route::get('/appointments/statistics', [AppointmentController::class, 'statistics'])->middleware('auth:sanctum');
 
     // Incidents
     Route::apiResource('incidents', \App\Http\Controllers\Api\IncidentController::class)->middleware('auth:sanctum');
