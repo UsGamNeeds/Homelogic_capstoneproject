@@ -454,8 +454,9 @@ export default function Medications() {
                                             navigate('/medication-history');
                                         }
                                     }}
-                                    className="mt-2 text-xs text-[var(--theme-primary)] hover:underline"
+                                    className="mt-3 w-full sm:w-auto px-4 py-2 text-sm font-semibold text-[var(--theme-primary)] bg-[var(--theme-primary)]/10 border border-[var(--theme-primary)] rounded-lg hover:bg-[var(--theme-primary)]/20 hover:border-[var(--theme-primary-hover)] transition-colors flex items-center justify-center gap-2"
                                 >
+                                    <Calendar className="w-4 h-4" />
                                     Medication History
                                 </button>
                             </div>
