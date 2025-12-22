@@ -151,14 +151,14 @@ export default function ResidentChartModal({ isOpen, onClose, resident }) {
     }, {});
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-            <div className="bg-slate-900 w-full max-w-6xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto">
+            <div className="bg-white w-full max-w-6xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-gray-200">
                 {/* Header */}
-                <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-800/50">
-                    <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                    <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
                         Charts for {resident.first_name} {resident.last_name}
                     </h2>
-                    <button onClick={onClose} className="p-2 text-slate-400 hover:text-white transition-colors">
+                    <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
                         <X className="w-6 h-6" />
                     </button>
                 </div>
@@ -168,30 +168,30 @@ export default function ResidentChartModal({ isOpen, onClose, resident }) {
                     {/* Behaviors Section */}
                     <div>
                         <h3 className="text-[var(--theme-primary)] font-bold text-lg mb-4">Behaviors</h3>
-                        <div className="overflow-hidden border border-slate-700 rounded-lg">
+                        <div className="overflow-hidden border border-gray-200 rounded-xl shadow-sm">
                             <table className="w-full text-left border-collapse">
-                                <thead className="bg-slate-800 text-slate-300 text-xs uppercase tracking-wider">
+                                <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
                                     <tr>
-                                        <th className="px-4 py-3 font-semibold border-b border-slate-700 border-r border-slate-700">Category</th>
-                                        <th className="px-4 py-3 font-semibold border-b border-slate-700 border-r border-slate-700">Log</th>
-                                        <th className="px-4 py-3 font-semibold border-b border-slate-700">Date</th>
+                                        <th className="px-4 py-3 font-bold border-b border-gray-200 border-r border-gray-200">Category</th>
+                                        <th className="px-4 py-3 font-bold border-b border-gray-200 border-r border-gray-200">Log</th>
+                                        <th className="px-4 py-3 font-bold border-b border-gray-200">Date</th>
                                     </tr>
                                 </thead>
-                                <tbody className="text-slate-300">
+                                <tbody className="text-gray-700">
                                     {Object.entries(groupedItems).map(([catName, items]) => (
                                         items.map((item, idx) => (
-                                            <tr key={item.behavior_definition_id} className="border-b border-slate-800/50 hover:bg-slate-800/30">
+                                            <tr key={item.behavior_definition_id} className="border-b border-gray-100 hover:bg-gray-50/50">
                                                 {idx === 0 && (
-                                                    <td className="px-4 py-3 border-r border-slate-700 align-middle font-medium" rowSpan={items.length}>
+                                                    <td className="px-4 py-3 border-r border-gray-200 align-middle font-bold text-gray-900 bg-gray-50/30" rowSpan={items.length}>
                                                         {catName}
                                                     </td>
                                                 )}
-                                                <td className="px-4 py-3 border-r border-slate-700">{item.name}</td>
+                                                <td className="px-4 py-3 border-r border-gray-200 font-medium">{item.name}</td>
                                                 <td className="px-4 py-3">
                                                     <select
                                                         value={item.value ? "true" : "false"}
                                                         onChange={(e) => handleItemChange(item.behavior_definition_id, e.target.value === "true")}
-                                                        className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[var(--theme-primary)]"
+                                                        className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary-bg)] focus:border-[var(--theme-primary)] transition-all"
                                                     >
                                                         <option value="false">No</option>
                                                         <option value="true">Yes</option>
@@ -202,7 +202,7 @@ export default function ResidentChartModal({ isOpen, onClose, resident }) {
                                     ))}
                                     {Object.keys(groupedItems).length === 0 && (
                                         <tr>
-                                            <td colSpan="3" className="px-4 py-8 text-center text-slate-500 italic">No behavior categories defined.</td>
+                                            <td colSpan="3" className="px-4 py-12 text-center text-gray-400 italic">No behavior categories defined.</td>
                                         </tr>
                                     )}
                                 </tbody>
@@ -216,80 +216,80 @@ export default function ResidentChartModal({ isOpen, onClose, resident }) {
                             <h3 className="text-[var(--theme-primary)] font-bold text-lg">Behavior Descriptions</h3>
                             <button
                                 onClick={handleAddLog}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-[var(--theme-primary)] text-white rounded-lg text-sm font-semibold hover:bg-[var(--theme-primary-hover)] transition-colors"
+                                className="flex items-center gap-2 px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg text-sm font-semibold hover:bg-[var(--theme-primary-hover)] shadow-sm transition-all active:scale-95"
                             >
                                 <Plus className="w-4 h-4" />
                                 Add Record
                             </button>
                         </div>
-                        <div className="overflow-x-auto border border-slate-700 rounded-lg">
+                        <div className="overflow-x-auto border border-gray-200 rounded-xl shadow-sm">
                             <table className="w-full text-left border-collapse min-w-[1000px]">
-                                <thead className="bg-slate-800 text-slate-300 text-xs uppercase tracking-wider">
+                                <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
                                     <tr>
-                                        <th className="px-4 py-3 font-semibold border-b border-slate-700 border-r border-slate-700">Date</th>
-                                        <th className="px-4 py-3 font-semibold border-b border-slate-700 border-r border-slate-700">Behavior Description</th>
-                                        <th className="px-4 py-3 font-semibold border-b border-slate-700 border-r border-slate-700">Triggers</th>
-                                        <th className="px-4 py-3 font-semibold border-b border-slate-700 border-r border-slate-700">Caregiver Intervention</th>
-                                        <th className="px-4 py-3 font-semibold border-b border-slate-700 border-r border-slate-700">Reported to Provider & Care Team</th>
-                                        <th className="px-4 py-3 font-semibold border-b border-slate-700 border-r border-slate-700">Outcome</th>
-                                        <th className="px-4 py-3 font-semibold border-b border-slate-700">Action</th>
+                                        <th className="px-4 py-3 font-bold border-b border-gray-200 border-r border-gray-200">Date</th>
+                                        <th className="px-4 py-3 font-bold border-b border-gray-200 border-r border-gray-200">Behavior Description</th>
+                                        <th className="px-4 py-3 font-bold border-b border-gray-200 border-r border-gray-200">Triggers</th>
+                                        <th className="px-4 py-3 font-bold border-b border-gray-200 border-r border-gray-200">Caregiver Intervention</th>
+                                        <th className="px-4 py-3 font-bold border-b border-gray-200 border-r border-gray-200">Reported to Provider & Care Team</th>
+                                        <th className="px-4 py-3 font-bold border-b border-gray-200 border-r border-gray-200">Outcome</th>
+                                        <th className="px-4 py-3 font-bold border-b border-gray-200">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody className="text-slate-300">
+                                <tbody className="text-gray-700">
                                     {chartData.logs.map((log, index) => (
-                                        <tr key={index} className="border-b border-slate-800/50 hover:bg-slate-800/30">
-                                            <td className="p-2 border-r border-slate-700">
+                                        <tr key={index} className="border-b border-gray-100 hover:bg-gray-50/50">
+                                            <td className="p-3 border-r border-gray-200">
                                                 <input
                                                     type="datetime-local"
                                                     value={log.occurred_at}
                                                     onChange={(e) => handleLogChange(index, 'occurred_at', e.target.value)}
-                                                    className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--theme-primary)]"
+                                                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary-bg)] focus:border-[var(--theme-primary)]"
                                                 />
                                             </td>
-                                            <td className="p-2 border-r border-slate-700">
+                                            <td className="p-3 border-r border-gray-200">
                                                 <textarea
                                                     value={log.behavior_description}
                                                     onChange={(e) => handleLogChange(index, 'behavior_description', e.target.value)}
-                                                    className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--theme-primary)] min-h-[60px]"
+                                                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary-bg)] focus:border-[var(--theme-primary)] min-h-[80px]"
                                                     placeholder="Enter Behavior"
                                                 />
                                             </td>
-                                            <td className="p-2 border-r border-slate-700">
+                                            <td className="p-3 border-r border-gray-200">
                                                 <textarea
                                                     value={log.triggers}
                                                     onChange={(e) => handleLogChange(index, 'triggers', e.target.value)}
-                                                    className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--theme-primary)] min-h-[60px]"
+                                                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary-bg)] focus:border-[var(--theme-primary)] min-h-[80px]"
                                                     placeholder="Enter Triggers"
                                                 />
                                             </td>
-                                            <td className="p-2 border-r border-slate-700">
+                                            <td className="p-3 border-r border-gray-200">
                                                 <textarea
                                                     value={log.caregiver_intervention}
                                                     onChange={(e) => handleLogChange(index, 'caregiver_intervention', e.target.value)}
-                                                    className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--theme-primary)] min-h-[60px]"
+                                                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary-bg)] focus:border-[var(--theme-primary)] min-h-[80px]"
                                                     placeholder="Enter Intervention"
                                                 />
                                             </td>
-                                            <td className="p-2 border-r border-slate-700">
+                                            <td className="p-3 border-r border-gray-200">
                                                 <select
                                                     value={log.reported_to_provider ? "true" : "false"}
                                                     onChange={(e) => handleLogChange(index, 'reported_to_provider', e.target.value === "true")}
-                                                    className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--theme-primary)]"
+                                                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary-bg)] focus:border-[var(--theme-primary)]"
                                                 >
                                                     <option value="false">No</option>
                                                     <option value="true">Yes</option>
                                                 </select>
                                             </td>
-                                            <td className="p-2 border-r border-slate-700">
+                                            <td className="p-3 border-r border-gray-200">
                                                 <textarea
                                                     value={log.outcome}
                                                     onChange={(e) => handleLogChange(index, 'outcome', e.target.value)}
-                                                    className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--theme-primary)] min-h-[60px]"
+                                                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary-bg)] focus:border-[var(--theme-primary)] min-h-[80px]"
                                                     placeholder="Enter Outcome"
                                                 />
                                             </td>
-                                            <td className="p-2 text-center">
-                                                <button onClick={() => handleRemoveLog(index)} className="p-2 text-red-500 hover:text-red-400">
+                                            <td className="p-3 text-center">
+                                                <button onClick={() => handleRemoveLog(index)} className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors">
                                                     <X className="w-5 h-5" />
                                                 </button>
                                             </td>
@@ -297,7 +297,7 @@ export default function ResidentChartModal({ isOpen, onClose, resident }) {
                                     ))}
                                     {chartData.logs.length === 0 && (
                                         <tr>
-                                            <td colSpan="7" className="px-4 py-8 text-center text-slate-500 italic">No detailed logs added. Click "Add Record" to log a specific behavior incident.</td>
+                                            <td colSpan="7" className="px-4 py-12 text-center text-gray-400 italic font-medium">No detailed logs added. Click "Add Record" to log a specific behavior incident.</td>
                                         </tr>
                                     )}
                                 </tbody>
@@ -307,22 +307,23 @@ export default function ResidentChartModal({ isOpen, onClose, resident }) {
 
                     {/* Time Error Alert */}
                     {currentTimeError && (
-                        <div className="bg-red-900/40 border-2 border-red-500/50 rounded-xl p-6 flex items-center justify-center text-center">
+                        <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-6 flex items-center justify-center text-center">
                             <div className="flex flex-col items-center gap-2">
-                                <AlertCircle className="w-8 h-8 text-red-500" />
-                                <span className="text-xl font-bold text-red-400">
-                                    Entries are only permitted between <span className="underline underline-offset-4 decoration-red-500/50">7:00 PM</span> and <span className="underline underline-offset-4 decoration-red-500/50">9:59 PM</span>.
+                                <AlertCircle className="w-8 h-8 text-amber-500" />
+                                <span className="text-xl font-bold text-amber-700">
+                                    Entries are only permitted between <span className="underline underline-offset-4 decoration-amber-500/50">7:00 PM</span> and <span className="underline underline-offset-4 decoration-amber-500/50">9:59 PM</span>.
                                 </span>
+                                <p className="text-sm text-amber-600 mt-1">You can still save your progress as a draft.</p>
                             </div>
                         </div>
                     )}
                 </div>
 
                 {/* Footer Buttons */}
-                <div className="p-6 border-t border-slate-800 bg-slate-800/30 flex justify-between items-center">
+                <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center">
                     <button
                         onClick={onClose}
-                        className="px-6 py-2.5 bg-slate-700 text-white rounded-lg font-semibold hover:bg-slate-600 transition-colors"
+                        className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors shadow-sm"
                     >
                         Close
                     </button>
@@ -330,7 +331,7 @@ export default function ResidentChartModal({ isOpen, onClose, resident }) {
                         <button
                             onClick={() => handleSubmit('draft')}
                             disabled={saving}
-                            className="px-6 py-2.5 bg-slate-600 text-white rounded-lg font-semibold hover:bg-slate-500 transition-colors flex items-center gap-2 disabled:opacity-50"
+                            className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors flex items-center gap-2 disabled:opacity-50 shadow-sm"
                         >
                             <Save className="w-4 h-4" />
                             {saving ? 'Saving...' : 'Save Draft'}
@@ -339,8 +340,8 @@ export default function ResidentChartModal({ isOpen, onClose, resident }) {
                             onClick={() => handleSubmit('submitted')}
                             disabled={saving || !!currentTimeError}
                             className={`px-8 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg ${currentTimeError
-                                    ? 'bg-slate-700 text-slate-500 cursor-not-allowed border border-slate-600'
-                                    : 'bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-primary-hover)] shadow-[var(--theme-primary)]/20 shadow-xl active:scale-95'
+                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-300 shadow-none'
+                                    : 'bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-primary-hover)] shadow-[var(--theme-primary-light)]/20 active:scale-95'
                                 } disabled:opacity-50`}
                         >
                             <CheckCircle2 className="w-4 h-4" />
