@@ -18,12 +18,7 @@ export default function ChartData() {
         try {
             setLoading(true);
             const response = await api.get('/chart-data-definitions');
-            // Filter categories to only show specific ones as requested
-            const allowedCategories = ['Resistive', 'Behavior', 'Others'];
-            const filteredCategories = response.data.filter(cat =>
-                allowedCategories.includes(cat.name)
-            );
-            setCategories(filteredCategories);
+            setCategories(response.data);
             setLoading(false);
         } catch (error) {
             console.error('Error fetching chart data:', error);
