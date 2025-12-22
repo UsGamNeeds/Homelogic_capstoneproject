@@ -147,6 +147,7 @@ const SleepCharts = lazyWithRetry(() => import('./pages/reports/SleepCharts'));
 const StaffCharts = lazyWithRetry(() => import('./pages/reports/StaffCharts'));
 const ChartData = lazyWithRetry(() => import('./pages/ChartData'));
 const CaregiverChartsPage = lazyWithRetry(() => import('./pages/caregiver/CaregiverChartsPage'));
+const CaregiverResidentChart = lazyWithRetry(() => import('./pages/caregiver/CaregiverResidentChart'));
 const PublicStaffClockIn = lazyWithRetry(() => import('./pages/public/PublicStaffClockIn'));
 const StaffClock = lazyWithRetry(() => import('./pages/StaffClock'));
 const StaffClockInsView = lazyWithRetry(() => import('./pages/StaffClockInsView'));
@@ -259,6 +260,7 @@ function App() {
                 <Route path="my-residents" element={<Suspense fallback={<PageLoader />}><MyResidentsPage /></Suspense>} />
                 <Route path="my-residents/:residentId" element={<Suspense fallback={<PageLoader />}><ResidentDetailPage /></Suspense>} />
                 <Route path="charts" element={<Suspense fallback={<PageLoader />}><CaregiverChartsPage /></Suspense>} />
+                <Route path="charts/resident/:residentId" element={<Suspense fallback={<PageLoader />}><CaregiverResidentChart /></Suspense>} />
 
                 {/* Reports */}
                 <Route path="reports" element={<Suspense fallback={<PageLoader />}><Reports /></Suspense>} />

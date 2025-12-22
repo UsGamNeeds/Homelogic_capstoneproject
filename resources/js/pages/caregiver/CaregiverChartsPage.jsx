@@ -1,19 +1,17 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Users, ClipboardList, AlertCircle, Clock } from 'lucide-react';
+import { Search, ClipboardList, Plus, Clock } from 'lucide-react';
 import api from '../../services/api';
-import ResidentChartModal from '../../components/residents/ResidentChartModal';
 
 function getInitials(first = '', last = '') {
     return `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase();
 }
 
 export default function CaregiverChartsPage() {
+    const navigate = useNavigate();
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [activeTab, setActiveTab] = useState('new'); // 'new' or 'pending'
-    const [selectedResident, setSelectedResident] = useState(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
 
     React.useEffect(() => {
         const timeout = setTimeout(() => {
@@ -37,9 +35,8 @@ export default function CaregiverChartsPage() {
 
     const residents = residentsData?.data ?? [];
 
-    const handleOpenChart = (resident) => {
-        setSelectedResident(resident);
-        setIsModalOpen(true);
+    const handleOpenChart = (residentId) => {
+        navigate(`/charts/resident/${residentId}`);
     };
 
     return (
@@ -98,7 +95,7 @@ export default function CaregiverChartsPage() {
 
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => handleOpenChart(resident)}
+                                    onClick={() => handleOpenChart(resident.id)}
                                     className="flex-1 px-4 py-2.5 bg-[var(--theme-primary)] text-white rounded-xl text-xs font-bold hover:bg-[var(--theme-primary-hover)] transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
                                 >
                                     <Plus className="w-4 h-4" />
@@ -114,14 +111,6 @@ export default function CaregiverChartsPage() {
                         </div>
                     ))}
                 </div>
-            )}
-
-            {isModalOpen && selectedResident && (
-                <ResidentChartModal
-                    isOpen={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
-                    resident={selectedResident}
-                />
             )}
         </div>
     );
