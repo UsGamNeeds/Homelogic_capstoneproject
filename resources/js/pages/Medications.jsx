@@ -1271,8 +1271,8 @@ function MedicationForm({ record, residents, branches, currentUser, isCaregiver,
                                 });
                             }}
                             required
-                            disabled={(isCaregiver || isBranchAdmin) && currentUser?.assigned_branch_id}
-                            className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${(isCaregiver || isBranchAdmin) && currentUser?.assigned_branch_id ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
+                            disabled={!isFacilityAdmin && (isCaregiver || isBranchAdmin) && currentUser?.assigned_branch_id}
+                            className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${!isFacilityAdmin && (isCaregiver || isBranchAdmin) && currentUser?.assigned_branch_id ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
                         >
                             <option value="">Select Branch</option>
                             {filteredBranches.map(b => (

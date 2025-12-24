@@ -604,8 +604,8 @@ export default function AppointmentsDashboard() {
                                         <select
                                             value={formData.branch_id}
                                             onChange={(e) => setFormData({ ...formData, branch_id: e.target.value, resident_id: '' })}
-                                            disabled={isBranchAdmin && currentUser?.assigned_branch_id}
-                                            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${isBranchAdmin && currentUser?.assigned_branch_id ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
+                                            disabled={!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id}
+                                            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
                                         >
                                             <option value="">All Branches</option>
                                             {(branchesData?.data || []).map(branch => (
@@ -723,7 +723,7 @@ export default function AppointmentsDashboard() {
                         </div>
                         <div className="p-6 space-y-6">
                             <div>
-                                <label className="block text-base font-semibold text-gray-900 mb-2">
+                                <label className="block text-base font-bold text-black mb-2" style={{ color: '#111827', fontWeight: 700 }}>
                                     Appointment Outcome / Comments (Optional)
                                 </label>
                                 <textarea
@@ -739,7 +739,7 @@ export default function AppointmentsDashboard() {
                             <div>
                                 <div className="flex items-center justify-between mb-4">
                                     <div>
-                                        <label className="block text-base font-semibold text-gray-900 mb-2">
+                                        <label className="block text-base font-bold text-black mb-2" style={{ color: '#111827', fontWeight: 700 }}>
                                             Upload Documents (Optional)
                                         </label>
                                         <p className="text-sm text-gray-600">Attach consultation documents, medical reports, or other files related to this appointment</p>
@@ -779,7 +779,7 @@ export default function AppointmentsDashboard() {
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div>
-                                                        <label className="block text-sm font-semibold text-gray-900 mb-2">
+                                                        <label className="block text-sm font-bold text-black mb-2" style={{ color: '#111827', fontWeight: 700 }}>
                                                             Document Name *
                                                         </label>
                                                         <input
@@ -796,7 +796,7 @@ export default function AppointmentsDashboard() {
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label className="block text-sm font-semibold text-gray-900 mb-2">
+                                                        <label className="block text-sm font-bold text-black mb-2" style={{ color: '#111827', fontWeight: 700 }}>
                                                             Type *
                                                         </label>
                                                         <select
@@ -818,7 +818,7 @@ export default function AppointmentsDashboard() {
                                                         </select>
                                                     </div>
                                                     <div className="col-span-2">
-                                                        <label className="block text-sm font-semibold text-gray-900 mb-2">
+                                                        <label className="block text-sm font-bold text-black mb-2" style={{ color: '#111827', fontWeight: 700 }}>
                                                             File *
                                                         </label>
                                                         <input
@@ -835,7 +835,7 @@ export default function AppointmentsDashboard() {
                                                         <p className="text-xs text-gray-600 mt-1">Max size: 10MB</p>
                                                     </div>
                                                     <div className="col-span-2">
-                                                        <label className="block text-sm font-semibold text-gray-900 mb-2">
+                                                        <label className="block text-sm font-bold text-black mb-2" style={{ color: '#111827', fontWeight: 700 }}>
                                                             Notes
                                                         </label>
                                                         <textarea

@@ -1210,8 +1210,8 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                                             });
                                             setErrors({ ...errors, branch_id: null, resident_id: null });
                                         }}
-                                        disabled={isPreFilled || (isBranchAdmin && currentUser?.assigned_branch_id)}
-                                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${isPreFilled || (isBranchAdmin && currentUser?.assigned_branch_id) ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''
+                                        disabled={isPreFilled || (!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id)}
+                                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${isPreFilled || (!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id) ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''
                                             }`}
                                     >
                                         <option value="">All Branches</option>

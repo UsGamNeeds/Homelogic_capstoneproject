@@ -649,8 +649,8 @@ function AssessmentForm({ record, residents, branches, onClose, onSuccess, curre
                                     value={formData.branch_id}
                                     onChange={(e) => setFormData({...formData, branch_id: e.target.value, resident_id: ''})}
                                     required
-                                    disabled={isBranchAdmin && currentUser?.assigned_branch_id}
-                                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${isBranchAdmin && currentUser?.assigned_branch_id ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
+                                    disabled={!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id}
+                                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
                                 >
                                     <option value="">Select Branch</option>
                                     {branches.map(branch => (

@@ -742,8 +742,8 @@ function MedicationDeliveryForm({ record, branches, residents, medications, phar
                                     value={formData.branch_id}
                                     onChange={(e) => setFormData({ ...formData, branch_id: e.target.value, resident_id: '', medication_id: '' })}
                                     required
-                                    disabled={isCaregiver || (isBranchAdmin && currentUser?.assigned_branch_id)}
-                                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-gray-900 bg-white ${isBranchAdmin && currentUser?.assigned_branch_id ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
+                                    disabled={isCaregiver || (!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id)}
+                                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-gray-900 bg-white ${!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
                                 >
                                     <option value="">Select Branch</option>
                                     {branches.map(branch => (
@@ -1122,7 +1122,7 @@ function BulkMedicationDeliveryForm({ branches, residents, medications, pharmacy
                                             value: branch.id.toString(),
                                             label: branch.name,
                                         })) || []}
-                                        disabled={isCaregiver || (isBranchAdmin && currentUser?.assigned_branch_id)}
+                                        disabled={isCaregiver || (!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id)}
                                         className="w-full"
                                     />
                                 </div>

@@ -855,7 +855,7 @@ function GroceryStatusForm({ record, branches, templates = [], isCaregiver, care
                                         value: branch.id.toString(),
                                         label: branch.name,
                                     }))}
-                                    disabled={isCaregiver || (isBranchAdmin && currentUser?.assigned_branch_id)}
+                                    disabled={isCaregiver || (!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id)}
                                     className="w-full"
                                 />
                                 {errors.branch_id && <p className="text-xs text-red-600 mt-1">{errors.branch_id[0]}</p>}
