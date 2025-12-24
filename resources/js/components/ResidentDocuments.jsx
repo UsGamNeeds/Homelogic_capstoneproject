@@ -285,7 +285,7 @@ export default function ResidentDocuments({ residentId }) {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleDownload(document)}
-                                                        className="p-2 rounded-md bg-[var(--theme-primary-bg)] text-[var(--theme-primary)] hover:bg-[var(--theme-primary)] hover:text-white transition-colors border border-[var(--theme-primary-light)]"
+                                                        className="p-2.5 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors shadow-sm hover:shadow-md"
                                                         title="Download"
                                                     >
                                                         <Download className="h-5 w-5" />
@@ -303,7 +303,7 @@ export default function ResidentDocuments({ residentId }) {
                                                                 }
                                                             }, 100);
                                                         }}
-                                                        className="p-2 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-colors border border-blue-200"
+                                                        className="p-2.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors shadow-sm hover:shadow-md"
                                                         title="Edit"
                                                     >
                                                         <Edit className="h-5 w-5" />
@@ -311,7 +311,7 @@ export default function ResidentDocuments({ residentId }) {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleDelete(document.id)}
-                                                        className="p-2 rounded-md bg-red-50 text-red-700 hover:bg-red-600 hover:text-white transition-colors border border-red-200"
+                                                        className="p-2.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors shadow-sm hover:shadow-md"
                                                         title="Delete"
                                                     >
                                                         <Trash2 className="h-5 w-5" />

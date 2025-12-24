@@ -289,7 +289,7 @@ export default function EmployeeDocuments() {
                                                             href={`/storage/${document.file_path}`}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="p-2 rounded-lg bg-[var(--theme-primary)]/10 text-[var(--theme-primary)] hover:bg-[var(--theme-primary)] hover:text-white transition-colors"
+                                                            className="p-2.5 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors shadow-sm hover:shadow-md"
                                                             title="Download"
                                                         >
                                                             <Download className="w-5 h-5" />
@@ -300,7 +300,7 @@ export default function EmployeeDocuments() {
                                                             setEditing(document);
                                                             setShowForm(true);
                                                         }}
-                                                        className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors"
+                                                        className="p-2.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors shadow-sm hover:shadow-md"
                                                         title="Edit"
                                                     >
                                                         <Edit className="w-5 h-5" />
@@ -311,7 +311,7 @@ export default function EmployeeDocuments() {
                                                                 deleteMutation.mutate(document.id);
                                                             }
                                                         }}
-                                                        className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-600 hover:text-white transition-colors"
+                                                        className="p-2.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors shadow-sm hover:shadow-md"
                                                         title="Delete"
                                                     >
                                                         <Trash2 className="w-5 h-5" />

@@ -996,27 +996,31 @@ export default function Appointments() {
                     <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                         <div className="p-6 border-b">
                             <h3 className="text-xl font-semibold text-gray-900">Complete Appointment</h3>
+                            <p className="text-sm text-gray-600 mt-1">Add appointment details, consultation documents, and comments</p>
                         </div>
                         <div className="p-6 space-y-6">
                             <div>
                                 <label className="block text-sm font-bold text-gray-900 mb-1">
-                                    Appointment Outcome / Notes (Optional)
+                                    Appointment Outcome / Comments (Optional)
                                 </label>
                                 <textarea
                                     rows={4}
                                     value={completionNotes}
                                     onChange={(e) => setCompletionNotes(e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-gray-900"
-                                    placeholder="Enter notes about the appointment outcome..."
+                                    placeholder="Enter notes, comments, or details about the appointment outcome..."
                                 />
                             </div>
 
                             {/* Documents Section */}
                             <div>
                                 <div className="flex items-center justify-between mb-3">
-                                    <label className="block text-sm font-bold text-gray-900 mb-1">
-                                        Upload Documents (Optional)
-                                    </label>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-900 mb-1">
+                                            Upload Documents (Optional)
+                                        </label>
+                                        <p className="text-xs text-gray-600">Attach consultation documents, medical reports, or other files related to this appointment</p>
+                                    </div>
                                     <button
                                         type="button"
                                         onClick={() => {
@@ -1065,7 +1069,7 @@ export default function Appointments() {
                                                             }}
                                                             required
                                                             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                                                            placeholder="e.g., Medical Report"
+                                                            placeholder="e.g., Consultation Report, Medical Summary"
                                                         />
                                                     </div>
                                                     <div>
@@ -1083,8 +1087,10 @@ export default function Appointments() {
                                                             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                                                         >
                                                             <option value="appointment">Appointment</option>
+                                                            <option value="consultation">Consultation</option>
                                                             <option value="medical">Medical</option>
                                                             <option value="insurance">Insurance</option>
+                                                            <option value="legal">Legal</option>
                                                             <option value="other">Other</option>
                                                         </select>
                                                     </div>
