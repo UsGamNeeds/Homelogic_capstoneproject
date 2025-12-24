@@ -491,6 +491,8 @@ function MedicationTimeBadges({ medication }) {
                             return 'bg-red-500 text-white';
                         case 'refused':
                             return 'bg-yellow-500 text-white';
+                        case 'pharmacy_administration_confirm':
+                            return 'bg-purple-500 text-white';
                         default:
                             return 'bg-green-100 text-[var(--theme-primary)]';
                     }
@@ -517,6 +519,8 @@ function MedicationTimeBadges({ medication }) {
                             return 'Missed';
                         case 'refused':
                             return 'Refused';
+                        case 'pharmacy_administration_confirm':
+                            return 'Pharmacy Confirm';
                         default:
                             return '';
                     }
@@ -840,6 +844,7 @@ function QuickAdminister({ medication, onSuccess }) {
                         { value: 'completed', label: 'Completed' },
                         { value: 'missed', label: 'Missed' },
                         { value: 'refused', label: 'Refused' },
+                        { value: 'pharmacy_administration_confirm', label: 'Pharmacy Administration Confirm' },
                     ]}
                     className="w-32"
                 />

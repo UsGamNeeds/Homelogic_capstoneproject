@@ -183,7 +183,7 @@ class MedicationAdministrationController extends BaseApiController
                 $fail('The ' . $attribute . ' is not a valid date.');
             }
         }],
-        'status' => 'required|in:completed,missed,refused,hospital_admission',
+        'status' => 'required|in:completed,missed,refused,hospital_admission,pharmacy_administration_confirm',
         'dosage_given' => 'nullable|string|max:255',
         'notes' => 'nullable|string',
         'document' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:5120',

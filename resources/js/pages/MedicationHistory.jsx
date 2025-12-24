@@ -12,6 +12,7 @@ const statusOptions = [
     { value: 'missed', label: 'Missed' },
     { value: 'refused', label: 'Refused' },
     { value: 'hospital_admission', label: 'Hospital Admission' },
+    { value: 'pharmacy_administration_confirm', label: 'Pharmacy Administration Confirm' },
 ];
 
 const statusStyles = {
@@ -19,6 +20,7 @@ const statusStyles = {
     missed: 'bg-red-100 text-red-800',
     refused: 'bg-yellow-100 text-yellow-800',
     hospital_admission: 'bg-blue-100 text-blue-800',
+    pharmacy_administration_confirm: 'bg-purple-100 text-purple-800',
 };
 
 export default function MedicationHistory() {
@@ -288,6 +290,8 @@ export default function MedicationHistory() {
                                                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClass}`}>
                                                         {administration.status === 'hospital_admission'
                                                             ? 'Hospital Admission'
+                                                            : administration.status === 'pharmacy_administration_confirm'
+                                                            ? 'Pharmacy Administration Confirm'
                                                             : administration.status?.charAt(0).toUpperCase() + administration.status?.slice(1)}
                                                     </span>
                                                     {isLateAdministration && (

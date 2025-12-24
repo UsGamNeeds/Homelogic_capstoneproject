@@ -46,7 +46,6 @@ use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\ReminderEventController;
 use App\Http\Controllers\Api\EmailNotificationConfigController;
 use App\Http\Controllers\Api\EmailTemplateController;
-use App\Http\Controllers\Api\BehaviorDataController;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Session\Middleware\StartSession;
@@ -206,14 +205,6 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
     Route::post('/users/{id}', [UserController::class, 'update'])->middleware('auth:sanctum');
     Route::get('/users/{id}/stats', [UserController::class, 'stats'])->middleware('auth:sanctum');
     Route::apiResource('users', UserController::class)->middleware('auth:sanctum');
-
-    // Chart Data Definitions
-    Route::prefix('chart-data-definitions')->middleware('auth:sanctum')->group(function () {
-        Route::get('/', [BehaviorDataController::class, 'index']);
-        Route::post('/', [BehaviorDataController::class, 'store']);
-        Route::post('/bulk', [BehaviorDataController::class, 'bulkUpdate']);
-        Route::delete('/{behaviorDefinition}', [BehaviorDataController::class, 'destroy']);
-    });
 
     // Staff Email Preferences
     Route::prefix('staff-email-preferences')->middleware('auth:sanctum')->group(function () {
@@ -376,14 +367,7 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
         Route::get('/backups', [DatabaseManagementController::class, 'recentBackups']);                                                                         
         Route::get('/backup/{filename}', [DatabaseManagementController::class, 'downloadBackup']);                                                                         
         Route::post('/restore', [DatabaseManagementController::class, 'restoreBackup']);                                                                        
-        Route::post('/refresh', [DatabaseManagementController::class, 'refreshData']);
-    });
-
-    // Resident Chart Routes
-    Route::prefix('resident-charts')->group(function () {
-        Route::get('/{resident}', [ResidentChartController::class, 'show']);
-        Route::post('/', [ResidentChartController::class, 'store']);
-        Route::get('/{resident}/history', [ResidentChartController::class, 'history']);
+        Route::post('/refresh', [DatabaseManagementController::class, 'refreshData']);                                                                          
     });
 });
 
