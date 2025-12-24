@@ -58,9 +58,9 @@ export default function Appointments() {
         status: 'scheduled',
     });
     
-    // Auto-fill branch for admin users on mount
+    // Auto-fill branch for branch admin users on mount (not facility administrators)
     React.useEffect(() => {
-        const isBranchAdmin = (currentUser?.role === 'administrator' || currentUser?.role === 'admin') && currentUser?.role !== 'super_admin';
+        const isBranchAdmin = currentUser?.role === 'admin';
         if (isBranchAdmin && currentUser?.assigned_branch_id && !formData.branch_id) {
             setFormData(prev => ({ ...prev, branch_id: currentUser.assigned_branch_id }));
         }
@@ -167,7 +167,8 @@ export default function Appointments() {
     // Permission checks
     const isSuperAdmin = currentUser?.role === 'super_admin';
     const isAdmin = currentUser?.role === 'administrator' || currentUser?.role === 'admin';
-    const isBranchAdmin = (currentUser?.role === 'administrator' || currentUser?.role === 'admin') && currentUser?.role !== 'super_admin';
+    const isFacilityAdmin = currentUser?.role === 'administrator';
+    const isBranchAdmin = currentUser?.role === 'admin';
     const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
     // Caregivers can create appointments (similar to incidents)
     const canCreate = isSuperAdmin || isAdmin || isCaregiver || permissions.includes('create_appointments');
@@ -986,6 +987,7 @@ export default function Appointments() {
                     isPreFilled={isPreFilled}
                     appointmentTypes={appointmentTypes}
                     currentUser={currentUser}
+                    isFacilityAdmin={isFacilityAdmin}
                     isBranchAdmin={isBranchAdmin}
                 />
             )}
@@ -996,31 +998,27 @@ export default function Appointments() {
                     <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                         <div className="p-6 border-b">
                             <h3 className="text-xl font-semibold text-gray-900">Complete Appointment</h3>
-                            <p className="text-sm text-gray-600 mt-1">Add appointment details, consultation documents, and comments</p>
                         </div>
                         <div className="p-6 space-y-6">
                             <div>
                                 <label className="block text-sm font-bold text-gray-900 mb-1">
-                                    Appointment Outcome / Comments (Optional)
+                                    Appointment Outcome / Notes (Optional)
                                 </label>
                                 <textarea
                                     rows={4}
                                     value={completionNotes}
                                     onChange={(e) => setCompletionNotes(e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-gray-900"
-                                    placeholder="Enter notes, comments, or details about the appointment outcome..."
+                                    placeholder="Enter notes about the appointment outcome..."
                                 />
                             </div>
 
                             {/* Documents Section */}
                             <div>
                                 <div className="flex items-center justify-between mb-3">
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-900 mb-1">
-                                            Upload Documents (Optional)
-                                        </label>
-                                        <p className="text-xs text-gray-600">Attach consultation documents, medical reports, or other files related to this appointment</p>
-                                    </div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">
+                                        Upload Documents (Optional)
+                                    </label>
                                     <button
                                         type="button"
                                         onClick={() => {
@@ -1069,7 +1067,7 @@ export default function Appointments() {
                                                             }}
                                                             required
                                                             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                                                            placeholder="e.g., Consultation Report, Medical Summary"
+                                                            placeholder="e.g., Medical Report"
                                                         />
                                                     </div>
                                                     <div>
@@ -1087,10 +1085,8 @@ export default function Appointments() {
                                                             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                                                         >
                                                             <option value="appointment">Appointment</option>
-                                                            <option value="consultation">Consultation</option>
                                                             <option value="medical">Medical</option>
                                                             <option value="insurance">Insurance</option>
-                                                            <option value="legal">Legal</option>
                                                             <option value="other">Other</option>
                                                         </select>
                                                     </div>
@@ -1169,7 +1165,7 @@ export default function Appointments() {
     );
 }
 
-function AddAppointmentModal({ branches, residents, formData, setFormData, onClose, onSubmit, isSubmitting, mutation, isPreFilled = false, appointmentTypes = [], currentUser, isBranchAdmin }) {
+function AddAppointmentModal({ branches, residents, formData, setFormData, onClose, onSubmit, isSubmitting, mutation, isPreFilled = false, appointmentTypes = [], currentUser, isFacilityAdmin, isBranchAdmin }) {
     const [errors, setErrors] = React.useState({});
 
     const handleSubmit = async (e) => {

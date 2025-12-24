@@ -67,11 +67,18 @@ export default function GroceryStatus() {
         return roleNormalized === 'caregiver' || (role.includes('care') && role.includes('giver'));
     }, [currentUser]);
     
-    // Check if user is a branch-level admin (not super_admin)
+    // Check if user is a facility administrator (can access all branches in facility)
+    const isFacilityAdmin = React.useMemo(() => {
+        if (!currentUser) return false;
+        const role = currentUser.role?.toLowerCase().trim() || '';
+        return role === 'administrator';
+    }, [currentUser]);
+    
+    // Check if user is a branch-level admin (restricted to assigned branch)
     const isBranchAdmin = React.useMemo(() => {
         if (!currentUser) return false;
         const role = currentUser.role?.toLowerCase().trim() || '';
-        return (role === 'administrator' || role === 'admin') && role !== 'super_admin';
+        return role === 'admin';
     }, [currentUser]);
 
     // Auto-set branch filter for caregivers
@@ -256,6 +263,7 @@ export default function GroceryStatus() {
                     isCaregiver={isCaregiver}
                     caregiverBranchId={currentUser?.assigned_branch_id}
                     currentUser={currentUser}
+                    isFacilityAdmin={isFacilityAdmin}
                     isBranchAdmin={isBranchAdmin}
                     onClose={handleCloseForm}
                     onSaveTemplate={(payload) => createTemplateMutation.mutateAsync(payload)}
@@ -759,7 +767,7 @@ export default function GroceryStatus() {
     );
 }
 
-function GroceryStatusForm({ record, branches, templates = [], isCaregiver, caregiverBranchId, onClose, onSuccess, onSaveTemplate, currentUser, isBranchAdmin }) {
+function GroceryStatusForm({ record, branches, templates = [], isCaregiver, caregiverBranchId, onClose, onSuccess, onSaveTemplate, currentUser, isFacilityAdmin, isBranchAdmin }) {
     // Get current Monday
     const getCurrentMonday = () => {
         const today = new Date();

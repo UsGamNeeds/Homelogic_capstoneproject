@@ -52,11 +52,18 @@ export default function MedicationDeliveries() {
         return roleNormalized === 'caregiver' || (role.includes('care') && role.includes('giver'));
     }, [currentUser]);
     
-    // Check if user is a branch-level admin (not super_admin)
+    // Check if user is a facility administrator (can access all branches in facility)
+    const isFacilityAdmin = React.useMemo(() => {
+        if (!currentUser) return false;
+        const role = currentUser.role?.toLowerCase().trim() || '';
+        return role === 'administrator';
+    }, [currentUser]);
+    
+    // Check if user is a branch-level admin (restricted to assigned branch)
     const isBranchAdmin = React.useMemo(() => {
         if (!currentUser) return false;
         const role = currentUser.role?.toLowerCase().trim() || '';
-        return (role === 'administrator' || role === 'admin') && role !== 'super_admin';
+        return role === 'admin';
     }, [currentUser]);
 
     // Fetch branches
@@ -210,6 +217,7 @@ export default function MedicationDeliveries() {
                     isCaregiver={isCaregiver}
                     caregiverBranchId={currentUser?.assigned_branch_id}
                     currentUser={currentUser}
+                    isFacilityAdmin={isFacilityAdmin}
                     isBranchAdmin={isBranchAdmin}
                     onClose={handleCloseForm}
                     onSuccess={() => {
@@ -235,6 +243,7 @@ export default function MedicationDeliveries() {
                     isCaregiver={isCaregiver}
                     caregiverBranchId={currentUser?.assigned_branch_id}
                     currentUser={currentUser}
+                    isFacilityAdmin={isFacilityAdmin}
                     isBranchAdmin={isBranchAdmin}
                     formMode={formMode}
                     onClose={handleCloseForm}
@@ -545,7 +554,7 @@ export default function MedicationDeliveries() {
     );
 }
 
-function MedicationDeliveryForm({ record, branches, residents, medications, pharmacySuppliers = [], pharmacyTemplates: initialPharmacyTemplates = [], onSaveTemplate, isCaregiver, caregiverBranchId, formMode = 'full', onClose, onSuccess, currentUser, isBranchAdmin }) {
+function MedicationDeliveryForm({ record, branches, residents, medications, pharmacySuppliers = [], pharmacyTemplates: initialPharmacyTemplates = [], onSaveTemplate, isCaregiver, caregiverBranchId, formMode = 'full', onClose, onSuccess, currentUser, isFacilityAdmin, isBranchAdmin }) {
     const [formData, setFormData] = useState({
         branch_id: record?.branch_id || caregiverBranchId || (isBranchAdmin && currentUser?.assigned_branch_id ? currentUser.assigned_branch_id : ''),
         delivery_type: record?.delivery_type || (formMode === 'quick' ? 'batch' : 'individual'),
@@ -934,7 +943,7 @@ function MedicationDeliveryForm({ record, branches, residents, medications, phar
     );
 }
 
-function BulkMedicationDeliveryForm({ branches, residents, medications, pharmacySuppliers = [], pharmacyTemplates = [], onSaveTemplate, isCaregiver, caregiverBranchId, onClose, onSuccess, currentUser, isBranchAdmin }) {
+function BulkMedicationDeliveryForm({ branches, residents, medications, pharmacySuppliers = [], pharmacyTemplates = [], onSaveTemplate, isCaregiver, caregiverBranchId, onClose, onSuccess, currentUser, isFacilityAdmin, isBranchAdmin }) {
     const [commonFields, setCommonFields] = useState({
         branch_id: caregiverBranchId || (isBranchAdmin && currentUser?.assigned_branch_id ? currentUser.assigned_branch_id : ''),
         pharmacy_name: '',

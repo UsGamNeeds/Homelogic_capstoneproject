@@ -45,6 +45,9 @@ export default function AppointmentsDashboard() {
         description: '',
         status: 'scheduled',
     });
+    const [completingAppointment, setCompletingAppointment] = useState(null);
+    const [completionNotes, setCompletionNotes] = useState('');
+    const [completionDocuments, setCompletionDocuments] = useState([]);
 
     // Fetch current user
     const { data: currentUser } = useQuery({
@@ -62,10 +65,18 @@ export default function AppointmentsDashboard() {
         return role === 'administrator' || role === 'admin' || role === 'super_admin';
     }, [currentUser]);
 
+    // Check if user is a facility administrator (can access all branches in facility)
+    const isFacilityAdmin = React.useMemo(() => {
+        if (!currentUser) return false;
+        const role = currentUser.role?.toLowerCase().trim() || '';
+        return role === 'administrator';
+    }, [currentUser]);
+    
+    // Check if user is a branch-level admin (restricted to assigned branch)
     const isBranchAdmin = React.useMemo(() => {
         if (!currentUser) return false;
         const role = currentUser.role?.toLowerCase().trim() || '';
-        return (role === 'administrator' || role === 'admin') && role !== 'super_admin';
+        return role === 'admin';
     }, [currentUser]);
 
     // Fetch branches
@@ -181,12 +192,27 @@ export default function AppointmentsDashboard() {
 
     // Mark appointment as complete mutation
     const completeMutation = useMutation({
-        mutationFn: async ({ id, notes }) => {
+        mutationFn: async ({ id, notes, documents }) => {
             const formData = new FormData();
             formData.append('status', 'completed');
-            if (notes) {
+            if (notes !== null) {
                 formData.append('notes', notes);
             }
+
+            // Add documents if any
+            if (documents && documents.length > 0) {
+                documents.forEach((doc, index) => {
+                    if (doc.file) {
+                        formData.append(`documents[${index}][file]`, doc.file);
+                        formData.append(`documents[${index}][document_name]`, doc.document_name);
+                        formData.append(`documents[${index}][document_type]`, doc.document_type || 'appointment');
+                        if (doc.notes) {
+                            formData.append(`documents[${index}][notes]`, doc.notes);
+                        }
+                    }
+                });
+            }
+
             return await api.patch(`/appointments/${id}/status`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
@@ -196,13 +222,14 @@ export default function AppointmentsDashboard() {
         onSuccess: () => {
             queryClient.invalidateQueries(['appointments-dashboard']);
             queryClient.invalidateQueries(['appointments-statistics']);
+            setCompletingAppointment(null);
+            setCompletionNotes('');
+            setCompletionDocuments([]);
         },
     });
 
-    const handleQuickComplete = async (appointmentId) => {
-        if (window.confirm('Mark this appointment as completed?')) {
-            await completeMutation.mutateAsync({ id: appointmentId });
-        }
+    const handleQuickComplete = (appointmentId) => {
+        setCompletingAppointment(appointmentId);
     };
 
     const appointments = appointmentsData?.data || [];
@@ -297,7 +324,7 @@ export default function AppointmentsDashboard() {
                     </Link>
                     <button
                         onClick={() => {
-                            // Auto-fill branch for admin users
+                            // Auto-fill branch for branch admin users (not facility administrators)
                             if (isBranchAdmin && currentUser?.assigned_branch_id) {
                                 setFormData(prev => ({ ...prev, branch_id: currentUser.assigned_branch_id }));
                             }
@@ -682,6 +709,187 @@ export default function AppointmentsDashboard() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Completion Notes Modal */}
+            {completingAppointment && (
+                <div className="fixed inset-0 backdrop-blur-md bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+                    <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="p-6 border-b">
+                            <h3 className="text-xl font-semibold text-gray-900">Complete Appointment</h3>
+                            <p className="text-sm text-gray-600 mt-1">Add appointment details, consultation documents, and comments</p>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-900 mb-1">
+                                    Appointment Outcome / Comments (Optional)
+                                </label>
+                                <textarea
+                                    rows={4}
+                                    value={completionNotes}
+                                    onChange={(e) => setCompletionNotes(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-gray-900"
+                                    placeholder="Enter notes, comments, or details about the appointment outcome..."
+                                />
+                            </div>
+
+                            {/* Documents Section */}
+                            <div>
+                                <div className="flex items-center justify-between mb-3">
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-900 mb-1">
+                                            Upload Documents (Optional)
+                                        </label>
+                                        <p className="text-xs text-gray-600">Attach consultation documents, medical reports, or other files related to this appointment</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setCompletionDocuments([...completionDocuments, {
+                                                document_name: '',
+                                                document_type: 'appointment',
+                                                file: null,
+                                                notes: '',
+                                            }]);
+                                        }}
+                                        className="text-sm text-[var(--theme-primary)] hover:text-[var(--theme-primary-hover)] font-medium"
+                                    >
+                                        + Add Document
+                                    </button>
+                                </div>
+                                {completionDocuments.length === 0 ? (
+                                    <p className="text-sm text-gray-500 italic">No documents added</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {completionDocuments.map((doc, index) => (
+                                            <div key={index} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                                                <div className="flex items-start justify-between">
+                                                    <h4 className="text-sm font-medium text-gray-900">Document {index + 1}</h4>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setCompletionDocuments(completionDocuments.filter((_, i) => i !== index));
+                                                        }}
+                                                        className="text-gray-400 hover:text-red-600"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-gray-900 mb-1">
+                                                            Document Name *
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={doc.document_name}
+                                                            onChange={(e) => {
+                                                                const updated = [...completionDocuments];
+                                                                updated[index].document_name = e.target.value;
+                                                                setCompletionDocuments(updated);
+                                                            }}
+                                                            required
+                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                                            placeholder="e.g., Consultation Report, Medical Summary"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-gray-900 mb-1">
+                                                            Type *
+                                                        </label>
+                                                        <select
+                                                            value={doc.document_type}
+                                                            onChange={(e) => {
+                                                                const updated = [...completionDocuments];
+                                                                updated[index].document_type = e.target.value;
+                                                                setCompletionDocuments(updated);
+                                                            }}
+                                                            required
+                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                                        >
+                                                            <option value="appointment">Appointment</option>
+                                                            <option value="consultation">Consultation</option>
+                                                            <option value="medical">Medical</option>
+                                                            <option value="insurance">Insurance</option>
+                                                            <option value="legal">Legal</option>
+                                                            <option value="other">Other</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="col-span-2">
+                                                        <label className="block text-xs font-bold text-gray-900 mb-1">
+                                                            File *
+                                                        </label>
+                                                        <input
+                                                            type="file"
+                                                            onChange={(e) => {
+                                                                const updated = [...completionDocuments];
+                                                                updated[index].file = e.target.files[0];
+                                                                setCompletionDocuments(updated);
+                                                            }}
+                                                            accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx"
+                                                            required
+                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                                        />
+                                                        <p className="text-xs text-gray-500 mt-1">Max size: 10MB</p>
+                                                    </div>
+                                                    <div className="col-span-2">
+                                                        <label className="block text-xs font-bold text-gray-900 mb-1">
+                                                            Notes
+                                                        </label>
+                                                        <textarea
+                                                            value={doc.notes}
+                                                            onChange={(e) => {
+                                                                const updated = [...completionDocuments];
+                                                                updated[index].notes = e.target.value;
+                                                                setCompletionDocuments(updated);
+                                                            }}
+                                                            rows={2}
+                                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                                            placeholder="Additional notes..."
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="p-6 border-t flex items-center justify-end space-x-3">
+                            <button
+                                onClick={() => {
+                                    setCompletingAppointment(null);
+                                    setCompletionNotes('');
+                                    setCompletionDocuments([]);
+                                }}
+                                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    // Validate documents
+                                    const validDocuments = completionDocuments.filter(doc =>
+                                        doc.document_name && doc.document_type && doc.file
+                                    );
+                                    if (completionDocuments.length > 0 && validDocuments.length !== completionDocuments.length) {
+                                        alert('Please fill in all required fields for documents');
+                                        return;
+                                    }
+                                    completeMutation.mutate({ 
+                                        id: completingAppointment, 
+                                        notes: completionNotes || null, 
+                                        documents: validDocuments 
+                                    });
+                                }}
+                                disabled={completeMutation.isPending}
+                                className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-primary-hover)] transition-all disabled:opacity-50"
+                            >
+                                {completeMutation.isPending ? 'Completing...' : 'Mark as Completed'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

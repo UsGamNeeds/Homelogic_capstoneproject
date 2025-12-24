@@ -211,7 +211,7 @@ class AppointmentController extends BaseApiController
             'notes' => 'nullable|string',
             'documents' => 'nullable|array',
             'documents.*.document_name' => 'required_with:documents|string|max:255',
-            'documents.*.document_type' => 'required_with:documents|string|in:insurance,medical,legal,admission,appointment,consultation,other',
+            'documents.*.document_type' => 'required_with:documents|string|in:insurance,medical,legal,admission,appointment,other',
             'documents.*.file' => 'required_with:documents|file|max:10240|mimes:pdf,jpeg,jpg,png,gif,doc,docx',
             'documents.*.notes' => 'nullable|string',
         ]);

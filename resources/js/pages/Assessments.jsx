@@ -46,11 +46,18 @@ export default function Assessments() {
         return role === 'administrator' || role === 'admin' || role === 'super_admin';
     }, [currentUser]);
     
-    // Check if user is a branch-level admin (not super_admin)
+    // Check if user is a facility administrator (can access all branches in facility)
+    const isFacilityAdmin = useMemo(() => {
+        if (!currentUser) return false;
+        const role = currentUser.role?.toLowerCase().trim() || '';
+        return role === 'administrator';
+    }, [currentUser]);
+    
+    // Check if user is a branch-level admin (restricted to assigned branch)
     const isBranchAdmin = useMemo(() => {
         if (!currentUser) return false;
         const role = currentUser.role?.toLowerCase().trim() || '';
-        return (role === 'administrator' || role === 'admin') && role !== 'super_admin';
+        return role === 'admin';
     }, [currentUser]);
     
     // Permission checks
@@ -285,6 +292,7 @@ export default function Assessments() {
                     residents={residentsData?.data || []}
                     branches={branchesData?.data || []}
                     currentUser={currentUser}
+                    isFacilityAdmin={isFacilityAdmin}
                     isBranchAdmin={isBranchAdmin}
                     onClose={() => {
                         setShowForm(false);
@@ -539,7 +547,7 @@ export default function Assessments() {
 }
 
 // Assessment Form Component
-function AssessmentForm({ record, residents, branches, onClose, onSuccess, currentUser, isBranchAdmin }) {
+function AssessmentForm({ record, residents, branches, onClose, onSuccess, currentUser, isFacilityAdmin, isBranchAdmin }) {
     const [formData, setFormData] = useState({
         resident_id: record?.resident_id || '',
         branch_id: record?.branch_id || (isBranchAdmin && currentUser?.assigned_branch_id ? currentUser.assigned_branch_id : ''),

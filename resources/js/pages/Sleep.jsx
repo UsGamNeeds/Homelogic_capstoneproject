@@ -32,11 +32,18 @@ export default function Sleep() {
         staleTime: 5 * 60 * 1000,
     });
 
-    // Check if user is a branch-level admin (not super_admin)
+    // Check if user is a facility administrator (can access all branches in facility)
+    const isFacilityAdmin = React.useMemo(() => {
+        if (!currentUser) return false;
+        const role = currentUser.role?.toLowerCase().trim() || '';
+        return role === 'administrator';
+    }, [currentUser]);
+    
+    // Check if user is a branch-level admin (restricted to assigned branch)
     const isBranchAdmin = React.useMemo(() => {
         if (!currentUser) return false;
         const role = currentUser.role?.toLowerCase().trim() || '';
-        return (role === 'administrator' || role === 'admin') && role !== 'super_admin';
+        return role === 'admin';
     }, [currentUser]);
     
     const isCaregiver = React.useMemo(() => {
@@ -365,6 +372,7 @@ export default function Sleep() {
                     caregiverBranchId={caregiverBranchId}
                     caregiverBranchName={caregiverBranchName}
                     currentUser={currentUser}
+                    isFacilityAdmin={isFacilityAdmin}
                     isBranchAdmin={isBranchAdmin}
                     onClose={() => {
                         setShowForm(false);
@@ -597,7 +605,7 @@ export default function Sleep() {
 }
 
 // Sleep Record Form Component
-function SleepRecordForm({ record, residents, isCaregiver, caregiverBranchId, caregiverBranchName, onClose, onSuccess, currentUser, isBranchAdmin }) {
+function SleepRecordForm({ record, residents, isCaregiver, caregiverBranchId, caregiverBranchName, onClose, onSuccess, currentUser, isFacilityAdmin, isBranchAdmin }) {
     const [formData, setFormData] = useState({
         resident_id: record?.resident_id || '',
         branch_id: record?.branch_id || caregiverBranchId || (isBranchAdmin && currentUser?.assigned_branch_id ? currentUser.assigned_branch_id : ''),

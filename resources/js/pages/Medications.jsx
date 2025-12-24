@@ -221,11 +221,18 @@ export default function Medications() {
         });
     }, [currentUser]);
     
-    // Check if user is a branch-level admin (not super_admin)
+    // Check if user is a facility administrator (can access all branches in facility)
+    const isFacilityAdmin = React.useMemo(() => {
+        if (!currentUser) return false;
+        const role = currentUser.role?.toLowerCase().trim() || '';
+        return role === 'administrator';
+    }, [currentUser]);
+    
+    // Check if user is a branch-level admin (restricted to assigned branch)
     const isBranchAdmin = React.useMemo(() => {
         if (!currentUser) return false;
         const role = currentUser.role?.toLowerCase().trim() || '';
-        return (role === 'administrator' || role === 'admin') && role !== 'super_admin';
+        return role === 'admin';
     }, [currentUser]);
 
     // Redirect caregivers to the residents page
@@ -609,6 +616,7 @@ export default function Medications() {
                     branches={branchesData?.data || []}
                     currentUser={currentUser}
                     isCaregiver={isCaregiver}
+                    isFacilityAdmin={isFacilityAdmin}
                     isBranchAdmin={isBranchAdmin}
                     onClose={() => {
                         setShowForm(false);
@@ -1076,17 +1084,19 @@ function MedicationAdministrationForm({ medication, onClose, onSuccess }) {
 }
 
 // Medication Create/Edit Form Component
-function MedicationForm({ record, residents, branches, currentUser, isCaregiver, isBranchAdmin, onClose, onSuccess }) {
-    // Filter branches and residents for caregivers and admin users
+function MedicationForm({ record, residents, branches, currentUser, isCaregiver, isFacilityAdmin, isBranchAdmin, onClose, onSuccess }) {
+    // Filter branches and residents for caregivers and branch admin users (facility admins see all)
     const filteredBranches = React.useMemo(() => {
+        if (isFacilityAdmin) return branches; // Facility admins see all branches
         if ((!isCaregiver && !isBranchAdmin) || !currentUser?.assigned_branch_id) return branches;
         return branches.filter(b => b.id === currentUser.assigned_branch_id);
-    }, [branches, isCaregiver, isBranchAdmin, currentUser]);
+    }, [branches, isCaregiver, isFacilityAdmin, isBranchAdmin, currentUser]);
 
     const filteredResidents = React.useMemo(() => {
+        if (isFacilityAdmin) return residents; // Facility admins see all residents
         if ((!isCaregiver && !isBranchAdmin) || !currentUser?.assigned_branch_id) return residents;
         return residents.filter(r => r.branch_id === currentUser.assigned_branch_id);
-    }, [residents, isCaregiver, isBranchAdmin, currentUser]);
+    }, [residents, isCaregiver, isFacilityAdmin, isBranchAdmin, currentUser]);
 
     // Helper to convert date to YYYY-MM-DD format for date inputs
     const formatDateForInput = (dateValue) => {
@@ -1120,7 +1130,7 @@ function MedicationForm({ record, residents, branches, currentUser, isCaregiver,
         time_4: record?.time_4 || '',
     });
 
-    // Auto-select branch for caregivers and admin users on mount
+    // Auto-select branch for caregivers and branch admin users on mount (not facility admins)
     React.useEffect(() => {
         if ((isCaregiver || isBranchAdmin) && currentUser?.assigned_branch_id && !record && !formData.branch_id) {
             setFormData(prev => ({ ...prev, branch_id: currentUser.assigned_branch_id }));
