@@ -73,9 +73,26 @@ export default function ResidentDocuments({ residentId }) {
         }
     };
 
-    const handleDownload = (document) => {
-        const url = `/api/v1/resident-documents/${document.id}/download`;
-        window.open(url, '_blank');
+    const handleDownload = async (doc) => {
+        try {
+            const response = await api.get(
+                `/resident-documents/${doc.id}/download`,
+                { responseType: 'blob' }
+            );
+            
+            // Create a blob URL and trigger download
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = window.document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', doc.file_name || doc.document_name || 'document');
+            window.document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error downloading document:', error);
+            alert(error.response?.data?.message || 'Failed to download document. Please try again.');
+        }
     };
 
     const documents = data?.data || [];
@@ -241,50 +258,50 @@ export default function ResidentDocuments({ residentId }) {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {documents.map((document) => (
-                                        <tr key={document.id} className="hover:bg-gray-50">
+                                    {documents.map((doc) => (
+                                        <tr key={doc.id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4">
                                                 <div className="text-sm font-medium text-gray-900 truncate">
-                                                    {document.document_name}
+                                                    {doc.document_name}
                                                 </div>
-                                                {document.notes && (
+                                                {doc.notes && (
                                                     <div className="text-xs text-gray-500 mt-1 truncate">
-                                                        {document.notes}
+                                                        {doc.notes}
                                                     </div>
                                                 )}
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${documentTypeColors[document.document_type] || documentTypeColors.other}`}>
-                                                    {documentTypeOptions[document.document_type] || 'Other'}
+                                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${documentTypeColors[doc.document_type] || documentTypeColors.other}`}>
+                                                    {documentTypeOptions[doc.document_type] || 'Other'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="text-sm text-gray-900 truncate">
-                                                    {document.file_name || 'N/A'}
+                                                    {doc.file_name || 'N/A'}
                                                 </div>
-                                                {document.file_size && (
+                                                {doc.file_size && (
                                                     <div className="text-xs text-gray-500">
-                                                        {(document.file_size / 1024).toFixed(2)} KB
+                                                        {(doc.file_size / 1024).toFixed(2)} KB
                                                     </div>
                                                 )}
                                             </td>
                                             <td className="px-6 py-4">
-                                                {document.appointment ? (
+                                                {doc.appointment ? (
                                                     <div className="text-sm text-gray-900">
-                                                        {new Date(document.appointment.appointment_date).toLocaleDateString()}
+                                                        {new Date(doc.appointment.appointment_date).toLocaleDateString()}
                                                     </div>
                                                 ) : (
                                                     <span className="text-sm text-gray-400">—</span>
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-500">
-                                                {document.created_at ? new Date(document.created_at).toLocaleDateString() : 'N/A'}
+                                                {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : 'N/A'}
                                             </td>
                                             <td className="px-6 py-4 text-right text-sm font-medium">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
                                                         type="button"
-                                                        onClick={() => handleDownload(document)}
+                                                        onClick={() => handleDownload(doc)}
                                                         className="p-2.5 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors shadow-sm hover:shadow-md"
                                                         title="Download"
                                                     >
@@ -293,11 +310,11 @@ export default function ResidentDocuments({ residentId }) {
                                                     <button
                                                         type="button"
                                                         onClick={() => {
-                                                            setEditing(document);
+                                                            setEditing(doc);
                                                             setShowForm(true);
                                                             // Scroll to form
                                                             setTimeout(() => {
-                                                                const formElement = document.querySelector('[data-document-form]');
+                                                                const formElement = window.document.querySelector('[data-document-form]');
                                                                 if (formElement) {
                                                                     formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                                                 }
@@ -310,7 +327,7 @@ export default function ResidentDocuments({ residentId }) {
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        onClick={() => handleDelete(document.id)}
+                                                        onClick={() => handleDelete(doc.id)}
                                                         className="p-2.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors shadow-sm hover:shadow-md"
                                                         title="Delete"
                                                     >

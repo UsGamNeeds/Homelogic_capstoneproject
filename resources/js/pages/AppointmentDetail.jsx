@@ -73,19 +73,19 @@ export default function AppointmentDetail() {
         );
     };
 
-    const handleDownloadDocument = async (document) => {
+    const handleDownloadDocument = async (doc) => {
         try {
             const response = await api.get(
-                `/resident-documents/${document.id}/download`,
+                `/resident-documents/${doc.id}/download`,
                 { responseType: 'blob' }
             );
             
             // Create a blob URL and trigger download
             const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
+            const link = window.document.createElement('a');
             link.href = url;
-            link.setAttribute('download', document.file_name || document.document_name || 'document');
-            document.body.appendChild(link);
+            link.setAttribute('download', doc.file_name || doc.document_name || 'document');
+            window.document.body.appendChild(link);
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
@@ -95,9 +95,9 @@ export default function AppointmentDetail() {
         }
     };
 
-    const handleViewDocument = (document) => {
-        if (document.file_path) {
-            const url = `/storage/${document.file_path}`;
+    const handleViewDocument = (doc) => {
+        if (doc.file_path) {
+            const url = `/storage/${doc.file_path}`;
             window.open(url, '_blank');
         }
     };
