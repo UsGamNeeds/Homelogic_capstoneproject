@@ -15,5 +15,5 @@ Schedule::command('notifications:generate')->hourly();
 Schedule::command('reminders:generate')->everyThirtyMinutes();
 Schedule::command('reminders:dispatch')->everyFiveMinutes();
 
-// Medications
-Schedule::command('medications:mark-missed')->hourly();
+// Medications - Mark missed medications daily at 11:55 PM (end of day)
+Schedule::command('medications:mark-missed')->dailyAt('23:55');
