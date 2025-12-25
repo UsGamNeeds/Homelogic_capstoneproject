@@ -358,38 +358,33 @@ export default function Reports() {
 
                 {/* Featured Analytics Dashboard */}
                 {reportCategories[0] && (
-                    <div className="mb-8">
+                    <div className="mb-6">
                         <div
                             onClick={() => navigate(reportCategories[0].link)}
-                            className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer border-2 border-[var(--theme-primary)]/20 hover:border-[var(--theme-primary)]"
+                            className="group relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer border border-[var(--theme-primary)]/20 hover:border-[var(--theme-primary)]"
                         >
-                            <div className={`absolute top-0 left-0 right-0 h-2 bg-gradient-to-r ${reportCategories[0].gradient}`}></div>
-                            <div className="p-8">
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <div className={`${reportCategories[0].iconBg} p-4 rounded-xl group-hover:scale-110 transition-transform duration-300`}>
-                                                <TrendingUp className={`w-8 h-8 ${reportCategories[0].iconColor}`} />
-                                            </div>
-                                            <div>
-                                                <h2 className="text-2xl font-bold text-gray-900">{reportCategories[0].title}</h2>
-                                                <p className="text-gray-600 mt-1">{reportCategories[0].description}</p>
-                                            </div>
+                            <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${reportCategories[0].gradient}`}></div>
+                            <div className="p-5">
+                                <div className="flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                        <div className={`${reportCategories[0].iconBg} p-3 rounded-lg flex-shrink-0`}>
+                                            <TrendingUp className={`w-6 h-6 ${reportCategories[0].iconColor}`} />
                                         </div>
-                                        <p className="text-sm text-gray-500 mt-4">
-                                            Get a unified view of all your facility metrics, trends, and analytics in one comprehensive dashboard.
-                                        </p>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                navigate(reportCategories[0].link);
-                                            }}
-                                            className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-xl font-semibold hover:bg-[var(--theme-primary-hover)] transition-all duration-300 shadow-md hover:shadow-lg"
-                                        >
-                                            <span>View Dashboard</span>
-                                            <ArrowRight className="w-5 h-5" />
-                                        </button>
+                                        <div className="flex-1 min-w-0">
+                                            <h2 className="text-lg font-bold text-gray-900">{reportCategories[0].title}</h2>
+                                            <p className="text-sm text-gray-600 mt-0.5">{reportCategories[0].description}</p>
+                                        </div>
                                     </div>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(reportCategories[0].link);
+                                        }}
+                                        className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg text-sm font-semibold hover:bg-[var(--theme-primary-hover)] transition-all shadow-sm hover:shadow-md"
+                                    >
+                                        <span>View Dashboard</span>
+                                        <ArrowRight className="w-4 h-4" />
+                                    </button>
                                 </div>
                             </div>
                         </div>
