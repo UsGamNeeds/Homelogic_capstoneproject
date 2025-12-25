@@ -10,7 +10,13 @@ class ErrorBoundary extends React.Component {
 
     static getDerivedStateFromError(error) {
         // For module loading errors, delay showing the error to allow retries to succeed
-        const isModuleLoadError = error?.message?.includes('Failed to fetch dynamically imported module');
+        const isModuleLoadError = 
+            error?.message?.includes('Failed to fetch dynamically imported module') ||
+            error?.message?.includes('error loading dynamically imported module') ||
+            error?.message?.includes('Loading chunk') ||
+            error?.name === 'ChunkLoadError' ||
+            (error?.name === 'TypeError' && error?.message?.includes('dynamically imported'));
+        
         return { 
             hasError: true, 
             error,
@@ -22,13 +28,35 @@ class ErrorBoundary extends React.Component {
         console.error('React Error:', error, errorInfo);
         this.setState({ errorInfo });
         
-        // If it's a module loading error, wait 2 seconds before showing error
-        // This gives the retry logic time to succeed
-        const isModuleLoadError = error?.message?.includes('Failed to fetch dynamically imported module');
+        // If it's a module loading error, wait longer before showing error
+        // This gives the retry logic more time to succeed
+        const isModuleLoadError = 
+            error?.message?.includes('Failed to fetch dynamically imported module') ||
+            error?.message?.includes('error loading dynamically imported module') ||
+            error?.message?.includes('Loading chunk') ||
+            error?.name === 'ChunkLoadError' ||
+            (error?.name === 'TypeError' && error?.message?.includes('dynamically imported'));
+        
         if (isModuleLoadError) {
+            // Wait 5 seconds to allow retries to complete
             this.errorTimeout = setTimeout(() => {
-                this.setState({ showError: true });
-            }, 2000);
+                // Check if we've already reloaded
+                const hasReloaded = sessionStorage.getItem('module_reload_attempted');
+                if (hasReloaded) {
+                    // If reload already attempted, show error after delay
+                    this.setState({ showError: true });
+                } else {
+                    // Try one more reload before showing error
+                    console.warn('Module still failing, attempting final reload...');
+                    sessionStorage.setItem('module_reload_attempted', 'true');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                }
+            }, 5000);
+        } else {
+            // For non-module errors, show immediately
+            this.setState({ showError: true });
         }
     }
 

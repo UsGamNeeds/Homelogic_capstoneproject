@@ -17,7 +17,7 @@ const PageLoader = () => (
 
 // Utility function to retry failed dynamic imports
 // This fixes the "Failed to fetch dynamically imported module" error in production
-function retryLazyImport(importFn, retries = 5, delay = 200) {
+function retryLazyImport(importFn, retries = 5, delay = 300) {
     return new Promise((resolve, reject) => {
         // Check if we've already tried reloading (prevent infinite loops)
         const reloadKey = 'module_reload_attempted';
@@ -33,24 +33,44 @@ function retryLazyImport(importFn, retries = 5, delay = 200) {
                     resolve(module);
                 })
                 .catch((error) => {
-                    if (remainingRetries > 0) {
-                        // Faster retries with shorter delays
-                        console.warn(`Failed to load module, retrying... (${retries - remainingRetries + 1}/${retries})`, error);
-                        // Linear backoff instead of exponential for faster recovery
-                        const backoffDelay = delay * (retries - remainingRetries);
+                    // Check for various error types that indicate module load failure
+                    const isModuleLoadError = 
+                        error?.message?.includes('Failed to fetch dynamically imported module') ||
+                        error?.message?.includes('error loading dynamically imported module') ||
+                        error?.message?.includes('Loading chunk') ||
+                        error?.name === 'ChunkLoadError' ||
+                        error?.name === 'TypeError';
+                    
+                    if (remainingRetries > 0 && isModuleLoadError) {
+                        // Exponential backoff for retries
+                        const retryNumber = retries - remainingRetries + 1;
+                        const backoffDelay = delay * Math.pow(2, retryNumber - 1);
+                        console.warn(`Failed to load module, retrying in ${backoffDelay}ms... (${retryNumber}/${retries})`, error.message);
+                        
                         setTimeout(() => attempt(remainingRetries - 1), backoffDelay);
+                    } else if (remainingRetries > 0) {
+                        // For non-module errors, retry immediately
+                        setTimeout(() => attempt(remainingRetries - 1), delay);
                     } else {
                         console.error('Failed to load module after all retries:', error);
                         // On final failure, try to reload the page only once
-                        if (error.message && error.message.includes('Failed to fetch dynamically imported module') && !hasReloaded) {
+                        if (isModuleLoadError && !hasReloaded) {
                             console.warn('Module load failed, attempting page reload...');
                             sessionStorage.setItem(reloadKey, 'true');
                             // Small delay before reload to avoid infinite loop
                             setTimeout(() => {
                                 window.location.reload();
-                            }, 1000);
+                            }, 500);
                         } else if (hasReloaded) {
                             console.error('Module load failed even after reload. This may indicate a build or deployment issue.');
+                            // Don't reject, instead try to show a fallback or redirect
+                            // This prevents the error boundary from showing
+                            console.warn('Attempting to redirect to dashboard to avoid error screen...');
+                            setTimeout(() => {
+                                if (window.location.pathname !== '/dashboard') {
+                                    window.location.href = '/dashboard';
+                                }
+                            }, 1000);
                         }
                         reject(error);
                     }
