@@ -222,6 +222,12 @@ const closeAssignmentModal = () => {
             // cleaning_area_id comes from formData if provided, otherwise use selectedAreaId (for backward compatibility)
             cleaning_area_id: formData.cleaning_area_id || selectedAreaId,
         };
+        
+        // Ensure branch_id is included if branch is selected from URL
+        if (branchId && !payload.branch_id) {
+            // Branch will be determined from the cleaning_area_id's branch, but we can also set it explicitly
+            // The backend will validate this
+        }
 
         if (editingTask) {
             await updateTask.mutateAsync({ id: editingTask.id, ...payload });
@@ -688,6 +694,14 @@ function TaskForm({ onClose, onSubmit, initialValues, isSaving, currentUser, bra
         },
     });
 
+    // Update branch_id in form when propSelectedBranchId changes
+    React.useEffect(() => {
+        if (propSelectedBranchId && !initialValues?.area?.branch_id) {
+            setSelectedBranchId(propSelectedBranchId.toString());
+            setValue('branch_id', propSelectedBranchId.toString());
+        }
+    }, [propSelectedBranchId, setValue, initialValues]);
+
     const { watch, setValue } = methods;
 
     // Fetch all areas to find branch_id when editing (if area doesn't have branch_id in relationship)
@@ -799,31 +813,37 @@ function TaskForm({ onClose, onSubmit, initialValues, isSaving, currentUser, bra
                 <div className="px-6 py-6 sm:px-8 sm:py-8">
                     <FormProvider {...methods}>
                         <form onSubmit={methods.handleSubmit(handleSubmit)} className="space-y-6">
-                            {/* Branch Selection */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                                    Branch *
-                                </label>
-                                <select
-                                    {...methods.register('branch_id', { required: true })}
-                                    disabled={!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id}
-                                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${
-                                        !isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id 
-                                            ? 'bg-gray-100 cursor-not-allowed opacity-75' 
-                                            : ''
-                                    }`}
-                                >
-                                    <option value="">Select Branch</option>
-                                    {(branches || []).map(branch => (
-                                        <option key={branch.id} value={branch.id.toString()}>
-                                            {branch.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                {methods.formState.errors.branch_id && (
-                                    <p className="text-xs text-red-600 mt-1">Branch selection is required</p>
-                                )}
-                            </div>
+                            {/* Branch Selection - Only show if branch not already selected from URL */}
+                            {!propSelectedBranchId && (
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                                        Branch *
+                                    </label>
+                                    <select
+                                        {...methods.register('branch_id', { required: true })}
+                                        disabled={!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id}
+                                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${
+                                            !isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id 
+                                                ? 'bg-gray-100 cursor-not-allowed opacity-75' 
+                                                : ''
+                                        }`}
+                                    >
+                                        <option value="">Select Branch</option>
+                                        {(branches || []).map(branch => (
+                                            <option key={branch.id} value={branch.id.toString()}>
+                                                {branch.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {methods.formState.errors.branch_id && (
+                                        <p className="text-xs text-red-600 mt-1">Branch selection is required</p>
+                                    )}
+                                </div>
+                            )}
+                            {/* Hidden input to set branch_id when branch is selected from URL */}
+                            {propSelectedBranchId && (
+                                <input type="hidden" {...methods.register('branch_id')} value={propSelectedBranchId.toString()} />
+                            )}
 
                             {/* Area Selection */}
                             <div>
@@ -1100,7 +1120,8 @@ function AreaForm({ onClose, branchId, currentUser, initialValues, onSuccess }) 
                     <div className="space-y-6 px-6 py-6 sm:px-8 sm:py-8">
                         <FormProvider {...methods}>
                             <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
-                                {canSelectBranch && branches.length > 0 ? (
+                                {/* Only show branch selector if branch not already selected from URL and user can select */}
+                                {!branchId && canSelectBranch && branches.length > 0 ? (
                                     <FormSelect
                                         name="branch_id"
                                         label="Branch"
@@ -1111,10 +1132,13 @@ function AreaForm({ onClose, branchId, currentUser, initialValues, onSuccess }) 
                                             label: branch.name,
                                         }))}
                                     />
+                                ) : branchId ? (
+                                    // Branch is selected from URL, use it as hidden field
+                                    <input type="hidden" {...methods.register('branch_id')} value={branchId.toString()} />
                                 ) : !branchId ? (
                                     <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
                                         <p className="font-semibold">Branch Required</p>
-                                        <p className="mt-1 text-xs">Please assign a branch to your profile or select one above to create a cleaning area.</p>
+                                        <p className="mt-1 text-xs">Please select a branch from the dropdown above to create a cleaning area.</p>
                                     </div>
                                 ) : null}
 

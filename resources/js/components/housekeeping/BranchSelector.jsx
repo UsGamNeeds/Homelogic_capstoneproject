@@ -39,26 +39,45 @@ export default function BranchSelector({ currentUser }) {
 
     const branches = branchesData || [];
     const userBranchId = currentUser?.assigned_branch_id;
+    const isCaregiver = React.useMemo(() => {
+        if (!currentUser) return false;
+        const role = currentUser.role?.toLowerCase().trim() || '';
+        return ['caregiver', 'care_giver', 'nurse', 'registered_nurse', 'licensed_nurse'].includes(role);
+    }, [currentUser]);
+
+    // Determine if we should auto-select and hide the selector
+    const hasOnlyOneBranch = branches.length === 1;
+    const hasAssignedBranch = userBranchId && branches.find(b => b.id === userBranchId);
+    // Auto-select and hide for: caregivers with assigned branch, facility admins with only one branch, or anyone with only one branch
+    const shouldAutoSelect = (isCaregiver && hasAssignedBranch) || (isFacilityAdmin && hasOnlyOneBranch) || (hasOnlyOneBranch && !isFacilityAdmin);
 
     // Auto-select branch if none selected
     React.useEffect(() => {
-        if (!selectedBranchId && branches.length > 0 && userBranchId) {
-            // Check if user's assigned branch is in the list
-            const userBranch = branches.find(b => b.id === userBranchId);
-            if (userBranch) {
+        if (!selectedBranchId && branches.length > 0) {
+            let branchToSelect = null;
+            
+            // For caregivers and facility admins, prefer their assigned branch
+            if (userBranchId) {
+                const userBranch = branches.find(b => b.id === userBranchId);
+                if (userBranch) {
+                    branchToSelect = userBranchId;
+                }
+            }
+            
+            // If no assigned branch found, use the first available branch
+            if (!branchToSelect && branches.length > 0) {
+                branchToSelect = branches[0].id;
+            }
+            
+            if (branchToSelect) {
                 const newParams = new URLSearchParams(searchParams);
-                newParams.set('branch', userBranchId.toString());
-                setSearchParams(newParams, { replace: true });
-            } else if (branches.length === 1) {
-                // If only one branch available, auto-select it
-                const newParams = new URLSearchParams(searchParams);
-                newParams.set('branch', branches[0].id.toString());
+                newParams.set('branch', branchToSelect.toString());
                 setSearchParams(newParams, { replace: true });
             }
         }
     }, [selectedBranchId, branches, userBranchId, searchParams, setSearchParams]);
 
-    // Don't show selector if user has no branches or only one branch (unless they're a facility admin)
+    // Don't show selector if user has no branches or should auto-select
     if (isLoading) {
         return (
             <div className="mb-6 rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
@@ -79,17 +98,9 @@ export default function BranchSelector({ currentUser }) {
         );
     }
 
-    // If only one branch and not a facility admin, show it as read-only
-    if (branches.length === 1 && !isFacilityAdmin) {
-        return (
-            <div className="mb-6 rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
-                <div className="flex items-center gap-2 text-sm text-gray-700">
-                    <Building2 className="h-4 w-4" style={{ color: 'var(--theme-primary)' }} />
-                    <span className="font-semibold">Branch:</span>
-                    <span>{branches[0].name}</span>
-                </div>
-            </div>
-        );
+    // Hide selector if we should auto-select (caregivers, facility admins with one branch, or anyone with one branch)
+    if (shouldAutoSelect) {
+        return null;
     }
 
     const selectedBranch = branches.find(b => b.id?.toString() === selectedBranchId);
