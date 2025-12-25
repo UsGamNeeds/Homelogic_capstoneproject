@@ -39,6 +39,7 @@ class ResidentSignOutController extends Controller
         }
 
         $validated = $request->validate([
+            'branch_id' => 'nullable|integer|exists:branches,id',
             'destination' => 'nullable|string|max:255',
             'purpose' => 'nullable|string|max:1000',
             'accompanied_by' => 'nullable|string|max:255',
@@ -47,10 +48,26 @@ class ResidentSignOutController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
+        // Use provided branch_id if user is an administrator, otherwise use resident's branch
+        $isAdmin = in_array($user->role, ['super_admin', 'administrator', 'admin']);
+        $branchId = null;
+        $facilityId = null;
+
+        if ($isAdmin && isset($validated['branch_id'])) {
+            // Administrator selected a branch - use it
+            $branchId = $validated['branch_id'];
+            $branch = \App\Models\Branch::find($branchId);
+            $facilityId = $branch?->facility_id ?? null;
+        } else {
+            // Use resident's branch
+            $branchId = $resident->branch_id;
+            $facilityId = $resident->branch->facility_id ?? null;
+        }
+
         $signOut = ResidentSignOut::create([
             'resident_id' => $resident->id,
-            'branch_id' => $resident->branch_id,
-            'facility_id' => $resident->branch->facility_id ?? null,
+            'branch_id' => $branchId,
+            'facility_id' => $facilityId,
             'sign_out_at' => now(),
             'destination' => $validated['destination'] ?? null,
             'purpose' => $validated['purpose'] ?? null,
