@@ -30,6 +30,13 @@ export default function PharmacyOrders() {
         fetchUser();
     }, []);
     
+    // Check if user is a facility-level admin
+    const isFacilityAdmin = React.useMemo(() => {
+        if (!currentUser) return false;
+        const role = currentUser.role?.toLowerCase().trim() || '';
+        return role === 'administrator' || role === 'admin' || role === 'facility_admin';
+    }, [currentUser]);
+    
     // Check if user is a branch-level admin (not super_admin)
     const isBranchAdmin = React.useMemo(() => {
         if (!currentUser) return false;
