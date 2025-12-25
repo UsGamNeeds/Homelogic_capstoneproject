@@ -92,7 +92,14 @@ class AppointmentController extends BaseApiController
 
     public function show($id): JsonResponse
     {
-        $appointment = Appointment::with(['resident', 'healthcareProvider', 'appointmentType', 'documents'])
+        $appointment = Appointment::with([
+            'resident',
+            'healthcareProvider',
+            'appointmentType',
+            'branch',
+            'createdBy',
+            'documents.uploadedBy'
+        ])
             ->findOrFail($id);
 
         return response()->json($appointment);
