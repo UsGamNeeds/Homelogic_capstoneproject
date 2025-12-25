@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { User, MapPin, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
@@ -9,6 +9,47 @@ export default function ResidentSignOut() {
     const queryClient = useQueryClient();
     const [showForm, setShowForm] = useState(false);
     const [selectedResident, setSelectedResident] = useState(null);
+
+    // Fetch current user
+    const { data: currentUser } = useQuery({
+        queryKey: ['current-user'],
+        queryFn: async () => {
+            try {
+                const response = await api.get('/user');
+                return response.data;
+            } catch {
+                return null;
+            }
+        },
+    });
+
+    // Check if user is a facility administrator (can access all branches in facility)
+    const isFacilityAdmin = useMemo(() => {
+        if (!currentUser) return false;
+        const role = currentUser.role?.toLowerCase().trim() || '';
+        return role === 'administrator';
+    }, [currentUser]);
+    
+    // Check if user is a branch-level admin (restricted to assigned branch)
+    const isBranchAdmin = useMemo(() => {
+        if (!currentUser) return false;
+        const role = currentUser.role?.toLowerCase().trim() || '';
+        return role === 'admin';
+    }, [currentUser]);
+
+    // Fetch branches for administrators
+    const { data: branchesData } = useQuery({
+        queryKey: ['branches-list'],
+        queryFn: async () => {
+            const response = await api.get('/branches', { params: { per_page: 100 } });
+            const branches = response.data?.data || response.data || [];
+            return {
+                ...response.data,
+                data: branches.filter(b => b.is_active !== false)
+            };
+        },
+        enabled: isFacilityAdmin || isBranchAdmin,
+    });
 
     // Fetch residents
     const { data: residentsData } = useQuery({
@@ -67,6 +108,10 @@ export default function ResidentSignOut() {
             <ResidentSignOutForm
                 residents={residentsData || []}
                 selectedResident={selectedResident}
+                currentUser={currentUser}
+                isFacilityAdmin={isFacilityAdmin}
+                isBranchAdmin={isBranchAdmin}
+                branches={branchesData?.data || []}
                 onClose={() => {
                     setShowForm(false);
                     setSelectedResident(null);
@@ -196,8 +241,9 @@ export default function ResidentSignOut() {
     );
 }
 
-function ResidentSignOutForm({ residents, selectedResident, onClose, onSubmit, isSubmitting }) {
+function ResidentSignOutForm({ residents, selectedResident, currentUser, isFacilityAdmin, isBranchAdmin, branches, onClose, onSubmit, isSubmitting }) {
     const [form, setForm] = useState({
+        branch_id: isBranchAdmin && currentUser?.assigned_branch_id ? String(currentUser.assigned_branch_id) : '',
         resident_id: selectedResident?.id || '',
         destination: '',
         purpose: '',
@@ -206,6 +252,21 @@ function ResidentSignOutForm({ residents, selectedResident, onClose, onSubmit, i
         emergency_contact_notified: false,
         notes: '',
     });
+
+    // Filter residents by selected branch
+    const filteredResidents = useMemo(() => {
+        if (!form.branch_id) {
+            return residents;
+        }
+        return residents.filter(r => String(r.branch_id) === String(form.branch_id));
+    }, [residents, form.branch_id]);
+
+    // Reset resident when branch changes
+    React.useEffect(() => {
+        if (form.branch_id) {
+            setForm(prev => ({ ...prev, resident_id: '' }));
+        }
+    }, [form.branch_id]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -225,6 +286,29 @@ function ResidentSignOutForm({ residents, selectedResident, onClose, onSubmit, i
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Branch selection for administrators */}
+                {(isFacilityAdmin || isBranchAdmin) && (
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Branch {isFacilityAdmin ? '*' : ''}
+                        </label>
+                        <select
+                            value={form.branch_id}
+                            onChange={(e) => setForm({ ...form, branch_id: e.target.value })}
+                            required={isFacilityAdmin}
+                            disabled={isBranchAdmin && currentUser?.assigned_branch_id}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        >
+                            <option value="">Select branch...</option>
+                            {branches.map((branch) => (
+                                <option key={branch.id} value={branch.id}>
+                                    {branch.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Resident *
@@ -233,15 +317,19 @@ function ResidentSignOutForm({ residents, selectedResident, onClose, onSubmit, i
                         value={form.resident_id}
                         onChange={(e) => setForm({ ...form, resident_id: e.target.value })}
                         required
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        disabled={!form.branch_id && (isFacilityAdmin || isBranchAdmin)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     >
                         <option value="">Select resident...</option>
-                        {residents.map((resident) => (
+                        {filteredResidents.map((resident) => (
                             <option key={resident.id} value={resident.id}>
                                 {resident.name}
                             </option>
                         ))}
                     </select>
+                    {!form.branch_id && (isFacilityAdmin || isBranchAdmin) && (
+                        <p className="mt-1 text-sm text-gray-500">Please select a branch first</p>
+                    )}
                 </div>
 
                 <div>
