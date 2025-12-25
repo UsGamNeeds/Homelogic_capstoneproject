@@ -257,6 +257,20 @@ export default function AppointmentsDashboard() {
                 delete updated[variables.id];
                 return updated;
             });
+            if (toast) {
+                toast.success('Appointment marked as completed!', '', { isFormSubmission: true });
+            } else {
+                alert('Appointment marked as completed!');
+            }
+        },
+        onError: (error) => {
+            console.error('Complete error:', error);
+            const errorMessage = error.response?.data?.message || 'Failed to complete appointment. Please try again.';
+            if (toast) {
+                toast.error('Error', errorMessage);
+            } else {
+                alert(errorMessage);
+            }
         },
     });
 
