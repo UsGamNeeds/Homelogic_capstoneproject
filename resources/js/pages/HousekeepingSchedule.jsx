@@ -199,7 +199,8 @@ const closeAssignmentModal = () => {
     const handleSubmit = async (formData) => {
         const payload = {
             ...formData,
-            cleaning_area_id: selectedAreaId,
+            // cleaning_area_id comes from formData if provided, otherwise use selectedAreaId (for backward compatibility)
+            cleaning_area_id: formData.cleaning_area_id || selectedAreaId,
         };
 
         if (editingTask) {
