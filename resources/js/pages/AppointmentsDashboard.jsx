@@ -362,9 +362,22 @@ export default function AppointmentsDashboard() {
             alert('Please select both date and time');
             return;
         }
+        
+        // Ensure time is in HH:MM format (backend expects this)
+        const timeFormatted = rescheduleFormData.appointment_time.length === 5 
+            ? rescheduleFormData.appointment_time 
+            : rescheduleFormData.appointment_time.substring(0, 5);
+        
+        console.log('Submitting reschedule:', {
+            id: reschedulingAppointment.id,
+            appointment_date: rescheduleFormData.appointment_date,
+            appointment_time: timeFormatted,
+        });
+        
         rescheduleMutation.mutate({
             id: reschedulingAppointment.id,
-            ...rescheduleFormData,
+            appointment_date: rescheduleFormData.appointment_date,
+            appointment_time: timeFormatted,
         });
     };
 
