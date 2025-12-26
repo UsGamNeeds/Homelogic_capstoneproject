@@ -45,7 +45,7 @@ export default function AppointmentsDashboard() {
     const [showForm, setShowForm] = useState(false);
 
     const [formData, setFormData] = useState({
-        branch_id: branchId ? String(branchId) : '',
+        branch_id: '',
         resident_id: '',
         appointment_date: new Date().toISOString().split('T')[0],
         appointment_time: '',
@@ -184,6 +184,13 @@ export default function AppointmentsDashboard() {
     const branchId = React.useMemo(() => {
         return selectedBranchId ? parseInt(selectedBranchId) : (currentUser?.assigned_branch_id ?? null);
     }, [selectedBranchId, currentUser?.assigned_branch_id]);
+
+    // Initialize formData.branch_id when branchId is available
+    React.useEffect(() => {
+        if (branchId && !formData.branch_id) {
+            setFormData(prev => ({ ...prev, branch_id: String(branchId) }));
+        }
+    }, [branchId]);
 
     // Fetch appointments based on filters
     const { data: appointmentsData, isLoading: appointmentsLoading, refetch } = useQuery({

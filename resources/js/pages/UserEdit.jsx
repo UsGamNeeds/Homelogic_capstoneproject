@@ -454,33 +454,6 @@ function EmploymentTab({ roles, branches, facilities, isSuperAdmin, isFacilityAd
                                 );
                             })}
                     </select>
-                    {(isSuperAdmin || isFacilityAdmin || isBranchAdmin) && (
-                        <div className="mt-2 flex items-center justify-between">
-                            <div className="text-[10px] text-gray-500">
-                                Debug: {roles.length} roles found. Roles: [{roles.map(r => r.name).join(', ')}]
-                                <br />
-                                "admin" role: {roles.some(r => r.name?.toLowerCase().trim() === 'admin') ? '✅' : '❌'}
-                                <br />
-                                Check roles prop directly: {JSON.stringify(roles.map(r => ({id: r.id, name: r.name})))}
-                            </div>
-                            {!roles.some(r => r.name?.toLowerCase().trim() === 'admin') && (
-                                <button
-                                    type="button"
-                                    onClick={async () => {
-                                        try {
-                                            await api.post('/roles/ensure-exist');
-                                            window.location.reload();
-                                        } catch (e) {
-                                            alert('Failed to repair roles: ' + e.message);
-                                        }
-                                    }}
-                                    className="text-[10px] text-[var(--theme-primary)] hover:underline"
-                                >
-                                    Repair Missing Roles
-                                </button>
-                            )}
-                        </div>
-                    )}
                 </div>
 
                 <div>
