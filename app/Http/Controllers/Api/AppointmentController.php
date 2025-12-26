@@ -348,9 +348,15 @@ class AppointmentController extends BaseApiController
                 'this_month' => 0,
             ];
             
+            // Get requested branch_id from query parameter
+            $requestedBranchId = $request->get('branch_id');
+            
             // Get branch IDs for facility filtering
             $branchIds = [];
-            if ($user && $user->role !== 'super_admin' && $user->facility_id) {
+            if ($requestedBranchId) {
+                // If a specific branch is requested, use only that branch
+                $branchIds = [(int)$requestedBranchId];
+            } elseif ($user && $user->role !== 'super_admin' && $user->facility_id) {
                 try {
                     $branchIds = $this->getFacilityBranchIds($user->facility_id);
                 } catch (\Throwable $e) {

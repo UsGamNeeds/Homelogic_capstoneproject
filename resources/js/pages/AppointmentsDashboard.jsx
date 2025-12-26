@@ -167,16 +167,21 @@ export default function AppointmentsDashboard() {
 
     // Fetch statistics
     const { data: statistics, isLoading: statsLoading, error: statsError } = useQuery({
-        queryKey: ['appointments-statistics'],
+        queryKey: ['appointments-statistics', selectedBranchId],
         queryFn: async () => {
             try {
-                const response = await api.get('/appointments/statistics');
+                const params = {};
+                if (selectedBranchId) {
+                    params.branch_id = selectedBranchId;
+                }
+                const response = await api.get('/appointments/statistics', { params });
                 return response.data;
             } catch (error) {
                 console.error('Error fetching statistics:', error);
                 throw error;
             }
         },
+        enabled: !!selectedBranchId, // Only fetch if branch is selected
         refetchOnWindowFocus: true,
     });
 
