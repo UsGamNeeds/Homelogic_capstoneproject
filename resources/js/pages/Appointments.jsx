@@ -240,7 +240,7 @@ export default function Appointments() {
         retry: 1,
     });
 
-    // All residents for filter dropdown (not filtered by branch)
+    // All residents for filter dropdown (filtered by branch)
     const { data: allResidentsData, error: allResidentsError } = useQuery({
         queryKey: ['all-residents-list', selectedBranchId],
         queryFn: async () => {
@@ -255,6 +255,7 @@ export default function Appointments() {
                 throw error;
             }
         },
+        enabled: !!selectedBranchId || isCaregiver, // Only fetch if branch is selected (or if caregiver - they have auto-selected branch)
         retry: 1,
     });
 
