@@ -40,13 +40,10 @@ class MarkMissedMedications extends Command
                 return 1;
             }
         } else {
-            // Default to yesterday if running at end of day (checking the day that just ended)
-            // But if running during the day, check today's missed doses from previous scheduled times
-            $targetDate = Carbon::now(config('app.timezone'));
-            // If it's early in the day (before 1 AM), check yesterday, otherwise check today
-            if ($targetDate->hour < 1) {
-                $targetDate->subDay();
-            }
+            // Default to yesterday - we're checking the day that just ended
+            // This command runs at 11:55 PM daily, so we check yesterday's missed doses
+            // If running manually during the day, we check yesterday (the most recent completed day)
+            $targetDate = Carbon::yesterday(config('app.timezone'));
         }
 
         $this->info("Checking missed medications for date: {$targetDate->format('Y-m-d')}");
@@ -108,10 +105,12 @@ class MarkMissedMedications extends Command
                 $windowEnd = $scheduledTime->copy()->addMinutes($windowMinutes);
 
                 // Check if there's already an administration record for this medication on this date
-                // within the administration window
+                // within the administration window (60 minutes before and after scheduled time)
+                // We only count non-missed statuses (completed, refused, hospital_admission, etc.)
                 $hasAdministration = MedicationAdministration::where('medication_id', $medication->id)
                     ->whereDate('administered_at', $dateStr)
                     ->whereBetween('administered_at', [$windowStart, $windowEnd])
+                    ->where('status', '!=', 'missed') // Don't count existing missed records
                     ->exists();
 
                 if (!$hasAdministration) {
