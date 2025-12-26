@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { useToastContext } from '../contexts/ToastContext';
 import { 
@@ -19,10 +19,12 @@ import {
     Search,
     Upload,
     X,
-    CalendarClock
+    CalendarClock,
+    Building2
 } from 'lucide-react';
 import Card from '../components/Card';
 import SectionCard from '../components/SectionCard';
+import BranchSelector from '../components/BranchSelector';
 
 const tabs = [
     { id: 'today', label: 'Today', icon: Calendar },
@@ -34,13 +36,16 @@ const tabs = [
 export default function AppointmentsDashboard() {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const selectedBranchId = searchParams.get('branch');
     const toast = useToastContext();
     const [dateFilter, setDateFilter] = useState('upcoming');
     const [activeTab, setActiveTab] = useState('upcoming'); // 'today', 'upcoming', 'completed', 'this_month'
     const [search, setSearch] = useState('');
     const [showForm, setShowForm] = useState(false);
+
     const [formData, setFormData] = useState({
-        branch_id: '',
+        branch_id: branchId ? String(branchId) : '',
         resident_id: '',
         appointment_date: new Date().toISOString().split('T')[0],
         appointment_time: '',
@@ -98,13 +103,18 @@ export default function AppointmentsDashboard() {
         },
     });
 
-    // Fetch residents
+    // Fetch residents - filtered by branch
     const { data: residentsData } = useQuery({
-        queryKey: ['residents-list'],
+        queryKey: ['residents-list', selectedBranchId],
         queryFn: async () => {
-            const response = await api.get('/residents', { params: { per_page: 100 } });
+            const params = { per_page: 100 };
+            if (selectedBranchId) {
+                params.branch_id = selectedBranchId;
+            }
+            const response = await api.get('/residents', { params });
             return response.data;
         },
+        enabled: !!selectedBranchId, // Only fetch if branch is selected
     });
 
     // Fetch appointment types
@@ -127,7 +137,7 @@ export default function AppointmentsDashboard() {
             queryClient.invalidateQueries(['appointments-statistics']);
             setShowForm(false);
             setFormData({
-                branch_id: '',
+                branch_id: branchId ? String(branchId) : '',
                 resident_id: '',
                 appointment_date: new Date().toISOString().split('T')[0],
                 appointment_time: '',
@@ -170,13 +180,22 @@ export default function AppointmentsDashboard() {
         refetchOnWindowFocus: true,
     });
 
+    // Use selected branch from URL
+    const branchId = React.useMemo(() => {
+        return selectedBranchId ? parseInt(selectedBranchId) : (currentUser?.assigned_branch_id ?? null);
+    }, [selectedBranchId, currentUser?.assigned_branch_id]);
+
     // Fetch appointments based on filters
     const { data: appointmentsData, isLoading: appointmentsLoading, refetch } = useQuery({
-        queryKey: ['appointments-dashboard', dateFilter, activeTab, search],
+        queryKey: ['appointments-dashboard', dateFilter, activeTab, search, selectedBranchId],
         queryFn: async () => {
             const params = {
                 per_page: 50,
             };
+            
+            if (selectedBranchId) {
+                params.branch_id = selectedBranchId;
+            }
             
             // Apply status filter based on active tab
             if (activeTab === 'completed') {
@@ -212,6 +231,7 @@ export default function AppointmentsDashboard() {
             const response = await api.get('/appointments', { params });
             return response.data;
         },
+        enabled: !!selectedBranchId, // Only fetch if branch is selected
     });
 
     // Mark appointment as complete mutation
@@ -506,8 +526,23 @@ export default function AppointmentsDashboard() {
         return badges[status] || 'bg-gray-100 text-gray-800 border-gray-300';
     };
 
+    // Show branch selector and wait for branch selection
+    if (!selectedBranchId) {
+        return (
+            <div>
+                <BranchSelector currentUser={currentUser} />
+                <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+                    <Building2 className="mx-auto h-12 w-12 text-gray-400" />
+                    <p className="mt-4 text-sm font-semibold text-gray-700">Please select a branch to continue</p>
+                    <p className="mt-2 text-xs text-gray-500">Select a branch from the dropdown above to view and manage appointments.</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
+            <BranchSelector currentUser={currentUser} />
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -1011,20 +1046,26 @@ export default function AppointmentsDashboard() {
                         }}>
                             <div className="p-6 space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-900 mb-1">Branch</label>
-                                        <select
-                                            value={formData.branch_id}
-                                            onChange={(e) => setFormData({ ...formData, branch_id: e.target.value, resident_id: '' })}
-                                            disabled={!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id}
-                                            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
-                                        >
-                                            <option value="">All Branches</option>
-                                            {(branchesData?.data || []).map(branch => (
-                                                <option key={branch.id} value={branch.id}>{branch.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
+                                    {/* Branch Selection - Only show if branch not already selected from URL */}
+                                    {!selectedBranchId ? (
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-900 mb-1">Branch</label>
+                                            <select
+                                                value={formData.branch_id}
+                                                onChange={(e) => setFormData({ ...formData, branch_id: e.target.value, resident_id: '' })}
+                                                disabled={!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id}
+                                                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
+                                            >
+                                                <option value="">All Branches</option>
+                                                {(branchesData?.data || []).map(branch => (
+                                                    <option key={branch.id} value={branch.id}>{branch.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    ) : (
+                                        // Branch is selected from URL, use it as hidden field
+                                        <input type="hidden" value={selectedBranchId.toString()} />
+                                    )}
                                     <div>
                                         <label className="block text-sm font-bold text-gray-900 mb-1">Resident *</label>
                                         <div className="relative">
