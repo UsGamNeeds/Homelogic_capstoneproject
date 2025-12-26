@@ -214,6 +214,10 @@ const closeAssignmentModal = () => {
     setIsAssignmentModalOpen(false);
 };
 
+    const selectedArea = areasData?.find((area) => area.id === selectedAreaId);
+    // Use selected branch from URL, fallback to user's assigned branch
+    const branchId = selectedBranchId ? parseInt(selectedBranchId) : (currentUser?.assigned_branch_id ?? currentUser?.assigned_branch?.id ?? null);
+
     const handleSubmit = async (formData) => {
         const payload = {
             ...formData,
@@ -235,10 +239,6 @@ const closeAssignmentModal = () => {
 
         closeModal();
     };
-
-    const selectedArea = areasData?.find((area) => area.id === selectedAreaId);
-    // Use selected branch from URL, fallback to user's assigned branch
-    const branchId = selectedBranchId ? parseInt(selectedBranchId) : (currentUser?.assigned_branch_id ?? currentUser?.assigned_branch?.id ?? null);
 
     // Fetch branches for task form
     const { data: branchesData } = useQuery({

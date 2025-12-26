@@ -416,17 +416,42 @@ function EmployeeDocumentForm({ record, users, onClose, onSuccess }) {
                 return;
             }
 
+            let response;
             if (record) {
-                await api.put(`/employee-documents/${record.id}`, formDataToSend);
+                response = await api.put(`/employee-documents/${record.id}`, formDataToSend);
             } else {
-                await api.post('/employee-documents', formDataToSend);
+                response = await api.post('/employee-documents', formDataToSend);
             }
-            onSuccess();
+            
+            // Check if the request was successful (status 200-299)
+            if (response.status >= 200 && response.status < 300) {
+                onSuccess();
+            } else {
+                // Only show error if the response indicates failure
+                if (response.data?.errors) {
+                    setErrors(response.data.errors);
+                } else {
+                    setErrors({ general: response.data?.message || 'Failed to save document' });
+                }
+            }
         } catch (error) {
-            if (error.response?.data?.errors) {
+            // Check if it's a network error or actual server error
+            // If status is 201 (created), the document was saved successfully
+            if (error.response?.status === 201) {
+                // Document was saved successfully, just call onSuccess
+                onSuccess();
+            } else if (error.response?.data?.errors) {
                 setErrors(error.response.data.errors);
             } else {
-                setErrors({ general: error.response?.data?.message || 'Failed to save document' });
+                // Only show error if it's not a 201 status
+                const errorMessage = error.response?.data?.message || 'Failed to save document';
+                // Don't show error if document was actually created (201)
+                if (error.response?.status !== 201) {
+                    setErrors({ general: errorMessage });
+                } else {
+                    // Document was saved, just close the form
+                    onSuccess();
+                }
             }
         } finally {
             setIsSubmitting(false);

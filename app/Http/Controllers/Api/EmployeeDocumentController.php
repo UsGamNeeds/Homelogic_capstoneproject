@@ -7,6 +7,7 @@ use App\Models\EmployeeDocument;
 use App\Services\ActivityLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class EmployeeDocumentController extends BaseApiController
@@ -169,54 +170,78 @@ class EmployeeDocumentController extends BaseApiController
 
         $document = EmployeeDocument::create($validated);
 
-        // Create notification
-        $targetUser = \App\Models\User::find($validated['user_id']);
-        $facility = $targetUser?->facility ?? auth()->user()?->facility;
-        
-        if ($facility) {
-            $admins = \App\Models\User::where('facility_id', $facility->id)
-                ->whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                ->where('is_active', true)
-                ->get();
+        // Create notification (wrap in try-catch to prevent errors from affecting document save)
+        try {
+            $targetUser = \App\Models\User::find($validated['user_id']);
+            $facility = $targetUser?->facility ?? auth()->user()?->facility;
+            
+            if ($facility) {
+                $admins = \App\Models\User::where('facility_id', $facility->id)
+                    ->whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
+                    ->where('is_active', true)
+                    ->get();
 
-            // Also notify the target user if they're not already in the list
-            if ($targetUser && !$admins->contains('id', $targetUser->id)) {
-                $admins->push($targetUser);
+                // Also notify the target user if they're not already in the list
+                if ($targetUser && !$admins->contains('id', $targetUser->id)) {
+                    $admins->push($targetUser);
+                }
+
+                foreach ($admins as $admin) {
+                    \App\Models\Notification::create([
+                        'user_id' => $admin->id,
+                        'type' => 'employee_document_created',
+                        'title' => 'Employee Document Added',
+                        'message' => "New document '{$document->document_name}' ({$document->document_type}) has been added for {$targetUser->name}.",
+                        'icon' => 'file-text',
+                        'icon_color' => 'text-blue-600',
+                        'action_url' => '/administration/employee-documents',
+                        'metadata' => [
+                            'employee_document_id' => $document->id,
+                            'user_id' => $targetUser->id,
+                            'document_type' => $document->document_type,
+                        ],
+                    ]);
+                }
+
+                // Send email notifications (don't fail if email fails)
+                try {
+                    $notificationService = app(\App\Services\NotificationService::class);
+                    $notificationService->sendEmployeeDocumentEmail($document, $admins, 'uploaded');
+                } catch (\Exception $e) {
+                    Log::warning('Failed to send employee document email notification', [
+                        'document_id' => $document->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
-
-            foreach ($admins as $admin) {
-                \App\Models\Notification::create([
-                    'user_id' => $admin->id,
-                    'type' => 'employee_document_created',
-                    'title' => 'Employee Document Added',
-                    'message' => "New document '{$document->document_name}' ({$document->document_type}) has been added for {$targetUser->name}.",
-                    'icon' => 'file-text',
-                    'icon_color' => 'text-blue-600',
-                    'action_url' => '/administration/employee-documents',
-                    'metadata' => [
-                        'employee_document_id' => $document->id,
-                        'user_id' => $targetUser->id,
-                        'document_type' => $document->document_type,
-                    ],
-                ]);
-            }
-
-            // Send email notifications
-            $notificationService = app(\App\Services\NotificationService::class);
-            $notificationService->sendEmployeeDocumentEmail($document, $admins, 'uploaded');
+        } catch (\Exception $e) {
+            // Log error but don't fail the request - document is already saved
+            Log::error('Failed to create employee document notification', [
+                'document_id' => $document->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
         }
 
-        // Log activity
-        ActivityLogService::activity(
-            event: 'created',
-            description: 'Created employee document: ' . ($document->document_name ?? 'Document'),
-            subject: $document,
-            properties: [
-                'document_type' => $document->document_type,
-                'user_id' => $document->user_id,
-                'file_name' => $document->file_name,
-            ]
-        );
+        // Log activity (wrap in try-catch to prevent errors from affecting document save)
+        try {
+            ActivityLogService::activity(
+                event: 'created',
+                description: 'Created employee document: ' . ($document->document_name ?? 'Document'),
+                subject: $document,
+                properties: [
+                    'document_type' => $document->document_type,
+                    'user_id' => $document->user_id,
+                    'file_name' => $document->file_name,
+                ]
+            );
+        } catch (\Exception $e) {
+            // Log error but don't fail the request
+            Log::warning('Failed to log employee document activity', [
+                'document_id' => $document->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return response()->json($document->load(['user']), 201);
     }

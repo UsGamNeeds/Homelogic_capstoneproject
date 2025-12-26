@@ -236,7 +236,7 @@ export default function Appointments() {
                 throw error;
             }
         },
-        enabled: true, // Always enabled, but filters by branch_id
+        enabled: !!selectedBranchId || isCaregiver, // Only fetch if branch is selected (or if caregiver - they have auto-selected branch)
         retry: 1,
     });
 

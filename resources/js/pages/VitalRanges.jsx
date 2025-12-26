@@ -104,12 +104,26 @@ export default function VitalRanges() {
                   <td className="px-6 py-4 whitespace-nowrap">{r.max_normal ?? '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{r.unit ?? '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                    {canEdit && (
-                      <button onClick={() => { setEditing(r); setShowForm(true); }} className="p-2 text-[var(--theme-primary)] hover:bg-green-50 rounded-lg mr-2"><Edit className="w-4 h-4" /></button>
-                    )}
-                    {canDelete && (
-                      <button onClick={() => window.confirm('Delete range?') && deleteMutation.mutate(r.id)} className="p-2 text-[var(--theme-secondary)] hover:bg-amber-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-                    )}
+                    <div className="flex items-center justify-end gap-2">
+                      {canEdit && (
+                        <button 
+                          onClick={() => { setEditing(r); setShowForm(true); }} 
+                          className="p-2.5 rounded-lg border-2 border-blue-500 bg-blue-50 text-blue-700 hover:bg-blue-500 hover:text-white hover:border-blue-600 transition-all shadow-sm hover:shadow-md"
+                          title="Edit"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button 
+                          onClick={() => window.confirm('Delete range?') && deleteMutation.mutate(r.id)} 
+                          className="p-2.5 rounded-lg border-2 border-red-500 bg-red-50 text-red-700 hover:bg-red-500 hover:text-white hover:border-red-600 transition-all shadow-sm hover:shadow-md"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

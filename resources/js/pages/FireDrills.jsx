@@ -74,6 +74,7 @@ export default function FireDrills() {
     const { data, isLoading, refetch } = useQuery({
         queryKey: ['fire-drills', queryParams],
         queryFn: async () => (await api.get('/fire-drills', { params: queryParams })).data,
+        enabled: !!selectedBranchId || isCaregiver, // Only fetch if branch is selected (or if caregiver - they have auto-selected branch)
     });
 
     const deleteMutation = useMutation({
