@@ -630,7 +630,7 @@ const closeAssignmentModal = () => {
 
 function TaskForm({ onClose, onSubmit, initialValues, isSaving, currentUser, branches, selectedBranchId: propSelectedBranchId }) {
     // Determine initial branch_id - use area's branch if editing, or selected branch from parent, or current user's branch
-    const getInitialBranchId = () => {
+    const getInitialBranchId = React.useCallback(() => {
         if (initialValues?.area?.branch_id) {
             return initialValues.area.branch_id.toString();
         }
@@ -645,9 +645,10 @@ function TaskForm({ onClose, onSubmit, initialValues, isSaving, currentUser, bra
             return currentUser.assigned_branch_id.toString();
         }
         return '';
-    };
+    }, [initialValues?.area?.branch_id, propSelectedBranchId, initialValues?.cleaning_area_id, currentUser?.assigned_branch_id]);
 
-    const [selectedBranchId, setSelectedBranchId] = React.useState(getInitialBranchId());
+    const initialBranchId = React.useMemo(() => getInitialBranchId(), [getInitialBranchId]);
+    const [selectedBranchId, setSelectedBranchId] = React.useState(initialBranchId);
 
     // Determine if user is facility admin or branch admin
     const isFacilityAdmin = React.useMemo(() => {
@@ -677,7 +678,7 @@ function TaskForm({ onClose, onSubmit, initialValues, isSaving, currentUser, bra
 
     const methods = useForm({
         defaultValues: {
-            branch_id: getInitialBranchId(),
+            branch_id: initialBranchId,
             cleaning_area_id: initialValues?.cleaning_area_id ? initialValues.cleaning_area_id.toString() : '',
             title: initialValues?.title ?? '',
             instructions: initialValues?.instructions ?? '',
@@ -692,6 +693,8 @@ function TaskForm({ onClose, onSubmit, initialValues, isSaving, currentUser, bra
         },
     });
 
+    const { watch, setValue } = methods;
+
     // Update branch_id in form when propSelectedBranchId changes
     React.useEffect(() => {
         if (propSelectedBranchId && !initialValues?.area?.branch_id) {
@@ -699,8 +702,6 @@ function TaskForm({ onClose, onSubmit, initialValues, isSaving, currentUser, bra
             setValue('branch_id', propSelectedBranchId.toString());
         }
     }, [propSelectedBranchId, setValue, initialValues]);
-
-    const { watch, setValue } = methods;
 
     // Fetch all areas to find branch_id when editing (if area doesn't have branch_id in relationship)
     const shouldFetchAllAreas = Boolean(
@@ -759,11 +760,12 @@ function TaskForm({ onClose, onSubmit, initialValues, isSaving, currentUser, bra
     }, [formBranchId, selectedBranchId, setValue, initialValues]);
 
     const toggleDay = (day) => {
-        const current = Array.isArray(daysOfWeek) ? daysOfWeek : [];
-        if (current.includes(day)) {
-            setValue('days_of_week', current.filter((value) => value !== day), { shouldValidate: true });
+        const current = watch('days_of_week');
+        const currentArray = Array.isArray(current) ? current : [];
+        if (currentArray.includes(day)) {
+            setValue('days_of_week', currentArray.filter((value) => value !== day), { shouldValidate: true });
         } else {
-            setValue('days_of_week', [...current, day], { shouldValidate: true });
+            setValue('days_of_week', [...currentArray, day], { shouldValidate: true });
         }
     };
 

@@ -48,34 +48,36 @@ export default function BranchSelector({ currentUser }) {
     // Determine if we should auto-select and hide the selector
     const hasOnlyOneBranch = branches.length === 1;
     const hasAssignedBranch = userBranchId && branches.find(b => b.id === userBranchId);
-    // Auto-select and hide for: caregivers with assigned branch, facility admins with only one branch, or anyone with only one branch
-    const shouldAutoSelect = (isCaregiver && hasAssignedBranch) || (isFacilityAdmin && hasOnlyOneBranch) || (hasOnlyOneBranch && !isFacilityAdmin);
+    // Auto-select and hide for: caregivers with assigned branch, or anyone with only one branch
+    // Facility admins with multiple branches should still see the dropdown but with assigned branch pre-selected
+    const shouldAutoSelect = (isCaregiver && hasAssignedBranch) || (hasOnlyOneBranch && !isFacilityAdmin);
 
     // Auto-select branch if none selected
     React.useEffect(() => {
-        if (!selectedBranchId && branches.length > 0) {
+        if (branches.length > 0) {
             let branchToSelect = null;
             
-            // For caregivers and facility admins, prefer their assigned branch
-            if (userBranchId) {
+            // For caregivers and facility admins, always prefer their assigned branch
+            if ((isCaregiver || isFacilityAdmin) && userBranchId) {
                 const userBranch = branches.find(b => b.id === userBranchId);
                 if (userBranch) {
                     branchToSelect = userBranchId;
                 }
             }
             
-            // If no assigned branch found, use the first available branch
+            // If no assigned branch found or not a caregiver/admin, use the first available branch
             if (!branchToSelect && branches.length > 0) {
                 branchToSelect = branches[0].id;
             }
             
-            if (branchToSelect) {
+            // Only set if no branch is currently selected, or if we need to update to assigned branch
+            if (branchToSelect && (!selectedBranchId || ((isCaregiver || isFacilityAdmin) && userBranchId && selectedBranchId !== userBranchId.toString()))) {
                 const newParams = new URLSearchParams(searchParams);
                 newParams.set('branch', branchToSelect.toString());
                 setSearchParams(newParams, { replace: true });
             }
         }
-    }, [selectedBranchId, branches, userBranchId, searchParams, setSearchParams]);
+    }, [selectedBranchId, branches, userBranchId, isCaregiver, isFacilityAdmin, searchParams, setSearchParams]);
 
     // Don't show selector if user has no branches or should auto-select
     if (isLoading) {
