@@ -363,7 +363,6 @@ export default function Vitals() {
                 </div>
             )}
         </div>
-        </div>
     );
 }
 
