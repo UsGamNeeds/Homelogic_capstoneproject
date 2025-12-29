@@ -118,6 +118,7 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
 
     // Medication Administrations
     Route::get('/medication-administrations/stats', [MedicationAdministrationController::class, 'stats'])->middleware('auth:sanctum');
+    Route::post('/medication-administrations/mark-missed', [MedicationAdministrationController::class, 'markMissed'])->middleware('auth:sanctum');
     Route::apiResource('medication-administrations', MedicationAdministrationController::class)->middleware('auth:sanctum');
 
     // Medication Deliveries

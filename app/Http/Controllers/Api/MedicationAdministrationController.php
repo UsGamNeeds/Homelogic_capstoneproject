@@ -378,5 +378,145 @@ class MedicationAdministrationController extends BaseApiController
 
         return response()->json(['message' => 'Medication administration deleted successfully']);
     }
+
+    /**
+     * Mark missed medications for a date range
+     * This endpoint allows manually triggering the missed medication marking process
+     */
+    public function markMissed(Request $request): JsonResponse
+    {
+        $request->validate([
+            'date_from' => 'nullable|date_format:Y-m-d',
+            'date_to' => 'nullable|date_format:Y-m-d',
+            'date' => 'nullable|date_format:Y-m-d', // Single date option
+        ]);
+
+        // Get system user (first admin user)
+        $systemUser = \App\Models\User::whereIn('role', ['super_admin', 'administrator', 'admin'])->first();
+        if (!$systemUser) {
+            return response()->json(['message' => 'No system user found to mark missed medications'], 500);
+        }
+        $systemUserId = $systemUser->id;
+
+        // Determine date range
+        if ($request->has('date')) {
+            // Single date
+            $dateFrom = Carbon::createFromFormat('Y-m-d', $request->get('date'), config('app.timezone'))->startOfDay();
+            $dateTo = $dateFrom->copy()->endOfDay();
+        } elseif ($request->has('date_from') || $request->has('date_to')) {
+            // Date range
+            $dateFrom = $request->has('date_from')
+                ? Carbon::createFromFormat('Y-m-d', $request->get('date_from'), config('app.timezone'))->startOfDay()
+                : Carbon::now(config('app.timezone'))->subDays(7)->startOfDay();
+            $dateTo = $request->has('date_to')
+                ? Carbon::createFromFormat('Y-m-d', $request->get('date_to'), config('app.timezone'))->endOfDay()
+                : Carbon::now(config('app.timezone'))->endOfDay();
+        } else {
+            // Default: last 7 days
+            $dateFrom = Carbon::now(config('app.timezone'))->subDays(7)->startOfDay();
+            $dateTo = Carbon::now(config('app.timezone'))->endOfDay();
+        }
+
+        // Scope to user's facility
+        $user = $request->user();
+        $medicationsQuery = Medication::where('is_active', true)
+            ->where('start_date', '<=', $dateTo->toDateString())
+            ->where(function ($q) use ($dateTo) {
+                $q->whereNull('end_date')
+                    ->orWhere('end_date', '>=', $dateFrom->toDateString());
+            });
+
+        if ($user->facility_id) {
+            $medicationsQuery->whereHas('branch', function ($q) use ($user) {
+                $q->where('facility_id', $user->facility_id);
+            });
+        }
+
+        $medications = $medicationsQuery->get();
+        $windowMinutes = 60; // 60 minutes before and after scheduled time
+        $count = 0;
+        $errors = [];
+
+        // Iterate through each day in the range
+        $currentDate = $dateFrom->copy();
+        while ($currentDate <= $dateTo) {
+            $dateStart = $currentDate->copy()->startOfDay();
+            $dateEnd = $currentDate->copy()->endOfDay();
+
+            foreach ($medications as $medication) {
+                // Check each of the 4 possible time slots
+                for ($i = 1; $i <= 4; $i++) {
+                    $timeField = "time_{$i}";
+                    $scheduledTimeStr = $medication->$timeField;
+
+                    if (!$scheduledTimeStr) {
+                        continue;
+                    }
+
+                    // Parse scheduled time for the current date
+                    try {
+                        $timeParts = explode(':', $scheduledTimeStr);
+                        if (count($timeParts) !== 2) {
+                            continue;
+                        }
+
+                        $scheduledTime = $currentDate->copy();
+                        $scheduledTime->setTime((int)$timeParts[0], (int)$timeParts[1], 0);
+                    } catch (\Exception $e) {
+                        continue;
+                    }
+
+                    // Calculate administration window
+                    $windowStart = $scheduledTime->copy()->subMinutes($windowMinutes);
+                    $windowEnd = $scheduledTime->copy()->addMinutes($windowMinutes);
+
+                    // Check if there's already an administration record
+                    $hasAdministration = MedicationAdministration::where('medication_id', $medication->id)
+                        ->whereBetween('administered_at', [$windowStart, $windowEnd])
+                        ->whereIn('status', ['completed', 'refused', 'hospital_admission', 'pharmacy_administration_confirm'])
+                        ->exists();
+
+                    // Only mark as missed if no administration exists and the window has passed
+                    if (!$hasAdministration && $windowEnd->isPast()) {
+                        // Check if missed record already exists
+                        $hasMissedRecord = MedicationAdministration::where('medication_id', $medication->id)
+                            ->where('status', 'missed')
+                            ->whereBetween('administered_at', [
+                                $scheduledTime->copy()->subMinutes(5),
+                                $scheduledTime->copy()->addMinutes(5)
+                            ])
+                            ->exists();
+
+                        if (!$hasMissedRecord) {
+                            try {
+                                MedicationAdministration::create([
+                                    'medication_id' => $medication->id,
+                                    'resident_id' => $medication->resident_id,
+                                    'branch_id' => $medication->branch_id,
+                                    'administered_by' => $systemUserId,
+                                    'status' => 'missed',
+                                    'administered_at' => $scheduledTime,
+                                    'notes' => 'Automatically marked as missed',
+                                ]);
+                                $count++;
+                            } catch (\Exception $e) {
+                                $errors[] = "Failed to mark medication ID {$medication->id} as missed: " . $e->getMessage();
+                            }
+                        }
+                    }
+                }
+            }
+
+            $currentDate->addDay();
+        }
+
+        return response()->json([
+            'message' => "Marked {$count} medication doses as missed",
+            'count' => $count,
+            'date_from' => $dateFrom->toDateString(),
+            'date_to' => $dateTo->toDateString(),
+            'errors' => $errors,
+        ]);
+    }
 }
 

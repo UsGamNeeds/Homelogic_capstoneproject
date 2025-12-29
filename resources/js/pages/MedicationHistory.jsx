@@ -1,10 +1,11 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
-import { Calendar, ClipboardList, Pill, User, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { Calendar, ClipboardList, Pill, User, ChevronLeft, ChevronRight, FileText, RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { formatPacificDate as formatDate, formatPacificTime as formatTime } from '../utils/pacificTime';
 import EmptyState from '../components/ui/EmptyState';
+import { toast } from 'sonner';
 
 const statusOptions = [
     { value: '', label: 'All statuses' },
@@ -24,6 +25,7 @@ const statusStyles = {
 };
 
 export default function MedicationHistory() {
+    const queryClient = useQueryClient();
     const [searchParams, setSearchParams] = useSearchParams();
     const [residentId, setResidentId] = useState(() => searchParams.get('resident') || '');
     const [status, setStatus] = useState(() => searchParams.get('status') || '');
@@ -127,6 +129,31 @@ export default function MedicationHistory() {
     const totalPages = historyResponse?.last_page || 1;
     const total = historyResponse?.total || 0;
 
+    // Mutation to mark missed medications
+    const markMissedMutation = useMutation({
+        mutationFn: async ({ dateFrom: from, dateTo: to }) => {
+            const params = {};
+            if (from) params.date_from = from;
+            if (to) params.date_to = to;
+            return await api.post('/medication-administrations/mark-missed', params);
+        },
+        onSuccess: (response) => {
+            const count = response.data?.count || 0;
+            toast.success(`Marked ${count} missed medication doses`);
+            // Invalidate and refetch the history
+            queryClient.invalidateQueries(['medication-history']);
+        },
+        onError: (error) => {
+            toast.error(error.response?.data?.message || 'Failed to mark missed medications');
+        },
+    });
+
+    const handleMarkMissed = () => {
+        const from = dateFrom || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const to = dateTo || new Date().toISOString().split('T')[0];
+        markMissedMutation.mutate({ dateFrom: from, dateTo: to });
+    };
+
     return (
         <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm p-6">
@@ -138,6 +165,14 @@ export default function MedicationHistory() {
                             audit medication compliance and follow-up on missed doses.
                         </p>
                     </div>
+                    <button
+                        onClick={handleMarkMissed}
+                        disabled={markMissedMutation.isLoading}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${markMissedMutation.isLoading ? 'animate-spin' : ''}`} />
+                        {markMissedMutation.isLoading ? 'Marking Missed...' : 'Mark Missed Medications'}
+                    </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
