@@ -61,6 +61,7 @@ class EmailPreferenceService
             'incident_alert' => 'incident_alert_enabled',
             'resident_sign_out' => 'resident_sign_out_enabled',
             'medication_administration' => 'medication_administration_enabled',
+            'medication_window_opening' => 'medication_window_opening_enabled',
             'critical_vital_sign' => 'critical_vital_sign_enabled',
             'daily_summary' => 'daily_summary_enabled',
             'task_assignment' => 'task_assignment_enabled',
