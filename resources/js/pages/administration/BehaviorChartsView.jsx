@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { 
@@ -23,6 +23,7 @@ import { formatPacificDate } from '../../utils/pacificTime';
 
 export default function BehaviorChartsView() {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const [branchId, setBranchId] = useState(null);
     const [residentId, setResidentId] = useState(null);
     const [month, setMonth] = useState(() => {
@@ -35,6 +36,9 @@ export default function BehaviorChartsView() {
     const [branches, setBranches] = useState([]);
     const [residents, setResidents] = useState([]);
     const [selectedChart, setSelectedChart] = useState(null);
+    const [reviewChart, setReviewChart] = useState(null);
+    const [reviewStatus, setReviewStatus] = useState('');
+    const [isSubmittingReview, setIsSubmittingReview] = useState(false);
     const [openMenuId, setOpenMenuId] = useState(null);
     const menuRefs = React.useRef({});
 
@@ -57,7 +61,7 @@ export default function BehaviorChartsView() {
     }, [branchId]);
 
     // Fetch behavior charts
-    const { data: chartsData, isLoading, refetch } = useQuery({
+    const { data: chartsData, isLoading, refetch, isRefetching } = useQuery({
         queryKey: ['behavior-charts', branchId, residentId, month, year],
         queryFn: async () => {
             const params = {
@@ -68,11 +72,14 @@ export default function BehaviorChartsView() {
             if (branchId) params.branch_id = branchId;
             if (residentId) params.resident_id = residentId;
             const response = await api.get('/resident-charts', { params });
+            console.log('Fetched charts:', response.data);
             return response.data;
         },
         enabled: !!(branchId && residentId), // Only fetch when both filters are selected
         refetchOnWindowFocus: true, // Refetch when window regains focus
         refetchOnMount: true, // Refetch when component mounts
+        staleTime: 0, // Always consider data stale
+        cacheTime: 0, // Don't cache
     });
 
     // Refetch when returning to the page
@@ -87,6 +94,13 @@ export default function BehaviorChartsView() {
     }, [branchId, residentId, refetch]);
 
     const charts = chartsData?.data || [];
+    
+    // Debug logging
+    React.useEffect(() => {
+        console.log('Charts data:', chartsData);
+        console.log('Charts array:', charts);
+        console.log('Filters:', { branchId, residentId, month, year });
+    }, [chartsData, charts, branchId, residentId, month, year]);
 
     const handleViewChart = async (chart) => {
         // Always fetch full chart details to ensure we have all items and logs
@@ -112,11 +126,46 @@ export default function BehaviorChartsView() {
         // You can navigate to an edit page or open an edit modal here
     };
 
-    const handleReviewChart = (chart) => {
+    const handleReviewChart = async (chart) => {
         setOpenMenuId(null);
-        // TODO: Implement review functionality
-        console.log('Review chart:', chart);
-        // You can navigate to a review page or open a review modal here
+        // Fetch full chart details
+        try {
+            const response = await api.get(`/resident-charts/by-id/${chart.id}`);
+            const fullChart = response.data;
+            setReviewChart(fullChart);
+            setReviewStatus(fullChart.status || 'pending');
+        } catch (error) {
+            console.error('Error fetching chart details:', error);
+            setReviewChart(chart);
+            setReviewStatus(chart.status || 'pending');
+        }
+    };
+
+    const handleCloseReviewModal = () => {
+        setReviewChart(null);
+        setReviewStatus('');
+    };
+
+    const handleSubmitReview = async () => {
+        if (!reviewChart || !reviewStatus) return;
+
+        setIsSubmittingReview(true);
+        try {
+            await api.put(`/resident-charts/${reviewChart.id}/status`, {
+                status: reviewStatus,
+            });
+            
+            // Invalidate and refetch charts
+            queryClient.invalidateQueries(['behavior-charts']);
+            await refetch();
+            
+            handleCloseReviewModal();
+        } catch (error) {
+            console.error('Error updating chart status:', error);
+            alert('Failed to update chart status. Please try again.');
+        } finally {
+            setIsSubmittingReview(false);
+        }
     };
 
     // Close menu when clicking outside
@@ -165,6 +214,30 @@ export default function BehaviorChartsView() {
                 </span>
             );
         }
+        if (status === 'approved') {
+            return (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Approved
+                </span>
+            );
+        }
+        if (status === 'declined') {
+            return (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    <X className="w-3 h-3" />
+                    Declined
+                </span>
+            );
+        }
+        if (status === 'pending') {
+            return (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                    <Clock className="w-3 h-3" />
+                    Pending
+                </span>
+            );
+        }
         return (
             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
                 <Clock className="w-3 h-3" />
@@ -198,11 +271,20 @@ export default function BehaviorChartsView() {
                             </button>
                         )}
                         <button
-                            onClick={() => refetch()}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg text-sm font-medium hover:bg-[var(--theme-primary-hover)] transition"
+                            onClick={async () => {
+                                try {
+                                    // Invalidate and refetch
+                                    queryClient.invalidateQueries(['behavior-charts']);
+                                    await refetch();
+                                } catch (error) {
+                                    console.error('Error refreshing charts:', error);
+                                }
+                            }}
+                            disabled={isRefetching || !branchId || !residentId}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg text-sm font-medium hover:bg-[var(--theme-primary-hover)] transition disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <RefreshCw className="h-4 w-4" />
-                            Refresh
+                            <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+                            {isRefetching ? 'Refreshing...' : 'Refresh'}
                         </button>
                     </div>
                 </div>
@@ -337,13 +419,7 @@ export default function BehaviorChartsView() {
                                         </td>
                                         <td className="px-6 py-4">
                                             {chart.status ? (
-                                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                                                    chart.status === 'submitted' 
-                                                        ? 'bg-green-100 text-green-800' 
-                                                        : 'bg-amber-100 text-amber-800'
-                                                }`}>
-                                                    {chart.status}
-                                                </span>
+                                                getStatusBadge(chart.status)
                                             ) : (
                                                 <span className="text-sm text-gray-400">-</span>
                                             )}
@@ -354,7 +430,7 @@ export default function BehaviorChartsView() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            {chart.status === 'submitted' ? (
+                                            {['submitted', 'approved', 'declined', 'pending'].includes(chart.status) ? (
                                                 <button
                                                     onClick={() => handleViewChart(chart)}
                                                     className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors text-sm font-medium"
@@ -367,7 +443,7 @@ export default function BehaviorChartsView() {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            {chart.status === 'submitted' ? (
+                                            {['submitted', 'approved', 'declined', 'pending'].includes(chart.status) ? (
                                                 <div className="relative flex items-center justify-center" ref={(el) => (menuRefs.current[chart.id] = el)}>
                                                     <button
                                                         onClick={(e) => {
@@ -614,6 +690,88 @@ export default function BehaviorChartsView() {
                                 className="px-6 py-2.5 bg-[var(--theme-primary)] text-white rounded-lg font-semibold hover:bg-[var(--theme-primary-hover)] transition-colors"
                             >
                                 Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Review Chart Modal */}
+            {reviewChart && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                                <CheckCircle className="w-6 h-6 text-[var(--theme-primary)]" />
+                                Review Chart
+                            </h2>
+                            <button 
+                                onClick={handleCloseReviewModal}
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 space-y-4">
+                            {/* Chart Info */}
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-900 mb-1" style={{ color: '#111827' }}>Resident</label>
+                                    <p className="text-sm font-medium text-gray-900">
+                                        {reviewChart.resident?.first_name} {reviewChart.resident?.last_name}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-900 mb-1" style={{ color: '#111827' }}>Caregiver</label>
+                                    <p className="text-sm font-medium text-gray-900">
+                                        {reviewChart.caregiver?.name || 'N/A'}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-900 mb-1" style={{ color: '#111827' }}>Branch</label>
+                                    <p className="text-sm font-medium text-gray-900">
+                                        {reviewChart.resident?.branch?.name || 'N/A'}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-900 mb-1" style={{ color: '#111827' }}>Status</label>
+                                    <div>{getStatusBadge(reviewChart.status)}</div>
+                                </div>
+                            </div>
+
+                            {/* Status Selection */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-900 mb-2" style={{ color: '#111827' }}>Select Status:</label>
+                                <select
+                                    value={reviewStatus}
+                                    onChange={(e) => setReviewStatus(e.target.value)}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                >
+                                    <option value="">Select</option>
+                                    <option value="approved">Approved</option>
+                                    <option value="declined">Declined</option>
+                                    <option value="pending">Pending</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
+                            <button
+                                onClick={handleCloseReviewModal}
+                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSubmitReview}
+                                disabled={!reviewStatus || isSubmittingReview}
+                                className="px-6 py-2 bg-[var(--theme-primary)] text-white rounded-lg font-semibold hover:bg-[var(--theme-primary-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isSubmittingReview ? 'Saving...' : 'Save Status'}
                             </button>
                         </div>
                     </div>

@@ -26,7 +26,7 @@ class ResidentChartController extends BaseApiController
             'items.definition.category',
             'logs'
         ])
-            ->where('status', 'submitted')
+            ->whereIn('status', ['submitted', 'approved', 'declined', 'pending'])
             ->orderBy('chart_date', 'desc')
             ->orderBy('submitted_at', 'desc');
 
@@ -202,5 +202,25 @@ class ResidentChartController extends BaseApiController
             ->paginate(15);
 
         return response()->json($history);
+    }
+
+    /**
+     * Update chart status (for review/approval).
+     */
+    public function updateStatus(Request $request, $id): JsonResponse
+    {
+        $request->validate([
+            'status' => 'required|in:approved,declined,pending',
+        ]);
+
+        $chart = BehaviorChart::findOrFail($id);
+        $chart->update([
+            'status' => $request->status,
+        ]);
+
+        return response()->json([
+            'message' => 'Chart status updated successfully.',
+            'chart' => $chart->load(['resident', 'caregiver', 'items', 'logs']),
+        ]);
     }
 }
