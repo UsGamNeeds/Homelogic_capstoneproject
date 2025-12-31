@@ -417,7 +417,7 @@ export default function AppointmentsDashboard() {
 
     const handleCancel = (appointment) => {
         setCancellingAppointment(appointment);
-        setCancellationStatus('cancelled');
+        setCancellationStatus(appointment.status || 'scheduled');
         setCancellationNotes('');
     };
 
@@ -812,22 +812,13 @@ export default function AppointmentsDashboard() {
                                                     Complete
                                                 </button>
                                                 <button
-                                                    onClick={() => handleReschedule(appointment)}
-                                                    disabled={rescheduleMutation.isPending}
-                                                    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-1.5 disabled:opacity-50"
-                                                    title="Reschedule Appointment"
-                                                >
-                                                    <CalendarClock className="w-4 h-4" />
-                                                    Reschedule
-                                                </button>
-                                                <button
                                                     onClick={() => handleCancel(appointment)}
                                                     disabled={cancelMutation.isPending}
-                                                    className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center gap-1.5 disabled:opacity-50"
-                                                    title="Cancel Appointment"
+                                                    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-1.5 disabled:opacity-50"
+                                                    title="Update Appointment Status"
                                                 >
-                                                    <XCircle className="w-4 h-4" />
-                                                    Cancel
+                                                    <CalendarClock className="w-4 h-4" />
+                                                    Update
                                                 </button>
                                             </>
                                         )}

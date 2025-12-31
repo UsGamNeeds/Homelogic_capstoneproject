@@ -2,8 +2,15 @@ import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
-import { Calendar, Edit, ArrowLeft, CheckCircle, Stethoscope, MapPin, ChevronDown, X, List, Grid } from 'lucide-react';
+import { Calendar, Edit, ArrowLeft, CheckCircle, Stethoscope, MapPin, ChevronDown, X, List, Grid, Clock, TrendingUp, Search } from 'lucide-react';
 import CalendarView from '../components/CalendarView';
+
+const tabs = [
+    { id: 'today', label: 'Today', icon: Calendar },
+    { id: 'upcoming', label: 'Upcoming', icon: Clock },
+    { id: 'completed', label: 'Completed', icon: CheckCircle },
+    { id: 'this_month', label: 'This Month', icon: TrendingUp },
+];
 
 export default function CreateAppointment() {
     const { residentId } = useParams();
@@ -21,6 +28,8 @@ export default function CreateAppointment() {
     const [completingAppointment, setCompletingAppointment] = useState(null);
     const [completionNotes, setCompletionNotes] = useState('');
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar' - default to list (calendar hidden)
+    const [activeTab, setActiveTab] = useState('upcoming'); // 'today', 'upcoming', 'completed', 'this_month'
+    const [search, setSearch] = useState('');
 
     // Fetch resident data
     const { data: residentData, isLoading: residentLoading } = useQuery({
@@ -34,14 +43,39 @@ export default function CreateAppointment() {
 
     // Fetch appointments for this resident
     const { data: appointmentsData, isLoading: appointmentsLoading, refetch } = useQuery({
-        queryKey: ['appointments', residentId],
+        queryKey: ['appointments', residentId, activeTab, search],
         queryFn: async () => {
-            const response = await api.get('/appointments', {
-                params: {
-                    resident_id: residentId,
-                    per_page: 100
-                }
-            });
+            const params = {
+                resident_id: residentId,
+                per_page: 100
+            };
+            
+            // Apply status filter based on active tab
+            if (activeTab === 'completed') {
+                params.status = 'completed';
+            } else if (activeTab === 'upcoming') {
+                // Set date_filter to upcoming - backend will exclude completed/cancelled
+                params.date_filter = 'upcoming';
+            } else if (activeTab === 'today') {
+                params.date_filter = 'today';
+            } else if (activeTab === 'this_month') {
+                // For this month, we need to filter by date range
+                const startOfMonth = new Date();
+                startOfMonth.setDate(1);
+                startOfMonth.setHours(0, 0, 0, 0);
+                const endOfMonth = new Date(startOfMonth);
+                endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+                endOfMonth.setDate(0);
+                endOfMonth.setHours(23, 59, 59, 999);
+                params.date_from = startOfMonth.toISOString().split('T')[0];
+                params.date_to = endOfMonth.toISOString().split('T')[0];
+            }
+            
+            if (search) {
+                params.search = search;
+            }
+            
+            const response = await api.get('/appointments', { params });
             return response.data;
         },
         enabled: !!residentId,
@@ -323,32 +357,43 @@ export default function CreateAppointment() {
 
             {/* Appointment History Grid */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-gray-900">Appointment History</h2>
-                    {appointmentsData?.data?.length > 0 && (
-                        <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
-                            <button
-                                onClick={() => setViewMode('list')}
-                                className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${viewMode === 'list'
-                                    ? 'bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)]'
-                                    : 'text-gray-700 hover:bg-gray-50'
-                                    }`}
-                            >
-                                <List className="w-4 h-4" />
-                                List View
-                            </button>
-                            <button
-                                onClick={() => setViewMode('calendar')}
-                                className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${viewMode === 'calendar'
-                                    ? 'bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)]'
-                                    : 'text-gray-700 hover:bg-gray-50'
-                                    }`}
-                            >
-                                <Grid className="w-4 h-4" />
-                                Calendar View
-                            </button>
+                <div className="px-6 py-4 border-b border-gray-200">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Appointment History</h2>
+                    
+                    {/* Tab Navigation with Search */}
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 rounded-2xl bg-white p-2 shadow-sm ring-1 ring-gray-100">
+                        <nav className="flex flex-wrap gap-2">
+                            {tabs.map(({ id, label, icon: Icon }) => {
+                                const isActive = activeTab === id;
+                                return (
+                                    <button
+                                        key={id}
+                                        type="button"
+                                        onClick={() => setActiveTab(id)}
+                                        className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition whitespace-nowrap ${
+                                            isActive
+                                                ? 'bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] shadow-sm'
+                                                : 'text-gray-600 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        <Icon className="h-4 w-4" />
+                                        <span>{label}</span>
+                                    </button>
+                                );
+                            })}
+                        </nav>
+                        
+                        <div className="relative w-full md:w-auto">
+                            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Search appointments..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm w-full md:w-64 focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                            />
                         </div>
-                    )}
+                    </div>
                 </div>
                 <div className="p-6">
                     {appointmentsLoading ? (
