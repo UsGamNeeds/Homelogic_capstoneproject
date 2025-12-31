@@ -208,7 +208,7 @@ export default function BehaviorChartsView() {
     const getStatusBadge = (status) => {
         if (status === 'submitted') {
             return (
-                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 !text-green-800">
                     <CheckCircle2 className="w-3 h-3" />
                     Submitted
                 </span>
@@ -216,7 +216,7 @@ export default function BehaviorChartsView() {
         }
         if (status === 'approved') {
             return (
-                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 !text-blue-800">
                     <CheckCircle2 className="w-3 h-3" />
                     Approved
                 </span>
@@ -224,7 +224,7 @@ export default function BehaviorChartsView() {
         }
         if (status === 'declined') {
             return (
-                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 !text-red-800">
                     <X className="w-3 h-3" />
                     Declined
                 </span>
@@ -232,14 +232,14 @@ export default function BehaviorChartsView() {
         }
         if (status === 'pending') {
             return (
-                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 !text-amber-800">
                     <Clock className="w-3 h-3" />
                     Pending
                 </span>
             );
         }
         return (
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 !text-amber-800">
                 <Clock className="w-3 h-3" />
                 Draft
             </span>
@@ -605,8 +605,8 @@ export default function BehaviorChartsView() {
                                                                 </td>
                                                                 <td className="px-4 py-3">
                                                                     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${item.value
-                                                                        ? 'bg-green-100 text-green-800'
-                                                                        : 'bg-red-100 text-red-800'
+                                                                        ? 'bg-green-100 !text-green-800'
+                                                                        : 'bg-red-100 !text-red-800'
                                                                         }`}>
                                                                         {item.value ? 'Yes' : 'No'}
                                                                     </span>
@@ -663,8 +663,8 @@ export default function BehaviorChartsView() {
                                                         </td>
                                                         <td className="p-3 border-r border-gray-200">
                                                             <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${log.reported_to_provider
-                                                                ? 'bg-green-100 text-green-800'
-                                                                : 'bg-gray-100 text-gray-800'
+                                                                ? 'bg-green-100 !text-green-800'
+                                                                : 'bg-gray-100 !text-gray-800'
                                                                 }`}>
                                                                 {log.reported_to_provider ? 'Yes' : 'No'}
                                                             </span>
