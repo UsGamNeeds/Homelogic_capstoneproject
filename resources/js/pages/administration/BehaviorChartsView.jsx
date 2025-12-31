@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { 
     ClipboardList, 
@@ -21,6 +22,7 @@ import {
 import { formatPacificDate } from '../../utils/pacificTime';
 
 export default function BehaviorChartsView() {
+    const navigate = useNavigate();
     const [branchId, setBranchId] = useState(null);
     const [residentId, setResidentId] = useState(null);
     const [month, setMonth] = useState(() => {
@@ -392,6 +394,11 @@ export default function BehaviorChartsView() {
                                                 </div>
                                             ) : (
                                                 <button
+                                                    onClick={() => {
+                                                        // Navigate to chart page with date parameter to create a new chart for that date
+                                                        const chartDate = chart.chart_date || new Date().toISOString().split('T')[0];
+                                                        navigate(`/charts/resident/${chart.resident_id}?date=${chartDate}&new=true`);
+                                                    }}
                                                     className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors text-sm font-medium"
                                                 >
                                                     Chart
@@ -435,17 +442,17 @@ export default function BehaviorChartsView() {
                             <div className="bg-gray-50 rounded-xl p-4">
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <div>
-                                        <p className="text-base font-bold mb-1" style={{ color: '#111827' }}>Status</p>
+                                        <label className="block text-sm font-semibold text-gray-900 mb-2" style={{ color: '#111827' }}>Status</label>
                                         <div>{getStatusBadge(selectedChart.status)}</div>
                                     </div>
                                     <div>
-                                        <p className="text-base font-bold mb-1" style={{ color: '#111827' }}>Submitted By</p>
+                                        <label className="block text-sm font-semibold text-gray-900 mb-2" style={{ color: '#111827' }}>Submitted By</label>
                                         <p className="text-sm font-medium text-gray-900">
                                             {selectedChart.caregiver?.name || 'N/A'}
                                         </p>
                                     </div>
                                     <div>
-                                        <p className="text-base font-bold mb-1" style={{ color: '#111827' }}>Submitted On</p>
+                                        <label className="block text-sm font-semibold text-gray-900 mb-2" style={{ color: '#111827' }}>Submitted On</label>
                                         <p className="text-sm font-medium text-gray-900">
                                             {selectedChart.submitted_at 
                                                 ? new Date(selectedChart.submitted_at).toLocaleString()
@@ -453,7 +460,7 @@ export default function BehaviorChartsView() {
                                         </p>
                                     </div>
                                     <div>
-                                        <p className="text-base font-bold mb-1" style={{ color: '#111827' }}>Total Items</p>
+                                        <label className="block text-sm font-semibold text-gray-900 mb-2" style={{ color: '#111827' }}>Total Items</label>
                                         <p className="text-sm font-medium text-gray-900">
                                             {selectedChart.items?.length || 0}
                                         </p>

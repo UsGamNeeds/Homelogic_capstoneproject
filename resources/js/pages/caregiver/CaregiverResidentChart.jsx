@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     ArrowLeft, Save, CheckCircle2, AlertCircle, Plus, X,
@@ -12,6 +12,9 @@ export default function CaregiverResidentChart() {
     const { residentId } = useParams();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const [searchParams] = useSearchParams();
+    const chartDate = searchParams.get('date');
+    const isNew = searchParams.get('new') === 'true';
 
     const [chartData, setChartData] = useState({
         items: [],
@@ -19,6 +22,7 @@ export default function CaregiverResidentChart() {
     });
     const [currentTimeError, setCurrentTimeError] = useState(null);
     const [saving, setSaving] = useState(false);
+    const [selectedDate, setSelectedDate] = useState(chartDate || new Date().toISOString().split('T')[0]);
 
     // Fetch resident info
     const { data: resident, isLoading: isLoadingResident } = useQuery({
@@ -27,18 +31,34 @@ export default function CaregiverResidentChart() {
         enabled: !!residentId
     });
 
-    // Fetch definitions and today's chart
+    // Fetch definitions and chart for the selected date
     const { data: initData, isLoading: isLoadingInit } = useQuery({
-        queryKey: ['resident-chart-init', residentId],
+        queryKey: ['resident-chart-init', residentId, selectedDate, isNew],
         queryFn: async () => {
-            const [definitionsRes, chartRes] = await Promise.all([
-                api.get('/chart-data-definitions'),
-                api.get(`/resident-charts/${residentId}`)
+            const [definitionsRes] = await Promise.all([
+                api.get('/chart-data-definitions')
             ]);
+            
+            let chart = null;
+            // Only fetch existing chart if not creating a new one
+            if (!isNew) {
+                try {
+                    const chartRes = await api.get(`/resident-charts/${residentId}`);
+                    const fetchedChart = chartRes.data.chart;
+                    // Only use the chart if it's for the selected date
+                    if (fetchedChart && fetchedChart.chart_date === selectedDate) {
+                        chart = fetchedChart;
+                    }
+                } catch (error) {
+                    // Chart doesn't exist, that's fine - we'll create a new one
+                    console.log('No existing chart found for this date');
+                }
+            }
+            
             const allowedCategories = ['Resistive', 'Behavior', 'Others'];
             return {
                 categories: definitionsRes.data.filter(cat => allowedCategories.includes(cat.name)),
-                chart: chartRes.data.chart
+                chart: chart
             };
         },
         enabled: !!residentId
@@ -48,11 +68,12 @@ export default function CaregiverResidentChart() {
         if (initData) {
             const { categories, chart } = initData;
 
-            // Map definitions to items
+            // Map definitions to items - always start fresh if isNew is true
             const initialItems = [];
             categories.forEach(cat => {
                 cat.definitions.forEach(def => {
-                    const existingItem = chart?.items?.find(item => item.behavior_definition_id === def.id);
+                    // Only use existing item value if chart exists and we're not creating new
+                    const existingItem = (!isNew && chart?.items) ? chart.items.find(item => item.behavior_definition_id === def.id) : null;
                     initialItems.push({
                         behavior_definition_id: def.id,
                         name: def.name,
@@ -65,10 +86,10 @@ export default function CaregiverResidentChart() {
 
             setChartData({
                 items: initialItems,
-                logs: chart?.logs || []
+                logs: (!isNew && chart?.logs) ? chart.logs : []
             });
         }
-    }, [initData]);
+    }, [initData, isNew]);
 
     const checkTimeValidity = () => {
         // Time validation disabled for testing
@@ -137,7 +158,7 @@ export default function CaregiverResidentChart() {
         try {
             await api.post('/resident-charts', {
                 resident_id: residentId,
-                chart_date: new Date().toISOString().split('T')[0],
+                chart_date: selectedDate,
                 status: status,
                 items: chartData.items.map(item => ({
                     behavior_definition_id: item.behavior_definition_id,
