@@ -242,12 +242,46 @@ class AppointmentController extends BaseApiController
             'healthcare_provider_id' => 'nullable|exists:healthcare_providers,id',
             'appointment_date' => 'sometimes|required|date',
             'appointment_time' => 'sometimes|required|date_format:H:i',
+            'reschedule_reason' => 'nullable|string',
             'provider_name' => 'nullable|string|max:255',
             'location' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'status' => 'nullable|in:scheduled,completed,cancelled,confirmed,in_progress,no_show,rescheduled',
             'notes' => 'nullable|string',
         ]);
+
+        // Check if this is a reschedule (date or time is being changed)
+        $isReschedule = false;
+        if (isset($validated['appointment_date']) || isset($validated['appointment_time'])) {
+            $newDate = $validated['appointment_date'] ?? $appointment->appointment_date;
+            $newTime = $validated['appointment_time'] ?? $appointment->appointment_time;
+            
+            // Compare dates (normalize to strings for comparison)
+            $oldDateStr = $appointment->appointment_date instanceof \Carbon\Carbon 
+                ? $appointment->appointment_date->toDateString() 
+                : $appointment->appointment_date;
+            $newDateStr = $newDate instanceof \Carbon\Carbon 
+                ? $newDate->toDateString() 
+                : $newDate;
+            
+            $oldTimeStr = $appointment->appointment_time ? substr($appointment->appointment_time, 0, 5) : '';
+            $newTimeStr = $newTime ? substr($newTime, 0, 5) : '';
+            
+            if ($oldDateStr !== $newDateStr || $oldTimeStr !== $newTimeStr) {
+                $isReschedule = true;
+                
+                // Save original date and time if not already saved
+                if (!$appointment->original_appointment_date) {
+                    $validated['original_appointment_date'] = $appointment->appointment_date;
+                    $validated['original_appointment_time'] = $appointment->appointment_time;
+                }
+                
+                // Set status to rescheduled if not explicitly set
+                if (!isset($validated['status'])) {
+                    $validated['status'] = 'rescheduled';
+                }
+            }
+        }
 
         // If appointment_date or appointment_time is updated, regenerate title if needed
         if (isset($validated['appointment_date']) || isset($validated['appointment_time'])) {

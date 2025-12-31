@@ -259,8 +259,72 @@ export default function AppointmentDetail() {
 
                         {appointment.description && (
                             <div className="mt-4 pt-4 border-t border-gray-200">
-                                <p className="text-xs text-gray-500 mb-1">Description</p>
+                                <p className="text-xs text-gray-500 mb-1">Description / Reason for Scheduling</p>
                                 <p className="text-sm text-gray-700 whitespace-pre-wrap">{appointment.description}</p>
+                            </div>
+                        )}
+
+                        {/* Reschedule Information */}
+                        {appointment.status === 'rescheduled' && appointment.original_appointment_date && (
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                                <p className="text-xs text-gray-500 mb-2 font-semibold">Reschedule Information</p>
+                                <div className="space-y-2">
+                                    <div className="flex items-start space-x-3">
+                                        <Calendar className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <p className="text-xs text-gray-500">Original Scheduled Date</p>
+                                            <p className="text-sm font-medium text-gray-900">
+                                                {new Date(appointment.original_appointment_date).toLocaleDateString('en-US', {
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric'
+                                                })}
+                                                {appointment.original_appointment_time && (
+                                                    <span className="ml-2">
+                                                        at {(() => {
+                                                            const [hours, minutes] = appointment.original_appointment_time.split(':');
+                                                            const hour12 = hours % 12 || 12;
+                                                            const ampm = hours >= 12 ? 'PM' : 'AM';
+                                                            return `${hour12}:${minutes} ${ampm}`;
+                                                        })()}
+                                                    </span>
+                                                )}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start space-x-3">
+                                        <Calendar className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <p className="text-xs text-gray-500">New Scheduled Date</p>
+                                            <p className="text-sm font-medium text-gray-900">
+                                                {appointment.appointment_date 
+                                                    ? new Date(appointment.appointment_date).toLocaleDateString('en-US', {
+                                                        year: 'numeric',
+                                                        month: 'long',
+                                                        day: 'numeric'
+                                                    })
+                                                    : 'N/A'
+                                                }
+                                                {appointment.appointment_time && (
+                                                    <span className="ml-2">
+                                                        at {(() => {
+                                                            const [hours, minutes] = appointment.appointment_time.split(':');
+                                                            const hour12 = hours % 12 || 12;
+                                                            const ampm = hours >= 12 ? 'PM' : 'AM';
+                                                            return `${hour12}:${minutes} ${ampm}`;
+                                                        })()}
+                                                    </span>
+                                                )}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {appointment.reschedule_reason && (
+                                        <div className="mt-3 pt-3 border-t border-gray-100">
+                                            <p className="text-xs text-gray-500 mb-1">Reason for Rescheduling</p>
+                                            <p className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 rounded p-2">{appointment.reschedule_reason}</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>

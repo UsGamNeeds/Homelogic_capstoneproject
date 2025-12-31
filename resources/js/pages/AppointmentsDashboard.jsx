@@ -62,6 +62,7 @@ export default function AppointmentsDashboard() {
     const [rescheduleFormData, setRescheduleFormData] = useState({
         appointment_date: '',
         appointment_time: '',
+        reschedule_reason: '',
     });
     const [cancellingAppointment, setCancellingAppointment] = useState(null);
     const [cancellationStatus, setCancellationStatus] = useState('cancelled');
@@ -404,11 +405,12 @@ export default function AppointmentsDashboard() {
 
     // Reschedule appointment mutation
     const rescheduleMutation = useMutation({
-        mutationFn: async ({ id, appointment_date, appointment_time }) => {
-            console.log('Rescheduling appointment:', { id, appointment_date, appointment_time });
+        mutationFn: async ({ id, appointment_date, appointment_time, reschedule_reason }) => {
+            console.log('Rescheduling appointment:', { id, appointment_date, appointment_time, reschedule_reason });
             const response = await api.put(`/appointments/${id}`, {
                 appointment_date,
                 appointment_time,
+                reschedule_reason: reschedule_reason || null,
             });
             console.log('Reschedule response:', response);
             return response;
@@ -417,7 +419,7 @@ export default function AppointmentsDashboard() {
             queryClient.invalidateQueries(['appointments-dashboard']);
             queryClient.invalidateQueries(['appointments-statistics']);
             setReschedulingAppointment(null);
-            setRescheduleFormData({ appointment_date: '', appointment_time: '' });
+            setRescheduleFormData({ appointment_date: '', appointment_time: '', reschedule_reason: '' });
             if (toast) {
                 toast.success('Appointment rescheduled successfully!', '', { isFormSubmission: true });
             } else {
@@ -482,6 +484,7 @@ export default function AppointmentsDashboard() {
         setRescheduleFormData({
             appointment_date: formattedDate,
             appointment_time: formattedTime,
+            reschedule_reason: '',
         });
     };
 
@@ -507,6 +510,7 @@ export default function AppointmentsDashboard() {
             id: reschedulingAppointment.id,
             appointment_date: rescheduleFormData.appointment_date,
             appointment_time: timeFormatted,
+            reschedule_reason: rescheduleFormData.reschedule_reason || null,
         });
     };
 
@@ -1228,7 +1232,7 @@ export default function AppointmentsDashboard() {
                             <button 
                                 onClick={() => {
                                     setReschedulingAppointment(null);
-                                    setRescheduleFormData({ appointment_date: '', appointment_time: '' });
+                                    setRescheduleFormData({ appointment_date: '', appointment_time: '', reschedule_reason: '' });
                                 }} 
                                 className="text-gray-500 hover:text-gray-700 text-2xl"
                             >
@@ -1257,8 +1261,18 @@ export default function AppointmentsDashboard() {
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                                     />
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">Reason for Rescheduling (Optional)</label>
+                                    <textarea
+                                        value={rescheduleFormData.reschedule_reason}
+                                        onChange={(e) => setRescheduleFormData({ ...rescheduleFormData, reschedule_reason: e.target.value })}
+                                        rows={3}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                        placeholder="Enter the reason for rescheduling this appointment..."
+                                    />
+                                </div>
                                 {reschedulingAppointment && (
-                                    <div className="text-sm text-gray-600">
+                                    <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
                                         <p><strong>Resident:</strong> {reschedulingAppointment.resident?.name || reschedulingAppointment.resident?.first_name + ' ' + reschedulingAppointment.resident?.last_name}</p>
                                         <p><strong>Current Date:</strong> {new Date(reschedulingAppointment.appointment_date).toLocaleDateString()}</p>
                                         <p><strong>Current Time:</strong> {reschedulingAppointment.appointment_time}</p>
@@ -1270,7 +1284,7 @@ export default function AppointmentsDashboard() {
                                     type="button"
                                     onClick={() => {
                                         setReschedulingAppointment(null);
-                                        setRescheduleFormData({ appointment_date: '', appointment_time: '' });
+                                        setRescheduleFormData({ appointment_date: '', appointment_time: '', reschedule_reason: '' });
                                     }}
                                     className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-all"
                                 >
