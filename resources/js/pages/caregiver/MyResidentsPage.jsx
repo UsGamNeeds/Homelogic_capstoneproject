@@ -63,7 +63,11 @@ export default function MyResidentsPage() {
             if (debouncedSearch) {
                 params.search = debouncedSearch;
             }
-            // Don't pass branch_id - backend will automatically filter by caregiver's branch
+            // For caregivers, backend automatically filters by assigned branch
+            // For administrators with assigned branch, explicitly pass branch_id to ensure correct filtering
+            if (currentUser?.assigned_branch_id) {
+                params.branch_id = currentUser.assigned_branch_id;
+            }
             const response = await api.get('/residents', { params });
             return response.data;
         },
@@ -90,13 +94,24 @@ export default function MyResidentsPage() {
         }));
     }, [residents]);
 
-    // Derive the caregiver's branch name from the residents list (caregivers are scoped to one branch)
+    // Get the branch name from the user's assigned branch (primary source)
+    // Fallback to residents list only if user doesn't have assigned_branch loaded
     const branchName = React.useMemo(() => {
+        // First priority: Use the user's assigned branch directly
+        if (currentUser?.assigned_branch?.name) {
+            return currentUser.assigned_branch.name;
+        }
+        // Second priority: Try to get from user's assigned_branch_id if branch object isn't loaded
+        if (currentUser?.assigned_branch_id && residents.length > 0) {
+            const residentFromBranch = residents.find((r) => r?.branch_id === currentUser.assigned_branch_id);
+            if (residentFromBranch?.branch?.name) {
+                return residentFromBranch.branch.name;
+            }
+        }
+        // Last resort: Get from any resident (shouldn't happen if backend filtering works correctly)
         const withBranch = residents.find((r) => r?.branch?.name);
-        if (withBranch?.branch?.name) return withBranch.branch.name;
-        if (currentUser?.assigned_branch?.name) return currentUser.assigned_branch.name;
-        return null;
-    }, [residents, currentUser?.assigned_branch?.name]);
+        return withBranch?.branch?.name || null;
+    }, [residents, currentUser?.assigned_branch?.name, currentUser?.assigned_branch_id]);
 
     const renderResidentCard = (resident) => {
         const isActive = resident?.is_active === true || resident?.is_active === 1 || resident?.is_active === '1';
