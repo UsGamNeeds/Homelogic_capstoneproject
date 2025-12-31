@@ -746,12 +746,12 @@ export default function BehaviorChartsView() {
                                 <select
                                     value={reviewStatus}
                                     onChange={(e) => setReviewStatus(e.target.value)}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent !text-black bg-white"
                                 >
-                                    <option value="">Select</option>
-                                    <option value="approved">Approved</option>
-                                    <option value="declined">Declined</option>
-                                    <option value="pending">Pending</option>
+                                    <option value="" className="!text-black bg-white">Select</option>
+                                    <option value="approved" className="!text-black bg-white">Approved</option>
+                                    <option value="declined" className="!text-black bg-white">Declined</option>
+                                    <option value="pending" className="!text-black bg-white">Pending</option>
                                 </select>
                             </div>
                         </div>

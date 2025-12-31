@@ -21,7 +21,7 @@ class ResidentChartController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $query = BehaviorChart::with([
-            'resident', 
+            'resident.branch', 
             'caregiver', 
             'items.definition.category',
             'logs'
@@ -181,7 +181,7 @@ class ResidentChartController extends BaseApiController
     public function showChart($id): JsonResponse
     {
         $chart = BehaviorChart::with([
-            'resident',
+            'resident.branch',
             'caregiver',
             'items.definition.category',
             'logs'
