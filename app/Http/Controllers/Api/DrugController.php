@@ -16,6 +16,9 @@ class DrugController extends BaseApiController
 
         // Filter by facility: Show only drugs used in medications or pharmacy inventory within user's facility
         // Super admins see all drugs
+        // COMMENTED OUT: This restricts viewing newly created drugs which are not yet used.
+        // Users should see the global drug list to be able to add/manage them.
+        /*
         if ($user && $user->role !== 'super_admin') {
             if ($user->facility_id) {
                 $query->where(function($q) use ($user) {
@@ -33,6 +36,7 @@ class DrugController extends BaseApiController
                 $query->whereRaw('1 = 0'); // Force empty result
             }
         }
+        */
 
         // Filter by active status
         if ($request->has('active_only') && $request->get('active_only') === 'true') {
