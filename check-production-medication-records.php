@@ -30,8 +30,10 @@ if ($medication17) {
     echo "  Resident ID: {$medication17->resident_id}\n";
     echo "  Branch ID: {$medication17->branch_id}\n";
     echo "  Active: " . ($medication17->is_active ? 'Yes' : 'No') . "\n";
-    echo "  Start Date: " . ($medication17->start_date ?? 'null') . "\n";
-    echo "  End Date: " . ($medication17->end_date ?? 'null') . "\n";
+    $startDate = $medication17->start_date ? $medication17->start_date : 'null';
+    $endDate = $medication17->end_date ? $medication17->end_date : 'null';
+    echo "  Start Date: {$startDate}\n";
+    echo "  End Date: {$endDate}\n";
     echo "  Times: {$medication17->time_1}, {$medication17->time_2}, {$medication17->time_3}, {$medication17->time_4}\n\n";
     
     $med17Records = MedicationAdministration::where('medication_id', 17)->count();
@@ -81,7 +83,10 @@ $recentMissed = MedicationAdministration::where('status', 'missed')
 foreach ($recentMissed as $record) {
     $med = Medication::find($record->medication_id);
     $resident = Resident::find($record->resident_id);
-    echo "  ID {$record->id}: Med {$record->medication_id} ({$med->name ?? 'Unknown'}) - Resident {$record->resident_id} ({$resident->first_name ?? 'Unknown'} {$resident->last_name ?? ''}) - {$record->administered_at}\n";
+    $medName = $med ? $med->name : 'Unknown';
+    $residentFirstName = $resident ? $resident->first_name : 'Unknown';
+    $residentLastName = $resident ? $resident->last_name : '';
+    echo "  ID {$record->id}: Med {$record->medication_id} ({$medName}) - Resident {$record->resident_id} ({$residentFirstName} {$residentLastName}) - {$record->administered_at}\n";
 }
 
 echo "\n=== End of Diagnostic ===\n";
