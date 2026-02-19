@@ -1,15 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { Wifi, WifiOff, Radio } from 'lucide-react';
+import { WifiOff, Radio, CloudOff } from 'lucide-react';
 import { getEcho } from '../services/echo';
 
 /**
- * Real-time Connection Indicator
- * Shows the status of WebSocket connection
+ * Connection status indicator (top-right)
+ * - "Offline" only when the device has no network (navigator.onLine false)
+ * - "Live" when online and real-time (Pusher) is connected
+ * - "Updates paused" when online but real-time is disconnected (so we don't confuse with no internet)
  */
 export default function RealtimeIndicator() {
-  const [connected, setConnected] = useState(false);
+  const [hasNetwork, setHasNetwork] = useState(
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
   const [echo, setEcho] = useState(null);
 
+  // Actual network status (internet / WiFi / data)
+  useEffect(() => {
+    const handleOnline = () => setHasNetwork(true);
+    const handleOffline = () => setHasNetwork(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Pusher/Echo real-time connection (only when Echo is configured)
   useEffect(() => {
     const echoInstance = getEcho();
     if (!echoInstance) {
@@ -17,20 +35,12 @@ export default function RealtimeIndicator() {
     }
 
     setEcho(echoInstance);
-
     const pusher = echoInstance.connector.pusher;
 
-    // Check initial connection state
-    setConnected(pusher.connection.state === 'connected');
+    setRealtimeConnected(pusher.connection.state === 'connected');
 
-    // Listen to connection events
-    const handleConnected = () => {
-      setConnected(true);
-    };
-
-    const handleDisconnected = () => {
-      setConnected(false);
-    };
+    const handleConnected = () => setRealtimeConnected(true);
+    const handleDisconnected = () => setRealtimeConnected(false);
 
     pusher.connection.bind('connected', handleConnected);
     pusher.connection.bind('disconnected', handleDisconnected);
@@ -43,29 +53,47 @@ export default function RealtimeIndicator() {
     };
   }, []);
 
-  if (!echo) {
-    return null; // Don't show if Echo is not configured
+  // When Echo is not configured, only show badge when offline (so users see network status)
+  const showBadge = !hasNetwork || (echo && true);
+  if (!showBadge) {
+    return null;
   }
+
+  const isOffline = !hasNetwork;
+  const isLive = hasNetwork && (!echo || realtimeConnected);
 
   return (
     <div className="fixed top-4 right-4 z-50">
       <div
         className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium shadow-sm ${
-          connected
-            ? 'bg-green-100 text-green-700 border border-green-200'
-            : 'bg-yellow-100 text-yellow-700 border border-yellow-200'
+          isOffline
+            ? 'bg-red-100 text-red-700 border border-red-200'
+            : isLive
+              ? 'bg-green-100 text-green-700 border border-green-200'
+              : 'bg-yellow-100 text-yellow-700 border border-yellow-200'
         }`}
-        title={connected ? 'Real-time updates active' : 'Real-time updates disconnected'}
+        title={
+          isOffline
+            ? 'No internet connection'
+            : isLive
+              ? 'Real-time updates active'
+              : 'Real-time updates paused (you are still online)'
+        }
       >
-        {connected ? (
+        {isOffline ? (
+          <>
+            <WifiOff className="w-3 h-3" />
+            <span>Offline</span>
+          </>
+        ) : isLive ? (
           <>
             <Radio className="w-3 h-3 animate-pulse" />
             <span>Live</span>
           </>
         ) : (
           <>
-            <WifiOff className="w-3 h-3" />
-            <span>Offline</span>
+            <CloudOff className="w-3 h-3" />
+            <span>Updates paused</span>
           </>
         )}
       </div>
