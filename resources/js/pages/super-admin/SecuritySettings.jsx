@@ -306,7 +306,7 @@ export default function SecuritySettings() {
           <button
             type="submit"
             disabled={saveMutation.isPending}
-            className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold rounded-lg bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center px-3 py-2 text-xs sm:px-5 sm:py-2.5 sm:text-sm font-semibold rounded-lg bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
           </button>
@@ -413,7 +413,7 @@ export default function SecuritySettings() {
           <button
             type="submit"
             disabled={credentialsMutation.isPending}
-            className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold rounded-lg bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center px-3 py-2 text-xs sm:px-5 sm:py-2.5 sm:text-sm font-semibold rounded-lg bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Lock className="w-4 h-4 mr-2" />
             {credentialsMutation.isPending ? 'Updating...' : 'Update Credentials'}

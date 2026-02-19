@@ -280,7 +280,7 @@ export default function DatabaseSettings() {
             <button
               onClick={() => createBackupMutation.mutate()}
               disabled={createBackupMutation.isPending}
-              className="w-full px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              className="w-full px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
               {createBackupMutation.isPending ? (
                 <>
@@ -312,7 +312,7 @@ export default function DatabaseSettings() {
                 }
               }}
               disabled={restoreBackupMutation.isPending || !backups || backups.length === 0}
-              className="w-full px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              className="w-full px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
               {restoreBackupMutation.isPending ? (
                 <>
@@ -337,7 +337,7 @@ export default function DatabaseSettings() {
             <button
               onClick={() => refreshDataMutation.mutate()}
               disabled={refreshDataMutation.isPending}
-              className="w-full px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              className="w-full px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
               {refreshDataMutation.isPending ? (
                 <>
@@ -374,7 +374,7 @@ export default function DatabaseSettings() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleDownload(backup.filename)}
-                    className="px-3 py-1.5 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-1.5"
+                    className="px-2.5 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-1.5"
                     title="Download backup"
                   >
                     <Download className="w-4 h-4" />
@@ -383,7 +383,7 @@ export default function DatabaseSettings() {
                   <button
                     onClick={() => handleRestore(backup.filename)}
                     disabled={restoreBackupMutation.isPending}
-                    className="px-3 py-1.5 text-sm text-[var(--theme-primary)] border border-[var(--theme-primary)] rounded-lg hover:bg-[var(--theme-primary)]/10 disabled:opacity-50"                                                            
+                    className="px-2.5 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm text-[var(--theme-primary)] border border-[var(--theme-primary)] rounded-lg hover:bg-[var(--theme-primary)]/10 disabled:opacity-50"
                   >
                     Restore
                   </button>
@@ -440,7 +440,7 @@ export default function DatabaseSettings() {
           <button
             type="submit"
             disabled={saveMutation.isPending}
-            className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold rounded-lg bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center px-3 py-2 text-xs sm:px-5 sm:py-2.5 sm:text-sm font-semibold rounded-lg bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
           </button>

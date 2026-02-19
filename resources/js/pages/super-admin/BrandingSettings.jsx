@@ -249,7 +249,7 @@ export default function BrandingSettings() {
               />
               <label
                 htmlFor="logo-upload"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
+                className="inline-flex items-center px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm border border-gray-300 rounded-lg font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 {logoPreview || defaultValues.logo_url ? 'Change Logo' : 'Upload Logo'}
@@ -304,7 +304,7 @@ export default function BrandingSettings() {
               />
               <label
                 htmlFor="favicon-upload"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
+                className="inline-flex items-center px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm border border-gray-300 rounded-lg font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 {faviconPreview || defaultValues.favicon_url ? 'Change Favicon' : 'Upload Favicon'}
@@ -449,7 +449,7 @@ export default function BrandingSettings() {
           <button
             type="submit"
             disabled={saveMutation.isPending}
-            className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold rounded-lg bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center px-3 py-2 text-xs sm:px-5 sm:py-2.5 sm:text-sm font-semibold rounded-lg bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
           </button>

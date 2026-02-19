@@ -332,7 +332,7 @@ export default function EmailSettings() {
                   <button
                     type="submit"
                     disabled={saveMutation.isPending}
-                    className="px-4 py-2 text-sm font-medium text-white bg-[var(--theme-primary)] border border-[var(--theme-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm font-medium text-white bg-[var(--theme-primary)] border border-[var(--theme-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {saveMutation.isPending ? 'Saving...' : 'Save Settings'}
                   </button>
@@ -353,7 +353,7 @@ export default function EmailSettings() {
                     type="button"
                     onClick={handleTestEmail}
                     disabled={testEmailMutation.isPending}
-                    className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center justify-center px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm font-semibold rounded-lg bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {testEmailMutation.isPending ? (
                       <>
