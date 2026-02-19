@@ -151,6 +151,7 @@ const navigation = [
             { name: 'Residents', path: '/administration/residents' },
             // Facilities removed - only super admins can access
             { name: 'Branches', path: '/administration/branches' },
+            { name: 'Email Notifications', path: '/administration/email-settings' },
             { name: 'Vital Ranges', path: '/administration/vital-ranges' },
             { name: 'Leave Requests', path: '/administration/leave-requests' },
             { name: 'Roles & Permissions', path: '/administration/roles' },

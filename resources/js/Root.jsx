@@ -363,6 +363,7 @@ function App() {
                 <Route path="administration/roles" element={<Suspense fallback={<PageLoader />}><Roles /></Suspense>} />
                 <Route path="administration/facility-permissions" element={<Suspense fallback={<PageLoader />}><Permissions /></Suspense>} />
                 <Route path="administration/users" element={<Suspense fallback={<PageLoader />}><Users /></Suspense>} />
+                <Route path="administration/email-settings" element={<Suspense fallback={<PageLoader />}><SuperAdminEmailSettings /></Suspense>} />
                 <Route path="administration/users/create" element={<Suspense fallback={<PageLoader />}><UserCreate /></Suspense>} />
                 <Route path="administration/users/:id/edit" element={<Suspense fallback={<PageLoader />}><UserEdit /></Suspense>} />
                 <Route path="administration/users/:id" element={<Suspense fallback={<PageLoader />}><ViewUser /></Suspense>} />
