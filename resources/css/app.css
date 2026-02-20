@@ -471,15 +471,15 @@ aside[class*="bg-\[var\(--theme-primary\)\]"] .text-gray-600:not([class*="bg-whi
     color: var(--theme-text-on-primary, #FFFFFF) !important;
 }
 
-/* Any element with black/dark backgrounds should have white text */
-/* This is a fallback for any black backgrounds */
-[class*="bg-black"]:not([class*="bg-white"]),
+/* Any element with a solid black background should have white text */
+/* Use ~= (exact word match) so bg-black/40, bg-black/50, etc. are NOT caught */
+[class~="bg-black"]:not([class*="bg-white"]),
 [style*="background-color: #000"]:not([class*="bg-white"]),
 [style*="background: #000"]:not([class*="bg-white"]) {
     color: #FFFFFF !important;
 }
 
-[class*="bg-black"] *:not([class*="bg-white"]),
+[class~="bg-black"] *:not([class*="bg-white"]),
 [style*="background-color: #000"] *:not([class*="bg-white"]),
 [style*="background: #000"] *:not([class*="bg-white"]) {
     color: #FFFFFF !important;
