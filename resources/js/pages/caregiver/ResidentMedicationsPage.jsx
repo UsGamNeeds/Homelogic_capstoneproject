@@ -635,28 +635,42 @@ function QuickAdminister({ medication, onSuccess }) {
         },
     });
 
-    // Calculate daily limit based on instructions
-    const getDailyLimit = () => {
-        const instruction = (medication.instructions || '').toLowerCase().trim();
-        if (instruction.includes('prn')) return null; // unlimited
-        if (['b.i.d', 'bid', 'b.i.d.'].includes(instruction)) return 2;
-        if (['t.i.d', 'tid', 't.i.d.'].includes(instruction)) return 3;
-        if (['q.i.d', 'qid', 'q.i.d.'].includes(instruction)) return 4;
-        if (['a.m', 'am', 'p.m', 'pm', 'h.s', 'hs'].includes(instruction)) return 1;
-        return null; // unknown instruction, allow
-    };
-
-    // Check if daily limit is reached
+    // Check if daily limit is reached by counting unique administered time slots
     React.useEffect(() => {
-        const dailyLimit = getDailyLimit();
-        if (dailyLimit === null) {
+        if (isPrnMedication) {
             setIsDailyLimitReached(false);
             return;
         }
 
-        const countToday = todayAdminData?.data?.filter(a => a.status !== 'missed')?.length || 0;
-        setIsDailyLimitReached(countToday >= dailyLimit);
-    }, [todayAdminData, isPrnMedication]);
+        const timeSlots = [medication.time_1, medication.time_2, medication.time_3, medication.time_4].filter(Boolean);
+        if (timeSlots.length === 0) {
+            setIsDailyLimitReached(false);
+            return;
+        }
+
+        const admins = todayAdminData?.data?.filter(a => a.status !== 'missed') || [];
+        if (admins.length === 0) {
+            setIsDailyLimitReached(false);
+            return;
+        }
+
+        const toleranceMs = 2 * 60 * 60 * 1000;
+        let administeredSlots = 0;
+        for (const slot of timeSlots) {
+            const scheduledTime = toPacificDateFromTime(slot, { referenceDate: getPacificNow() });
+            if (!scheduledTime) continue;
+
+            const matched = admins.some(admin => {
+                const adminTime = parseAdminTimeToPacific(admin.administered_at);
+                if (!adminTime) return false;
+                return Math.abs(adminTime.getTime() - scheduledTime.getTime()) <= toleranceMs;
+            });
+
+            if (matched) administeredSlots++;
+        }
+
+        setIsDailyLimitReached(administeredSlots >= timeSlots.length);
+    }, [todayAdminData, isPrnMedication, medication.time_1, medication.time_2, medication.time_3, medication.time_4]);
 
     // Helper function to parse time and convert to today's date with an optional day offset
     const parseTimeToToday = React.useCallback(

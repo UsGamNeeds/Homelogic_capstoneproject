@@ -304,31 +304,45 @@ class MedicationAdministrationController extends BaseApiController
         }
         // If end_date is null, this check is skipped - medication is active indefinitely
 
-        // Enforce daily frequency based on instructions
-        $instruction = strtolower((string) $medication->instructions);
-        $allowedPerDay = null; // null means unlimited (e.g., PRN)
-        if (in_array($instruction, ['b.i.d', 'bid', 'b.i.d.'])) {
-            $allowedPerDay = 2;
-        } elseif (in_array($instruction, ['t.i.d', 'tid', 't.i.d.'])) {
-            $allowedPerDay = 3;
-        } elseif (in_array($instruction, ['q.i.d', 'qid', 'q.i.d.'])) {
-            $allowedPerDay = 4;
-        } elseif (in_array($instruction, ['a.m', 'am', 'p.m', 'pm', 'h.s', 'hs'])) {
-            $allowedPerDay = 1;
-        } elseif ($instruction === 'prn') {
-            $allowedPerDay = null; // as needed
-        }
+        // Enforce daily frequency based on actual time slots
+        $instruction = strtolower(trim((string) $medication->instructions));
+        $isPrn = str_contains($instruction, 'prn');
 
-        if (!is_null($allowedPerDay)) {
-            $countToday = MedicationAdministration::where('medication_id', $medication->id)
-                ->whereDate('administered_at', $administeredAt->toDateString())
-                ->where('status', '!=', 'missed')
-                ->count();
+        if (!$isPrn) {
+            $timeSlots = array_filter([
+                $medication->time_1,
+                $medication->time_2,
+                $medication->time_3,
+                $medication->time_4,
+            ]);
 
-            if ($countToday >= $allowedPerDay) {
-                return response()->json([
-                    'message' => 'Daily administration limit reached for this medication.'
-                ], 422);
+            if (count($timeSlots) > 0) {
+                $tz = config('app.timezone');
+                $adminDate = $administeredAt->copy()->setTimezone($tz)->toDateString();
+                $toleranceSeconds = 2 * 60 * 60;
+
+                $todayAdmins = MedicationAdministration::where('medication_id', $medication->id)
+                    ->whereDate('administered_at', $adminDate)
+                    ->where('status', '!=', 'missed')
+                    ->get();
+
+                $administeredSlotCount = 0;
+                foreach ($timeSlots as $slot) {
+                    $scheduledTime = Carbon::createFromFormat('Y-m-d H:i', "$adminDate $slot", $tz);
+                    $matched = $todayAdmins->contains(function ($admin) use ($scheduledTime, $toleranceSeconds) {
+                        $adminTime = Carbon::parse($admin->administered_at);
+                        return abs($adminTime->diffInSeconds($scheduledTime, false)) <= $toleranceSeconds;
+                    });
+                    if ($matched) {
+                        $administeredSlotCount++;
+                    }
+                }
+
+                if ($administeredSlotCount >= count($timeSlots)) {
+                    return response()->json([
+                        'message' => 'Daily administration limit reached for this medication.'
+                    ], 422);
+                }
             }
         }
 
