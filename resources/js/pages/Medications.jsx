@@ -40,6 +40,24 @@ import {
 } from 'lucide-react';
 import CalendarView from '../components/CalendarView';
 
+const PACIFIC_TZ = 'America/Los_Angeles';
+const adminTimeFmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: PACIFIC_TZ,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+});
+
+const parseAdminTimeToPacific = (administeredAt) => {
+    const raw = new Date(administeredAt);
+    if (Number.isNaN(raw.getTime())) return null;
+    const p = {};
+    adminTimeFmt.formatToParts(raw).forEach(({ type, value }) => {
+        if (type !== 'literal') p[type] = parseInt(value, 10);
+    });
+    return new Date(Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second || 0));
+};
+
 const INSTRUCTION_DISPLAY_MAP = {
     'q.i.d': 'Four times a day',
     'q.i.d.': 'Four times a day',
@@ -1794,7 +1812,8 @@ function QuickAdminister({ medication, onSuccess }) {
         const toleranceMs = 60 * 60 * 1000;
         return todayAdminData.data.some((admin) => {
             if (admin.status === 'missed') return false;
-            const adminTime = getPacificDate(new Date(admin.administered_at));
+            const adminTime = parseAdminTimeToPacific(admin.administered_at);
+            if (!adminTime) return false;
             return Math.abs(adminTime.getTime() - scheduledDate.getTime()) <= toleranceMs;
         });
     }, [todayAdminData]);
