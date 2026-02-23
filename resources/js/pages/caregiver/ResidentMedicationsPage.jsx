@@ -644,7 +644,7 @@ function QuickAdminister({ medication, onSuccess }) {
             return;
         }
 
-        const countToday = todayAdminData?.data?.length || 0;
+        const countToday = todayAdminData?.data?.filter(a => a.status !== 'missed')?.length || 0;
         setIsDailyLimitReached(countToday >= dailyLimit);
     }, [todayAdminData, isPrnMedication]);
 

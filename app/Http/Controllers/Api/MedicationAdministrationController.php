@@ -322,6 +322,7 @@ class MedicationAdministrationController extends BaseApiController
         if (!is_null($allowedPerDay)) {
             $countToday = MedicationAdministration::where('medication_id', $medication->id)
                 ->whereDate('administered_at', $administeredAt->toDateString())
+                ->where('status', '!=', 'missed')
                 ->count();
 
             if ($countToday >= $allowedPerDay) {
