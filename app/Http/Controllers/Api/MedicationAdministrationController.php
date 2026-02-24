@@ -217,32 +217,13 @@ class MedicationAdministrationController extends BaseApiController
 
         $validated['administered_by'] = auth()->id();
 
-        // Parse and normalize administered_at to app timezone
-        // The frontend sends ISO strings where UTC components represent Pacific time
-        // So we need to extract the components directly without timezone conversion
+        // Parse administered_at — frontend sends a real UTC ISO-8601 string (new Date().toISOString()).
+        // Parse as UTC then convert to app timezone for all date comparisons.
         if (!isset($validated['administered_at']) || empty($validated['administered_at'])) {
             $administeredAt = Carbon::now(config('app.timezone'));
         } else {
-            $administeredAtString = $validated['administered_at'];
-            
-            // If it's an ISO string (ending in Z or with timezone), extract components directly
-            // The frontend sends times where UTC components = Pacific components
-            if (is_string($administeredAtString) && preg_match('/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d+)?(Z|[+-]\d{2}:\d{2})?$/', $administeredAtString, $matches)) {
-                // Extract date/time components directly from ISO string
-                // These components represent Pacific time (not UTC, despite the Z suffix)
-                $year = (int)$matches[1];
-                $month = (int)$matches[2];
-                $day = (int)$matches[3];
-                $hour = (int)$matches[4];
-                $minute = (int)$matches[5];
-                $second = (int)$matches[6];
-                
-                // Create Carbon instance directly in app timezone with these components
-                $administeredAt = Carbon::create($year, $month, $day, $hour, $minute, $second, config('app.timezone'));
-            } else {
-                // Fallback to Carbon::parse
-                $administeredAt = Carbon::parse($administeredAtString, config('app.timezone'));
-            }
+            $administeredAt = Carbon::parse($validated['administered_at'], 'UTC')
+                ->setTimezone(config('app.timezone'));
         }
         
         $validated['administered_at'] = $administeredAt;
@@ -328,9 +309,10 @@ class MedicationAdministrationController extends BaseApiController
 
                 $administeredSlotCount = 0;
                 foreach ($timeSlots as $slot) {
-                    $scheduledTime = Carbon::createFromFormat('Y-m-d H:i', "$adminDate $slot", $tz);
+                    // MySQL TIME columns return HH:MM:SS — use parse() to handle both HH:MM and HH:MM:SS
+                    $scheduledTime = Carbon::parse("$adminDate $slot", $tz);
                     $matched = $todayAdmins->contains(function ($admin) use ($scheduledTime, $toleranceSeconds) {
-                        $adminTime = Carbon::parse($admin->administered_at);
+                        $adminTime = Carbon::parse($admin->administered_at)->setTimezone(config('app.timezone'));
                         return abs($adminTime->diffInSeconds($scheduledTime, false)) <= $toleranceSeconds;
                     });
                     if ($matched) {
