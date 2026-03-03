@@ -63,14 +63,17 @@ class NotificationService
     }
 
     /**
-     * Skip sending notification when facility is missing or soft-deleted (e.g. facility was deleted from super admin).
+     * Skip sending notification when facility is missing, soft-deleted, or inactive (e.g. "Active Facility" unchecked).
      */
     protected function shouldSkipNotificationForFacility($facility): bool
     {
         if (!$facility) {
             return true;
         }
-        return method_exists($facility, 'trashed') && $facility->trashed();
+        if (method_exists($facility, 'trashed') && $facility->trashed()) {
+            return true;
+        }
+        return isset($facility->is_active) && $facility->is_active === false;
     }
 
     /**

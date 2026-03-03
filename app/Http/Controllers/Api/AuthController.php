@@ -43,9 +43,9 @@ class AuthController extends Controller
             // Find facility by provider code (excludes soft-deleted)
             $facility = Facility::whereRaw('LOWER(provider_code) = ?', [strtolower($request->provider_code)])->first();
             
-            if (!$facility) {
+            if (!$facility || !$facility->is_active) {
                 return response()->json([
-                    'message' => 'Invalid provider code or facility no longer active.',
+                    'message' => 'Invalid provider code or facility is no longer active.',
                 ], 422);
             }
             
@@ -103,10 +103,10 @@ class AuthController extends Controller
                 ], 403);
             }
 
-            // Block login if user belongs to a deleted (soft-deleted) facility
+            // Block login if user belongs to a deleted or inactive facility
             if ($user->facility_id) {
                 $userFacility = Facility::find($user->facility_id);
-                if (!$userFacility) {
+                if (!$userFacility || !$userFacility->is_active) {
                     return response()->json([
                         'message' => 'This facility is no longer active. Please contact an administrator.',
                     ], 403);
@@ -138,10 +138,10 @@ class AuthController extends Controller
                 ], 403);
             }
 
-            // Block access if user's facility has been deleted (soft-deleted)
+            // Block access if user's facility has been deleted or marked inactive
             if ($user->facility_id) {
                 $userFacility = Facility::find($user->facility_id);
-                if (!$userFacility) {
+                if (!$userFacility || !$userFacility->is_active) {
                     Auth::logout();
                     $request->session()->invalidate();
                     $request->session()->regenerateToken();
@@ -160,13 +160,13 @@ class AuthController extends Controller
                     // Find facility by provider code (case-insensitive)
                     $facility = Facility::whereRaw('LOWER(provider_code) = ?', [strtolower($request->provider_code)])->first();
 
-                    if (!$facility) {
+                    if (!$facility || !$facility->is_active) {
                         Auth::logout();
                         $request->session()->invalidate();
                         $request->session()->regenerateToken();
 
                         return response()->json([
-                            'message' => 'Invalid provider code',
+                            'message' => 'Invalid provider code or facility is no longer active.',
                         ], 422);
                     }
 
@@ -253,10 +253,10 @@ class AuthController extends Controller
             if (!$user) {
                 return response()->json(['message' => 'Unauthenticated'], 401);
             }
-            // Reject if user's facility has been deleted (so frontend redirects to login)
+            // Reject if user's facility has been deleted or marked inactive (so frontend redirects to login)
             if ($user->facility_id) {
                 $facility = Facility::find($user->facility_id);
-                if (!$facility) {
+                if (!$facility || !$facility->is_active) {
                     $request->user()->currentAccessToken()->delete();
                     return response()->json(['message' => 'This facility is no longer active.'], 401);
                 }
@@ -324,10 +324,10 @@ class AuthController extends Controller
             return response()->json(['valid' => false], 401);
         }
 
-        // Invalidate token if user's facility has been deleted (soft-deleted)
+        // Invalidate token if user's facility has been deleted or marked inactive
         if ($user->facility_id) {
             $facility = Facility::find($user->facility_id);
-            if (!$facility) {
+            if (!$facility || !$facility->is_active) {
                 $request->user()->currentAccessToken()->delete();
                 return response()->json(['valid' => false], 401);
             }
