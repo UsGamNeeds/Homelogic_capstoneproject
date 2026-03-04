@@ -125,7 +125,7 @@ export default function VitalsHistory() {
                                 </h1>
                                 <p className="mt-2 text-gray-600">Historical vital signs trends and analysis</p>
                             </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 no-print">
                             <button
                                 onClick={handleExport}
                                 disabled={!chartData}
@@ -146,7 +146,7 @@ export default function VitalsHistory() {
                     </div>
 
                     {/* Filters */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 no-print">
                         <div className="flex flex-wrap items-end gap-4">
                             <div className="flex-1 min-w-[200px]">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">

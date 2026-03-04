@@ -94,7 +94,7 @@ export default function VitalsReports() {
                                 </h1>
                                 <p className="mt-2 text-gray-600">Detailed vital signs records and analysis</p>
                             </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 no-print">
                             <button
                                 onClick={handleExport}
                                 className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
@@ -114,7 +114,7 @@ export default function VitalsReports() {
                     </div>
 
                     {/* Filters */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 no-print">
                         <div className="flex flex-wrap items-end gap-4">
                             <div className="flex-1 min-w-[200px]">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -281,7 +281,7 @@ export default function VitalsReports() {
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-xl font-semibold text-gray-900">Vitals Data</h2>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-gray-600 no-print">
                             Showing {((currentPage - 1) * perPage) + 1} - {Math.min(currentPage * perPage, stats.total)} of {stats.total}
                         </div>
                     </div>
@@ -368,7 +368,7 @@ export default function VitalsReports() {
 
                     {/* Pagination */}
                     {totalPages > 1 && (
-                        <div className="mt-6 flex items-center justify-between">
+                        <div className="mt-6 flex items-center justify-between no-print">
                             <div className="text-sm text-gray-600">
                                 Page {currentPage} of {totalPages}
                             </div>

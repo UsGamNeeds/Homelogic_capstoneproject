@@ -100,7 +100,7 @@ export default function AppointmentsCharts() {
                                 </h1>
                                 <p className="mt-2 text-gray-600">Comprehensive appointment tracking and analysis</p>
                             </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 no-print">
                             <button
                                 onClick={handleExport}
                                 className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
@@ -120,7 +120,7 @@ export default function AppointmentsCharts() {
                     </div>
 
                     {/* Filters */}
-                    <div ref={filtersRef} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                    <div ref={filtersRef} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 no-print">
                         <div className="flex flex-wrap items-end gap-4">
                             <div className="flex-1 min-w-[200px]">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">

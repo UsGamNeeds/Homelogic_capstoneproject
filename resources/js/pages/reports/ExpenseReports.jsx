@@ -43,7 +43,7 @@ function ExpenseReports() {
       subtitle={`${startDate} to ${endDate}`}
     >
       <div>
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="bg-white rounded-lg shadow p-6 mb-6 no-print">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Expense Reports</h2>

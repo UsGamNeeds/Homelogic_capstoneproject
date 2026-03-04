@@ -68,7 +68,7 @@ export default function ResidentCharts() {
                                 </h1>
                                 <p className="mt-2 text-gray-600">Comprehensive resident statistics and distribution</p>
                             </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 no-print">
                             <button
                                 onClick={handleExport}
                                 className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"

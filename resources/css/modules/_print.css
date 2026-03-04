@@ -11,9 +11,19 @@
         display: none !important;
     }
 
-    /* Hide the Print button in report layout (no-print class) */
+    /* Hide filters, Export/Refresh/Print buttons (no-print class) */
     .no-print {
         display: none !important;
+    }
+
+    /* Allow full page to print: no overflow clipping so content flows across pages */
+    .flex.h-screen > div,
+    .flex.h-screen > div > main,
+    .print-report,
+    .print-report-content {
+        overflow: visible !important;
+        height: auto !important;
+        min-height: 0 !important;
     }
 
     /* Ensure report content takes full width and prints cleanly */
@@ -30,7 +40,14 @@
         padding-bottom: 0.25rem;
     }
 
+    /* Allow content to break across pages; avoid breaking inside cards/charts where possible */
     .print-report-content {
+        break-inside: auto;
+    }
+
+    .print-report-content .group,
+    .print-report-content [class*="rounded-2xl"],
+    .print-report-content [class*="rounded-xl"] {
         break-inside: avoid;
     }
 
