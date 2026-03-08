@@ -49,6 +49,7 @@ const clearStoredAuth = () => {
 const isPublicPath = (path) => {
     const publicPrefixes = [
         '/', '/login', '/forgot-password', '/reset-password',
+        '/portal/accept-invite',
         '/staff/clock-in', '/features', '/pricing', '/modules',
         '/security', '/about', '/contact', '/support',
         '/privacy-policy', '/terms-of-service', '/hipaa-compliance', '/cookie-policy',
