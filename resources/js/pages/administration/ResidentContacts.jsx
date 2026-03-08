@@ -1,13 +1,23 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
-import { Users, Plus, Mail, Edit, Trash2, Copy, Check } from 'lucide-react';
+import { Users, Plus, Mail, Edit, Trash2, Copy, Check, Building2 } from 'lucide-react';
 import SectionCard from '../../components/SectionCard';
 import EmptyState from '../../components/ui/EmptyState';
 import logger from '../../utils/logger';
 
+function extractResidentsList(res) {
+  if (!res) return [];
+  if (Array.isArray(res)) return res;
+  const data = res.data;
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.data)) return data.data;
+  return [];
+}
+
 export default function ResidentContacts() {
   const queryClient = useQueryClient();
+  const [branchId, setBranchId] = useState('');
   const [residentId, setResidentId] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -15,14 +25,25 @@ export default function ResidentContacts() {
   const [inviteLink, setInviteLink] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  const { data: residentsData } = useQuery({
-    queryKey: ['residents-list-contacts'],
+  const { data: branchesData } = useQuery({
+    queryKey: ['branches-list-contacts'],
     queryFn: async () => {
-      const res = await api.get('/residents', { params: { per_page: 500, status: 'active' } });
-      return res.data?.data ?? res.data ?? [];
+      const res = await api.get('/branches', { params: { per_page: 200 } });
+      return res.data;
     },
   });
-  const residents = Array.isArray(residentsData) ? residentsData : residentsData?.data ?? [];
+  const branchesList = Array.isArray(branchesData?.data) ? branchesData.data : (branchesData?.data ?? []);
+
+  const { data: residentsResponse, isLoading: residentsLoading, error: residentsError } = useQuery({
+    queryKey: ['residents-list-contacts', branchId],
+    queryFn: async () => {
+      const params = { per_page: 100, show_all: true };
+      if (branchId) params.branch_id = branchId;
+      const res = await api.get('/residents', { params });
+      return res.data;
+    },
+  });
+  const residents = extractResidentsList(residentsResponse);
 
   const { data: contactsData, isLoading } = useQuery({
     queryKey: ['resident-contacts', residentId],
@@ -115,30 +136,58 @@ export default function ResidentContacts() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Family Portal (Resident Contacts)</h1>
-        <p className="text-gray-600 mt-1">
+    <div className="max-w-4xl mx-auto px-1">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Family Portal (Resident Contacts)</h1>
+        <p className="text-gray-600 mt-2 text-[15px] leading-relaxed">
           Add family members as contacts for a resident, then send them an invite so they can log in to the Family Portal to view care updates and messages.
         </p>
       </div>
 
-      <SectionCard className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Select resident</label>
-        <select
-          value={residentId}
-          onChange={(e) => setResidentId(e.target.value)}
-          className="w-full max-w-md border border-gray-300 rounded-lg px-3 py-2"
-        >
-          <option value="">Choose a resident...</option>
-          {residents.map((r) => (
-            <option key={r.id} value={r.id}>{r.name}</option>
-          ))}
-        </select>
+      <SectionCard title="" className="mb-6">
+        <div className="grid gap-4 sm:grid-cols-2">
+          {branchesList.length > 0 && (
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <Building2 className="w-4 h-4 text-gray-500" />
+                Branch (optional)
+              </label>
+              <select
+                value={branchId}
+                onChange={(e) => { setBranchId(e.target.value); setResidentId(''); }}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-white text-gray-900 focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-[var(--theme-primary)] transition-shadow"
+              >
+                <option value="">All branches</option>
+                {branchesList.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className={branchesList.length > 0 ? '' : 'sm:col-span-2'}>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Resident</label>
+            <select
+              value={residentId}
+              onChange={(e) => setResidentId(e.target.value)}
+              disabled={residentsLoading}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-white text-gray-900 focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-[var(--theme-primary)] transition-shadow disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <option value="">
+                {residentsLoading ? 'Loading residents...' : residentsError ? 'Failed to load residents' : residents.length === 0 ? 'No residents found' : 'Choose a resident...'}
+              </option>
+              {residents.map((r) => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </select>
+            {residentsError && (
+              <p className="mt-1.5 text-sm text-red-600">{residentsError?.response?.data?.message || residentsError?.message || 'Could not load residents.'}</p>
+            )}
+          </div>
+        </div>
       </SectionCard>
 
       {!residentId && (
-        <SectionCard>
+        <SectionCard className="border border-gray-200/80 shadow-sm">
           <EmptyState
             icon={Users}
             title="Select a resident"
@@ -150,19 +199,19 @@ export default function ResidentContacts() {
       {residentId && (
         <>
           {inviteLink && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
-              <p className="text-sm font-medium text-green-800 mb-2">Invite link for {inviteLink.name}</p>
-              <div className="flex gap-2">
+            <SectionCard className="mb-6 border-green-200 bg-green-50/50">
+              <p className="text-sm font-medium text-green-800 mb-3">Invite link for {inviteLink.name}</p>
+              <div className="flex flex-wrap gap-2">
                 <input
                   type="text"
                   readOnly
                   value={inviteLink.link}
-                  className="flex-1 text-sm border border-green-300 rounded-lg px-3 py-2 bg-white"
+                  className="flex-1 min-w-0 text-sm border border-green-300 rounded-lg px-3 py-2 bg-white text-gray-900"
                 />
                 <button
                   type="button"
                   onClick={copyLink}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
                   {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   {copied ? 'Copied' : 'Copy'}
@@ -170,28 +219,38 @@ export default function ResidentContacts() {
                 <button
                   type="button"
                   onClick={() => setInviteLink(null)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors"
                 >
                   Close
                 </button>
               </div>
               <p className="text-xs text-green-700 mt-2">Send this link to the family member so they can sign up and access the portal.</p>
-            </div>
+            </SectionCard>
           )}
 
           {showForm && (
-            <SectionCard className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">{editing ? 'Edit contact' : 'Add contact'}</h2>
+            <SectionCard title={editing ? 'Edit contact' : 'Add contact'} className="mb-6">
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={form.name}
-                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={form.name}
+                      onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-[var(--theme-primary)]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Relation (e.g. spouse, child)</label>
+                    <input
+                      type="text"
+                      value={form.relation}
+                      onChange={(e) => setForm((f) => ({ ...f, relation: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-[var(--theme-primary)]"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email (needed for invite)</label>
@@ -199,7 +258,7 @@ export default function ResidentContacts() {
                     type="email"
                     value={form.email}
                     onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-[var(--theme-primary)]"
                   />
                 </div>
                 <div>
@@ -208,23 +267,14 @@ export default function ResidentContacts() {
                     type="text"
                     value={form.phone}
                     onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-[var(--theme-primary)]"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Relation (e.g. spouse, child)</label>
-                  <input
-                    type="text"
-                    value={form.relation}
-                    onChange={(e) => setForm((f) => ({ ...f, relation: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button type="submit" className="px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:opacity-90">
+                <div className="flex gap-2 pt-1">
+                  <button type="submit" className="px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:opacity-90 transition-opacity">
                     {editing ? 'Update' : 'Add contact'}
                   </button>
-                  <button type="button" onClick={() => { setShowForm(false); setEditing(null); }} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                  <button type="button" onClick={() => { setShowForm(false); setEditing(null); }} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                     Cancel
                   </button>
                 </div>
@@ -232,47 +282,46 @@ export default function ResidentContacts() {
             </SectionCard>
           )}
 
-          <SectionCard>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Contacts</h2>
+          <SectionCard title="Contacts">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               {!showForm && (
-                <button type="button" onClick={openAdd} className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:opacity-90">
+                <button type="button" onClick={openAdd} className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:opacity-90 transition-opacity">
                   <Plus className="w-4 h-4" />
                   Add contact
                 </button>
               )}
             </div>
             {isLoading ? (
-              <p className="text-gray-500">Loading...</p>
+              <p className="text-gray-500 py-4">Loading contacts...</p>
             ) : contacts.length === 0 ? (
               <EmptyState icon={Users} title="No contacts" description="Add a family member as a contact, then send them an invite to access the Family Portal." />
             ) : (
-              <ul className="space-y-3">
+              <ul className="divide-y divide-gray-100 border border-gray-100 rounded-lg overflow-hidden -mx-1 sm:mx-0">
                 {contacts.map((c) => (
-                  <li key={c.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-                    <div>
-                      <p className="font-medium text-gray-900">{c.name}</p>
-                      <p className="text-sm text-gray-500">{c.email || 'No email'}{c.relation ? ` · ${c.relation}` : ''}</p>
-                      {c.user_id && <span className="text-xs text-green-600">Portal access linked</span>}
+                  <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-4 px-3 sm:px-4 hover:bg-gray-50/50 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-gray-900 truncate">{c.name}</p>
+                      <p className="text-sm text-gray-500 truncate">{c.email || 'No email'}{c.relation ? ` · ${c.relation}` : ''}</p>
+                      {c.user_id && <span className="inline-block mt-1 text-xs text-green-600 font-medium">Portal access linked</span>}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 shrink-0">
                       {c.email && (
                         <button
                           type="button"
                           onClick={() => handleSendInvite(c)}
-                          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                           title="Send portal invite"
                         >
                           <Mail className="w-4 h-4" />
                         </button>
                       )}
-                      <button type="button" onClick={() => openEdit(c)} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg" title="Edit">
+                      <button type="button" onClick={() => openEdit(c)} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" title="Edit">
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
                         type="button"
                         onClick={() => window.confirm('Remove this contact?') && deleteMutation.mutate(c.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
