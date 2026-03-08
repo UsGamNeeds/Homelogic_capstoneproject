@@ -37,7 +37,7 @@ export default function Blog() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
       <PublicNavigation />
 
-      <section className="pt-20 pb-12 bg-gradient-to-br from-blue-50 to-cyan-50">
+      <section className="pt-20 pb-12 bg-gradient-to-br from-brand-primary to-brand-primary">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">Blog & Insights</h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -52,7 +52,7 @@ export default function Blog() {
             {SAMPLE_POSTS.map((post) => (
               <article
                 key={post.slug}
-                className="bg-white rounded-xl p-6 sm:p-8 shadow-lg border border-gray-100 hover:border-blue-200 hover:shadow-xl transition-all"
+                className="bg-white rounded-xl p-6 sm:p-8 shadow-lg border border-gray-100 hover:border-brand-sky/50 hover:shadow-xl transition-all"
               >
                 <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
                   <Calendar className="w-4 h-4" />
@@ -62,7 +62,7 @@ export default function Blog() {
                 <p className="text-gray-600 leading-relaxed mb-4">{post.excerpt}</p>
                 <button
                   onClick={() => navigate(`/blog/${post.slug}`)}
-                  className="inline-flex items-center gap-2 text-blue-600 font-semibold hover:text-blue-700"
+                  className="inline-flex items-center gap-2 text-brand-primary-dark font-semibold hover:opacity-90"
                 >
                   Read more
                   <ArrowRight className="w-4 h-4" />

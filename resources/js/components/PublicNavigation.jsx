@@ -48,7 +48,7 @@ export default function PublicNavigation() {
                                     e.target.nextElementSibling.style.display = 'flex';
                                 }}
                             />
-                            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center hidden">
+                            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-brand-primary-dark to-brand-sky flex items-center justify-center hidden">
                                 <Building2 className="w-6 h-6 text-white" />
                             </div>
                         </div>
@@ -66,7 +66,7 @@ export default function PublicNavigation() {
                                     onClick={() => navigate(item.path)}
                                     className={`flex items-center space-x-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${
                                         active
-                                            ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-md font-semibold'
+                                            ? 'bg-gradient-to-r from-brand-primary-dark to-brand-sky text-white shadow-md font-semibold'
                                             : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
                                     }`}
                                 >
@@ -95,7 +95,7 @@ export default function PublicNavigation() {
                             {/* Sign In Button */}
                         <button
                             onClick={() => navigate('/login')}
-                            className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 md:px-6 py-2 rounded-lg font-semibold hover:from-blue-600 hover:to-cyan-600 transition-all shadow-md hover:shadow-lg text-sm md:text-base"
+                            className="bg-gradient-to-r from-brand-primary-dark to-brand-sky text-white px-4 md:px-6 py-2 rounded-lg font-semibold hover:opacity-90 transition-all shadow-md hover:shadow-lg text-sm md:text-base"
                         >
                             Sign In
                         </button>
@@ -134,7 +134,7 @@ export default function PublicNavigation() {
                                                 onClick={() => handleNavClick(item.path)}
                                                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                                                     active
-                                                        ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-md'
+                                                        ? 'bg-gradient-to-r from-brand-primary-dark to-brand-sky text-white shadow-md'
                                                         : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
                                                 }`}
                                             >

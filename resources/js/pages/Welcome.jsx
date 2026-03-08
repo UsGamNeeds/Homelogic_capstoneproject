@@ -18,73 +18,73 @@ export default function Welcome() {
       icon: Users,
       title: 'Resident Management',
       description: 'Comprehensive resident profiles with medical history, care plans, and family contacts.',
-      color: 'from-blue-500 to-cyan-500'
+      color: 'from-brand-primary-dark to-brand-sky'
     },
     {
       icon: Pill,
       title: 'Medication Management',
       description: 'Track medication administration, schedules, and compliance with automated reminders.',
-      color: 'from-blue-600 to-blue-500'
+      color: 'from-brand-primary-dark to-brand-sky'
     },
     {
       icon: Heart,
       title: 'Vital Signs Monitoring',
       description: 'Record and track vital signs with customizable ranges and alert thresholds.',
-      color: 'from-cyan-500 to-cyan-400'
+      color: 'from-brand-sky to-brand-primary'
     },
     {
       icon: Calendar,
       title: 'Appointment Scheduling',
       description: 'Schedule and manage healthcare provider appointments with automated reminders.',
-      color: 'from-blue-500 to-cyan-500'
+      color: 'from-brand-primary-dark to-brand-sky'
     },
     {
       icon: ClipboardList,
       title: 'Assessments',
       description: 'Conduct comprehensive resident assessments with customizable forms and templates.',
-      color: 'from-blue-600 to-cyan-500'
+      color: 'from-brand-primary-dark to-brand-sky'
     },
     {
       icon: Moon,
       title: 'Sleep Monitoring',
       description: 'Track sleep patterns and quality with detailed analytics and reports.',
-      color: 'from-cyan-600 to-blue-500'
+      color: 'from-brand-sky to-brand-primary-dark'
     },
     {
       icon: UserCheck,
       title: 'Check-In/Check-Out System',
       description: 'Track staff clock-ins, resident sign-outs, and visitor management with real-time monitoring.',
-      color: 'from-cyan-500 to-blue-500'
+      color: 'from-brand-sky to-brand-primary-dark'
     },
     {
       icon: Building2,
       title: 'Housekeeping',
       description: 'Manage cleaning schedules, tasks, and assignments with quality assurance tracking.',
-      color: 'from-blue-500 to-cyan-500'
+      color: 'from-brand-primary-dark to-brand-sky'
     },
     {
       icon: AlertCircle,
       title: 'Incident Reporting',
       description: 'Document and track incidents with detailed reporting and follow-up workflows.',
-      color: 'from-blue-600 to-cyan-500'
+      color: 'from-brand-primary-dark to-brand-sky'
     },
     {
       icon: BarChart3,
       title: 'Analytics & Reports',
       description: 'Generate comprehensive reports and analytics for compliance and decision-making.',
-      color: 'from-cyan-500 to-blue-500'
+      color: 'from-brand-sky to-brand-primary-dark'
     },
     {
       icon: ShoppingCart,
       title: 'Pharmacy Management',
       description: 'Manage medication inventory, orders, suppliers, and deliveries.',
-      color: 'from-blue-500 to-cyan-500'
+      color: 'from-brand-primary-dark to-brand-sky'
     },
     {
       icon: DollarSign,
       title: 'Billing & Expenses',
       description: 'Track expenses, generate invoices, and manage financial records.',
-      color: 'from-cyan-600 to-blue-500'
+      color: 'from-brand-sky to-brand-primary-dark'
     },
   ];
 
@@ -161,12 +161,12 @@ export default function Welcome() {
       <PublicNavigation />
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden min-h-screen sm:h-screen flex items-center bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 py-20 sm:py-0">
+      <section className="relative overflow-hidden min-h-screen sm:h-screen flex items-center bg-gradient-to-br from-brand-primary-dark via-brand-sky to-brand-sky py-20 sm:py-0">
         {/* Sophisticated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           {/* Animated Gradient Orbs */}
-          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-cyan-400/30 rounded-full mix-blend-overlay filter blur-[100px] animate-blob"></div>
-          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-400/30 rounded-full mix-blend-overlay filter blur-[100px] animate-blob animation-delay-2000"></div>
+          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-brand-sky/30 rounded-full mix-blend-overlay filter blur-[100px] animate-blob"></div>
+          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-brand-primary-dark/30 rounded-full mix-blend-overlay filter blur-[100px] animate-blob animation-delay-2000"></div>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 rounded-full mix-blend-overlay filter blur-[120px] animate-blob animation-delay-4000"></div>
           
           {/* Geometric Patterns */}
@@ -185,9 +185,9 @@ export default function Welcome() {
             {/* Left Column - Content */}
             <div className="text-center lg:text-left space-y-5">
               {/* Main Heading */}
-              <p className="text-sm sm:text-base font-semibold text-cyan-200 uppercase tracking-wider">HomeLogic360</p>
+              <p className="text-sm sm:text-base font-semibold text-brand-primary uppercase tracking-wider">HomeLogic360</p>
               <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-white leading-[1.15]">
-                <span className="block bg-gradient-to-r from-cyan-200 via-white to-cyan-200 bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-brand-primary via-white to-brand-primary bg-clip-text text-transparent">
                   Smart Care Management Software
                 </span>
                 <span className="block text-white">for Adult Family Homes</span>
@@ -202,11 +202,11 @@ export default function Welcome() {
               <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start pt-2">
                 <button
                   onClick={() => navigate('/register-facility')}
-                  className="group relative bg-white text-blue-600 px-6 py-3 rounded-xl font-bold text-base hover:bg-gray-50 transition-all shadow-2xl hover:shadow-cyan-500/50 hover:scale-105 flex items-center justify-center space-x-2 overflow-hidden"
+                  className="group relative bg-white text-brand-primary-dark px-6 py-3 rounded-xl font-bold text-base hover:bg-gray-50 transition-all shadow-2xl hover:shadow-brand-sky/50 hover:scale-105 flex items-center justify-center space-x-2 overflow-hidden"
                 >
                   <span className="relative z-10">Start Free Trial</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform relative z-10" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-dark to-brand-sky opacity-0 group-hover:opacity-10 transition-opacity"></div>
                 </button>
                 <button
                   onClick={() => navigate('/contact?demo=1')}
@@ -249,7 +249,7 @@ export default function Welcome() {
               return (
                 <div key={index} className="flex items-center gap-3 text-gray-300">
                   <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
-                    <Icon className="w-5 h-5 text-cyan-400" />
+                    <Icon className="w-5 h-5 text-brand-sky" />
                   </div>
                   <span className="font-medium text-sm sm:text-base">{badge.label}</span>
                 </div>
@@ -273,7 +273,7 @@ export default function Welcome() {
             </div>
             <div className="order-1 lg:order-2 space-y-6">
               <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-                Managing Care Shouldn't Be <span className="text-blue-600">This Hard</span>
+                Managing Care Shouldn't Be <span className="text-brand-primary-dark">This Hard</span>
               </h2>
               <p className="text-lg text-gray-600 leading-relaxed">
                 Juggling paperwork, medication schedules, staff coordination, and compliance requirements overwhelms even the best care teams. HomeLogic360 eliminates the chaos.
@@ -281,7 +281,7 @@ export default function Welcome() {
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => navigate('/features')}
-                  className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-all flex items-center gap-2"
+                  className="bg-brand-primary-dark text-white px-6 py-3 rounded-xl font-semibold hover:opacity-90 transition-all flex items-center gap-2"
                 >
                   See How We Help <ArrowRight className="w-4 h-4" />
                 </button>
@@ -331,8 +331,8 @@ export default function Welcome() {
             {useCases.map((useCase, index) => {
               const Icon = useCase.icon;
               return (
-                <div key={index} className="bg-gray-50 rounded-xl p-6 border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-4">
+                <div key={index} className="bg-gray-50 rounded-xl p-6 border border-gray-100 hover:border-brand-sky/50 hover:shadow-md transition-all">
+                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-brand-primary-dark to-brand-sky flex items-center justify-center mb-4">
                     <Icon className="w-6 h-6 text-white" />
                   </div>
                   <h3 className="text-lg font-bold text-gray-900 mb-2">{useCase.title}</h3>
@@ -376,7 +376,7 @@ export default function Welcome() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
               <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-                Resident Care, <span className="text-cyan-600">Made Simple</span>
+                Resident Care, <span className="text-brand-sky">Made Simple</span>
               </h2>
               <p className="text-lg text-gray-600 leading-relaxed">
                 From resident profiles to medication tracking, vital sign monitoring to appointment calendars &mdash; everything is connected in one intuitive dashboard.
@@ -384,7 +384,7 @@ export default function Welcome() {
               <ul className="space-y-3">
                 {['Comprehensive resident profiles', 'Automated medication scheduling', 'Real-time vital sign tracking', 'Family communication portal'].map((item) => (
                   <li key={item} className="flex items-center gap-3 text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-cyan-500 flex-shrink-0" />
+                    <CheckCircle className="w-5 h-5 text-brand-sky flex-shrink-0" />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -425,7 +425,7 @@ export default function Welcome() {
             {modules.map((module, index) => (
               <div
                 key={index}
-                className="bg-white p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all text-center"
+                className="bg-white p-4 rounded-lg border border-gray-200 hover:border-brand-sky/50 hover:shadow-md transition-all text-center"
               >
                 <module.icon className="w-8 h-8 text-[var(--theme-primary)] mx-auto mb-2" />
                 <p className="text-sm font-medium text-gray-700">{module.name}</p>
@@ -444,7 +444,7 @@ export default function Welcome() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {benefits.map((benefit, index) => (
               <div key={index} className="text-center">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-brand-primary-dark to-brand-sky flex items-center justify-center mx-auto mb-4">
                   <benefit.icon className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">{benefit.title}</h3>
@@ -501,7 +501,7 @@ export default function Welcome() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
               <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-                Smart Analytics, <span className="text-blue-600">Real-Time Insights</span>
+                Smart Analytics, <span className="text-brand-primary-dark">Real-Time Insights</span>
               </h2>
               <p className="text-lg text-gray-600 leading-relaxed">
                 Make data-driven decisions with powerful analytics dashboards. Monitor key metrics, track trends, and receive intelligent alerts to keep your facility running at peak performance.
@@ -509,7 +509,7 @@ export default function Welcome() {
               <ul className="space-y-3">
                 {['Real-time performance dashboards', 'Automated compliance reports', 'Trend analysis & forecasting', 'Custom alert thresholds'].map((item) => (
                   <li key={item} className="flex items-center gap-3 text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                    <CheckCircle className="w-5 h-5 text-brand-sky flex-shrink-0" />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -541,14 +541,14 @@ export default function Welcome() {
             </div>
             <div className="order-1 lg:order-2 space-y-6">
               <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-                Connecting Care, <span className="text-cyan-600">Simplifying Life</span>
+                Connecting Care, <span className="text-brand-sky">Simplifying Life</span>
               </h2>
               <p className="text-lg text-gray-600 leading-relaxed">
                 From resident management to medication tracking, HomeLogic360 connects every aspect of care delivery in one seamless platform. Never miss a dose, appointment, or critical update again.
               </p>
               <button
                 onClick={() => navigate('/register-facility')}
-                className="bg-cyan-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-cyan-700 transition-all flex items-center gap-2"
+                className="bg-brand-sky text-white px-6 py-3 rounded-xl font-semibold hover:opacity-90 transition-all flex items-center gap-2"
               >
                 Get Started Today <ArrowRight className="w-4 h-4" />
               </button>
@@ -571,12 +571,12 @@ export default function Welcome() {
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-10">
           <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">Ready to Transform Your Facility?</h2>
           <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            Join hundreds of care facilities already using HomeLogic360 to improve operations and care quality.
+            Join care facilities using HomeLogic360 to improve operations and care quality.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={() => navigate('/register-facility')}
-              className="bg-white text-blue-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl hover:scale-105"
+              className="bg-white text-brand-primary-dark px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl hover:scale-105"
             >
               Start Free Trial
             </button>

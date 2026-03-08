@@ -23,7 +23,7 @@ export default function Features() {
         'Room and bed assignment management',
         'Resident status tracking',
       ],
-      color: 'from-blue-500 to-cyan-500'
+      color: 'from-brand-primary-dark to-brand-sky'
     },
     {
       icon: Pill,
@@ -101,7 +101,7 @@ export default function Features() {
         'Real-time dashboard monitoring',
         'Progress bars and time tracking',
       ],
-      color: 'from-teal-500 to-cyan-500'
+      color: 'from-brand-sky to-brand-primary-dark'
     },
     {
       icon: Building2,
@@ -140,7 +140,7 @@ export default function Features() {
         'Scheduled report delivery',
         'Real-time dashboards',
       ],
-      color: 'from-blue-500 to-indigo-500'
+      color: 'from-brand-primary-dark to-brand-sky'
     },
     {
       icon: ShoppingCart,
@@ -176,7 +176,7 @@ export default function Features() {
       <PublicNavigation />
 
       {/* Hero Section with Image */}
-      <section className="pt-20 pb-16 bg-gradient-to-br from-blue-50 to-cyan-50">
+      <section className="pt-20 pb-16 bg-gradient-to-br from-brand-primary to-brand-primary">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 text-center lg:text-left">
@@ -216,7 +216,7 @@ export default function Features() {
                   <ul className="space-y-2">
                     {feature.benefits.map((benefit, benefitIndex) => (
                       <li key={benefitIndex} className="flex items-start space-x-2 text-gray-600">
-                        <span className="text-blue-500 mt-1">•</span>
+                        <span className="text-brand-sky mt-1">•</span>
                         <span>{benefit}</span>
                       </li>
                     ))}
@@ -242,7 +242,7 @@ export default function Features() {
             </div>
             <div className="space-y-5">
               <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-                Connecting Care, <span className="text-cyan-600">Simplifying Life</span>
+                Connecting Care, <span className="text-brand-sky">Simplifying Life</span>
               </h2>
               <p className="text-lg text-gray-600 leading-relaxed">
                 From resident profiles to medication tracking, every module is connected and works together seamlessly. Your staff can focus on care instead of paperwork.
@@ -270,7 +270,7 @@ export default function Features() {
           </p>
           <button
             onClick={() => navigate('/register-facility')}
-            className="bg-white text-blue-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl hover:scale-105"
+            className="bg-white text-brand-primary-dark px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl hover:scale-105"
           >
             Start Free Trial
           </button>

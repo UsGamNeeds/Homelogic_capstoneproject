@@ -61,7 +61,7 @@ export default function Contact() {
       <PublicNavigation />
 
       {/* Hero Section */}
-      <section className="pt-20 pb-12 bg-gradient-to-br from-blue-50 to-cyan-50">
+      <section className="pt-20 pb-12 bg-gradient-to-br from-brand-primary to-brand-primary">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">Contact Us</h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -96,7 +96,7 @@ export default function Contact() {
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-sky"
                     />
                   </div>
                   <div>
@@ -106,7 +106,7 @@ export default function Contact() {
                       required
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-sky"
                     />
                   </div>
                   <div>
@@ -115,7 +115,7 @@ export default function Contact() {
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-sky"
                     />
                   </div>
                   <div>
@@ -125,7 +125,7 @@ export default function Contact() {
                       required
                       value={formData.subject}
                       onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-sky"
                     />
                   </div>
                   <div>
@@ -135,13 +135,13 @@ export default function Contact() {
                       rows={5}
                       value={formData.message}
                       onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-sky"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={sending}
-                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-cyan-600 transition-all flex items-center justify-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full bg-gradient-to-r from-brand-primary-dark to-brand-sky text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-all flex items-center justify-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed"
                   >
                     <Send className="w-5 h-5" />
                     <span>{sending ? 'Sending...' : 'Send Message'}</span>
@@ -152,26 +152,26 @@ export default function Contact() {
 
             {/* Contact Information */}
             <div className="space-y-8">
-              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-8 shadow-lg border border-gray-100">
+              <div className="bg-gradient-to-br from-brand-primary to-brand-primary rounded-xl p-8 shadow-lg border border-gray-100">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Business Information</h2>
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <Building2 className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <Building2 className="w-5 h-5 text-brand-primary-dark flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="font-semibold text-gray-900">HomeLogic360</p>
                       <p className="text-sm text-gray-600">Care facility management software</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <MapPin className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <MapPin className="w-5 h-5 text-brand-primary-dark flex-shrink-0 mt-0.5" />
                     <p className="text-gray-700 text-sm">Service area: United States. Contact us for specific location or mailing address.</p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Mail className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <Mail className="w-5 h-5 text-brand-primary-dark flex-shrink-0 mt-0.5" />
                     <p className="text-gray-700 text-sm">support@homelogic360.com, sales@homelogic360.com</p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Phone className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <Phone className="w-5 h-5 text-brand-primary-dark flex-shrink-0 mt-0.5" />
                     <p className="text-gray-700 text-sm">+1 (425) 244-0880 — Mon–Fri 9am–5pm EST</p>
                   </div>
                 </div>
@@ -180,7 +180,7 @@ export default function Contact() {
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Get in Touch</h2>
                 <div className="space-y-6">
                   <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-brand-primary-dark to-brand-sky flex items-center justify-center flex-shrink-0">
                       <Mail className="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -190,7 +190,7 @@ export default function Contact() {
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-brand-primary-dark to-brand-sky flex items-center justify-center flex-shrink-0">
                       <Phone className="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -202,7 +202,7 @@ export default function Contact() {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-8">
+              <div className="bg-gradient-to-br from-brand-primary to-brand-primary rounded-xl p-8">
                 <h3 className="text-xl font-bold text-gray-900 mb-4">Support Hours</h3>
                 <div className="space-y-2 text-gray-600">
                   <p><strong>Email Support:</strong> 24/7</p>

@@ -76,7 +76,7 @@ export default function BlogPost() {
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Post not found</h1>
           <button
             onClick={() => navigate('/blog')}
-            className="text-blue-600 font-semibold hover:underline"
+            className="text-brand-primary-dark font-semibold hover:underline"
           >
             Back to Blog
           </button>

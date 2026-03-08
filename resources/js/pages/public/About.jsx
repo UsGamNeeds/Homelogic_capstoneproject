@@ -15,25 +15,25 @@ export default function About() {
       icon: Heart,
       title: 'Care First',
       description: 'We believe that technology should enhance, not replace, the human touch in caregiving. Every feature we build is designed with the resident\'s well-being at the center.',
-      gradient: 'from-blue-500 to-cyan-500'
+      gradient: 'from-brand-primary-dark to-brand-sky'
     },
     {
       icon: Target,
       title: 'Innovation',
       description: 'Continuously improving our platform to meet the evolving needs of care facilities. We stay ahead of industry trends and regulatory changes.',
-      gradient: 'from-cyan-500 to-blue-500'
+      gradient: 'from-brand-sky to-brand-primary-dark'
     },
     {
       icon: Users,
       title: 'Partnership',
       description: 'Working closely with facilities to understand their unique challenges and requirements. Your success is our success.',
-      gradient: 'from-blue-600 to-cyan-500'
+      gradient: 'from-brand-primary-dark to-brand-sky'
     },
     {
       icon: Award,
       title: 'Excellence',
       description: 'Committed to delivering the highest quality software and support services. We set high standards and consistently exceed them.',
-      gradient: 'from-cyan-600 to-blue-500'
+      gradient: 'from-brand-sky to-brand-primary-dark'
     },
   ];
 
@@ -106,12 +106,12 @@ export default function About() {
       <PublicNavigation />
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden h-screen flex items-center bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500">
+      <section className="relative overflow-hidden h-screen flex items-center bg-gradient-to-br from-brand-primary-dark via-brand-sky to-brand-sky">
         {/* Sophisticated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           {/* Animated Gradient Orbs */}
-          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-cyan-400/30 rounded-full mix-blend-overlay filter blur-[100px] animate-blob"></div>
-          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-400/30 rounded-full mix-blend-overlay filter blur-[100px] animate-blob animation-delay-2000"></div>
+          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-brand-sky/30 rounded-full mix-blend-overlay filter blur-[100px] animate-blob"></div>
+          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-brand-primary-dark/30 rounded-full mix-blend-overlay filter blur-[100px] animate-blob animation-delay-2000"></div>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 rounded-full mix-blend-overlay filter blur-[120px] animate-blob animation-delay-4000"></div>
           
           {/* Geometric Patterns */}
@@ -130,7 +130,7 @@ export default function About() {
             {/* Main Heading */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black text-white leading-[1.1]">
               <span className="block">Innovating Care,</span>
-              <span className="block bg-gradient-to-r from-cyan-200 via-white to-cyan-200 bg-clip-text text-transparent">
+              <span className="block bg-gradient-to-r from-brand-primary via-white to-brand-primary bg-clip-text text-transparent">
                 Empowering Facilities
               </span>
             </h1>
@@ -144,11 +144,11 @@ export default function About() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
               <button
                 onClick={() => navigate('/contact')}
-                className="group relative bg-white text-blue-600 px-6 py-3 rounded-xl font-bold text-base hover:bg-gray-50 transition-all shadow-2xl hover:shadow-cyan-500/50 hover:scale-105 flex items-center justify-center space-x-2 overflow-hidden"
+                className="group relative bg-white text-brand-primary-dark px-6 py-3 rounded-xl font-bold text-base hover:bg-gray-50 transition-all shadow-2xl hover:shadow-brand-sky/50 hover:scale-105 flex items-center justify-center space-x-2 overflow-hidden"
               >
                 <span className="relative z-10">Get in Touch</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform relative z-10" />
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-brand-primary-dark to-brand-sky opacity-0 group-hover:opacity-10 transition-opacity"></div>
               </button>
               <button
                 onClick={() => navigate('/register-facility')}
@@ -189,7 +189,7 @@ export default function About() {
               The technology professional behind HomeLogic360
             </p>
           </div>
-          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-8 lg:p-12 shadow-lg border border-gray-100">
+          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16 bg-gradient-to-br from-brand-primary to-brand-primary rounded-2xl p-8 lg:p-12 shadow-lg border border-gray-100">
             <div className="flex-shrink-0">
               <img
                 src="/mr%20lowe.jpeg"
@@ -199,7 +199,7 @@ export default function About() {
             </div>
             <div className="flex-1 text-center lg:text-left space-y-4">
               <h3 className="text-2xl font-bold text-gray-900">Gibril Lowe</h3>
-              <p className="text-lg font-medium text-blue-600">Founder of HomeLogic360</p>
+              <p className="text-lg font-medium text-brand-primary-dark">Founder of HomeLogic360</p>
               <p className="text-gray-700 leading-relaxed">
                 Gibril Lowe is a technology entrepreneur and IT professional with over 15 years of experience in information systems, database development, and enterprise technology solutions. He holds a BSc in Computer Science and an MBA in Technology Management, and is currently pursuing his second Master&apos;s degree in Information Management (Data Science) at the University of Washington.
               </p>
@@ -225,7 +225,7 @@ export default function About() {
             </div>
             <div className="order-1 lg:order-2 space-y-5">
               <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">
-                We Saw the <span className="text-blue-600">Problem</span>
+                We Saw the <span className="text-brand-primary-dark">Problem</span>
               </h2>
               <p className="text-lg text-gray-600 leading-relaxed">
                 Care facility staff were drowning in paperwork, juggling medication schedules, and struggling with outdated systems. We built HomeLogic360 to change that &mdash; one facility at a time.
@@ -240,8 +240,8 @@ export default function About() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Mission */}
-            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-8 shadow-lg">
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-6">
+            <div className="bg-gradient-to-br from-brand-primary to-brand-primary rounded-2xl p-8 shadow-lg">
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-brand-primary-dark to-brand-sky flex items-center justify-center mb-6">
                 <Target className="w-8 h-8 text-white" />
               </div>
               <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Mission</h2>
@@ -257,8 +257,8 @@ export default function About() {
             </div>
 
             {/* Vision */}
-            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl p-8 shadow-lg">
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center mb-6">
+            <div className="bg-gradient-to-br from-brand-primary to-brand-primary rounded-2xl p-8 shadow-lg">
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-brand-sky to-brand-primary-dark flex items-center justify-center mb-6">
                 <Star className="w-8 h-8 text-white" />
               </div>
               <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Vision</h2>
@@ -289,7 +289,7 @@ export default function About() {
             {values.map((value, index) => (
               <div
                 key={index}
-                className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all border border-gray-100 hover:border-blue-200"
+                className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all border border-gray-100 hover:border-brand-sky/50"
               >
                 <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${value.gradient} flex items-center justify-center mb-4`}>
                   <value.icon className="w-8 h-8 text-white" />
@@ -303,7 +303,7 @@ export default function About() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-500 to-cyan-500">
+      <section className="py-20 bg-gradient-to-r from-brand-primary-dark to-brand-sky">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-white mb-4">By The Numbers</h2>
@@ -343,11 +343,11 @@ export default function About() {
                 className="flex items-start space-x-6"
               >
                 <div className="flex-shrink-0">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-brand-primary-dark to-brand-sky flex items-center justify-center shadow-lg">
                     <div className="text-white font-bold text-lg">{milestone.year}</div>
                   </div>
                 </div>
-                <div className="flex-1 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 shadow-lg border border-gray-100">
+                <div className="flex-1 bg-gradient-to-br from-brand-primary to-brand-primary rounded-xl p-6 shadow-lg border border-gray-100">
                   <h3 className="text-xl font-bold text-gray-900 mb-2">{milestone.title}</h3>
                   <p className="text-gray-700 leading-relaxed">{milestone.description}</p>
                 </div>
@@ -370,9 +370,9 @@ export default function About() {
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all border border-gray-200 hover:border-blue-300 text-center"
+                className="bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all border border-gray-200 hover:border-brand-sky/50 text-center"
               >
-                <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mx-auto mb-4">
+                <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-brand-primary-dark to-brand-sky flex items-center justify-center mx-auto mb-4">
                   <feature.icon className="w-7 h-7 text-white" />
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">{feature.title}</h3>
@@ -402,7 +402,7 @@ export default function About() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={() => navigate('/register-facility')}
-              className="bg-white text-blue-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl hover:scale-105"
+              className="bg-white text-brand-primary-dark px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl hover:scale-105"
             >
               Start Free Trial
             </button>

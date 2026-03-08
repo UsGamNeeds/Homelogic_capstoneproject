@@ -9,6 +9,13 @@
 @theme {
     --font-sans: 'Inter', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* HomeLogic360 brand colors – use these on public/marketing pages for consistency */
+    --color-brand-primary: #E0F2FE;
+    --color-brand-primary-dark: #0C4A6E;
+    --color-brand-sky: #0EA5E9;
+    --color-brand-secondary: #F0FDF4;
+    --color-brand-secondary-dark: #166534;
 }
 
 @import './modules/_animations.css';
