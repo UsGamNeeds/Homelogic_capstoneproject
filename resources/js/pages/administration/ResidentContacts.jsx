@@ -138,7 +138,7 @@ export default function ResidentContacts() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-1">
+    <div className="max-w-6xl mx-auto px-1">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Family Portal (Resident Contacts)</h1>
         <p className="text-gray-600 mt-2 text-[15px] leading-relaxed">
