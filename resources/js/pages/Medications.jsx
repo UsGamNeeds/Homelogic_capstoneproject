@@ -552,18 +552,20 @@ export default function Medications() {
                                 <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-end gap-2">
                                     {canEdit && (
                                         <button
+                                            type="button"
                                             onClick={() => {
                                                 setEditing(medication);
                                                 setShowForm(true);
                                             }}
-                                            className="px-3 py-1.5 text-sm text-[var(--theme-primary)] border border-[var(--theme-primary)] rounded-lg hover:bg-[var(--theme-primary)] hover:text-[var(--theme-text-on-primary)] transition-colors flex items-center gap-1.5"
+                                            className="px-3 py-1.5 text-sm font-medium text-[var(--theme-text-on-white)] border border-[var(--theme-primary-dark)] rounded-lg bg-white hover:bg-[var(--theme-primary)] hover:text-[var(--theme-text-on-primary)] hover:border-[var(--theme-primary)] transition-colors flex items-center gap-1.5 [&_svg]:shrink-0"
                                         >
-                                            <Edit className="w-4 h-4" />
+                                            <Edit className="w-4 h-4" aria-hidden />
                                             <span>Edit</span>
                                         </button>
                                     )}
                                     {canDisable && medication.is_active && (
                                         <button
+                                            type="button"
                                             onClick={() => {
                                                 const medName = medication.name || 'Medication';
                                                 if (window.confirm(`Disable "${medName}" for ${residentName}? It will be hidden from active lists but history is kept. You can turn it back on by editing the medication.`)) {
@@ -571,9 +573,9 @@ export default function Medications() {
                                                 }
                                             }}
                                             disabled={disableMutation.isPending}
-                                            className="px-3 py-1.5 text-sm text-amber-800 border border-amber-600 rounded-lg hover:bg-amber-600 hover:text-white transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="px-3 py-1.5 text-sm font-medium text-amber-950 border border-amber-700 rounded-lg bg-white hover:bg-amber-600 hover:text-white hover:border-amber-600 transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:shrink-0"
                                         >
-                                            <Ban className="w-4 h-4" />
+                                            <Ban className="w-4 h-4" aria-hidden />
                                             <span>{disableMutation.isPending ? 'Disabling...' : 'Disable'}</span>
                                         </button>
                                     )}
