@@ -146,13 +146,6 @@ class MedicationController extends BaseApiController
         $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
         $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
         
-        // Check permission only if user is not an admin or super admin
-        if (!$isSuperAdmin && !$isAdmin) {
-            if ($error = $this->requirePermission('edit_medications')) {
-                return $error;
-            }
-        }
-
         $medication = Medication::with('resident')->findOrFail($id);
 
         // If user is a caregiver, ensure they can only update medications for residents in their assigned branch
@@ -182,6 +175,21 @@ class MedicationController extends BaseApiController
             'time_3' => 'nullable',
             'time_4' => 'nullable',
         ]);
+
+        // Permission: full edit requires edit_medications; deactivating only (is_active false) allows edit OR delete permission
+        if (!$isSuperAdmin && !$isAdmin) {
+            $onlyDeactivate = count($validated) === 1
+                && array_key_exists('is_active', $validated)
+                && $validated['is_active'] === false;
+
+            if ($onlyDeactivate) {
+                if (!$user->hasPermission('delete_medications') && !$user->hasPermission('edit_medications')) {
+                    return $this->error('Unauthorized. You do not have permission to perform this action.', 403);
+                }
+            } elseif ($error = $this->requirePermission('edit_medications')) {
+                return $error;
+            }
+        }
 
         // If user is a caregiver and trying to change resident_id, validate it's in their branch
         if (auth()->user()->hasRole('caregiver') && isset($validated['resident_id'])) {

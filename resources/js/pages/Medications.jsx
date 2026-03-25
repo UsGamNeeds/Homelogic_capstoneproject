@@ -31,7 +31,7 @@ import {
     AlertCircle,
     Plus,
     Edit,
-    Trash2,
+    Ban,
     Download,
     ChevronDown,
     List,
@@ -547,8 +547,8 @@ export default function Medications() {
                             const isAdmin = currentUser?.role === 'administrator' || currentUser?.role === 'admin';
                             const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
                             const canEdit = isSuperAdmin || isAdmin || permissions.includes('edit_medications');
-                            const canDelete = isSuperAdmin || isAdmin || permissions.includes('delete_medications');
-                            return !isCaregiver && (canEdit || canDelete) && (
+                            const canDisable = isSuperAdmin || isAdmin || permissions.includes('edit_medications') || permissions.includes('delete_medications');
+                            return !isCaregiver && (canEdit || canDisable) && (
                                 <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-end gap-2">
                                     {canEdit && (
                                         <button
@@ -562,18 +562,19 @@ export default function Medications() {
                                             <span>Edit</span>
                                         </button>
                                     )}
-                                    {canDelete && (
+                                    {canDisable && medication.is_active && (
                                         <button
                                             onClick={() => {
-                                                if (window.confirm(`Are you sure you want to delete the medication "${medication.name}" for ${residentName}? This action cannot be undone.`)) {
-                                                    deleteMutation.mutate(medication.id);
+                                                const medName = medication.name || 'Medication';
+                                                if (window.confirm(`Disable "${medName}" for ${residentName}? It will be hidden from active lists but history is kept. You can turn it back on by editing the medication.`)) {
+                                                    disableMutation.mutate(medication.id);
                                                 }
                                             }}
-                                            disabled={deleteMutation.isPending}
-                                            className="px-3 py-1.5 text-sm text-red-600 border border-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            disabled={disableMutation.isPending}
+                                            className="px-3 py-1.5 text-sm text-amber-800 border border-amber-600 rounded-lg hover:bg-amber-600 hover:text-white transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            <Trash2 className="w-4 h-4" />
-                                            <span>{deleteMutation.isPending ? 'Deleting...' : 'Delete'}</span>
+                                            <Ban className="w-4 h-4" />
+                                            <span>{disableMutation.isPending ? 'Disabling...' : 'Disable'}</span>
                                         </button>
                                     )}
                                 </div>
@@ -625,8 +626,8 @@ export default function Medications() {
         enabled: !isCaregiver,
     });
 
-    const deleteMutation = useMutation({
-        mutationFn: async (id) => api.delete(`/medications/${id}`),
+    const disableMutation = useMutation({
+        mutationFn: async (id) => api.patch(`/medications/${id}`, { is_active: false }),
         onSuccess: () => queryClient.invalidateQueries(['medications']),
     });
 
