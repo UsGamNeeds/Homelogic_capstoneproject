@@ -62,6 +62,8 @@ import { registerServiceWorker } from './services/serviceWorker';
     };
 })();
 
+
+
 // Create QueryClient in a function to ensure it's initialized after all imports
 function createQueryClient() {
     return new QueryClient({

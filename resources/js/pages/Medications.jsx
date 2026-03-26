@@ -34,10 +34,13 @@ import {
     Ban,
     Download,
     ChevronDown,
+    ChevronRight,
     List,
     Grid,
     Building2,
     X,
+    Search,
+    Filter,
 } from 'lucide-react';
 import CalendarView from '../components/CalendarView';
 
@@ -171,6 +174,8 @@ export default function Medications() {
     const [currentPage, setCurrentPage] = useState(1);
     const [currentUser, setCurrentUser] = useState(null);
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar' - default to list (calendar hidden)
+    const [activeTab, setActiveTab] = useState('scheduled'); // 'scheduled', 'prn', 'other'
+    const [expandedRows, setExpandedRows] = useState(new Set());
 
     // Fetch current user
     React.useEffect(() => {
@@ -312,6 +317,53 @@ export default function Medications() {
         return { activePeriodMedications: active, endedPeriodMedications: ended };
     }, [medicationsList]);
 
+    // Categorize medications into tabs: Scheduled, PRN, Other
+    const { scheduledMeds, prnMeds, otherMeds } = React.useMemo(() => {
+        const displayList = activeOnly ? activePeriodMedications : medicationsList;
+        const scheduled = [];
+        const prn = [];
+        const other = [];
+
+        displayList.forEach((medication) => {
+            const instruction = (medication.instructions || '').toLowerCase().trim();
+            const isPrn = instruction.includes('prn') || instruction.includes('as needed');
+            const hasTimes = medication.time_1 || medication.time_2 || medication.time_3 || medication.time_4;
+
+            if (isPrn) {
+                prn.push(medication);
+            } else if (hasTimes) {
+                scheduled.push(medication);
+            } else {
+                other.push(medication);
+            }
+        });
+
+        return { scheduledMeds: scheduled, prnMeds: prn, otherMeds: other };
+    }, [medicationsList, activePeriodMedications, activeOnly]);
+
+    // Get current tab's medications
+    const currentTabMedications = React.useMemo(() => {
+        switch (activeTab) {
+            case 'scheduled': return scheduledMeds;
+            case 'prn': return prnMeds;
+            case 'other': return otherMeds;
+            default: return scheduledMeds;
+        }
+    }, [activeTab, scheduledMeds, prnMeds, otherMeds]);
+
+    // Toggle row expansion
+    const toggleRow = React.useCallback((id) => {
+        setExpandedRows(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    }, []);
+
     // Generate calendar events - must be at top level (not conditional)
     const calendarEvents = React.useMemo(() => {
         if (!activePeriodMedications || activePeriodMedications.length === 0 || viewMode !== 'calendar') {
@@ -376,7 +428,7 @@ export default function Medications() {
         return events;
     }, [activePeriodMedications, viewMode]);
 
-    const renderMedicationCard = (medication) => {
+    const renderMedicationRow = (medication, index) => {
         const residentName = [
             medication.resident?.first_name,
             medication.resident?.last_name,
@@ -387,114 +439,216 @@ export default function Medications() {
             || 'Resident';
         const branchName = medication.branch?.name;
         const periodActive = isMedicationPeriodActiveNow(medication);
+        const isExpanded = expandedRows.has(medication.id);
+        const instruction = (medication.instructions || '').toLowerCase().trim();
+        const isPrn = instruction.includes('prn') || instruction.includes('as needed');
+        const hasTimes = medication.time_1 || medication.time_2 || medication.time_3 || medication.time_4;
+        const medName = (medication.name || medication.drug?.name || 'Medication').toUpperCase();
+
+        // Determine type badges
+        const typeBadges = [];
+        if (medication.quantity) typeBadges.push(formatNumberUS(medication.quantity));
+        if (medication.form) typeBadges.push(medication.form);
+        if (medication.route) typeBadges.push(medication.route);
+
+        // Schedule label
+        const scheduleLabel = isPrn ? 'PRN' : formatInstructionDisplay(medication.instructions) || 'Scheduled';
+
+        // Format times for display
+        const times = [
+            medication.time_1,
+            medication.time_2,
+            medication.time_3,
+            medication.time_4,
+        ].filter(Boolean)
+            .sort((a, b) => {
+                const toMin = (v) => { const [h, m] = v.split(':').map(Number); return h * 60 + (m || 0); };
+                return toMin(a) - toMin(b);
+            })
+            .map(t => formatPacificTimeValue(t))
+            .filter(Boolean);
 
         return (
-            <div
-                key={medication.id}
-                className={`bg-white rounded-lg shadow p-6 ${periodActive ? '' : 'border border-amber-200'}`}
-            >
-                <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900">
-                                    {residentName}
-                                </h3>
-                                <p className="text-sm text-gray-500">
-                                    {branchName || 'No branch assigned'}
-                                </p>
-                            </div>
-                            <div className="flex flex-col items-end gap-2">
-                                {medication.is_active && periodActive && (
-                                    <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                                        Active
-                                    </span>
-                                )}
-                                {!periodActive && (
-                                    <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium">
-                                        Period Ended
-                                    </span>
-                                )}
-                            </div>
-                        </div>
+            <div key={medication.id} className={`${index > 0 ? 'border-t border-gray-100' : ''}`}>
+                {/* Compact Row */}
+                <div
+                    className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-gray-50 ${isExpanded ? 'bg-blue-50/40' : (index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50')} ${!periodActive ? 'opacity-70' : ''}`}
+                    onClick={() => toggleRow(medication.id)}
+                >
+                    {/* Expand/Collapse Icon */}
+                    <div className="flex-shrink-0 text-gray-400">
+                        {isExpanded ? (
+                            <ChevronDown className="w-4 h-4 text-[var(--theme-primary)]" />
+                        ) : (
+                            <ChevronRight className="w-4 h-4" />
+                        )}
+                    </div>
 
-                        <p className="text-lg font-semibold text-gray-900 mb-2">
-                            {medication.name || 'Medication'}
+                    {/* Pill Icon */}
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${periodActive ? 'bg-[var(--theme-primary)]/10' : 'bg-gray-100'}`}>
+                        <Pill className={`w-4 h-4 ${periodActive ? 'text-[var(--theme-primary)]' : 'text-gray-400'}`} />
+                    </div>
+
+                    {/* Medication Name + Resident */}
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-sm font-bold text-gray-900 truncate">
+                                {medName}
+                            </h3>
+                            {/* Type badges */}
+                            {typeBadges.map((badge, i) => (
+                                <span key={i} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
+                                    {badge}
+                                </span>
+                            ))}
+                            {/* Schedule type badge */}
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${isPrn ? 'bg-purple-100 text-purple-700' : 'bg-gray-200 text-gray-700'}`}>
+                                {isPrn ? 'PRN' : 'Scheduled'}
+                            </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-0.5 truncate">
+                            {residentName}{branchName ? ` • ${branchName}` : ''}
                         </p>
+                    </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                            {medication.instructions && (
-                                <div className="flex items-start space-x-2">
-                                    <Pill className="w-4 h-4 text-gray-400 mt-1" />
+                    {/* Schedule Info */}
+                    <div className="hidden md:flex items-center gap-4 flex-shrink-0">
+                        {times.length > 0 && (
+                            <div className="text-xs text-gray-600">
+                                <span className="text-gray-400 mr-1">
+                                    <Clock className="w-3 h-3 inline-block" />
+                                </span>
+                                {times.join(', ')}
+                            </div>
+                        )}
+                        {medication.instructions && (
+                            <div className="text-xs text-gray-600 max-w-[150px] truncate">
+                                {scheduleLabel}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Status Badge */}
+                    <div className="flex-shrink-0">
+                        {medication.is_active && periodActive ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">
+                                Active
+                            </span>
+                        ) : !periodActive ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700">
+                                Ended
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-500">
+                                Inactive
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Detail Entry Button */}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            toggleRow(medication.id);
+                        }}
+                        className="flex-shrink-0 hidden sm:inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-[var(--theme-primary)] rounded-md hover:bg-[var(--theme-primary-hover)] transition-colors shadow-sm"
+                    >
+                        Detail Entry
+                        <ChevronRight className="w-3 h-3" />
+                    </button>
+                </div>
+
+                {/* Expanded Details Panel */}
+                {isExpanded && (
+                    <div className="bg-gray-50 border-t border-gray-200 px-4 py-4 sm:px-8" style={{ animation: 'fadeSlideIn 0.2s ease-out' }}>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                            {/* Left Column: Medication Details */}
+                            <div className="space-y-3">
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Medication Details</h4>
+
+                                {medication.instructions && (
+                                    <div className="flex items-start gap-2">
+                                        <Pill className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <p className="text-[10px] text-gray-400 uppercase tracking-wider">Instructions</p>
+                                            <p className="text-sm text-gray-900">{formatInstructionDisplay(medication.instructions)}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {medication.quantity && (
+                                    <div className="flex items-start gap-2">
+                                        <Pill className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <p className="text-[10px] text-gray-400 uppercase tracking-wider">Give Amount / Quantity</p>
+                                            <p className="text-sm text-gray-900">{formatNumberUS(medication.quantity)}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="flex items-start gap-2">
+                                    <Calendar className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
                                     <div>
-                                        <p className="text-xs text-gray-500">Instructions</p>
-                                        <p className="text-sm font-medium text-gray-900">
-                                            {formatInstructionDisplay(medication.instructions)}
+                                        <p className="text-[10px] text-gray-400 uppercase tracking-wider">Start Date</p>
+                                        <p className="text-sm text-gray-900">
+                                            {medication.start_date
+                                                ? formatPacificDate(parsePacificDateString(medication.start_date))
+                                                : '—'}
                                         </p>
                                     </div>
                                 </div>
-                            )}
 
-                            {medication.quantity && (
-                                <div className="flex items-start space-x-2">
-                                    <Pill className="w-4 h-4 text-gray-400 mt-1" />
-                                    <div>
-                                        <p className="text-xs text-gray-500">Quantity</p>
-                                        <p className="text-sm font-medium text-gray-900">
-                                            {formatNumberUS(medication.quantity)}
-                                        </p>
+                                {medication.end_date && (
+                                    <div className="flex items-start gap-2">
+                                        <Calendar className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <p className="text-[10px] text-gray-400 uppercase tracking-wider">End Date</p>
+                                            <p className={`text-sm ${periodActive ? 'text-gray-900' : 'text-amber-700'}`}>
+                                                {formatPacificDate(parsePacificDateString(medication.end_date))}
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {medication.start_date && (
-                                <div className="flex items-start space-x-2">
-                                    <Calendar className="w-4 h-4 text-gray-400 mt-1" />
-                                    <div>
-                                        <p className="text-xs text-gray-500">Start Date</p>
-                                        <p className="text-sm font-medium text-gray-900">
-                                            {formatPacificDate(parsePacificDateString(medication.start_date))}
-                                        </p>
+                                {medication.diagnosis && (
+                                    <div className="mt-2 p-2.5 bg-white rounded-md border border-gray-200">
+                                        <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Instruction/Comments</p>
+                                        <p className="text-sm text-gray-700">{medication.diagnosis}</p>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {medication.end_date && (
-                                <div className="flex items-start space-x-2">
-                                    <Calendar className="w-4 h-4 text-gray-400 mt-1" />
-                                    <div>
-                                        <p className="text-xs text-gray-500">End Date</p>
-                                        <p className={`text-sm font-medium ${periodActive ? 'text-gray-900' : 'text-amber-700'}`}>
-                                            {formatPacificDate(parsePacificDateString(medication.end_date))}
-                                        </p>
+                                {medication.notes && (
+                                    <div className="p-2.5 bg-white rounded-md border border-gray-200">
+                                        <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Notes</p>
+                                        <p className="text-sm text-gray-700">{medication.notes}</p>
                                     </div>
-                                </div>
-                            )}
-                        </div>
+                                )}
+                            </div>
 
-                        {/* Medication Times and Administration */}
-                        {(medication.time_1 || medication.time_2 || medication.time_3 || medication.time_4 || (medication.instructions && (medication.instructions.toLowerCase().includes('prn') || medication.instructions.toLowerCase().includes('as needed')))) && (
-                            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                                <div className="mb-2 flex items-center justify-between">
-                                    {(medication.time_1 || medication.time_2 || medication.time_3 || medication.time_4) && (
-                                        <p className="text-xs font-medium text-gray-700">Administration Times:</p>
-                                    )}
-                                    {!periodActive && (
-                                        <span className="text-xs text-amber-600 font-medium">
-                                            Outside administration period
-                                        </span>
-                                    )}
-                                </div>
-                                <MedicationTimeBadges medication={medication} />
+                            {/* Middle Column: Administration Times & Status */}
+                            <div className="space-y-3">
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Administration</h4>
 
-                                {/* Quick Administer */}
-                                <QuickAdminister medication={medication} onSuccess={() => {
-                                    queryClient.invalidateQueries(['medications']);
-                                    queryClient.invalidateQueries(['medication-administrations']);
-                                    queryClient.invalidateQueries(['medication-administrations-today', medication.id]);
-                                    queryClient.invalidateQueries(['medication-administrations-today-check', medication.id]);
-                                }} />
+                                {(hasTimes || isPrn) && (
+                                    <div className="bg-white rounded-md border border-gray-200 p-3">
+                                        {hasTimes && (
+                                            <div className="mb-2">
+                                                <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1.5">Administration Times</p>
+                                                <MedicationTimeBadges medication={medication} />
+                                            </div>
+                                        )}
 
+                                        {/* Quick Administer */}
+                                        <QuickAdminister medication={medication} onSuccess={() => {
+                                            queryClient.invalidateQueries(['medications']);
+                                            queryClient.invalidateQueries(['medication-administrations']);
+                                            queryClient.invalidateQueries(['medication-administrations-today', medication.id]);
+                                            queryClient.invalidateQueries(['medication-administrations-today-check', medication.id]);
+                                        }} />
+                                    </div>
+                                )}
+
+                                {/* Medication History Link */}
                                 <button
                                     onClick={() => {
                                         const params = new URLSearchParams();
@@ -502,91 +656,82 @@ export default function Medications() {
                                         if (medication?.resident_id) params.set('resident', medication.resident_id);
                                         navigate(`/medication-history?${params.toString()}`);
                                     }}
-                                    className="mt-2 px-3 py-1.5 text-xs font-semibold text-white bg-[var(--theme-primary)] border border-[var(--theme-primary)] rounded-md hover:bg-[var(--theme-primary-hover)] hover:border-[var(--theme-primary-hover)] transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                                    className="w-full px-3 py-2 text-xs font-semibold text-white bg-[var(--theme-primary)] border border-[var(--theme-primary)] rounded-md hover:bg-[var(--theme-primary-hover)] hover:border-[var(--theme-primary-hover)] transition-colors flex items-center justify-center gap-1.5 shadow-sm"
                                 >
                                     <Calendar className="w-3.5 h-3.5" />
                                     Medication History
                                 </button>
-                            </div>
-                        )}
 
-                        {medication.diagnosis && (
-                            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                                <p className="text-sm text-gray-700">
-                                    <span className="font-medium">Diagnosis: </span>
-                                    {medication.diagnosis}
-                                </p>
-                            </div>
-                        )}
-
-                        {medication.notes && (
-                            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                                <p className="text-sm text-gray-700">
-                                    <span className="font-medium">Notes: </span>
-                                    {medication.notes}
-                                </p>
-                            </div>
-                        )}
-
-                        {!periodActive && medication.end_date && (
-                            <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                                <p className="text-sm text-amber-700">
-                                    Medication period ended on {formatPacificDate(parsePacificDateString(medication.end_date))}.
-                                </p>
-                                {medication.is_active && (
-                                    <p className="text-xs text-amber-700 mt-1">
-                                        Medication is still marked Active; review status if this period should remain closed.
-                                    </p>
+                                {!periodActive && medication.end_date && (
+                                    <div className="p-2.5 bg-amber-50 rounded-md border border-amber-200">
+                                        <p className="text-xs text-amber-700">
+                                            Medication period ended on {formatPacificDate(parsePacificDateString(medication.end_date))}.
+                                        </p>
+                                        {medication.is_active && (
+                                            <p className="text-[10px] text-amber-600 mt-1">
+                                                Still marked Active — review if period should remain closed.
+                                            </p>
+                                        )}
+                                    </div>
                                 )}
                             </div>
-                        )}
 
-                        {/* Admin Actions */}
-                        {(() => {
-                            const isSuperAdmin = currentUser?.role === 'super_admin';
-                            const isAdmin = currentUser?.role === 'administrator' || currentUser?.role === 'admin';
-                            const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
-                            const canEdit = isSuperAdmin || isAdmin || permissions.includes('edit_medications');
-                            const canDisable = isSuperAdmin || isAdmin || permissions.includes('edit_medications') || permissions.includes('delete_medications');
-                            return !isCaregiver && (canEdit || canDisable) && (
-                                <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-end gap-2">
-                                    {canEdit && (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setEditing(medication);
-                                                setShowForm(true);
-                                            }}
-                                            className="px-3 py-1.5 text-sm font-medium text-[var(--theme-text-on-white)] border border-[var(--theme-primary-dark)] rounded-lg bg-white hover:bg-[var(--theme-primary)] hover:text-[var(--theme-text-on-primary)] hover:border-[var(--theme-primary)] transition-colors flex items-center gap-1.5 [&_svg]:shrink-0"
-                                        >
-                                            <Edit className="w-4 h-4" aria-hidden />
-                                            <span>Edit</span>
-                                        </button>
-                                    )}
-                                    {canDisable && medication.is_active && (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                const medName = medication.name || 'Medication';
-                                                if (window.confirm(`Disable "${medName}" for ${residentName}? It will be hidden from active lists but history is kept. You can turn it back on by editing the medication.`)) {
-                                                    disableMutation.mutate(medication.id);
-                                                }
-                                            }}
-                                            disabled={disableMutation.isPending}
-                                            className="px-3 py-1.5 text-sm font-medium text-amber-950 border border-amber-700 rounded-lg bg-white hover:bg-amber-600 hover:text-white hover:border-amber-600 transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:shrink-0"
-                                        >
-                                            <Ban className="w-4 h-4" aria-hidden />
-                                            <span>{disableMutation.isPending ? 'Disabling...' : 'Disable'}</span>
-                                        </button>
-                                    )}
-                                </div>
-                            );
-                        })()}
+                            {/* Right Column: Actions */}
+                            <div className="space-y-3">
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</h4>
+
+                                {(() => {
+                                    const isSuperAdmin = currentUser?.role === 'super_admin';
+                                    const isAdmin = currentUser?.role === 'administrator' || currentUser?.role === 'admin';
+                                    const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
+                                    const canEdit = isSuperAdmin || isAdmin || permissions.includes('edit_medications');
+                                    const canDisable = isSuperAdmin || isAdmin || permissions.includes('edit_medications') || permissions.includes('delete_medications');
+                                    return !isCaregiver && (canEdit || canDisable) ? (
+                                        <div className="flex flex-col gap-2">
+                                            {canEdit && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setEditing(medication);
+                                                        setShowForm(true);
+                                                    }}
+                                                    className="w-full px-3 py-2 text-sm font-medium text-[var(--theme-text-on-white)] border border-[var(--theme-primary-dark)] rounded-lg bg-white hover:bg-[var(--theme-primary)] hover:text-[var(--theme-text-on-primary)] hover:border-[var(--theme-primary)] transition-colors flex items-center justify-center gap-1.5 [&_svg]:shrink-0"
+                                                >
+                                                    <Edit className="w-4 h-4" aria-hidden />
+                                                    <span>Edit</span>
+                                                </button>
+                                            )}
+                                            {canDisable && medication.is_active && (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const medName2 = medication.name || 'Medication';
+                                                        if (window.confirm(`Disable "${medName2}" for ${residentName}? It will be hidden from active lists but history is kept. You can turn it back on by editing the medication.`)) {
+                                                            disableMutation.mutate(medication.id);
+                                                        }
+                                                    }}
+                                                    disabled={disableMutation.isPending}
+                                                    className="w-full px-3 py-2 text-sm font-medium text-amber-950 border border-amber-700 rounded-lg bg-white hover:bg-amber-600 hover:text-white hover:border-amber-600 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:shrink-0"
+                                                >
+                                                    <Ban className="w-4 h-4" aria-hidden />
+                                                    <span>{disableMutation.isPending ? 'Disabling...' : 'Disable'}</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-gray-400 italic">No actions available</p>
+                                    );
+                                })()}
+                            </div>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         );
     };
+
 
     // Reset to page 1 when filters change
     React.useEffect(() => {
@@ -774,8 +919,11 @@ export default function Medications() {
                 </div>
             ) : (
                 <div>
+                    {/* View Mode Toggle + Reset */}
                     <div className="mb-4 flex items-center justify-between">
-                        <div />
+                        <div className="text-sm text-gray-500">
+                            Today: <span className="font-semibold text-gray-700">{formatPacificDate(getPacificNow())}</span>
+                        </div>
                         <div className="flex items-center gap-3">
                             {medicationsList.length > 0 && (
                                 <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
@@ -809,6 +957,7 @@ export default function Medications() {
                             </button>
                         </div>
                     </div>
+
                     {medicationsList.length > 0 ? (
                         viewMode === 'calendar' ? (
                             <CalendarView
@@ -822,38 +971,57 @@ export default function Medications() {
                                 views={['month', 'week', 'day']}
                             />
                         ) : (
-                            <div className="space-y-8">
-                                {activePeriodMedications.length > 0 && (
-                                    <div>
-                                        <div className="flex items-center justify-between mb-3">
-                                            <h3 className="text-base font-semibold text-gray-900">
-                                                Active Medication Periods
-                                            </h3>
-                                            <span className="text-xs text-gray-500">
-                                                Showing {formatNumberUS(activePeriodMedications.length)} medication{activePeriodMedications.length === 1 ? '' : 's'}
-                                            </span>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            {activePeriodMedications.map(renderMedicationCard)}
-                                        </div>
+                            <div>
+                                {/* Category Tabs */}
+                                <div className="bg-white rounded-t-lg shadow-sm border border-gray-200 px-2 pt-2">
+                                    <div className="flex items-center gap-1">
+                                        {[
+                                            { key: 'scheduled', label: 'Scheduled', count: scheduledMeds.length, color: 'bg-blue-500' },
+                                            { key: 'prn', label: 'PRN', count: prnMeds.length, color: 'bg-purple-500' },
+                                            { key: 'other', label: 'Other', count: otherMeds.length, color: 'bg-gray-500' },
+                                        ].map(tab => (
+                                            <button
+                                                key={tab.key}
+                                                onClick={() => { setActiveTab(tab.key); setExpandedRows(new Set()); }}
+                                                className={`relative flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-t-lg transition-colors ${
+                                                    activeTab === tab.key
+                                                        ? 'bg-gray-50 text-gray-900 border border-gray-200 border-b-transparent -mb-px'
+                                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                {tab.label}
+                                                <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold text-white ${
+                                                    activeTab === tab.key ? tab.color : 'bg-gray-300'
+                                                }`}>
+                                                    {tab.count}
+                                                </span>
+                                            </button>
+                                        ))}
                                     </div>
-                                )}
+                                </div>
 
-                                {endedPeriodMedications.length > 0 && (
-                                    <div>
-                                        <div className="flex items-center justify-between mb-3">
-                                            <h3 className="text-base font-semibold text-gray-900">
-                                                Completed Medication Periods
-                                            </h3>
-                                            <span className="text-xs text-gray-500">
-                                                Showing {formatNumberUS(endedPeriodMedications.length)} medication{endedPeriodMedications.length === 1 ? '' : 's'}
-                                            </span>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            {endedPeriodMedications.map(renderMedicationCard)}
-                                        </div>
+                                {/* Table-style medication list */}
+                                <div className="bg-white rounded-b-lg shadow-sm border border-t-0 border-gray-200 overflow-hidden">
+                                    {/* Header Row */}
+                                    <div className="flex items-center gap-3 px-4 py-2 bg-gray-100 border-b border-gray-200 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                                        <div className="w-4 flex-shrink-0" />
+                                        <div className="w-8 flex-shrink-0" />
+                                        <div className="flex-1">Medication</div>
+                                        <div className="hidden md:block w-[200px] flex-shrink-0">Schedule</div>
+                                        <div className="w-[60px] flex-shrink-0 text-center">Status</div>
+                                        <div className="hidden sm:block w-[100px] flex-shrink-0" />
                                     </div>
-                                )}
+
+                                    {/* Medication Rows */}
+                                    {currentTabMedications.length > 0 ? (
+                                        currentTabMedications.map((medication, index) => renderMedicationRow(medication, index))
+                                    ) : (
+                                        <div className="p-8 text-center">
+                                            <Pill className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                                            <p className="text-sm text-gray-500">No {activeTab} medications found</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )
                     ) : (

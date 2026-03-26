@@ -33,8 +33,13 @@ Route::get('/welcome', function () {
     return redirect('/');
 });
 
+Route::get('/login', function () {
+    return view('react-app');
+})->name('login');
+
 // Catch-all route for React Router - must be last
 // This handles all client-side routes like /login, /features, /dashboard, etc.
 Route::get('{any}', function () {
     return view('react-app');
 })->where('any', '.*');
+

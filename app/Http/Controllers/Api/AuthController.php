@@ -784,7 +784,7 @@ class AuthController extends Controller
                 'clock_in_latitude' => $latitude,
                 'clock_in_longitude' => $longitude,
                 'is_active' => true,
-                'clock_method' => 'auto_login',
+                'clock_method' => 'authenticated',
             ]);
 
             $clockIn->load(['staff', 'branch', 'facility']);
