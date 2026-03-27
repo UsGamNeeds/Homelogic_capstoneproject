@@ -176,6 +176,8 @@ export default function Medications() {
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar' - default to list (calendar hidden)
     const [activeTab, setActiveTab] = useState('scheduled'); // 'scheduled', 'am', 'pm', 'prn'
     const [expandedRows, setExpandedRows] = useState(new Set());
+    const [selectedMeds, setSelectedMeds] = useState(new Set());
+    const [isBulkAdministering, setIsBulkAdministering] = useState(false);
 
     // Fetch current user
     React.useEffect(() => {
@@ -340,10 +342,10 @@ export default function Medications() {
 
             if (isPrn) {
                 prn.push(medication);
-            } else if (hasTimes) {
-                scheduled.push(medication);
+            } else {
+                if (hasTimes) scheduled.push(medication);
 
-                // Categorize by time
+                // Categorize by individual time slots
                 const hasAm = times.some(t => {
                     const [h] = t.split(':').map(Number);
                     return h < 12;
@@ -451,6 +453,7 @@ export default function Medications() {
     }, [activePeriodMedications, viewMode]);
 
     const renderMedicationRow = (medication, index) => {
+        const isSelected = selectedMeds.has(medication.id);
         const residentName = [
             medication.resident?.first_name,
             medication.resident?.last_name,
@@ -476,13 +479,24 @@ export default function Medications() {
         // Schedule label
         const scheduleLabel = isPrn ? 'PRN' : formatInstructionDisplay(medication.instructions) || 'Scheduled';
 
-        // Format times for display
+        // Format times for display, filtering by tab
         const times = [
             medication.time_1,
             medication.time_2,
             medication.time_3,
             medication.time_4,
         ].filter(Boolean)
+            .filter(t => {
+                if (activeTab === 'am') {
+                    const [h] = t.split(':').map(Number);
+                    return h < 12;
+                }
+                if (activeTab === 'pm') {
+                    const [h] = t.split(':').map(Number);
+                    return h >= 12;
+                }
+                return true;
+            })
             .sort((a, b) => {
                 const toMin = (v) => { const [h, m] = v.split(':').map(Number); return h * 60 + (m || 0); };
                 return toMin(a) - toMin(b);
@@ -494,9 +508,27 @@ export default function Medications() {
             <div key={medication.id} className={`${index > 0 ? 'border-t border-gray-100' : ''}`}>
                 {/* Compact Row */}
                 <div
-                    className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-gray-50 ${isExpanded ? 'bg-blue-50/40' : (index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50')} ${!periodActive ? 'opacity-70' : ''}`}
+                    className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-gray-50 ${isExpanded ? 'bg-blue-50/40' : (isSelected ? 'bg-blue-100/50' : (index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'))} ${!periodActive ? 'opacity-70' : ''}`}
                     onClick={() => toggleRow(medication.id)}
                 >
+                    {/* Checkbox for Bulk Administration */}
+                    {activeTab !== 'prn' && (
+                        <div 
+                            className="flex-shrink-0 mr-1"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const next = new Set(selectedMeds);
+                                if (next.has(medication.id)) next.delete(medication.id);
+                                else next.add(medication.id);
+                                setSelectedMeds(next);
+                            }}
+                        >
+                            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${isSelected ? 'bg-[var(--theme-primary)] border-[var(--theme-primary)]' : 'border-gray-300 bg-white'}`}>
+                                {isSelected && <CheckCircle className="w-3.5 h-3.5 text-white" />}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Expand/Collapse Icon */}
                     <div className="flex-shrink-0 text-gray-400">
                         {isExpanded ? (
@@ -656,7 +688,7 @@ export default function Medications() {
                                         {hasTimes && (
                                             <div className="mb-2">
                                                 <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1.5">Administration Times</p>
-                                                <MedicationTimeBadges medication={medication} />
+                                                <MedicationTimeBadges medication={medication} activeTab={activeTab} />
                                             </div>
                                         )}
 
@@ -794,6 +826,37 @@ export default function Medications() {
         queryFn: async () => (await api.get('/branches', { params: { per_page: 100 } })).data,
         enabled: !isCaregiver,
     });
+
+    const handleBulkAdminister = async () => {
+        if (selectedMeds.size === 0) return;
+        setIsBulkAdministering(true);
+        try {
+            const medsToAdmin = currentTabMedications.filter(m => selectedMeds.has(m.id));
+            const now = getPacificISODateTime();
+            
+            for (const med of medsToAdmin) {
+                await api.post('/medication-administrations', {
+                    medication_id: med.id,
+                    resident_id: med.resident_id,
+                    branch_id: med.branch_id,
+                    administered_at: now,
+                    status: 'completed',
+                    dosage_given: med.quantity ? `${med.quantity} ${med.form || ''}` : 'As prescribed',
+                    notes: 'Bulk administered from medications list',
+                });
+            }
+            
+            setSelectedMeds(new Set());
+            queryClient.invalidateQueries(['medications']);
+            queryClient.invalidateQueries(['medication-administrations']);
+            alert(`Successfully administered ${medsToAdmin.length} medications.`);
+        } catch (err) {
+            logger.error('Bulk administration failed:', err);
+            alert('Bulk administration failed.');
+        } finally {
+            setIsBulkAdministering(false);
+        }
+    };
 
     const disableMutation = useMutation({
         mutationFn: async (id) => api.patch(`/medications/${id}`, { is_active: false }),
@@ -993,58 +1056,96 @@ export default function Medications() {
                                 views={['month', 'week', 'day']}
                             />
                         ) : (
-                            <div>
-                                {/* Category Tabs */}
-                                <div className="bg-white rounded-t-lg shadow-sm border border-gray-200 px-2 pt-2">
-                                    <div className="flex items-center gap-1">
-                                        {[
-                                            { key: 'scheduled', label: 'Scheduled', count: scheduledMeds.length, color: 'bg-blue-500' },
-                                            { key: 'am', label: 'AM', count: amMeds.length, color: 'bg-amber-500' },
-                                            { key: 'pm', label: 'PM', count: pmMeds.length, color: 'bg-indigo-500' },
-                                            { key: 'prn', label: 'PRN', count: prnMeds.length, color: 'bg-purple-500' },
-
-                                        ].map(tab => (
+                            <div className="space-y-4">
+                                {/* Bulk Actions Bar */}
+                                {selectedMeds.size > 0 && (
+                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-2">
+                                        <div className="flex items-center gap-2">
+                                            <CheckCircle className="w-5 h-5 text-green-600" />
+                                            <span className="text-sm font-bold text-green-800">{selectedMeds.size} medications selected</span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
                                             <button
-                                                key={tab.key}
-                                                onClick={() => { setActiveTab(tab.key); setExpandedRows(new Set()); }}
-                                                className={`relative flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-t-lg transition-colors ${
-                                                    activeTab === tab.key
-                                                        ? 'bg-gray-50 text-gray-900 border border-gray-200 border-b-transparent -mb-px'
-                                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                                                }`}
+                                                onClick={() => setSelectedMeds(new Set())}
+                                                className="text-sm font-semibold text-gray-500 hover:text-gray-700"
                                             >
-                                                {tab.label}
-                                                <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold text-white ${
-                                                    activeTab === tab.key ? tab.color : 'bg-gray-300'
-                                                }`}>
-                                                    {tab.count}
-                                                </span>
+                                                Cancel
                                             </button>
-                                        ))}
+                                            <button
+                                                onClick={handleBulkAdminister}
+                                                disabled={isBulkAdministering}
+                                                className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-all shadow-md flex items-center gap-2"
+                                            >
+                                                {isBulkAdministering ? (
+                                                    <RefreshCw className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <CheckCircle className="w-4 h-4" />
+                                                )}
+                                                Administer All
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
-                                {/* Table-style medication list */}
-                                <div className="bg-white rounded-b-lg shadow-sm border border-t-0 border-gray-200 overflow-hidden">
-                                    {/* Header Row */}
-                                    <div className="flex items-center gap-3 px-4 py-2 bg-gray-100 border-b border-gray-200 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                                <div className="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden">
+                                    {/* Modern Tabs */}
+                                    <div className="px-4 pt-4 border-b border-gray-100 bg-gray-50/50">
+                                        <div className="max-w-full overflow-x-auto">
+                                            <div className="flex items-center gap-1 min-w-max pb-1">
+                                                {[
+                                                    { key: 'scheduled', label: 'Scheduled', count: scheduledMeds.length, color: 'bg-blue-500' },
+                                                    { key: 'am', label: 'AM', count: amMeds.length, color: 'bg-amber-500' },
+                                                    { key: 'pm', label: 'PM', count: pmMeds.length, color: 'bg-indigo-500' },
+                                                    { key: 'prn', label: 'PRN', count: prnMeds.length, color: 'bg-purple-500' },
+                                                ].map(tab => (
+                                                    <button
+                                                        key={tab.key}
+                                                        onClick={() => { setActiveTab(tab.key); setExpandedRows(new Set()); setSelectedMeds(new Set()); }}
+                                                        className={`relative flex items-center gap-2 px-6 py-3 text-sm font-bold rounded-t-xl transition-all ${
+                                                            activeTab === tab.key
+                                                                ? 'bg-white text-gray-900 border-x border-t border-gray-100 -mb-px shadow-[0_-2px_10px_rgba(0,0,0,0.02)]'
+                                                                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100/50'
+                                                        }`}
+                                                    >
+                                                        {tab.label}
+                                                        <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black text-white ${
+                                                            activeTab === tab.key ? tab.color : 'bg-gray-300'
+                                                        }`}>
+                                                            {tab.count}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Table-style Header */}
+                                    <div className="flex items-center gap-3 px-4 py-2 bg-gray-50/80 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                        {activeTab !== 'prn' && <div className="w-5 flex-shrink-0" />}
                                         <div className="w-4 flex-shrink-0" />
                                         <div className="w-8 flex-shrink-0" />
                                         <div className="flex-1">Medication</div>
-                                        <div className="hidden md:block w-[200px] flex-shrink-0">Schedule</div>
+                                        <div className="hidden md:block w-[150px] flex-shrink-0">Schedule</div>
                                         <div className="w-[60px] flex-shrink-0 text-center">Status</div>
-                                        <div className="hidden sm:block w-[100px] flex-shrink-0" />
+                                        <div className="hidden sm:block w-[120px] flex-shrink-0" />
                                     </div>
 
                                     {/* Medication Rows */}
-                                    {currentTabMedications.length > 0 ? (
-                                        currentTabMedications.map((medication, index) => renderMedicationRow(medication, index))
-                                    ) : (
-                                        <div className="p-8 text-center">
-                                            <Pill className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                                            <p className="text-sm text-gray-500">No {activeTab} medications found</p>
-                                        </div>
-                                    )}
+                                    <div className="divide-y divide-gray-50 min-h-[400px]">
+                                        {currentTabMedications.length > 0 ? (
+                                            currentTabMedications.map((medication, index) => renderMedicationRow(medication, index))
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
+                                                <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4">
+                                                    <Pill className="w-8 h-8 text-gray-300" />
+                                                </div>
+                                                <h3 className="text-lg font-bold text-gray-900 mb-1">No medications found</h3>
+                                                <p className="text-sm text-gray-500 max-w-xs mx-auto">
+                                                    There are currently no medications in the {activeTab} category.
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         )
@@ -1687,7 +1788,7 @@ function MedicationForm({ record, residents, branches, currentUser, isCaregiver,
 }
 
 // Medication Time Badges Component
-function MedicationTimeBadges({ medication }) {
+function MedicationTimeBadges({ medication, activeTab }) {
     const formatTime = (timeValue) => formatPacificTimeValue(timeValue);
 
     // Fetch today's administrations for this medication
@@ -1841,7 +1942,18 @@ function MedicationTimeBadges({ medication }) {
         { value: medication.time_2, label: 'Time 2' },
         { value: medication.time_3, label: 'Time 3' },
         { value: medication.time_4, label: 'Time 4' },
-    ].filter(t => t.value).sort((a, b) => {
+    ].filter(t => {
+        if (!t.value) return false;
+        if (activeTab === 'am') {
+            const [h] = t.value.split(':').map(Number);
+            return h < 12;
+        }
+        if (activeTab === 'pm') {
+            const [h] = t.value.split(':').map(Number);
+            return h >= 12;
+        }
+        return true;
+    }).sort((a, b) => {
         const toMin = (v) => { const [h, m] = v.split(':').map(Number); return h * 60 + (m || 0); };
         return toMin(a.value) - toMin(b.value);
     });
