@@ -41,6 +41,7 @@ import {
     X,
     Search,
     Filter,
+    RefreshCw,
 } from 'lucide-react';
 import CalendarView from '../components/CalendarView';
 
