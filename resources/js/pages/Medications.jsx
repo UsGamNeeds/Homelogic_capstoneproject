@@ -834,22 +834,28 @@ export default function Medications() {
             const medsToAdmin = currentTabMedications.filter(m => selectedMeds.has(m.uniqueId));
             const now = new Date().toISOString();
             
-            for (const med of medsToAdmin) {
-                await api.post('/medication-administrations', {
-                    medication_id: med.id,
-                    resident_id: med.resident_id,
-                    branch_id: med.branch_id,
-                    administered_at: now,
-                    status: 'completed',
-                    dosage_given: med.quantity ? `${med.quantity} ${med.form || ''}` : 'As prescribed',
-                    notes: `Bulk administered from medications list. Target slot: ${med.slotTime || 'N/A'}`,
-                });
-            }
-            
+            await Promise.all(
+                medsToAdmin.map((med) =>
+                    api.post('/medication-administrations', {
+                        medication_id: med.id,
+                        resident_id: med.resident_id,
+                        branch_id: med.branch_id,
+                        administered_at: now,
+                        status: 'completed',
+                        dosage_given: med.quantity ? `${med.quantity} ${med.form || ''}` : 'As prescribed',
+                        notes: `Bulk administered from medications list. Target slot: ${med.slotTime || 'N/A'}`,
+                    }),
+                ),
+            );
+
             setSelectedMeds(new Set());
-            await queryClient.invalidateQueries({ queryKey: ['medications'] });
-            await queryClient.invalidateQueries({ queryKey: ['medication-administrations'] });
-            await queryClient.refetchQueries({ queryKey: ['medications'] });
+            await queryClient.refetchQueries({ queryKey: ['medications'], exact: false });
+            await Promise.all(
+                medsToAdmin.flatMap((med) => [
+                    queryClient.invalidateQueries({ queryKey: ['medication-administrations-today', med.id], exact: true }),
+                    queryClient.invalidateQueries({ queryKey: ['medication-administrations-today-check', med.id], exact: true }),
+                ]),
+            );
             
             alert(`Successfully administered ${medsToAdmin.length} records.`);
         } catch (err) {

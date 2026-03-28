@@ -559,12 +559,18 @@ export default function ResidentMedicationsPage() {
             });
             
             await Promise.all(promises);
-            
+
             setSelectedMeds(new Set());
-            await queryClient.invalidateQueries({ queryKey: ['resident-medications'] });
-            await queryClient.invalidateQueries({ queryKey: ['medication-administrations'] });
-            await queryClient.refetchQueries({ queryKey: ['resident-medications', residentId, activeOnly] });
-            
+            // Narrow updates only: broad invalidateQueries(['medication-administrations']) refetches
+            // every administration query app-wide and feels very slow after "Administer All".
+            await Promise.all([
+                refetchMeds(),
+                ...medsToAdmin.flatMap((med) => [
+                    queryClient.invalidateQueries({ queryKey: ['medication-administrations-today', med.id], exact: true }),
+                    queryClient.invalidateQueries({ queryKey: ['medication-administrations-today-check', med.id], exact: true }),
+                ]),
+            ]);
+
             alert(`Successfully administered ${medsToAdmin.length} records.`);
         } catch (err) {
             logger.error('Bulk administration failed:', err);
