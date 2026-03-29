@@ -330,6 +330,13 @@ class MedicationAdministrationController extends BaseApiController
             }
         }
 
+        if (in_array($validated['status'], ['completed', 'pharmacy_administration_confirm'], true)
+            && ! $this->administeredAtWithinScheduledWindow($medication, $administeredAt)) {
+            return response()->json([
+                'message' => 'Administration can only be recorded during an open administration window (within ±60 minutes of a scheduled time).',
+            ], 422);
+        }
+
         // Prevent duplicate administrations: check if a record with the same medication_id, 
         // administered_at (within 1 minute), and status already exists
         $existingAdministration = MedicationAdministration::where('medication_id', $validated['medication_id'])
@@ -518,6 +525,63 @@ class MedicationAdministrationController extends BaseApiController
             'date_to' => $dateTo->toDateString(),
             'errors' => $errors,
         ]);
+    }
+
+    /**
+     * True for PRN, no scheduled times, or when administered_at falls within ±60 minutes of a scheduled slot.
+     */
+    private function administeredAtWithinScheduledWindow(Medication $medication, Carbon $administeredAt): bool
+    {
+        $instruction = strtolower(trim((string) $medication->instructions));
+        if (str_contains($instruction, 'prn')) {
+            return true;
+        }
+
+        $timeSlots = array_filter([
+            $medication->time_1,
+            $medication->time_2,
+            $medication->time_3,
+            $medication->time_4,
+        ]);
+
+        if (count($timeSlots) === 0) {
+            return true;
+        }
+
+        $tz = config('app.timezone');
+        $windowMinutes = 60;
+        $admin = $administeredAt->copy()->setTimezone($tz);
+
+        foreach ($timeSlots as $slot) {
+            foreach ([0, 1] as $dayOffset) {
+                $day = $admin->copy()->startOfDay()->addDays($dayOffset);
+                $dateStr = $day->format('Y-m-d');
+                try {
+                    $scheduledTime = Carbon::parse("{$dateStr} {$slot}", $tz);
+                } catch (\Throwable $e) {
+                    continue;
+                }
+                $windowStart = $scheduledTime->copy()->subMinutes($windowMinutes);
+                $windowEnd = $scheduledTime->copy()->addMinutes($windowMinutes);
+                if ($admin->between($windowStart, $windowEnd)) {
+                    return true;
+                }
+            }
+
+            $prevDay = $admin->copy()->startOfDay()->subDay()->format('Y-m-d');
+            try {
+                $scheduledTime = Carbon::parse("{$prevDay} {$slot}", $tz);
+            } catch (\Throwable $e) {
+                continue;
+            }
+            $windowStart = $scheduledTime->copy()->subMinutes($windowMinutes);
+            $windowEnd = $scheduledTime->copy()->addMinutes($windowMinutes);
+            if ($admin->between($windowStart, $windowEnd)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 

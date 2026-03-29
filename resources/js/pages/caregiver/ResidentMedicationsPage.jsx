@@ -42,6 +42,7 @@ import {
     parseAdminTimeToPacific,
     isMedicationSlotCoveredToday,
     isNoScheduledTimeRowCoveredToday,
+    canRecordCompletedAdministrationNow,
 } from '../../utils/medicationSchedule';
 
 const INSTRUCTION_DISPLAY_MAP = {
@@ -544,9 +545,34 @@ export default function ResidentMedicationsPage() {
         
         try {
             const medsToAdmin = currentTabMedications.filter(m => selectedMeds.has(m.uniqueId));
+            const today = getPacificISODate();
+            const response = await api.get('/medication-administrations', {
+                params: { resident_id: residentId, date_from: today, date_to: today, per_page: 500 },
+            });
+            const rows = response.data?.data ?? response.data ?? [];
+            const list = Array.isArray(rows) ? rows : [];
+            const byMedId = new Map();
+            for (const a of list) {
+                if (!byMedId.has(a.medication_id)) byMedId.set(a.medication_id, []);
+                byMedId.get(a.medication_id).push(a);
+            }
+            const allowed = medsToAdmin.filter((m) =>
+                canRecordCompletedAdministrationNow(m, { todayAdministrations: byMedId.get(m.id) || [] }).ok,
+            );
+            if (allowed.length === 0) {
+                alert(
+                    'None of the selected medications can be administered right now. Completed doses can only be recorded during an open administration window (±60 minutes of a scheduled time).',
+                );
+                return;
+            }
+            if (allowed.length < medsToAdmin.length) {
+                alert(
+                    `Only ${allowed.length} of ${medsToAdmin.length} selected medications are within an open administration window. Those doses will be recorded.`,
+                );
+            }
             const now = new Date().toISOString();
             
-            const promises = medsToAdmin.map(med => {
+            const promises = allowed.map(med => {
                 return offlinePost('/medication-administrations', {
                     medication_id: med.id,
                     resident_id: med.resident_id,
@@ -565,13 +591,13 @@ export default function ResidentMedicationsPage() {
             // every administration query app-wide and feels very slow after "Administer All".
             await Promise.all([
                 refetchMeds(),
-                ...medsToAdmin.flatMap((med) => [
+                ...allowed.flatMap((med) => [
                     queryClient.invalidateQueries({ queryKey: ['medication-administrations-today', med.id], exact: true }),
                     queryClient.invalidateQueries({ queryKey: ['medication-administrations-today-check', med.id], exact: true }),
                 ]),
             ]);
 
-            alert(`Successfully administered ${medsToAdmin.length} records.`);
+            alert(`Successfully administered ${allowed.length} records.`);
         } catch (err) {
             logger.error('Bulk administration failed:', err);
             alert('Some medications could not be administered.');
@@ -983,14 +1009,12 @@ function QuickAdminister({ medication, onSuccess }) {
     const [dosageNotes, setDosageNotes] = useState('');
     const [dosageValidationError, setDosageValidationError] = useState('');
     const [isWithinTimeWindow, setIsWithinTimeWindow] = useState(false);
-    const [hasClosedWindow, setHasClosedWindow] = useState(false);
     const [timeMessage, setTimeMessage] = useState('');
     const [isDailyLimitReached, setIsDailyLimitReached] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     const [nextWindowStart, setNextWindowStart] = useState(null);
     const [nextWindowCountdown, setNextWindowCountdown] = useState('');
     const [upcomingScheduledDisplay, setUpcomingScheduledDisplay] = useState('');
-    const [isLateMode, setIsLateMode] = useState(false);
     const [isMedicationPeriodActive, setIsMedicationPeriodActive] = useState(true);
 
     const closeDosageModal = React.useCallback(() => {
@@ -1000,7 +1024,6 @@ function QuickAdminister({ medication, onSuccess }) {
         setError('');
         setDosageGiven('');
         setDosageNotes('');
-        setIsLateMode(false);
     }, [submitting]);
 
     const normalizedInstruction = React.useMemo(
@@ -1117,7 +1140,6 @@ function QuickAdminister({ medication, onSuccess }) {
 
         if (!periodActive) {
             setIsWithinTimeWindow(false);
-            setHasClosedWindow(false);
             setTimeMessage('Medication administration period has ended.');
             setNextWindowStart(null);
             setNextWindowCountdown('');
@@ -1131,7 +1153,6 @@ function QuickAdminister({ medication, onSuccess }) {
             setNextWindowStart(null);
             setNextWindowCountdown('');
             setUpcomingScheduledDisplay('');
-            setHasClosedWindow(false);
             return;
         }
 
@@ -1152,9 +1173,6 @@ function QuickAdminister({ medication, onSuccess }) {
                     });
             })
             .sort((a, b) => a.start - b.start);
-
-        const pastWindowExists = windows.some((window) => now > window.end);
-        setHasClosedWindow(pastWindowExists);
 
         for (const window of windows) {
             if (now >= window.start && now <= window.end) {
@@ -1196,7 +1214,6 @@ function QuickAdminister({ medication, onSuccess }) {
         setNextWindowStart(null);
         setNextWindowCountdown('');
         setUpcomingScheduledDisplay('');
-        setHasClosedWindow(pastWindowExists);
     }, [
         formatScheduledTime,
         computeMedicationPeriodActive,
@@ -1268,20 +1285,8 @@ function QuickAdminister({ medication, onSuccess }) {
 
     const isButtonDisabled =
         submitting || isDailyLimitReached || !isMedicationPeriodActive || (!isWithinTimeWindow && !isPrnMedication);
-    const showLateButton =
-        !isPrnMedication &&
-        !isWithinTimeWindow &&
-        hasClosedWindow &&
-        !isDailyLimitReached &&
-        !submitting &&
-        isMedicationPeriodActive;
 
-    const openDosageModal = (late = false) => {
-        if (late) {
-            setIsLateMode(true);
-        } else {
-            setIsLateMode(false);
-        }
+    const openDosageModal = () => {
         setDosageGiven('');
         setDosageNotes('');
         setDosageValidationError('');
@@ -1329,20 +1334,6 @@ function QuickAdminister({ medication, onSuccess }) {
                 >
                     {submitting ? 'Administering...' : 'Administer'}
                 </button>
-                {showLateButton && (
-                    <button
-                        onClick={() => {
-                            if (!isMedicationPeriodActive) {
-                                setError('Medication administration period has ended.');
-                                return;
-                            }
-                            openDosageModal(true);
-                        }}
-                        className="px-2 py-1 bg-amber-600 text-white rounded text-xs hover:bg-amber-700 transition-colors"
-                    >
-                        Late Administer
-                    </button>
-                )}
             </div>
             {successMessage && (
                 <p className="mt-2 text-xs text-green-600">{successMessage}</p>
@@ -1415,11 +1406,6 @@ function QuickAdminister({ medication, onSuccess }) {
                                     disabled={submitting}
                                 />
                             </div>
-                            {isLateMode && (
-                                <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700">
-                                    This will be recorded as a late administration outside the scheduled window.
-                                </div>
-                            )}
                         </div>
                         <div className="flex justify-end gap-2 border-t px-5 py-4">
                             <button
@@ -1437,11 +1423,8 @@ function QuickAdminister({ medication, onSuccess }) {
                                 onClick={async () => {
                                     const trimmedDosage = dosageGiven.trim() || 'As prescribed';
 
-                                    const lateNoteMarker = '[Late Administration]';
                                     const trimmedNotes = dosageNotes.trim();
-                                    const finalNotes = isLateMode
-                                        ? `${trimmedNotes ? `${trimmedNotes}\n` : ''}${lateNoteMarker}`
-                                        : trimmedNotes || undefined;
+                                    const finalNotes = trimmedNotes || undefined;
 
                                     const administeredAt = new Date().toISOString();
                                     const realUtcNow = new Date().toISOString();
@@ -1522,9 +1505,7 @@ function QuickAdminister({ medication, onSuccess }) {
                                     checkTimeWindow();
                                     
                                     // Show success message
-                                    const successText = isLateMode
-                                        ? `Late administration (${statusLabel}) recorded successfully.`
-                                        : `Medication ${statusLabel} recorded successfully.`;
+                                    const successText = `Medication ${statusLabel} recorded successfully.`;
                                     setSuccessMessage(successText);
                                     
                                     // Make API call in background (with offline support)

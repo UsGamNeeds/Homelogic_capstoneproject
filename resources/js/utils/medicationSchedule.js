@@ -1,4 +1,4 @@
-import { toPacificDateFromTime, getPacificNow } from './pacificTime';
+import { toPacificDateFromTime, getPacificNow, getPacificParts, parsePacificDateString } from './pacificTime';
 
 const PACIFIC_TZ = 'America/Los_Angeles';
 
@@ -59,4 +59,118 @@ export function isNoScheduledTimeRowCoveredToday(medication) {
     return getMedicationAdministrations(medication).some((admin) =>
         MEDICATION_SLOT_COVER_STATUSES.includes(admin.status),
     );
+}
+
+/** Matches caregiver/management medication list period checks. */
+export function isMedicationPeriodActiveNow(medication, referenceDate = getPacificNow()) {
+    if (!medication) {
+        return false;
+    }
+    const referenceParts = getPacificParts(referenceDate);
+    const referenceDateOnly = {
+        year: referenceParts.year,
+        month: referenceParts.month,
+        day: referenceParts.day,
+    };
+
+    const buildBoundary = (value) => {
+        if (!value) return null;
+        const base = parsePacificDateString(value);
+        if (!base || Number.isNaN(base.getTime())) {
+            return null;
+        }
+        return {
+            year: base.getUTCFullYear(),
+            month: base.getUTCMonth() + 1,
+            day: base.getUTCDate(),
+        };
+    };
+
+    const compareDates = (date1, date2) => {
+        if (date1.year !== date2.year) return date1.year - date2.year;
+        if (date1.month !== date2.month) return date1.month - date2.month;
+        return date1.day - date2.day;
+    };
+
+    const startBoundary = buildBoundary(medication.start_date);
+    if (startBoundary && compareDates(referenceDateOnly, startBoundary) < 0) {
+        return false;
+    }
+
+    const endBoundary = buildBoundary(medication.end_date);
+    if (endBoundary && compareDates(referenceDateOnly, endBoundary) > 0) {
+        return false;
+    }
+
+    return true;
+}
+
+export function isPrnMedication(medication) {
+    const s = (medication?.instructions || '').toLowerCase().trim();
+    return s.includes('prn');
+}
+
+/**
+ * Whether a completed administration may be recorded now (open ±60 min window, slot not yet covered).
+ * Aligns with QuickAdminister checkTimeWindow logic.
+ */
+export function canRecordCompletedAdministrationNow(medication, options = {}) {
+    const { now = getPacificNow(), todayAdministrations = [] } = options;
+
+    if (!medication) {
+        return { ok: false, reason: 'Invalid medication' };
+    }
+
+    if (!isMedicationPeriodActiveNow(medication, now)) {
+        return { ok: false, reason: 'Medication administration period has ended.' };
+    }
+
+    if (isPrnMedication(medication)) {
+        return { ok: true };
+    }
+
+    const times = [medication.time_1, medication.time_2, medication.time_3, medication.time_4].filter(Boolean);
+    if (times.length === 0) {
+        return { ok: true };
+    }
+
+    const parseTimeToToday = (timeValue, dayOffset) =>
+        toPacificDateFromTime(timeValue, { referenceDate: now, dayOffset });
+
+    const hasAdminForWindow = (scheduledDate) => {
+        const toleranceMs = 60 * 60 * 1000;
+        return todayAdministrations.some((admin) => {
+            if (admin.status === 'missed') return false;
+            const adminTime = parseAdminTimeToPacific(admin.administered_at);
+            if (!adminTime) return false;
+            return Math.abs(adminTime.getTime() - scheduledDate.getTime()) <= toleranceMs;
+        });
+    };
+
+    const windowBeforeMinutes = 60;
+    const windowAfterMinutes = 60;
+
+    const windows = times
+        .flatMap((timeValue) => {
+            const scheduledToday = parseTimeToToday(timeValue, 0);
+            const scheduledTomorrow = parseTimeToToday(timeValue, 1);
+            return [scheduledToday, scheduledTomorrow]
+                .filter(Boolean)
+                .map((scheduledDate) => {
+                    const start = new Date(scheduledDate.getTime() - windowBeforeMinutes * 60 * 1000);
+                    const end = new Date(scheduledDate.getTime() + windowAfterMinutes * 60 * 1000);
+                    return { scheduledDate, start, end };
+                });
+        })
+        .sort((a, b) => a.start - b.start);
+
+    for (const window of windows) {
+        if (now >= window.start && now <= window.end) {
+            if (!hasAdminForWindow(window.scheduledDate)) {
+                return { ok: true };
+            }
+        }
+    }
+
+    return { ok: false, reason: 'Outside the scheduled administration window.' };
 }
