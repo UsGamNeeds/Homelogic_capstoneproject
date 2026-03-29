@@ -174,3 +174,27 @@ export function canRecordCompletedAdministrationNow(medication, options = {}) {
 
     return { ok: false, reason: 'Outside the scheduled administration window.' };
 }
+
+/**
+ * Bulk row checkbox: same window rules as completed administration, scoped to this row's slot when set.
+ */
+export function canSelectMedicationRowForBulkAdministration(medication, options = {}) {
+    const { slotTime = null, todayAdministrations = [], now = getPacificNow() } = options;
+
+    if (!medication) {
+        return { ok: false, reason: 'Invalid medication' };
+    }
+
+    if (slotTime) {
+        const medSlotOnly = {
+            ...medication,
+            time_1: slotTime,
+            time_2: null,
+            time_3: null,
+            time_4: null,
+        };
+        return canRecordCompletedAdministrationNow(medSlotOnly, { todayAdministrations, now });
+    }
+
+    return canRecordCompletedAdministrationNow(medication, { todayAdministrations, now });
+}

@@ -43,6 +43,8 @@ import {
     isMedicationSlotCoveredToday,
     isNoScheduledTimeRowCoveredToday,
     canRecordCompletedAdministrationNow,
+    canSelectMedicationRowForBulkAdministration,
+    getMedicationAdministrations,
 } from '../../utils/medicationSchedule';
 
 const INSTRUCTION_DISPLAY_MAP = {
@@ -323,6 +325,37 @@ export default function ResidentMedicationsPage() {
         return list.sort((a, b) => getSortWeight(a) - getSortWeight(b));
     }, [activeTab, scheduledMeds, amMeds, pmMeds, prnMeds]);
 
+    const [bulkSelectTick, setBulkSelectTick] = useState(0);
+    React.useEffect(() => {
+        const id = setInterval(() => setBulkSelectTick((t) => t + 1), 15000);
+        return () => clearInterval(id);
+    }, []);
+
+    React.useEffect(() => {
+        setSelectedMeds((prev) => {
+            const next = new Set(prev);
+            let changed = false;
+            for (const uid of [...prev]) {
+                const med = currentTabMedications.find((m) => m.uniqueId === uid);
+                if (!med) {
+                    next.delete(uid);
+                    changed = true;
+                    continue;
+                }
+                const admins = getMedicationAdministrations(med);
+                const { ok } = canSelectMedicationRowForBulkAdministration(med, {
+                    slotTime: med.slotTime,
+                    todayAdministrations: admins,
+                });
+                if (!ok) {
+                    next.delete(uid);
+                    changed = true;
+                }
+            }
+            return changed ? next : prev;
+        });
+    }, [currentTabMedications, bulkSelectTick]);
+
     // Toggle row expansion
     const toggleRow = React.useCallback((id) => {
         setExpandedRows(prev => {
@@ -345,6 +378,12 @@ export default function ResidentMedicationsPage() {
         const isPrn = instruction.includes('prn') || instruction.includes('as needed');
         const medName = (medication.name || medication.drug?.name || 'Medication').toUpperCase();
 
+        const todayAdministrations = getMedicationAdministrations(medication);
+        const canBulkSelect = canSelectMedicationRowForBulkAdministration(medication, {
+            slotTime: medication.slotTime,
+            todayAdministrations,
+        });
+
         // Determine type badges
         const typeBadges = [];
         if (medication.quantity) typeBadges.push(formatNumberUS(medication.quantity));
@@ -366,15 +405,22 @@ export default function ResidentMedicationsPage() {
                 >
                     {/* Checkbox for Bulk Administration */}
                     {activeTab !== 'prn' && (
-                        <div 
-                            className="flex-shrink-0 mr-1"
+                        <div
+                            className={`flex-shrink-0 mr-1 ${canBulkSelect.ok ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}
                             onClick={(e) => {
                                 e.stopPropagation();
+                                if (!canBulkSelect.ok) return;
                                 const next = new Set(selectedMeds);
                                 if (next.has(medication.uniqueId)) next.delete(medication.uniqueId);
                                 else next.add(medication.uniqueId);
                                 setSelectedMeds(next);
                             }}
+                            title={
+                                canBulkSelect.ok
+                                    ? 'Select for bulk administration'
+                                    : (canBulkSelect.reason || 'Only available during an open administration window (±60 minutes of scheduled time)')
+                            }
+                            aria-disabled={!canBulkSelect.ok}
                         >
                             <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${isSelected ? 'bg-[var(--theme-primary)] border-[var(--theme-primary)]' : 'border-gray-300 bg-white'}`}>
                                 {isSelected && <CheckCircle className="w-3.5 h-3.5 text-white" />}
