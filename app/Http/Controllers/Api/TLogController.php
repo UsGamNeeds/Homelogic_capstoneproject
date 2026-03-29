@@ -90,7 +90,7 @@ class TLogController extends BaseApiController
             return $this->error('Resident must be assigned to a branch.', 422);
         }
 
-        // Create T-Log with auto-filled branch_id
+        // Create progress note with auto-filled branch_id
         $tLog = TLog::create([
             'resident_id' => $validated['resident_id'],
             'branch_id' => $resident->branch_id, // Auto-filled from resident
@@ -132,7 +132,7 @@ class TLogController extends BaseApiController
 
         // Check branch access for caregivers
         if (!$this->checkBranchAccess($tLog)) {
-            return $this->error('You do not have access to this T-Log.', 403);
+            return $this->error('You do not have access to this progress note.', 403);
         }
 
         return response()->json($tLog);
@@ -144,7 +144,7 @@ class TLogController extends BaseApiController
 
         // Check branch access for caregivers
         if (!$this->checkBranchAccess($tLog)) {
-            return $this->error('You do not have access to this T-Log.', 403);
+            return $this->error('You do not have access to this progress note.', 403);
         }
 
         $validated = $request->validate([
@@ -197,7 +197,7 @@ class TLogController extends BaseApiController
 
         // Check branch access for caregivers
         if (!$this->checkBranchAccess($tLog)) {
-            return $this->error('You do not have access to this T-Log.', 403);
+            return $this->error('You do not have access to this progress note.', 403);
         }
 
         // Delete attachments
@@ -210,7 +210,7 @@ class TLogController extends BaseApiController
 
         $tLog->delete();
 
-        return response()->json(['message' => 'T-Log deleted successfully']);
+        return response()->json(['message' => 'Progress note deleted successfully']);
     }
 
     public function uploadAttachment(Request $request, $id): JsonResponse
@@ -219,7 +219,7 @@ class TLogController extends BaseApiController
 
         // Check branch access for caregivers
         if (!$this->checkBranchAccess($tLog)) {
-            return $this->error('You do not have access to this T-Log.', 403);
+            return $this->error('You do not have access to this progress note.', 403);
         }
 
         $validated = $request->validate([
@@ -250,12 +250,12 @@ class TLogController extends BaseApiController
 
         // Check branch access for caregivers
         if (!$this->checkBranchAccess($tLog)) {
-            return $this->error('You do not have access to this T-Log.', 403);
+            return $this->error('You do not have access to this progress note.', 403);
         }
 
-        // Verify attachment belongs to this T-Log
+        // Verify attachment belongs to this progress note
         if ($attachment->t_log_id != $tLog->id) {
-            return $this->error('Attachment does not belong to this T-Log.', 422);
+            return $this->error('Attachment does not belong to this progress note.', 422);
         }
 
         // Delete file from storage
@@ -275,12 +275,12 @@ class TLogController extends BaseApiController
 
         // Check branch access for caregivers
         if (!$this->checkBranchAccess($tLog)) {
-            return $this->error('You do not have access to this T-Log.', 403);
+            return $this->error('You do not have access to this progress note.', 403);
         }
 
-        // Verify attachment belongs to this T-Log
+        // Verify attachment belongs to this progress note
         if ($attachment->t_log_id != $tLog->id) {
-            return $this->error('Attachment does not belong to this T-Log.', 422);
+            return $this->error('Attachment does not belong to this progress note.', 422);
         }
 
         if (!$attachment->file_path || !Storage::disk('public')->exists($attachment->file_path)) {
@@ -294,7 +294,7 @@ class TLogController extends BaseApiController
     }
 
     /**
-     * Export resident care logs (T-Logs) as CSV for compliance/reporting.
+     * Export resident care logs (progress notes) as CSV for compliance/reporting.
      * Query params: date_from, date_to, branch_id, resident_id
      */
     public function exportCareLogs(Request $request): StreamedResponse|JsonResponse

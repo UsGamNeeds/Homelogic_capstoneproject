@@ -241,7 +241,7 @@ export default function CaregiverDashboard({
                                 onClick={() => navigate('/medications')}
                             />
                             <QuickAction
-                                label="Daily Notes"
+                                label="Progress notes"
                                 icon={FileText}
                                 onClick={() => navigate('/t-logs')}
                             />

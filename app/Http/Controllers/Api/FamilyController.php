@@ -42,7 +42,7 @@ class FamilyController extends Controller
     }
 
     /**
-     * Care updates for family dashboard: TLogs, meds, appointments, vitals for linked residents.
+     * Care updates for family dashboard: progress notes, meds, appointments, vitals for linked residents.
      */
     public function careUpdates(Request $request): JsonResponse
     {

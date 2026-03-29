@@ -137,7 +137,7 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
     // Compliance / Inspection Package
     Route::get('/compliance/inspection-package', [\App\Http\Controllers\Api\ComplianceReportController::class, 'inspectionPackage'])->middleware('auth:sanctum');
 
-    // T-Logs
+    // Progress notes (API: t-logs)
     Route::get('/t-logs/export/care-logs', [\App\Http\Controllers\Api\TLogController::class, 'exportCareLogs'])->middleware('auth:sanctum');
     Route::apiResource('t-logs', \App\Http\Controllers\Api\TLogController::class)->middleware('auth:sanctum');
     Route::post('/t-logs/{id}/attachments', [\App\Http\Controllers\Api\TLogController::class, 'uploadAttachment'])->middleware('auth:sanctum');

@@ -78,7 +78,7 @@ export default function CareLogsReport() {
                                     <ClipboardList className="h-8 w-8 text-brand-primary-dark" />
                                     Resident Care Logs
                                 </h1>
-                                <p className="mt-2 text-gray-600">T-Log / care notes for compliance and inspection</p>
+                                <p className="mt-2 text-gray-600">Progress notes / care notes for compliance and inspection</p>
                             </div>
                             <div className="flex items-center gap-3 no-print">
                                 <button

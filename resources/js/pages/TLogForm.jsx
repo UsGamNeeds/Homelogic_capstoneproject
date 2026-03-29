@@ -174,12 +174,12 @@ export default function TLogForm({ tLog, onClose, onSuccess }) {
         },
         onSuccess: () => {
             queryClient.invalidateQueries(['t-logs']);
-            toast.success('T-Log created successfully', '', { isFormSubmission: true });
+            toast.success('Progress note created successfully', '', { isFormSubmission: true });
             onSuccess?.();
         },
         onError: (error) => {
-            logger.error('Error creating T-Log:', error);
-            toast.error(error.response?.data?.message || 'Failed to create T-Log');
+            logger.error('Error creating progress note:', error);
+            toast.error(error.response?.data?.message || 'Failed to create progress note');
         },
     });
 
@@ -191,12 +191,12 @@ export default function TLogForm({ tLog, onClose, onSuccess }) {
         },
         onSuccess: () => {
             queryClient.invalidateQueries(['t-logs']);
-            toast.success('T-Log updated successfully', '', { isFormSubmission: true });
+            toast.success('Progress note updated successfully', '', { isFormSubmission: true });
             onSuccess?.();
         },
         onError: (error) => {
-            logger.error('Error updating T-Log:', error);
-            toast.error(error.response?.data?.message || 'Failed to update T-Log');
+            logger.error('Error updating progress note:', error);
+            toast.error(error.response?.data?.message || 'Failed to update progress note');
         },
     });
 
@@ -288,7 +288,7 @@ export default function TLogForm({ tLog, onClose, onSuccess }) {
                         <ArrowLeft className="w-5 h-5" />
                     </button>
                     <h2 className="text-xl font-semibold text-gray-900">
-                        {tLog ? 'Edit T-Log' : 'New T-Log'}
+                        {tLog ? 'Edit progress note' : 'New progress note'}
                     </h2>
                 </div>
                 <button
@@ -516,8 +516,8 @@ export default function TLogForm({ tLog, onClose, onSuccess }) {
                             {createMutation.isPending || updateMutation.isPending
                                 ? 'Saving...'
                                 : tLog
-                                ? 'Update T-Log'
-                                : 'Create T-Log'}
+                                ? 'Update progress note'
+                                : 'Create progress note'}
                         </button>
                     </div>
                 </form>

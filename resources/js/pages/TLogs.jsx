@@ -42,7 +42,7 @@ export default function TLogs() {
         date_to: searchParams.get('date_to') || '',
     });
 
-    // Fetch T-Logs
+    // Fetch progress notes
     const { data, isLoading, error, refetch } = useQuery({
         queryKey: ['t-logs', filters],
         queryFn: async () => {
@@ -184,11 +184,11 @@ export default function TLogs() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries(['t-logs']);
-            toast.success('T-Log deleted successfully');
+            toast.success('Progress note deleted successfully');
         },
         onError: (error) => {
-            logger.error('Error deleting T-Log:', error);
-            toast.error(error.response?.data?.message || 'Failed to delete T-Log');
+            logger.error('Error deleting progress note:', error);
+            toast.error(error.response?.data?.message || 'Failed to delete progress note');
         },
     });
 
@@ -213,7 +213,7 @@ export default function TLogs() {
     };
 
     const handleDelete = (id) => {
-        if (window.confirm('Are you sure you want to delete this T-Log?')) {
+        if (window.confirm('Are you sure you want to delete this progress note?')) {
             deleteMutation.mutate(id);
         }
     };
@@ -270,13 +270,13 @@ export default function TLogs() {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-gray-900">T-Logs</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Progress notes</h1>
                 <button
                     onClick={() => handleOpenForm()}
                     className="flex items-center gap-2 px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-primary-dark)] transition-colors"
                 >
                     <Plus className="w-5 h-5" />
-                    New T-Log
+                    New progress note
                 </button>
             </div>
 
@@ -291,7 +291,7 @@ export default function TLogs() {
                                 type="text"
                                 value={filters.search}
                                 onChange={(e) => handleFilterChange('search', e.target.value)}
-                                placeholder="Search T-Logs..."
+                                placeholder="Search progress notes..."
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                             />
                         </div>
@@ -367,18 +367,18 @@ export default function TLogs() {
                 </div>
             </Card>
 
-            {/* T-Logs List */}
+            {/* Progress notes list */}
             {isLoading ? (
                 <Card>
                     <div className="text-center py-8">Loading...</div>
                 </Card>
             ) : error ? (
                 <Card>
-                    <div className="text-center py-8 text-red-600">Error loading T-Logs</div>
+                    <div className="text-center py-8 text-red-600">Error loading progress notes</div>
                 </Card>
             ) : tLogs.length === 0 ? (
                 <Card>
-                    <div className="text-center py-8 text-gray-500">No T-Logs found</div>
+                    <div className="text-center py-8 text-gray-500">No progress notes found</div>
                 </Card>
             ) : (
                 <div className="space-y-4">
@@ -487,7 +487,7 @@ export default function TLogs() {
     );
 }
 
-// View T-Log Component (Full Page View)
+// View progress note (full page view)
 function ViewTLog({ tLog, onClose, onEdit }) {
     const handleDownload = async (attachmentId, fileName) => {
         try {
@@ -528,9 +528,9 @@ function ViewTLog({ tLog, onClose, onEdit }) {
                             <div>
                                 <h1 className="text-3xl font-bold text-white flex items-center gap-3">
                                     <FileText className="w-8 h-8" />
-                                    T-Log Details
+                                    Progress note details
                                 </h1>
-                                <p className="text-white/90 mt-1">Comprehensive T-Log information and documentation</p>
+                                <p className="text-white/90 mt-1">Comprehensive progress note information and documentation</p>
                             </div>
                         </div>
                         <button
@@ -538,7 +538,7 @@ function ViewTLog({ tLog, onClose, onEdit }) {
                             className="px-6 py-2 bg-white text-[var(--theme-primary)] rounded-lg hover:bg-gray-50 font-semibold transition-colors flex items-center gap-2"
                         >
                             <Edit className="w-4 h-4" />
-                            Edit T-Log
+                            Edit progress note
                         </button>
                     </div>
                 </div>

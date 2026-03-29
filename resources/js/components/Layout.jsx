@@ -110,7 +110,7 @@ const navigation = [
     { name: 'Grocery Status', icon: ShoppingCart, path: '/grocery-status', children: null },
     { name: 'Fire Drills', icon: Flame, path: '/fire-drills', children: null },
     { name: 'Incidents', icon: AlertTriangle, path: '/incidents', children: null },
-    { name: 'T-Logs', icon: FileText, path: '/t-logs', children: null },
+    { name: 'Progress notes', icon: FileText, path: '/t-logs', children: null },
     { 
         name: 'Check-In/Out', 
         icon: UserCheck, 
@@ -215,7 +215,7 @@ const caregiverNavigation = [
     { name: 'Grocery Status', icon: ShoppingCart, path: '/grocery-status', children: null },
     { name: 'Fire Drills', icon: Flame, path: '/fire-drills', children: null },
     { name: 'Incidents', icon: AlertTriangle, path: '/incidents', children: null },
-    { name: 'T-Logs', icon: FileText, path: '/t-logs', children: null },
+    { name: 'Progress notes', icon: FileText, path: '/t-logs', children: null },
     { name: 'Appointments', icon: Calendar, path: '/appointments', children: null },
     { name: 'Behavior Charts', icon: BarChart3, path: '/charts', children: null },
     { name: 'Leave Requests', icon: CalendarClock, path: '/leave-requests', children: null },
@@ -788,7 +788,7 @@ export default function Layout() {
                                 <Link
                                     to={tLogsPath}
                                     className="p-2 rounded-full hover:bg-gray-100 transition-colors relative"
-                                    title="T-Logs"
+                                    title="Progress notes"
                                 >
                                     <FileText className="w-5 h-5 text-gray-700" />
                                 </Link>

@@ -89,7 +89,7 @@ export default function FacilitySetup() {
     'Incidents',
     'Check-In/Out',
     'Visitors',
-    'T-Logs',
+    'Progress notes',
   ];
 
   const quickStartChecklist = [

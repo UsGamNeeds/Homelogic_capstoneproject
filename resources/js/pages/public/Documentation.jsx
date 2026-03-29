@@ -285,7 +285,7 @@ export default function Documentation() {
 - Incidents
 - Check-In/Out
 - Visitors
-- T-Logs
+- Progress notes
 
 **Enabling/Disabling Modules:**
 1. Navigate to Settings → Module Management

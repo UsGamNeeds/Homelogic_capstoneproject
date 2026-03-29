@@ -38,7 +38,7 @@ class ComplianceReportController extends BaseApiController
         }
 
         try {
-            // 1. Resident care logs (T-Logs)
+            // 1. Resident care logs (progress notes)
             $tLogsQuery = TLog::with(['resident', 'branch', 'reporter', 'enteredBy'])
                 ->whereDate('reported_on', '>=', $dateFrom)
                 ->whereDate('reported_on', '<=', $dateTo);

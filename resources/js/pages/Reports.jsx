@@ -251,7 +251,7 @@ export default function Reports() {
                 },
                 {
                     title: 'Resident Care Logs',
-                    description: 'T-Log / care notes for compliance and inspection',
+                    description: 'Progress notes / care notes for compliance and inspection',
                     icon: ClipboardList,
                     link: '/reports/care-logs',
                     value: 0,
