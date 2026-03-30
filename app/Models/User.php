@@ -261,6 +261,45 @@ class User extends Authenticatable implements FilamentUser
         }
     }
 
+    /**
+     * Roles for permission checks: Spatie pivot when present, otherwise legacy `users.role` mapped to `roles` table.
+     *
+     * @return \Illuminate\Support\Collection<int, Role>
+     */
+    public function rolesForPermissionResolution(): \Illuminate\Support\Collection
+    {
+        if ($this->relationLoaded('roles') && $this->roles->isNotEmpty()) {
+            return $this->roles->loadMissing('permissions');
+        }
+
+        $roles = $this->roles()->with('permissions')->get();
+        if ($roles->isNotEmpty()) {
+            return $roles;
+        }
+
+        $raw = $this->role ? strtolower(trim((string) $this->role)) : '';
+        if ($raw === '') {
+            return collect();
+        }
+
+        $aliases = [
+            'care_giver' => 'caregiver',
+            'registered_nurse' => 'nurse',
+            'licensed_nurse' => 'nurse',
+            'rn' => 'nurse',
+        ];
+        $name = $aliases[$raw] ?? $raw;
+
+        $role = Role::where('name', $name)->first()
+            ?? Role::where('name', $raw)->first();
+
+        if (! $role) {
+            return collect();
+        }
+
+        return collect([$role->load('permissions')]);
+    }
+
     public function hasPermission(string $permission): bool
     {
         // Both administrator and admin bypass permission checks
@@ -270,9 +309,8 @@ class User extends Authenticatable implements FilamentUser
             return true;
         }
 
-        // Get user's roles
-        $userRoles = $this->roles()->get();
-        
+        $userRoles = $this->rolesForPermissionResolution();
+
         if ($userRoles->isEmpty()) {
             return false;
         }

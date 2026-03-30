@@ -485,11 +485,9 @@ class AuthController extends Controller
             return \App\Models\Permission::pluck('name')->toArray();
         }
 
-        // Use already loaded roles if available, otherwise load with permissions
-        $userRoles = $user->relationLoaded('roles') 
-            ? $user->roles 
-            : $user->roles()->with('permissions')->get();
-        
+        // Spatie roles when present; else legacy `users.role` → roles table (must match User::hasPermission)
+        $userRoles = $user->rolesForPermissionResolution();
+
         if ($userRoles->isEmpty()) {
             return [];
         }
@@ -586,6 +584,32 @@ class AuthController extends Controller
                     // If module is disabled, don't add permission
                 }
                 // If explicitly denied, don't add permission
+            }
+
+            // Facility-only grants (UI "Added"): not on global role but allowed for this facility
+            foreach ($roleFacilityOverrides as $permissionName => $override) {
+                if (! $override->is_allowed) {
+                    continue;
+                }
+                if (in_array($permissionName, $roleGlobalPermissions, true)) {
+                    continue;
+                }
+                if (! isset($permissionModuleMap[$permissionName])) {
+                    try {
+                        $permissionModuleMap[$permissionName] = \App\Helpers\ModulePermissionMapper::getModuleForPermission($permissionName);
+                    } catch (\Exception $e) {
+                        \Log::warning('ModulePermissionMapper error for permission: ' . $permissionName, [
+                            'error' => $e->getMessage(),
+                        ]);
+                        $permissionModuleMap[$permissionName] = null;
+                    }
+                }
+                $module = $permissionModuleMap[$permissionName];
+                if ($module === null) {
+                    $effectivePermissions[] = $permissionName;
+                } elseif ($facility && in_array($module, $enabledModules, true)) {
+                    $effectivePermissions[] = $permissionName;
+                }
             }
         }
 
