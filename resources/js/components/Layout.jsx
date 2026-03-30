@@ -603,9 +603,9 @@ export default function Layout() {
                 {/* Mobile close button */}
                 <button
                     onClick={() => setMobileMenuOpen(false)}
-                    className="md:hidden absolute top-4 right-4 text-[var(--theme-text-on-primary)] hover:text-gray-300"
+                    className="md:hidden absolute top-4 right-4 text-[var(--theme-text-on-primary)] hover:text-gray-300 cursor-pointer"
                 >
-                    <X className="w-6 h-6" />
+                    <X className="w-6 h-6" strokeWidth={2.5} />
                 </button>
                 {/* Logo */}
                 <div 
@@ -697,18 +697,18 @@ export default function Layout() {
                                     <div>
                                         <button
                                             onClick={() => setExpandedMenus({...expandedMenus, [item.name]: !isExpanded})}
-                                            className={`w-full flex items-center justify-between space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                                            className={`w-full flex items-center justify-between space-x-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
                                                 isActive ? 'bg-white shadow-md text-[var(--theme-text-on-white)]' : 'text-[var(--theme-text-on-primary)] hover:text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-light)]'
                                             }`}
                                         >
                                             <div className="flex items-center space-x-3">
-                                                <Icon className="w-5 h-5" />
+                                                <Icon className="w-5 h-5" strokeWidth={2.5} />
                                                 <span>{item.name}</span>
                                             </div>
                                             {isExpanded ? (
-                                                <ChevronDown className="w-4 h-4" />
+                                                <ChevronDown className="w-4 h-4" strokeWidth={2.5} />
                                             ) : (
-                                                <ChevronRight className="w-4 h-4" />
+                                                <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
                                             )}
                                         </button>
                                         {isExpanded && (
@@ -720,7 +720,7 @@ export default function Layout() {
                                                             key={child.path}
                                                             to={child.path}
                                                             onClick={() => setMobileMenuOpen(false)}
-                                                                className={`block px-4 py-2 rounded-lg transition-colors text-sm ${
+                                                                className={`block px-4 py-2 rounded-lg transition-colors text-sm cursor-pointer ${
                                                                     isChildActive ? 'bg-white shadow-md text-[var(--theme-text-on-white)]' : 'text-[var(--theme-text-on-primary)] hover:text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-light)]'
                                                                 }`}
                                                         >
@@ -735,11 +735,11 @@ export default function Layout() {
                                     <Link
                                         to={item.path}
                                         onClick={() => setMobileMenuOpen(false)}
-                                        className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                                        className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors cursor-pointer ${
                                             isActive ? 'bg-white shadow-md text-[var(--theme-text-on-white)]' : 'text-[var(--theme-text-on-primary)] hover:text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-light)]'
                                         }`}
                                     >
-                                        <Icon className="w-5 h-5" />
+                                        <Icon className="w-5 h-5" strokeWidth={2.5} />
                                         <span>{item.name}</span>
                                     </Link>
                                 )}
@@ -757,9 +757,9 @@ export default function Layout() {
                     <div className="flex items-center space-x-3">
                         <button
                             onClick={() => setMobileMenuOpen(true)}
-                            className="md:hidden text-gray-700 hover:text-gray-900"
+                            className="md:hidden text-gray-700 hover:text-gray-900 cursor-pointer"
                         >
-                            <Menu className="w-6 h-6" />
+                            <Menu className="w-6 h-6" strokeWidth={2.5} />
                         </button>
                         <div className="flex flex-col">
                             <h1 className="text-lg md:text-xl font-semibold text-[var(--theme-primary)]">

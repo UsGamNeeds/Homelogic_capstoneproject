@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 import { format } from 'date-fns';
-import { FileText, Pill, Calendar, Heart, AlertCircle } from 'lucide-react';
+import { FileText, Pill, Calendar, Heart, AlertCircle, Shield, Moon, AlertTriangle } from 'lucide-react';
 import PortalPagination from '../../components/portal/PortalPagination';
 
 const PAGE_SIZE = 12;
@@ -31,6 +31,49 @@ function statusBadge(status) {
   );
 }
 
+function incidentWorkflowBadge(status) {
+  if (!status) return <span className="text-gray-400">—</span>;
+  const s = String(status).toLowerCase();
+  const cls =
+    s === 'resolved' || s === 'closed'
+      ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+      : s === 'open'
+        ? 'bg-sky-50 text-sky-900 border-sky-200'
+        : s === 'in_progress'
+          ? 'bg-violet-50 text-violet-900 border-violet-200'
+          : s === 'on_hold'
+            ? 'bg-gray-100 text-gray-700 border-gray-200'
+            : 'bg-gray-50 text-gray-700 border-gray-200';
+  return (
+    <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${cls}`}>
+      {s.replace(/_/g, ' ')}
+    </span>
+  );
+}
+
+function severityBadge(sev) {
+  if (!sev) return <span className="text-gray-400">—</span>;
+  const s = String(sev).toLowerCase();
+  const cls =
+    s === 'critical'
+      ? 'bg-red-50 text-red-900 border-red-200'
+      : s === 'high'
+        ? 'bg-orange-50 text-orange-900 border-orange-200'
+        : s === 'medium'
+          ? 'bg-amber-50 text-amber-900 border-amber-200'
+          : 'bg-gray-50 text-gray-700 border-gray-200';
+  return (
+    <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${cls}`}>
+      {s}
+    </span>
+  );
+}
+
+function importantInfoHasContent(info) {
+  if (!info || typeof info !== 'object') return false;
+  return Object.values(info).some((v) => v != null && String(v).trim() !== '');
+}
+
 export default function PortalCareUpdates() {
   const [dateFrom, setDateFrom] = useState(format(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -49,18 +92,27 @@ export default function PortalCareUpdates() {
   const meds = data?.medication_administrations ?? [];
   const appointments = data?.appointments ?? [];
   const vitals = data?.vitals_summary ?? [];
+  const sleepRecords = data?.sleep_records ?? [];
+  const sleepPatterns = data?.sleep_patterns ?? [];
+  const incidents = data?.incidents ?? [];
   const notLinked = Array.isArray(linkedIds) ? linkedIds.length === 0 : residents.length === 0;
 
   const [pageNotes, setPageNotes] = useState(1);
   const [pageMeds, setPageMeds] = useState(1);
   const [pageAppt, setPageAppt] = useState(1);
   const [pageVitals, setPageVitals] = useState(1);
+  const [pageSleep, setPageSleep] = useState(1);
+  const [pagePattern, setPagePattern] = useState(1);
+  const [pageIncident, setPageIncident] = useState(1);
 
   useEffect(() => {
     setPageNotes(1);
     setPageMeds(1);
     setPageAppt(1);
     setPageVitals(1);
+    setPageSleep(1);
+    setPagePattern(1);
+    setPageIncident(1);
   }, [dateFrom, dateTo]);
 
   if (isLoading) {
@@ -111,11 +163,83 @@ export default function PortalCareUpdates() {
           />
         </div>
         <p className="text-xs text-gray-500 pb-2 max-w-md">
-          Medications and notes below are filtered by this date range (facility timezone).
+          Medications, sleep, incidents, and care notes below use this date range (facility timezone). Vitals remain
+          the last 14 days.
         </p>
       </div>
 
       <div className="space-y-10">
+        {!notLinked &&
+          residents.some((r) => importantInfoHasContent(r.important_info)) && (
+            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 md:p-6">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
+                <Shield className="w-5 h-5 text-gray-500" />
+                Important health information
+              </h2>
+              <div className="space-y-6">
+                {residents
+                  .filter((r) => importantInfoHasContent(r.important_info))
+                  .map((r) => (
+                    <div key={r.id} className="rounded-lg border border-gray-100 bg-gray-50/60 p-4 text-sm">
+                      {residents.length > 1 && <p className="font-semibold text-gray-900 mb-3">{r.name}</p>}
+                      <dl className="grid gap-3 sm:grid-cols-2">
+                        {r.important_info.allergies && (
+                          <>
+                            <dt className="text-gray-500 font-medium">Allergies</dt>
+                            <dd className="text-gray-900">{r.important_info.allergies}</dd>
+                          </>
+                        )}
+                        {r.important_info.medical_conditions && (
+                          <>
+                            <dt className="text-gray-500 font-medium">Medical conditions</dt>
+                            <dd className="text-gray-900">{r.important_info.medical_conditions}</dd>
+                          </>
+                        )}
+                        {r.important_info.diagnosis && (
+                          <>
+                            <dt className="text-gray-500 font-medium sm:col-span-2">Diagnosis</dt>
+                            <dd className="text-gray-900 sm:col-span-2">{r.important_info.diagnosis}</dd>
+                          </>
+                        )}
+                        {(r.important_info.physician_name || r.important_info.primary_care_doctor) && (
+                          <>
+                            <dt className="text-gray-500 font-medium">Care team</dt>
+                            <dd className="text-gray-900">
+                              {[r.important_info.primary_care_doctor, r.important_info.physician_name]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            </dd>
+                          </>
+                        )}
+                        {r.important_info.mobility_notes && (
+                          <>
+                            <dt className="text-gray-500 font-medium sm:col-span-2">Mobility</dt>
+                            <dd className="text-gray-900 sm:col-span-2">{r.important_info.mobility_notes}</dd>
+                          </>
+                        )}
+                        {r.important_info.behavioral_notes && (
+                          <>
+                            <dt className="text-gray-500 font-medium sm:col-span-2">Behavior</dt>
+                            <dd className="text-gray-900 sm:col-span-2">{r.important_info.behavioral_notes}</dd>
+                          </>
+                        )}
+                        {(r.important_info.emergency_contact_name || r.important_info.emergency_contact_phone) && (
+                          <>
+                            <dt className="text-gray-500 font-medium">Emergency contact</dt>
+                            <dd className="text-gray-900">
+                              {[r.important_info.emergency_contact_name, r.important_info.emergency_contact_phone]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            </dd>
+                          </>
+                        )}
+                      </dl>
+                    </div>
+                  ))}
+              </div>
+            </section>
+          )}
+
         <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 md:p-6">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
             <FileText className="w-5 h-5 text-gray-500" />
@@ -282,6 +406,176 @@ export default function PortalCareUpdates() {
                 pageSize={PAGE_SIZE}
                 total={vitals.length}
                 onPageChange={setPageVitals}
+              />
+            </>
+          )}
+        </section>
+
+        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 md:p-6">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
+            <Moon className="w-5 h-5 text-gray-500" />
+            Daily sleep records
+          </h2>
+          {sleepRecords.length === 0 ? (
+            <p className="text-gray-500 text-sm">No sleep records in this range.</p>
+          ) : (
+            <>
+              <div className="overflow-x-auto rounded-lg border border-gray-200">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      {residents.length > 1 && <th className="px-4 py-3">Resident</th>}
+                      <th className="px-4 py-3">Night of</th>
+                      <th className="px-4 py-3">Hours</th>
+                      <th className="px-4 py-3">Quality</th>
+                      <th className="px-4 py-3">Bed / wake</th>
+                      <th className="px-4 py-3">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {paginateSlice(sleepRecords, pageSleep, PAGE_SIZE).map((s) => (
+                      <tr key={s.id} className="hover:bg-gray-50/80">
+                        {residents.length > 1 && (
+                          <td className="px-4 py-3 text-gray-700">
+                            {residents.find((x) => x.id === s.resident_id)?.name ?? '—'}
+                          </td>
+                        )}
+                        <td className="px-4 py-3 text-gray-800 whitespace-nowrap">
+                          {s.sleep_date ? format(new Date(s.sleep_date + 'T12:00:00'), 'MMM d, yyyy') : '—'}
+                        </td>
+                        <td className="px-4 py-3">{s.total_sleep_hours != null ? `${s.total_sleep_hours} h` : '—'}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600">{s.sleep_quality_text || '—'}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600">
+                          {[s.sleep_time, s.wake_time].filter(Boolean).join(' → ') || '—'}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600 max-w-xs truncate" title={s.notes || ''}>
+                          {s.notes || '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <PortalPagination
+                page={pageSleep}
+                pageSize={PAGE_SIZE}
+                total={sleepRecords.length}
+                onPageChange={setPageSleep}
+              />
+            </>
+          )}
+        </section>
+
+        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 md:p-6">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
+            <Moon className="w-5 h-5 text-indigo-500" />
+            Sleep patterns (monthly summaries)
+          </h2>
+          {sleepPatterns.length === 0 ? (
+            <p className="text-gray-500 text-sm">No monthly sleep patterns on file.</p>
+          ) : (
+            <>
+              <div className="grid gap-4 md:grid-cols-2">
+                {paginateSlice(sleepPatterns, pagePattern, PAGE_SIZE).map((p) => (
+                  <div
+                    key={p.id}
+                    className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 text-sm"
+                  >
+                    <p className="font-semibold text-gray-900">{p.period}</p>
+                    {p.avg_sleep_hours != null && (
+                      <p className="text-gray-700 mt-1">Average sleep: {p.avg_sleep_hours} h / night</p>
+                    )}
+                    {p.days_with_records != null && (
+                      <p className="text-xs text-gray-500 mt-1">Days with records: {p.days_with_records}</p>
+                    )}
+                    {(p.common_sleep_time || p.common_wake_time) && (
+                      <p className="text-xs text-gray-600 mt-2">
+                        Typical: {p.common_sleep_time || '—'} → {p.common_wake_time || '—'}
+                      </p>
+                    )}
+                    {p.sleep_quality_score != null && (
+                      <p className="text-xs text-gray-600 mt-1">Quality score: {p.sleep_quality_score}</p>
+                    )}
+                    {p.key_observations && (
+                      <p className="text-sm text-gray-700 mt-3 border-t border-indigo-100 pt-2">{p.key_observations}</p>
+                    )}
+                    {p.notes && <p className="text-xs text-gray-500 mt-2">{p.notes}</p>}
+                  </div>
+                ))}
+              </div>
+              <PortalPagination
+                page={pagePattern}
+                pageSize={PAGE_SIZE}
+                total={sleepPatterns.length}
+                onPageChange={setPagePattern}
+              />
+            </>
+          )}
+        </section>
+
+        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 md:p-6">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
+            <AlertTriangle className="w-5 h-5 text-amber-600" />
+            Incidents & safety
+          </h2>
+          {incidents.length === 0 ? (
+            <p className="text-gray-500 text-sm">No incidents in this date range.</p>
+          ) : (
+            <>
+              <div className="overflow-x-auto rounded-lg border border-gray-200">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      <th className="px-4 py-3">Reference</th>
+                      <th className="px-4 py-3">When</th>
+                      <th className="px-4 py-3">Type</th>
+                      <th className="px-4 py-3">Severity</th>
+                      <th className="px-4 py-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {paginateSlice(incidents, pageIncident, PAGE_SIZE).map((i) => (
+                      <tr key={i.id} className="hover:bg-gray-50/80 align-top">
+                        <td className="px-4 py-3 text-gray-600 font-mono text-xs">{i.incident_number || '—'}</td>
+                        <td className="px-4 py-3 text-gray-700 whitespace-nowrap text-xs">
+                          {i.incident_date ? format(new Date(i.incident_date), 'MMM d, yyyy h:mm a') : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-gray-900 font-medium">{i.incident_type || '—'}</td>
+                        <td className="px-4 py-3">{severityBadge(i.severity)}</td>
+                        <td className="px-4 py-3">{incidentWorkflowBadge(i.status)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-4 space-y-4">
+                {paginateSlice(incidents, pageIncident, PAGE_SIZE).map((i) => (
+                  <div
+                    key={`detail-${i.id}`}
+                    className="rounded-lg border border-gray-100 bg-gray-50/50 p-4 text-sm"
+                  >
+                    {i.location && <p className="text-xs text-gray-500 mb-2">Location: {i.location}</p>}
+                    {i.description && <p className="text-gray-800 whitespace-pre-wrap">{i.description}</p>}
+                    {i.action_taken && (
+                      <p className="text-gray-600 mt-2">
+                        <span className="font-medium text-gray-700">Action taken: </span>
+                        {i.action_taken}
+                      </p>
+                    )}
+                    {i.follow_up && (
+                      <p className="text-gray-600 mt-2">
+                        <span className="font-medium text-gray-700">Follow-up: </span>
+                        {i.follow_up}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <PortalPagination
+                page={pageIncident}
+                pageSize={PAGE_SIZE}
+                total={incidents.length}
+                onPageChange={setPageIncident}
               />
             </>
           )}

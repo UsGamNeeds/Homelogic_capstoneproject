@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Database, Download, Upload, RefreshCw, HardDrive, Archive, Clock, Usb } from 'lucide-react';
+import { Database, Download, Upload, RefreshCw, HardDrive, Archive } from 'lucide-react';
 import api from '../../services/api';
 import logger from '../../utils/logger';
 import { useToastContext } from '../../contexts/ToastContext';
@@ -160,48 +160,47 @@ export default function DatabaseSettings() {
     restoreBackupMutation.mutate(restoreConfirmFile, { onSuccess: () => setRestoreConfirmFile(null) });
   };
 
-  const handleDownload = (filename) => {
-    // Get the auth token from localStorage
-    const token = localStorage.getItem('auth_token');
-    const baseURL = api.defaults.baseURL || '/api/v1';
-    
-    // Create download URL
-    const downloadUrl = `${baseURL}/database/backup/${encodeURIComponent(filename)}`;
-    
-    // Use fetch to download with authentication
-    fetch(downloadUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': token ? `Bearer ${token}` : '',
-        'Accept': 'application/sql',
-      },
-      credentials: 'include',
-    })
-      .then((response) => {
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error('Unauthorized. Please log in again.');
-          }
-          throw new Error('Failed to download backup');
-        }
-        return response.blob();
-      })
-      .then((blob) => {
-        // Create a temporary link and trigger download
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        toast.showToast('Backup downloaded successfully', 'success');
-      })
-      .catch((error) => {
-        toast.showToast(error.message || 'Failed to download backup', 'error');
-        logger.error('Download error:', error);
+  const handleDownload = async (filename) => {
+    try {
+      const response = await api.get(`/database/backup/${encodeURIComponent(filename)}`, {
+        responseType: 'blob',
       });
+      const blob = response.data;
+      if (!(blob instanceof Blob)) {
+        throw new Error('Invalid response');
+      }
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.showToast('Backup downloaded successfully', 'success');
+    } catch (error) {
+      let message = 'Failed to download backup';
+      const data = error.response?.data;
+      if (data instanceof Blob) {
+        try {
+          const text = await data.text();
+          const json = JSON.parse(text);
+          message = json.message || message;
+        } catch {
+          if (error.response?.status === 401) {
+            message = 'Unauthorized. Please log in again.';
+          } else if (error.response?.status === 403) {
+            message = 'You do not have permission to download this backup.';
+          }
+        }
+      } else if (error.response?.data?.message) {
+        message = error.response.data.message;
+      } else if (error.message) {
+        message = error.message;
+      }
+      toast.showToast(message, 'error');
+      logger.error('Download error:', error);
+    }
   };
 
   if (!facilityId) {
@@ -241,7 +240,7 @@ export default function DatabaseSettings() {
       />
       <div className="bg-white rounded-xl shadow-sm p-6 flex items-center space-x-3">
         <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-[var(--theme-primary)]/10 text-[var(--theme-primary)]">
-          <Database className="w-5 h-5" />
+          <Database className="w-5 h-5" strokeWidth={2.5} />
         </div>
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Database Settings</h1>
@@ -257,7 +256,7 @@ export default function DatabaseSettings() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="p-4 border border-gray-200 rounded-lg">
             <div className="flex items-center justify-between mb-2">
-              <Database className="w-5 h-5 text-gray-400" />
+              <Database className="w-5 h-5 text-gray-400" strokeWidth={2.5} />
             </div>
             <div className="text-2xl font-bold text-gray-900 mb-1">
               {statsLoading ? '...' : (stats?.database_size || 'N/A')}
@@ -266,7 +265,7 @@ export default function DatabaseSettings() {
           </div>
           <div className="p-4 border border-gray-200 rounded-lg">
             <div className="flex items-center justify-between mb-2">
-              <Archive className="w-5 h-5 text-gray-400" />
+              <Archive className="w-5 h-5 text-gray-400" strokeWidth={2.5} />
             </div>
             <div className="text-2xl font-bold text-gray-900 mb-1">
               {statsLoading ? '...' : (stats?.total_backups || 0)}
@@ -275,7 +274,7 @@ export default function DatabaseSettings() {
           </div>
           <div className="p-4 border border-gray-200 rounded-lg">
             <div className="flex items-center justify-between mb-2">
-              <HardDrive className="w-5 h-5 text-gray-400" />
+              <HardDrive className="w-5 h-5 text-gray-400" strokeWidth={2.5} />
             </div>
             <div className="text-2xl font-bold text-gray-900 mb-1">
               {statsLoading ? '...' : (stats?.storage_used || 'N/A')}
@@ -291,14 +290,14 @@ export default function DatabaseSettings() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="p-4 border border-gray-200 rounded-lg">
             <div className="flex items-center space-x-3 mb-2">
-              <Download className="w-5 h-5 text-[var(--theme-primary)]" />
+              <Download className="w-5 h-5 text-[var(--theme-primary)]" strokeWidth={2.5} />
               <h3 className="font-semibold text-gray-900">Create Backup</h3>
             </div>
             <p className="text-sm text-gray-600 mb-4">Create a new database backup</p>
             <button
               onClick={() => createBackupMutation.mutate()}
               disabled={createBackupMutation.isPending}
-              className="w-full px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              className="w-full px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center space-x-2"
             >
               {createBackupMutation.isPending ? (
                 <>
@@ -307,7 +306,7 @@ export default function DatabaseSettings() {
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4" />
+                  <Download className="w-4 h-4" strokeWidth={2.5} />
                   <span>Backup Now</span>
                 </>
               )}
@@ -316,7 +315,7 @@ export default function DatabaseSettings() {
 
           <div className="p-4 border border-gray-200 rounded-lg">
             <div className="flex items-center space-x-3 mb-2">
-              <Upload className="w-5 h-5 text-[var(--theme-primary)]" />
+              <Upload className="w-5 h-5 text-[var(--theme-primary)]" strokeWidth={2.5} />
               <h3 className="font-semibold text-gray-900">Restore Backup</h3>
             </div>
             <p className="text-sm text-gray-600 mb-4">Restore from an existing backup</p>
@@ -330,7 +329,7 @@ export default function DatabaseSettings() {
                 }
               }}
               disabled={restoreBackupMutation.isPending || !backups || backups.length === 0}
-              className="w-full px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              className="w-full px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center space-x-2"
             >
               {restoreBackupMutation.isPending ? (
                 <>
@@ -339,7 +338,7 @@ export default function DatabaseSettings() {
                 </>
               ) : (
                 <>
-                  <Upload className="w-4 h-4" />
+                  <Upload className="w-4 h-4" strokeWidth={2.5} />
                   <span>Restore</span>
                 </>
               )}
@@ -348,14 +347,14 @@ export default function DatabaseSettings() {
 
           <div className="p-4 border border-gray-200 rounded-lg">
             <div className="flex items-center space-x-3 mb-2">
-              <RefreshCw className="w-5 h-5 text-[var(--theme-primary)]" />
+              <RefreshCw className="w-5 h-5 text-[var(--theme-primary)]" strokeWidth={2.5} />
               <h3 className="font-semibold text-gray-900">Refresh Data</h3>
             </div>
             <p className="text-sm text-gray-600 mb-4">Refresh cache and optimize data</p>
             <button
               onClick={() => refreshDataMutation.mutate()}
               disabled={refreshDataMutation.isPending}
-              className="w-full px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              className="w-full px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center space-x-2"
             >
               {refreshDataMutation.isPending ? (
                 <>
@@ -364,7 +363,7 @@ export default function DatabaseSettings() {
                 </>
               ) : (
                 <>
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className="w-4 h-4" strokeWidth={2.5} />
                   <span>Refresh</span>
                 </>
               )}
@@ -405,17 +404,17 @@ export default function DatabaseSettings() {
                     <button
                       type="button"
                       onClick={() => handleDownload(backup.filename)}
-                      className="px-2.5 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-1.5"
+                      className="px-2.5 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer flex items-center gap-1.5"
                       aria-label="Download backup"
                     >
-                      <Download className="w-4 h-4" />
+                      <Download className="w-4 h-4" strokeWidth={2.5} />
                       Download
                     </button>
                   </Tooltip>
                   <button
                     onClick={() => setRestoreConfirmFile(backup.filename)}
                     disabled={restoreBackupMutation.isPending}
-                    className="px-2.5 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm text-[var(--theme-primary)] border border-[var(--theme-primary)] rounded-lg hover:bg-[var(--theme-primary)]/10 disabled:opacity-50"
+                    className="px-2.5 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm text-[var(--theme-primary)] border border-[var(--theme-primary)] rounded-lg hover:bg-[var(--theme-primary)]/10 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     Restore
                   </button>
@@ -472,7 +471,7 @@ export default function DatabaseSettings() {
           <button
             type="submit"
             disabled={saveMutation.isPending}
-            className="inline-flex items-center justify-center px-3 py-2 text-xs sm:px-5 sm:py-2.5 sm:text-sm font-semibold rounded-lg bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center px-3 py-2 text-xs sm:px-5 sm:py-2.5 sm:text-sm font-semibold rounded-lg bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
           </button>

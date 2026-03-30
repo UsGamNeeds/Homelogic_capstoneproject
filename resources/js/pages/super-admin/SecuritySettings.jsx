@@ -201,7 +201,7 @@ export default function SecuritySettings() {
     <div className="space-y-6">
       <div className="bg-white rounded-xl shadow-sm p-6 flex items-center space-x-3">
         <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-[var(--theme-primary)]/10 text-[var(--theme-primary)]">
-          <ShieldCheck className="w-5 h-5" />
+          <ShieldCheck className="w-5 h-5" strokeWidth={2.5} />
         </div>
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Security Settings</h1>
@@ -355,7 +355,7 @@ export default function SecuritySettings() {
                 className="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700"
                 aria-label={showPasswords.current ? 'Hide current password' : 'Show current password'}
               >
-                {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPasswords.current ? <EyeOff className="w-4 h-4" strokeWidth={2.5} /> : <Eye className="w-4 h-4" strokeWidth={2.5} />}
               </button>
             </div>
           </div>
@@ -379,7 +379,7 @@ export default function SecuritySettings() {
                 className="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700"
                 aria-label={showPasswords.next ? 'Hide new password' : 'Show new password'}
               >
-                {showPasswords.next ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPasswords.next ? <EyeOff className="w-4 h-4" strokeWidth={2.5} /> : <Eye className="w-4 h-4" strokeWidth={2.5} />}
               </button>
             </div>
           </div>
@@ -403,7 +403,7 @@ export default function SecuritySettings() {
                 className="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700"
                 aria-label={showPasswords.confirm ? 'Hide password confirmation' : 'Show password confirmation'}
               >
-                {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPasswords.confirm ? <EyeOff className="w-4 h-4" strokeWidth={2.5} /> : <Eye className="w-4 h-4" strokeWidth={2.5} />}
               </button>
             </div>
           </div>
@@ -415,7 +415,7 @@ export default function SecuritySettings() {
             disabled={credentialsMutation.isPending}
             className="inline-flex items-center justify-center px-3 py-2 text-xs sm:px-5 sm:py-2.5 sm:text-sm font-semibold rounded-lg bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Lock className="w-4 h-4 mr-2" />
+            <Lock className="w-4 h-4 mr-2" strokeWidth={2.5} />
             {credentialsMutation.isPending ? 'Updating...' : 'Update Credentials'}
           </button>
         </div>

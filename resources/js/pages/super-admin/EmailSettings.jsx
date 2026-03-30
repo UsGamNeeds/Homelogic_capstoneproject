@@ -261,7 +261,7 @@ export default function EmailSettings() {
     <div className="space-y-6">
       <div className="bg-white rounded-xl shadow-sm p-6 flex items-center space-x-3">
         <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-[var(--theme-primary)]/10 text-[var(--theme-primary)]">
-          <Mail className="w-5 h-5" />
+          <Mail className="w-5 h-5" strokeWidth={2.5} />
         </div>
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Email Settings</h1>
@@ -274,11 +274,11 @@ export default function EmailSettings() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="w-full justify-start">
           <TabsTrigger value="recipients">
-            <Users className="w-4 h-4 mr-2" />
+            <Users className="w-4 h-4 mr-2" strokeWidth={2.5} />
             Notification Recipients
           </TabsTrigger>
           <TabsTrigger value="templates">
-            <FileText className="w-4 h-4 mr-2" />
+            <FileText className="w-4 h-4 mr-2" strokeWidth={2.5} />
             Email Templates
           </TabsTrigger>
         </TabsList>

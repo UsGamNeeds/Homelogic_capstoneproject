@@ -55,7 +55,7 @@ export default function Tooltip({
         <TooltipPrimitive.Provider delayDuration={delay}>
             <TooltipPrimitive.Root>
                 <TooltipPrimitive.Trigger asChild>
-                    <span className="inline-block">{children}</span>
+                    <span className="inline-block cursor-pointer">{children}</span>
                 </TooltipPrimitive.Trigger>
                 <TooltipPrimitive.Portal>
                     <TooltipPrimitive.Content

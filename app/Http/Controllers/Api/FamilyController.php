@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
+use App\Models\Incident;
 use App\Models\MedicationAdministration;
 use App\Models\Resident;
 use App\Models\ResidentContact;
 use App\Models\Scopes\FacilityScope;
+use App\Models\SleepPattern;
+use App\Models\SleepRecord;
 use App\Models\TLog;
 use App\Models\VitalSign;
 use Illuminate\Http\JsonResponse;
@@ -70,6 +73,9 @@ class FamilyController extends Controller
                 'medication_administrations' => [],
                 'appointments' => [],
                 'vitals_summary' => [],
+                'sleep_records' => [],
+                'sleep_patterns' => [],
+                'incidents' => [],
             ]);
         }
 
@@ -173,6 +179,79 @@ class FamilyController extends Controller
                 ];
             });
 
+        $sleepFrom = $explicitRange ? $dateFrom : Carbon::now($tz)->subDays(14)->toDateString();
+        $sleepTo = $explicitRange ? $dateTo : Carbon::now($tz)->toDateString();
+
+        $sleepRecords = SleepRecord::whereIn('resident_id', $residentIds)
+            ->whereBetween('sleep_date', [$sleepFrom, $sleepTo])
+            ->orderByDesc('sleep_date')
+            ->orderByDesc('id')
+            ->limit(60)
+            ->get()
+            ->map(function ($s) {
+                return [
+                    'id' => $s->id,
+                    'resident_id' => $s->resident_id,
+                    'sleep_date' => $s->sleep_date?->format('Y-m-d'),
+                    'sleep_time' => $s->sleep_time,
+                    'wake_time' => $s->wake_time,
+                    'total_sleep_hours' => $s->total_sleep_hours !== null ? (float) $s->total_sleep_hours : null,
+                    'sleep_quality' => $s->sleep_quality,
+                    'sleep_quality_text' => $s->sleep_quality_text,
+                    'restlessness_episodes' => $s->restlessness_episodes,
+                    'notes' => $s->notes,
+                ];
+            });
+
+        $sleepPatterns = SleepPattern::whereIn('resident_id', $residentIds)
+            ->orderByDesc('year')
+            ->orderByDesc('month')
+            ->limit(24)
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'id' => $p->id,
+                    'resident_id' => $p->resident_id,
+                    'month' => $p->month,
+                    'year' => $p->year,
+                    'period' => $p->period,
+                    'avg_sleep_hours' => $p->avg_sleep_hours !== null ? (float) $p->avg_sleep_hours : null,
+                    'total_sleep_hours' => $p->total_sleep_hours !== null ? (float) $p->total_sleep_hours : null,
+                    'common_sleep_time' => $p->common_sleep_time,
+                    'common_wake_time' => $p->common_wake_time,
+                    'sleep_quality_score' => $p->sleep_quality_score,
+                    'key_observations' => $p->key_observations,
+                    'days_with_records' => $p->days_with_records,
+                    'notes' => $p->notes,
+                ];
+            });
+
+        $incidentStart = Carbon::parse($explicitRange ? $dateFrom : Carbon::now($tz)->subDays(90)->toDateString(), $tz)->startOfDay();
+        $incidentEnd = Carbon::parse($explicitRange ? $dateTo : Carbon::now($tz)->toDateString(), $tz)->endOfDay();
+
+        $incidents = Incident::withoutGlobalScope(FacilityScope::class)
+            ->whereIn('resident_id', $residentIds)
+            ->whereBetween('incident_date', [$incidentStart, $incidentEnd])
+            ->orderByDesc('incident_date')
+            ->limit(40)
+            ->get()
+            ->map(function ($i) {
+                return [
+                    'id' => $i->id,
+                    'resident_id' => $i->resident_id,
+                    'incident_number' => $i->incident_number,
+                    'incident_type' => $i->incident_type,
+                    'incident_date' => $i->incident_date?->toIso8601String(),
+                    'status' => $i->status,
+                    'severity' => $i->severity,
+                    'priority' => $i->priority,
+                    'location' => $i->location,
+                    'description' => $i->description,
+                    'action_taken' => $i->action_taken,
+                    'follow_up' => $i->follow_up,
+                ];
+            });
+
         $residentsLoaded = Resident::withoutGlobalScope(FacilityScope::class)
             ->with(['branch' => function ($q) {
                 $q->withoutGlobalScope(FacilityScope::class)->select('id', 'name', 'facility_id');
@@ -201,6 +280,17 @@ class FamilyController extends Controller
                     'branch_name' => $r->branch?->name,
                     'dietary_restrictions' => $r->dietary_restrictions,
                     'special_instructions' => $r->special_instructions,
+                    'important_info' => [
+                        'allergies' => self::formatFamilyArrayField($r->allergies),
+                        'medical_conditions' => self::formatFamilyArrayField($r->medical_conditions),
+                        'diagnosis' => $r->diagnosis,
+                        'physician_name' => $r->physician_name,
+                        'primary_care_doctor' => $r->primary_care_doctor,
+                        'mobility_notes' => $r->mobility_notes,
+                        'behavioral_notes' => $r->behavioral_notes,
+                        'emergency_contact_name' => $r->emergency_contact_name,
+                        'emergency_contact_phone' => $r->emergency_contact_phone,
+                    ],
                 ];
             }
 
@@ -218,6 +308,7 @@ class FamilyController extends Controller
                 'branch_name' => null,
                 'dietary_restrictions' => null,
                 'special_instructions' => null,
+                'important_info' => null,
             ];
         })->values();
 
@@ -228,6 +319,26 @@ class FamilyController extends Controller
             'medication_administrations' => $medicationAdministrations,
             'appointments' => $appointments,
             'vitals_summary' => $vitalsList,
+            'sleep_records' => $sleepRecords,
+            'sleep_patterns' => $sleepPatterns,
+            'incidents' => $incidents,
         ]);
+    }
+
+    /**
+     * @param  array<int, string>|string|null  $value
+     */
+    private static function formatFamilyArrayField(array|string|null $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (is_array($value)) {
+            $clean = array_filter(array_map('strval', $value));
+
+            return $clean === [] ? null : implode(', ', $clean);
+        }
+
+        return $value;
     }
 }
