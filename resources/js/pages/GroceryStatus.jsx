@@ -687,7 +687,7 @@ export default function GroceryStatus() {
                                                                         Pending
                                                                     </button>
                                                                 )}
-                                                                {update.status !== 'in_progress' && (
+                                                                {update.status !== 'in_progress' && update.status !== 'completed' && (
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => handleQuickStatusUpdate(update.id, 'in_progress')}
@@ -727,7 +727,7 @@ export default function GroceryStatus() {
                                                                         Complete
                                                                     </button>
                                                                 )}
-                                                                {update.status !== 'needs_attention' && (
+                                                                {update.status !== 'needs_attention' && update.status !== 'completed' && (
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => handleQuickStatusUpdate(update.id, 'needs_attention')}
