@@ -25,6 +25,13 @@ class SecurityHeaders
             );
         }
 
+        // SPA shell must revalidate so @vite() manifest points at current hashed chunks
+        // after deploys (avoids stale app-*.js requesting deleted chunk files).
+        $original = $response->getOriginalContent();
+        if ($original instanceof \Illuminate\Contracts\View\View && $original->name() === 'react-app') {
+            $response->headers->set('Cache-Control', 'no-cache, must-revalidate');
+        }
+
         return $response;
     }
 }

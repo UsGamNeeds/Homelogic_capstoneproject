@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, RefreshCw, Home, ArrowLeft } from 'lucide-react';
+import { hardReloadWithCacheBust } from '../utils/hardReload';
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -50,7 +51,7 @@ class ErrorBoundary extends React.Component {
                     console.warn('Module still failing, attempting final reload...');
                     sessionStorage.setItem('module_reload_attempted', 'true');
                     setTimeout(() => {
-                        window.location.reload();
+                        hardReloadWithCacheBust();
                     }, 500);
                 }
             }, 5000);
@@ -82,7 +83,7 @@ class ErrorBoundary extends React.Component {
                     error={this.state.error}
                     errorInfo={this.state.errorInfo}
                     onReset={this.handleReset}
-                    onReload={() => window.location.reload()}
+                    onReload={() => hardReloadWithCacheBust()}
                     onGoToDashboard={this.handleGoToDashboard}
                 />
             );

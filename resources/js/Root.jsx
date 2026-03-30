@@ -2,6 +2,7 @@ import React, { useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import logger from './utils/logger';
+import { hardReloadWithCacheBust } from './utils/hardReload';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import ModuleProtectedRoute from './components/ModuleProtectedRoute';
@@ -84,9 +85,9 @@ function retryLazyImport(importFn, retries = 5, delay = 300) {
                             
                             // Small delay before reload to avoid infinite loop
                             setTimeout(() => {
-                                // Force reload without cache
-                                window.location.reload(true);
+                                hardReloadWithCacheBust();
                             }, 500);
+                            return;
                         } else if (hasReloaded) {
                             logger.error('Module load failed even after reload. This may indicate a build or deployment issue.');
                             logger.warn('Attempting to redirect to login page to avoid error screen...');

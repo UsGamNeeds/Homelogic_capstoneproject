@@ -4,7 +4,7 @@
  */
 
 // Bump when changing fetch/caching logic so clients drop stale HTML cached as "JS"
-const CACHE_VERSION = 'v1.0.1';
+const CACHE_VERSION = 'v1.0.2';
 const STATIC_CACHE = `homeLogic360-static-${CACHE_VERSION}`;
 const API_CACHE = `homeLogic360-api-${CACHE_VERSION}`;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -113,26 +113,29 @@ self.addEventListener('fetch', (event) => {
  * Network-first strategy: Try network, fallback to cache
  */
 async function networkFirstStrategy(request) {
+  const url = new URL(request.url);
+  const isApi = url.pathname.startsWith('/api/');
+
   try {
     const response = await fetch(request);
-    
-    // Cache successful GET responses
-    if (response.ok && request.method === 'GET') {
+
+    // Only cache API JSON — never cache HTML navigations here (was conflated
+    // with API_CACHE and could serve wrong bodies for document requests).
+    if (response.ok && request.method === 'GET' && isApi) {
       const cache = await caches.open(API_CACHE);
       cache.put(request, response.clone());
     }
-    
+
     return response;
   } catch (error) {
     console.log('[SW] Network failed, trying cache:', request.url);
-    
+
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
       return cachedResponse;
     }
-    
-    // If it's an API request and we have no cache, return offline response
-    if (request.url.includes('/api/')) {
+
+    if (isApi) {
       return new Response(
         JSON.stringify({ error: 'Offline', message: 'No internet connection' }),
         {
@@ -142,7 +145,7 @@ async function networkFirstStrategy(request) {
         }
       );
     }
-    
+
     throw error;
   }
 }
