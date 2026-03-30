@@ -7,10 +7,11 @@ import { useFacilityUpdates } from '../hooks/useRealtimeUpdates';
 import { offlinePost } from '../services/offlineApi';
 import { 
     AlertTriangle, Plus, Edit, Trash2, Eye, X, 
-    CheckCircle, Lock, Clock, User, MapPin, Calendar,
+    CheckCircle, Clock, User, MapPin, Calendar,
     FileText, Image as ImageIcon, ChevronLeft, ChevronRight, ShieldAlert
 } from 'lucide-react';
 import Card from '../components/Card';
+import Modal from '../components/ui/Modal';
 import Tooltip from '../components/ui/Tooltip';
 import FormInput from '../components/forms/FormInput';
 import FormTextarea from '../components/forms/FormTextarea';
@@ -66,6 +67,8 @@ export default function Incidents() {
     const [showForm, setShowForm] = useState(false);
     const [showViewModal, setShowViewModal] = useState(false);
     const [selectedIncident, setSelectedIncident] = useState(null);
+    const [resolveConfirmIncident, setResolveConfirmIncident] = useState(null);
+    const [deleteConfirmIncident, setDeleteConfirmIncident] = useState(null);
     const [currentUser, setCurrentUser] = useState(null);
     const [filters, setFilters] = useState({
         status: searchParams.get('status') || 'all',
@@ -366,16 +369,6 @@ export default function Incidents() {
         onSuccess: () => {
             queryClient.invalidateQueries(['incidents']);
             toast.success('Incident marked as resolved');
-        },
-    });
-
-    const markClosedMutation = useMutation({
-        mutationFn: async ({ id, notes }) => {
-            return await api.post(`/incidents/${id}/mark-closed`, { notes });
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries(['incidents']);
-            toast.success('Incident marked as closed');
         },
     });
 
@@ -683,61 +676,35 @@ export default function Incidents() {
                                                 </button>
                                             </Tooltip>
                                             {incident.status !== 'resolved' && incident.status !== 'closed' && (
-                                                <Tooltip
-                                                    content={
-                                                        incident.status === 'resolved'
-                                                            ? 'Mark as closed'
-                                                            : 'Mark as resolved'
-                                                    }
-                                                    position="top"
-                                                >
+                                                <Tooltip content="Mark as resolved" position="top">
                                                     <button
                                                         type="button"
-                                                        onClick={() => {
-                                                            if (incident.status === 'resolved') {
-                                                                markClosedMutation.mutate({ id: incident.id, notes: '' });
-                                                            } else {
-                                                                markResolvedMutation.mutate({ id: incident.id, notes: '' });
-                                                            }
-                                                        }}
+                                                        onClick={() => setResolveConfirmIncident(incident)}
                                                         className="rounded-lg border border-emerald-300 bg-emerald-50 p-2 shadow-sm transition hover:border-emerald-400 hover:bg-emerald-100"
-                                                        aria-label={
-                                                            incident.status === 'resolved'
-                                                                ? 'Mark as closed'
-                                                                : 'Mark as resolved'
-                                                        }
+                                                        aria-label="Mark as resolved"
                                                     >
-                                                        {incident.status === 'resolved' ? (
-                                                            <Lock
-                                                                className="h-4 w-4 !text-emerald-800"
-                                                                strokeWidth={2.5}
-                                                            />
-                                                        ) : (
-                                                            <CheckCircle
-                                                                className="h-4 w-4 !text-emerald-600"
-                                                                strokeWidth={2.5}
-                                                            />
-                                                        )}
+                                                        <CheckCircle
+                                                            className="h-4 w-4 !text-emerald-600"
+                                                            strokeWidth={2.5}
+                                                        />
                                                     </button>
                                                 </Tooltip>
                                             )}
-                                            <Tooltip content="Delete incident" position="top">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        if (window.confirm('Are you sure you want to delete this incident?')) {
-                                                            deleteMutation.mutate(incident.id);
-                                                        }
-                                                    }}
-                                                    className="rounded-lg border border-red-200 bg-red-50 p-2 shadow-sm transition hover:border-red-300 hover:bg-red-100"
-                                                    aria-label="Delete incident"
-                                                >
-                                                    <Trash2
-                                                        className="h-4 w-4 !text-red-600"
-                                                        strokeWidth={2.5}
-                                                    />
-                                                </button>
-                                            </Tooltip>
+                                            {!isCaregiver && (
+                                                <Tooltip content="Delete incident" position="top">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setDeleteConfirmIncident(incident)}
+                                                        className="rounded-lg border border-red-200 bg-red-50 p-2 shadow-sm transition hover:border-red-300 hover:bg-red-100"
+                                                        aria-label="Delete incident"
+                                                    >
+                                                        <Trash2
+                                                            className="h-4 w-4 !text-red-600"
+                                                            strokeWidth={2.5}
+                                                        />
+                                                    </button>
+                                                </Tooltip>
+                                            )}
                                         </div>
                                     </div>
 
@@ -828,6 +795,136 @@ export default function Incidents() {
                     )}
                 </>
             )}
+
+            <Modal
+                isOpen={!!resolveConfirmIncident}
+                onClose={() => !markResolvedMutation.isPending && setResolveConfirmIncident(null)}
+                title="Mark incident as resolved?"
+                size="sm"
+                className="border-t-4 border-emerald-500"
+                closeOnBackdropClick={!markResolvedMutation.isPending}
+            >
+                <div className="space-y-4">
+                    <div className="flex gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 shadow-inner">
+                            <CheckCircle className="h-7 w-7 text-emerald-600" strokeWidth={2} />
+                        </div>
+                        <p className="text-sm leading-relaxed text-slate-600">
+                            This will update the incident status to <span className="font-semibold text-slate-800">resolved</span>.
+                            It will remain in the list for your records and compliance review.
+                        </p>
+                    </div>
+                    {resolveConfirmIncident && (
+                        <div className="rounded-xl border border-slate-200/90 bg-slate-50/90 px-4 py-3">
+                            <p className="font-mono text-xs font-bold tracking-wide text-emerald-800">
+                                {resolveConfirmIncident.incident_number}
+                            </p>
+                            <p className="mt-1 text-sm font-semibold text-slate-900">
+                                {resolveConfirmIncident.incident_type}
+                            </p>
+                        </div>
+                    )}
+                </div>
+                <div className="mt-8 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-6">
+                    <button
+                        type="button"
+                        disabled={markResolvedMutation.isPending}
+                        onClick={() => setResolveConfirmIncident(null)}
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        disabled={markResolvedMutation.isPending}
+                        onClick={() => {
+                            if (!resolveConfirmIncident) return;
+                            markResolvedMutation.mutate(
+                                { id: resolveConfirmIncident.id, notes: '' },
+                                {
+                                    onSuccess: () => setResolveConfirmIncident(null),
+                                }
+                            );
+                        }}
+                        className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-600/20 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {markResolvedMutation.isPending ? (
+                            <>
+                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                Saving…
+                            </>
+                        ) : (
+                            <>
+                                <CheckCircle className="h-4 w-4" strokeWidth={2.5} />
+                                Mark as resolved
+                            </>
+                        )}
+                    </button>
+                </div>
+            </Modal>
+
+            <Modal
+                isOpen={!!deleteConfirmIncident}
+                onClose={() => !deleteMutation.isPending && setDeleteConfirmIncident(null)}
+                title="Delete this incident?"
+                size="sm"
+                className="border-t-4 border-red-500"
+                closeOnBackdropClick={!deleteMutation.isPending}
+            >
+                <div className="space-y-4">
+                    <div className="flex gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-100 shadow-inner">
+                            <Trash2 className="h-6 w-6 text-red-600" strokeWidth={2} />
+                        </div>
+                        <p className="text-sm leading-relaxed text-slate-600">
+                            This action cannot be undone. Attachments and history for this incident will be permanently removed.
+                        </p>
+                    </div>
+                    {deleteConfirmIncident && (
+                        <div className="rounded-xl border border-red-100 bg-red-50/80 px-4 py-3">
+                            <p className="font-mono text-xs font-bold tracking-wide text-red-800">
+                                {deleteConfirmIncident.incident_number}
+                            </p>
+                            <p className="mt-1 text-sm font-semibold text-slate-900">
+                                {deleteConfirmIncident.incident_type}
+                            </p>
+                        </div>
+                    )}
+                </div>
+                <div className="mt-8 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-6">
+                    <button
+                        type="button"
+                        disabled={deleteMutation.isPending}
+                        onClick={() => setDeleteConfirmIncident(null)}
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        disabled={deleteMutation.isPending}
+                        onClick={() => {
+                            if (!deleteConfirmIncident) return;
+                            deleteMutation.mutate(deleteConfirmIncident.id, {
+                                onSuccess: () => setDeleteConfirmIncident(null),
+                            });
+                        }}
+                        className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-red-600/20 transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {deleteMutation.isPending ? (
+                            <>
+                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                Deleting…
+                            </>
+                        ) : (
+                            <>
+                                <Trash2 className="h-4 w-4" strokeWidth={2.5} />
+                                Delete incident
+                            </>
+                        )}
+                    </button>
+                </div>
+            </Modal>
         </div>
     );
 }

@@ -400,6 +400,10 @@ class IncidentController extends BaseApiController
         if (!$this->checkBranchAccess($incident)) {
             return $this->error('You do not have access to this incident.', 403);
         }
+
+        if ($this->isCaregiver($user)) {
+            return $this->error('Caregivers cannot delete incidents.', 403);
+        }
         
         // Delete attachments
         foreach ($incident->attachments as $attachment) {
