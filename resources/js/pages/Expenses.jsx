@@ -304,10 +304,7 @@ function ExpenseCard({ expense, formatCurrency, onMarkPaid, onEdit, onDelete }) 
     <EntityCardShell>
       <EntityCardHeader
         left={
-          <div className="space-y-2">
-            <span className="font-mono text-xs font-bold tracking-wide text-slate-500">
-              {expense.id}
-            </span>
+          <div className="flex flex-wrap items-center gap-2">
             <span
               className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${statusClass}`}
             >

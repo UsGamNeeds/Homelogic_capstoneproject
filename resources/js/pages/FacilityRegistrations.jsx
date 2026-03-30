@@ -123,9 +123,6 @@ export default function FacilityRegistrations() {
                 left={
                   <div className="flex flex-wrap items-center gap-2">
                     <Building2 className="h-6 w-6 shrink-0 text-[var(--theme-primary)]" />
-                    <span className="font-mono text-xs font-bold tracking-wide text-slate-500">
-                      {registration.id}
-                    </span>
                     {getStatusBadge(registration.status)}
                   </div>
                 }

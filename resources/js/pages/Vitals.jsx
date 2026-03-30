@@ -289,11 +289,6 @@ export default function Vitals() {
                                                         className="h-10 w-10 text-xs"
                                                     />
                                                 ) : null}
-                                                <div className="space-y-2">
-                                                    <span className="font-mono text-xs font-bold tracking-wide text-slate-500">
-                                                        {vital.id}
-                                                    </span>
-                                                </div>
                                             </div>
                                         }
                                         right={

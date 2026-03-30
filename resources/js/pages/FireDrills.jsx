@@ -468,9 +468,6 @@ export default function FireDrills() {
                                     left={
                                         <div className="flex flex-wrap items-center gap-2">
                                             <Flame className="h-5 w-5 shrink-0 text-orange-600" />
-                                            <span className="font-mono text-xs font-bold tracking-wide text-slate-500">
-                                                {drill.id}
-                                            </span>
                                             {getStatusBadge(drill.status)}
                                         </div>
                                     }
