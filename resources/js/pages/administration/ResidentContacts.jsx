@@ -9,6 +9,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Tooltip from '../../components/ui/Tooltip';
 import logger from '../../utils/logger';
+import { formatPhoneNumber, unformatPhoneNumber } from '../../utils/phoneFormatter';
 
 function extractResidentsList(res) {
   if (!res) return [];
@@ -161,10 +162,15 @@ export default function ResidentContacts() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const phoneRaw = String(form.phone ?? '').trim();
+    const phoneDigits = phoneRaw === '' ? '' : unformatPhoneNumber(phoneRaw);
+    const phoneForApi = phoneDigits === '' ? null : phoneDigits;
+    const payload = { ...form, phone: phoneForApi };
+
     if (editing) {
-      updateMutation.mutate({ id: editing.id, ...form });
+      updateMutation.mutate({ id: editing.id, ...payload });
     } else {
-      createMutation.mutate(form);
+      createMutation.mutate(payload);
     }
   };
 
@@ -173,7 +179,7 @@ export default function ResidentContacts() {
     setForm({
       name: c.name || '',
       email: c.email || '',
-      phone: c.phone || '',
+      phone: c.phone ? formatPhoneNumber(String(c.phone)) : '',
       relation: c.relation || '',
     });
     setShowForm(true);
@@ -349,9 +355,16 @@ export default function ResidentContacts() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                   <input
-                    type="text"
+                    type="tel"
+                    autoComplete="tel"
+                    inputMode="numeric"
+                    placeholder="(425) 555-0123"
+                    maxLength={14}
                     value={form.phone}
-                    onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                    onChange={(e) => {
+                      const formatted = formatPhoneNumber(e.target.value);
+                      setForm((f) => ({ ...f, phone: formatted }));
+                    }}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-[var(--theme-primary)]"
                   />
                 </div>
@@ -386,7 +399,11 @@ export default function ResidentContacts() {
                   <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-4 px-3 sm:px-4 hover:bg-gray-50/50 transition-colors">
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-gray-900 truncate">{c.name}</p>
-                      <p className="text-sm text-gray-500 truncate">{c.email || 'No email'}{c.relation ? ` · ${c.relation}` : ''}</p>
+                      <p className="text-sm text-gray-500 truncate">
+                        {c.email || 'No email'}
+                        {c.relation ? ` · ${c.relation}` : ''}
+                        {c.phone ? ` · ${formatPhoneNumber(String(c.phone)) || c.phone}` : ''}
+                      </p>
                       {c.user_id && <span className="inline-block mt-1 text-xs text-green-600 font-medium">Portal access linked</span>}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
