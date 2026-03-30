@@ -68,6 +68,8 @@ export default function Incidents() {
     const [showViewModal, setShowViewModal] = useState(false);
     const [selectedIncident, setSelectedIncident] = useState(null);
     const [resolveConfirmIncident, setResolveConfirmIncident] = useState(null);
+    /** When set, confirm modal will PUT update (e.g. status resolved from edit form). */
+    const [resolveFormPayload, setResolveFormPayload] = useState(null);
     const [deleteConfirmIncident, setDeleteConfirmIncident] = useState(null);
     const [currentUser, setCurrentUser] = useState(null);
     const [filters, setFilters] = useState({
@@ -417,6 +419,7 @@ export default function Incidents() {
     const handleCloseForm = () => {
         setShowForm(false);
         setSelectedIncident(null);
+        setResolveFormPayload(null);
         methods.reset();
         setAttachments([]);
     };
@@ -493,49 +496,188 @@ export default function Incidents() {
     const branches = branchesData?.data || [];
     const users = usersData?.data || [];
 
-    // If view modal is open, show view as full page
-    if (showViewModal && selectedIncident) {
-        return (
-            <ViewIncident
-                incident={selectedIncident}
-                onClose={() => {
-                    setShowViewModal(false);
-                    setSelectedIncident(null);
-                }}
-                onEdit={() => {
-                    setShowViewModal(false);
-                    handleOpenForm(selectedIncident);
-                }}
-            />
-        );
-    }
-
-    // If form is open, show form as full page (like Expenses form)
-    if (showForm) {
-        return (
-            <IncidentForm
-                record={selectedIncident}
-                branches={availableBranches}
-                residents={residents}
-                users={users}
-                attachments={attachments}
-                setAttachments={setAttachments}
-                currentUser={currentUser}
-                isCaregiver={isCaregiver}
-                onClose={handleCloseForm}
-                onSuccess={() => {
-                    handleCloseForm();
-                    queryClient.invalidateQueries(['incidents']);
-                }}
-                createMutation={createMutation}
-                updateMutation={updateMutation}
-                methods={methods}
-                branchId={branchId}
-            />
-        );
-    }
-
     return (
+        <>
+            <Modal
+                isOpen={!!resolveConfirmIncident || !!resolveFormPayload}
+                onClose={() => {
+                    if (markResolvedMutation.isPending || updateMutation.isPending) return;
+                    setResolveConfirmIncident(null);
+                    setResolveFormPayload(null);
+                }}
+                title="Mark incident as resolved?"
+                size="sm"
+                className="border-t-4 border-emerald-500"
+                closeOnBackdropClick={!markResolvedMutation.isPending && !updateMutation.isPending}
+            >
+                <div className="space-y-4">
+                    <div className="flex gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 shadow-inner">
+                            <CheckCircle className="h-7 w-7 text-emerald-600" strokeWidth={2} />
+                        </div>
+                        <p className="text-sm leading-relaxed text-slate-600">
+                            This will update the incident status to <span className="font-semibold text-slate-800">resolved</span>.
+                            It will remain in the list for your records and compliance review.
+                        </p>
+                    </div>
+                    {(resolveConfirmIncident || resolveFormPayload) && (
+                        <div className="rounded-xl border border-slate-200/90 bg-slate-50/90 px-4 py-3">
+                            <p className="font-mono text-xs font-bold tracking-wide text-emerald-800">
+                                {(resolveConfirmIncident || resolveFormPayload).incident_number}
+                            </p>
+                            <p className="mt-1 text-sm font-semibold text-slate-900">
+                                {(resolveConfirmIncident || resolveFormPayload).incident_type}
+                            </p>
+                        </div>
+                    )}
+                </div>
+                <div className="mt-8 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-6">
+                    <button
+                        type="button"
+                        disabled={markResolvedMutation.isPending || updateMutation.isPending}
+                        onClick={() => {
+                            setResolveConfirmIncident(null);
+                            setResolveFormPayload(null);
+                        }}
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        disabled={markResolvedMutation.isPending || updateMutation.isPending}
+                        onClick={() => {
+                            if (resolveFormPayload) {
+                                updateMutation.mutate(
+                                    { id: resolveFormPayload.id, data: resolveFormPayload.data },
+                                    {
+                                        onSuccess: () => setResolveFormPayload(null),
+                                    }
+                                );
+                                return;
+                            }
+                            if (!resolveConfirmIncident) return;
+                            markResolvedMutation.mutate(
+                                { id: resolveConfirmIncident.id, notes: '' },
+                                {
+                                    onSuccess: () => setResolveConfirmIncident(null),
+                                }
+                            );
+                        }}
+                        className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-600/20 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {markResolvedMutation.isPending || updateMutation.isPending ? (
+                            <>
+                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                Saving…
+                            </>
+                        ) : (
+                            <>
+                                <CheckCircle className="h-4 w-4" strokeWidth={2.5} />
+                                Mark as resolved
+                            </>
+                        )}
+                    </button>
+                </div>
+            </Modal>
+
+            <Modal
+                isOpen={!!deleteConfirmIncident}
+                onClose={() => !deleteMutation.isPending && setDeleteConfirmIncident(null)}
+                title="Delete this incident?"
+                size="sm"
+                className="border-t-4 border-red-500"
+                closeOnBackdropClick={!deleteMutation.isPending}
+            >
+                <div className="space-y-4">
+                    <div className="flex gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-100 shadow-inner">
+                            <Trash2 className="h-6 w-6 text-red-600" strokeWidth={2} />
+                        </div>
+                        <p className="text-sm leading-relaxed text-slate-600">
+                            This action cannot be undone. Attachments and history for this incident will be permanently removed.
+                        </p>
+                    </div>
+                    {deleteConfirmIncident && (
+                        <div className="rounded-xl border border-red-100 bg-red-50/80 px-4 py-3">
+                            <p className="font-mono text-xs font-bold tracking-wide text-red-800">
+                                {deleteConfirmIncident.incident_number}
+                            </p>
+                            <p className="mt-1 text-sm font-semibold text-slate-900">
+                                {deleteConfirmIncident.incident_type}
+                            </p>
+                        </div>
+                    )}
+                </div>
+                <div className="mt-8 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-6">
+                    <button
+                        type="button"
+                        disabled={deleteMutation.isPending}
+                        onClick={() => setDeleteConfirmIncident(null)}
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        disabled={deleteMutation.isPending}
+                        onClick={() => {
+                            if (!deleteConfirmIncident) return;
+                            deleteMutation.mutate(deleteConfirmIncident.id, {
+                                onSuccess: () => setDeleteConfirmIncident(null),
+                            });
+                        }}
+                        className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-red-600/20 transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {deleteMutation.isPending ? (
+                            <>
+                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                Deleting…
+                            </>
+                        ) : (
+                            <>
+                                <Trash2 className="h-4 w-4" strokeWidth={2.5} />
+                                Delete incident
+                            </>
+                        )}
+                    </button>
+                </div>
+            </Modal>
+
+            {showViewModal && selectedIncident ? (
+                <ViewIncident
+                    incident={selectedIncident}
+                    onClose={() => {
+                        setShowViewModal(false);
+                        setSelectedIncident(null);
+                    }}
+                    onEdit={() => {
+                        setShowViewModal(false);
+                        handleOpenForm(selectedIncident);
+                    }}
+                />
+            ) : showForm ? (
+                <IncidentForm
+                    record={selectedIncident}
+                    branches={availableBranches}
+                    residents={residents}
+                    users={users}
+                    attachments={attachments}
+                    setAttachments={setAttachments}
+                    currentUser={currentUser}
+                    isCaregiver={isCaregiver}
+                    onClose={handleCloseForm}
+                    onSuccess={() => {
+                        handleCloseForm();
+                        queryClient.invalidateQueries(['incidents']);
+                    }}
+                    onRequestResolveConfirm={(payload) => setResolveFormPayload(payload)}
+                    createMutation={createMutation}
+                    updateMutation={updateMutation}
+                    methods={methods}
+                    branchId={branchId}
+                />
+            ) : (
         <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/80 p-4 sm:p-6 lg:p-8 space-y-8">
             {/* Hero header */}
             <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)]">
@@ -795,144 +937,29 @@ export default function Incidents() {
                     )}
                 </>
             )}
-
-            <Modal
-                isOpen={!!resolveConfirmIncident}
-                onClose={() => !markResolvedMutation.isPending && setResolveConfirmIncident(null)}
-                title="Mark incident as resolved?"
-                size="sm"
-                className="border-t-4 border-emerald-500"
-                closeOnBackdropClick={!markResolvedMutation.isPending}
-            >
-                <div className="space-y-4">
-                    <div className="flex gap-4">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 shadow-inner">
-                            <CheckCircle className="h-7 w-7 text-emerald-600" strokeWidth={2} />
-                        </div>
-                        <p className="text-sm leading-relaxed text-slate-600">
-                            This will update the incident status to <span className="font-semibold text-slate-800">resolved</span>.
-                            It will remain in the list for your records and compliance review.
-                        </p>
-                    </div>
-                    {resolveConfirmIncident && (
-                        <div className="rounded-xl border border-slate-200/90 bg-slate-50/90 px-4 py-3">
-                            <p className="font-mono text-xs font-bold tracking-wide text-emerald-800">
-                                {resolveConfirmIncident.incident_number}
-                            </p>
-                            <p className="mt-1 text-sm font-semibold text-slate-900">
-                                {resolveConfirmIncident.incident_type}
-                            </p>
-                        </div>
-                    )}
-                </div>
-                <div className="mt-8 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-6">
-                    <button
-                        type="button"
-                        disabled={markResolvedMutation.isPending}
-                        onClick={() => setResolveConfirmIncident(null)}
-                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="button"
-                        disabled={markResolvedMutation.isPending}
-                        onClick={() => {
-                            if (!resolveConfirmIncident) return;
-                            markResolvedMutation.mutate(
-                                { id: resolveConfirmIncident.id, notes: '' },
-                                {
-                                    onSuccess: () => setResolveConfirmIncident(null),
-                                }
-                            );
-                        }}
-                        className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-600/20 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        {markResolvedMutation.isPending ? (
-                            <>
-                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                                Saving…
-                            </>
-                        ) : (
-                            <>
-                                <CheckCircle className="h-4 w-4" strokeWidth={2.5} />
-                                Mark as resolved
-                            </>
-                        )}
-                    </button>
-                </div>
-            </Modal>
-
-            <Modal
-                isOpen={!!deleteConfirmIncident}
-                onClose={() => !deleteMutation.isPending && setDeleteConfirmIncident(null)}
-                title="Delete this incident?"
-                size="sm"
-                className="border-t-4 border-red-500"
-                closeOnBackdropClick={!deleteMutation.isPending}
-            >
-                <div className="space-y-4">
-                    <div className="flex gap-4">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-100 shadow-inner">
-                            <Trash2 className="h-6 w-6 text-red-600" strokeWidth={2} />
-                        </div>
-                        <p className="text-sm leading-relaxed text-slate-600">
-                            This action cannot be undone. Attachments and history for this incident will be permanently removed.
-                        </p>
-                    </div>
-                    {deleteConfirmIncident && (
-                        <div className="rounded-xl border border-red-100 bg-red-50/80 px-4 py-3">
-                            <p className="font-mono text-xs font-bold tracking-wide text-red-800">
-                                {deleteConfirmIncident.incident_number}
-                            </p>
-                            <p className="mt-1 text-sm font-semibold text-slate-900">
-                                {deleteConfirmIncident.incident_type}
-                            </p>
-                        </div>
-                    )}
-                </div>
-                <div className="mt-8 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-6">
-                    <button
-                        type="button"
-                        disabled={deleteMutation.isPending}
-                        onClick={() => setDeleteConfirmIncident(null)}
-                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="button"
-                        disabled={deleteMutation.isPending}
-                        onClick={() => {
-                            if (!deleteConfirmIncident) return;
-                            deleteMutation.mutate(deleteConfirmIncident.id, {
-                                onSuccess: () => setDeleteConfirmIncident(null),
-                            });
-                        }}
-                        className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-red-600/20 transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        {deleteMutation.isPending ? (
-                            <>
-                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                                Deleting…
-                            </>
-                        ) : (
-                            <>
-                                <Trash2 className="h-4 w-4" strokeWidth={2.5} />
-                                Delete incident
-                            </>
-                        )}
-                    </button>
-                </div>
-            </Modal>
         </div>
+            )}
+        </>
     );
 }
 
 // Incident Form Component (Full Page Form like Expenses)
-function IncidentForm({ record, branches, residents, users, attachments, setAttachments, currentUser, isCaregiver, onClose, onSuccess, createMutation, updateMutation, methods, branchId }) {
+function IncidentForm({ record, branches, residents, users, attachments, setAttachments, currentUser, isCaregiver, onClose, onSuccess, onRequestResolveConfirm, createMutation, updateMutation, methods, branchId }) {
     const handleSubmit = (data) => {
         if (record) {
+            if (
+                data.status === 'resolved' &&
+                record.status !== 'resolved' &&
+                onRequestResolveConfirm
+            ) {
+                onRequestResolveConfirm({
+                    id: record.id,
+                    data,
+                    incident_number: record.incident_number,
+                    incident_type: record.incident_type,
+                });
+                return;
+            }
             updateMutation.mutate({ id: record.id, data });
         } else {
             // Validate file sizes before submission

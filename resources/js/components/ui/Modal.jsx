@@ -113,14 +113,14 @@ export default function Modal({
                 {/* Backdrop */}
                 <DialogPrimitive.Overlay
                     ref={backdropRef}
-                    className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50"
+                    className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-[200]"
                     onClick={closeOnBackdropClick ? onClose : undefined}
                 />
 
-                {/* Modal */}
+                {/* Modal — above app chrome (sidebar/header often use z-50) */}
                 <DialogPrimitive.Content
                     ref={modalContentRef}
-                    className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-xl w-full max-h-[90vh] z-50 overflow-hidden flex flex-col ${sizeClasses[size]} ${className}`}
+                    className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-xl w-full max-h-[90vh] z-[210] overflow-hidden flex flex-col ${sizeClasses[size]} ${className}`}
                     onClick={(e) => e.stopPropagation()}
                 >
                     <div ref={modalRef} className="flex flex-col h-full max-h-[90vh]">
