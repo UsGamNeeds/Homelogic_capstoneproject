@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './Root.jsx';
 import ErrorBoundary from './components/ErrorBoundary';
+import { reconcileAppBuildId } from './utils/buildId';
 import { ToastProvider } from './contexts/ToastContext';
 import ThemeWrapper from './components/ThemeWrapper';
 // Import CSS - Vite will handle it properly
@@ -80,6 +81,10 @@ const queryClient = createQueryClient();
 
 // Wait for DOM to be ready
 function initApp() {
+    if (reconcileAppBuildId()) {
+        return;
+    }
+
     const rootElement = document.getElementById('react-app');
     if (!rootElement) {
         console.error('React app root element (#react-app) not found');
