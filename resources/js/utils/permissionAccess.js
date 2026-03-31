@@ -16,7 +16,8 @@ export const PERMISSION_MAP = {
   '/administration/drugs': ['view_drugs', 'view_medications', 'create_drugs', 'edit_drugs', 'delete_drugs'],
   '/administration/deactivated': 'view_users', // Inactive records
   '/administration/employee-documents': 'view_employee_documents',
-  '/administration/activity-logs': 'view_activity_logs',
+  // Facility admins usually have view_users; view_activity_logs may be missing from older DB seeds
+  '/administration/activity-logs': ['view_activity_logs', 'view_users'],
   
   // Other navigation items that require specific permissions
   '/my-residents': 'view_residents',

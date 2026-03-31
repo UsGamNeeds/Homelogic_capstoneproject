@@ -92,6 +92,9 @@ class UnifiedProductionSeeder extends Seeder
             
             // Employee document management
             'view_employee_documents', 'create_employee_documents', 'edit_employee_documents', 'delete_employee_documents',
+
+            // Audit / activity logs (Filament + SPA navigation)
+            'view_activity_logs', 'delete_activity_logs',
             
             // Reports and exports
             'view_reports', 'create_reports', 'export_reports',
