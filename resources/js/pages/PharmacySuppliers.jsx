@@ -7,8 +7,10 @@ import Card from '../components/Card';
 import { formatPhoneNumber } from '../utils/phoneFormatter';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Tooltip from '../components/ui/Tooltip';
+import { useToastContext } from '../contexts/ToastContext';
 
 export default function PharmacySuppliers() {
+    const toast = useToastContext();
     const queryClient = useQueryClient();
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
@@ -73,6 +75,16 @@ export default function PharmacySuppliers() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries(['pharmacy-suppliers']);
+            toast.showToast('Supplier removed.', 'success');
+        },
+        onError: (error) => {
+            const msg =
+                error.response?.data?.message ||
+                error.response?.data?.error ||
+                (typeof error.response?.data === 'string' ? error.response.data : null) ||
+                error.message ||
+                'Could not delete supplier.';
+            toast.showToast(msg, 'error');
         },
     });
 
@@ -138,7 +150,7 @@ export default function PharmacySuppliers() {
                     deleteMutation.mutate(deleteConfirmId, { onSuccess: () => setDeleteConfirmId(null) });
                 }}
                 title="Delete this supplier?"
-                description="This supplier will be permanently removed."
+                description="The supplier will be removed from your list. Existing pharmacy orders keep this supplier on file for history."
                 confirmLabel="Delete"
                 cancelLabel="Cancel"
                 variant="danger"
