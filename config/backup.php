@@ -26,4 +26,9 @@ return [
      */
     'mysql_binary' => env('MYSQL_CLI_PATH', 'mysql'),
 
+    /**
+     * Path to mysqldump for backups. Must not write stderr into the .sql file (see DatabaseBackupService).
+     */
+    'mysqldump_binary' => env('MYSQLDUMP_CLI_PATH', 'mysqldump'),
+
 ];

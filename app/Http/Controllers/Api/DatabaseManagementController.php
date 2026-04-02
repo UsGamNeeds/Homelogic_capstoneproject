@@ -210,7 +210,14 @@ class DatabaseManagementController extends Controller
             if (in_array($config['driver'], ['mysql', 'mariadb'], true)) {
                 set_time_limit(0);
 
-                $restore = $this->runMysqlRestoreFromSqlFile($backupPath, $config);
+                $prepared = $this->prepareSqlDumpForRestore($backupPath);
+                try {
+                    $restore = $this->runMysqlRestoreFromSqlFile($prepared['path'], $config);
+                } finally {
+                    if ($prepared['temp'] && is_file($prepared['path'])) {
+                        @unlink($prepared['path']);
+                    }
+                }
 
                 if (! $restore['ok']) {
                     Log::warning('Database restore failed', [
@@ -276,6 +283,55 @@ class DatabaseManagementController extends Controller
                 'message' => 'Failed to refresh data: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Older backups used `mysqldump ... > file 2>&1`, which merged stderr into the .sql file
+     * (mysql/mysqldump "[Warning] Using a password on the command line…"). Strip those lines so restore works.
+     *
+     * @return array{path: string, temp: bool}
+     */
+    private function prepareSqlDumpForRestore(string $backupPath): array
+    {
+        $head = @file_get_contents($backupPath, false, null, 0, 8192);
+        if ($head === false || $head === '') {
+            return ['path' => $backupPath, 'temp' => false];
+        }
+
+        if (! preg_match('/^(mysqldump|mysql):\s*\[Warning\]/im', $head)) {
+            return ['path' => $backupPath, 'temp' => false];
+        }
+
+        $raw = file_get_contents($backupPath);
+        if ($raw === false) {
+            return ['path' => $backupPath, 'temp' => false];
+        }
+
+        $lines = preg_split("/\r\n|\n|\r/", $raw);
+        $i = 0;
+        $n = count($lines);
+        while ($i < $n && preg_match('/^(mysqldump|mysql):\s*\[Warning\]/i', $lines[$i])) {
+            $i++;
+        }
+        while ($i < $n && $lines[$i] === '') {
+            $i++;
+        }
+
+        if ($i === 0) {
+            return ['path' => $backupPath, 'temp' => false];
+        }
+
+        $body = implode("\n", array_slice($lines, $i));
+        if ($body === '') {
+            return ['path' => $backupPath, 'temp' => false];
+        }
+
+        $temp = sys_get_temp_dir().'/hl360-restore-'.uniqid('', true).'.sql';
+        if (file_put_contents($temp, $body) === false) {
+            return ['path' => $backupPath, 'temp' => false];
+        }
+
+        return ['path' => $temp, 'temp' => true];
     }
 
     /**

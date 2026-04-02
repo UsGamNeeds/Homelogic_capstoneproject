@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 
 class DatabaseBackupService
 {
@@ -29,21 +28,14 @@ class DatabaseBackupService
         $config = config("database.connections.{$connection}");
 
         try {
-            if ($config['driver'] === 'mysql') {
-                $host = $config['host'] ?? 'localhost';
-                $database = $config['database'] ?? '';
-                $username = $config['username'] ?? '';
-                $password = $config['password'] ?? '';
-
-                $command = sprintf(
-                    'mysqldump -h %s -u %s -p%s %s > %s 2>&1',
-                    escapeshellarg($host),
-                    escapeshellarg($username),
-                    escapeshellarg($password),
-                    escapeshellarg($database),
-                    escapeshellarg($backupPath)
-                );
-                exec($command, $output, $returnVar);
+            if (in_array($config['driver'], ['mysql', 'mariadb'], true)) {
+                $dump = $this->runMysqlDumpToFile($backupPath, $config);
+                if (! ($dump['ok'] ?? false)) {
+                    return [
+                        'success' => false,
+                        'message' => $dump['message'] ?? 'Failed to create database dump',
+                    ];
+                }
             } elseif ($config['driver'] === 'sqlite') {
                 $sourcePath = $config['database'];
                 if (! str_starts_with($sourcePath, '/')) {
@@ -64,6 +56,11 @@ class DatabaseBackupService
             }
 
             $fileSize = filesize($backupPath);
+            if ($fileSize === 0) {
+                @unlink($backupPath);
+
+                return ['success' => false, 'message' => 'Backup file was empty (check mysqldump errors).'];
+            }
             $this->saveBackupMetadata($filename, $fileSize);
 
             if ($scheduled) {
@@ -144,5 +141,72 @@ class DatabaseBackupService
         }
 
         return round($bytes, $precision).' '.$units[$i];
+    }
+
+    /**
+     * Run mysqldump with stdout only to the file. Never use shell `2>&1` — stderr warnings must not be written into the .sql file.
+     *
+     * @return array{ok: bool, message?: string}
+     */
+    private function runMysqlDumpToFile(string $backupPath, array $config): array
+    {
+        $parts = [config('backup.mysqldump_binary', 'mysqldump')];
+
+        $socket = $config['unix_socket'] ?? '';
+        if (is_string($socket) && $socket !== '') {
+            $parts[] = '--socket='.$socket;
+        } else {
+            $parts[] = '-h';
+            $parts[] = $config['host'] ?? '127.0.0.1';
+            $port = (int) ($config['port'] ?? 3306);
+            if ($port !== 3306) {
+                $parts[] = '-P';
+                $parts[] = (string) $port;
+            }
+        }
+
+        $parts[] = '-u';
+        $parts[] = $config['username'] ?? 'root';
+
+        $password = $config['password'] ?? '';
+        if ($password !== '') {
+            $parts[] = '-p'.$password;
+        }
+
+        $parts[] = $config['database'] ?? '';
+
+        $descriptorSpec = [
+            0 => ['pipe', 'r'],
+            1 => ['file', $backupPath, 'w'],
+            2 => ['pipe', 'w'],
+        ];
+
+        $process = proc_open($parts, $descriptorSpec, $pipes, null, null);
+
+        if (! is_resource($process)) {
+            return ['ok' => false, 'message' => 'Could not start mysqldump. Install the client tools or set MYSQLDUMP_CLI_PATH in .env.'];
+        }
+
+        fclose($pipes[0]);
+
+        $stderr = stream_get_contents($pipes[2]);
+        fclose($pipes[2]);
+
+        $exitCode = proc_close($process);
+
+        if ($exitCode !== 0) {
+            if (file_exists($backupPath)) {
+                @unlink($backupPath);
+            }
+
+            $detail = trim($stderr !== '' ? $stderr : 'mysqldump exited with code '.$exitCode.'.');
+            if (strlen($detail) > 1500) {
+                $detail = substr($detail, 0, 1500).'…';
+            }
+
+            return ['ok' => false, 'message' => 'mysqldump failed: '.$detail];
+        }
+
+        return ['ok' => true];
     }
 }
