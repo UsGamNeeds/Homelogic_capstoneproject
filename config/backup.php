@@ -31,4 +31,10 @@ return [
      */
     'mysqldump_binary' => env('MYSQLDUMP_CLI_PATH', 'mysqldump'),
 
+    /**
+     * Pass --no-tablespaces to mysqldump (MySQL 8.0.21+). Helps when the DB user lacks PROCESS.
+     * Disable on older MySQL/MariaDB if mysqldump reports an unknown option.
+     */
+    'mysqldump_no_tablespaces' => filter_var(env('MYSQLDUMP_NO_TABLESPACES', true), FILTER_VALIDATE_BOOL),
+
 ];

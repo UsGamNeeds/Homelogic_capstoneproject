@@ -211,6 +211,11 @@ class DatabaseManagementController extends Controller
                 set_time_limit(0);
 
                 $prepared = $this->prepareSqlDumpForRestore($backupPath);
+                if (! empty($prepared['error'])) {
+                    return response()->json([
+                        'message' => $prepared['error'],
+                    ], 422);
+                }
                 try {
                     $restore = $this->runMysqlRestoreFromSqlFile($prepared['path'], $config);
                 } finally {
@@ -286,48 +291,37 @@ class DatabaseManagementController extends Controller
     }
 
     /**
-     * Older backups used `mysqldump ... > file 2>&1`, which merged stderr into the .sql file
-     * (mysql/mysqldump "[Warning] Using a password on the command line…"). Strip those lines so restore works.
+     * Corrupted backups had stderr merged into the .sql file (old `2>&1` shell redirect). That includes
+     * [Warning] lines and mysqldump Error lines (e.g. PROCESS privilege) anywhere in the file — not only at the top.
+     * Remove any line that is clearly mysqldump/mysql CLI output (not valid SQL).
      *
-     * @return array{path: string, temp: bool}
+     * @return array{path: string, temp: bool, error?: string}
      */
     private function prepareSqlDumpForRestore(string $backupPath): array
     {
-        $head = @file_get_contents($backupPath, false, null, 0, 8192);
-        if ($head === false || $head === '') {
-            return ['path' => $backupPath, 'temp' => false];
-        }
-
-        if (! preg_match('/^(mysqldump|mysql):\s*\[Warning\]/im', $head)) {
-            return ['path' => $backupPath, 'temp' => false];
-        }
-
         $raw = file_get_contents($backupPath);
-        if ($raw === false) {
+        if ($raw === false || $raw === '') {
             return ['path' => $backupPath, 'temp' => false];
         }
 
-        $lines = preg_split("/\r\n|\n|\r/", $raw);
-        $i = 0;
-        $n = count($lines);
-        while ($i < $n && preg_match('/^(mysqldump|mysql):\s*\[Warning\]/i', $lines[$i])) {
-            $i++;
-        }
-        while ($i < $n && $lines[$i] === '') {
-            $i++;
-        }
-
-        if ($i === 0) {
+        // Any stderr line from the mysql or mysqldump client (warnings, errors, etc.).
+        $fixed = preg_replace('/^\s*(mysqldump|mysql):\s*.*$/m', '', $raw);
+        if (! is_string($fixed) || $fixed === $raw) {
             return ['path' => $backupPath, 'temp' => false];
         }
 
-        $body = implode("\n", array_slice($lines, $i));
-        if ($body === '') {
-            return ['path' => $backupPath, 'temp' => false];
+        $fixed = preg_replace("/\n{3,}/", "\n\n", $fixed);
+        $trimmed = ltrim((string) $fixed);
+        if ($trimmed === '') {
+            return [
+                'path' => $backupPath,
+                'temp' => false,
+                'error' => 'This backup file contains only mysqldump/mysql error output, not valid SQL. The dump likely failed when it was created (e.g. missing PROCESS privilege). Create a new backup after deploying the latest app, or grant the DB user PROCESS / fix mysqldump on the server.',
+            ];
         }
 
         $temp = sys_get_temp_dir().'/hl360-restore-'.uniqid('', true).'.sql';
-        if (file_put_contents($temp, $body) === false) {
+        if (file_put_contents($temp, $trimmed) === false) {
             return ['path' => $backupPath, 'temp' => false];
         }
 

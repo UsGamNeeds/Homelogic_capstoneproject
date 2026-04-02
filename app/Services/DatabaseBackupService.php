@@ -173,6 +173,15 @@ class DatabaseBackupService
             $parts[] = '-p'.$password;
         }
 
+        // InnoDB snapshot without global locks; often avoids requiring PROCESS (see mysqldump privilege errors).
+        $parts[] = '--single-transaction';
+        $parts[] = '--quick';
+        $parts[] = '--set-charset';
+        $parts[] = '--default-character-set=utf8mb4';
+        if (config('backup.mysqldump_no_tablespaces', true)) {
+            $parts[] = '--no-tablespaces';
+        }
+
         $parts[] = $config['database'] ?? '';
 
         $descriptorSpec = [
