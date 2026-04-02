@@ -175,22 +175,34 @@ class DatabaseManagementController extends Controller
         $backups = [];
 
         try {
-            $facilityDir = storage_path('app/backups/facilities/'.$facilityId);
-            if (is_dir($facilityDir)) {
-                $files = glob($facilityDir.'/*.sql') ?: [];
-                foreach ($files as $file) {
-                    $filename = basename($file);
-                    if (! str_ends_with($filename, '.sql')) {
+            // List every per-facility .sql under storage/app/backups/facilities/*/ so super-admins see all
+            // tenant backups (not only the folder for the currently selected facility).
+            $facilitiesRoot = storage_path('app/backups/facilities');
+            if (is_dir($facilitiesRoot)) {
+                foreach (glob($facilitiesRoot.'/*', GLOB_ONLYDIR) ?: [] as $dir) {
+                    $basename = basename((string) $dir);
+                    if (! ctype_digit($basename)) {
                         continue;
                     }
-                    $backups[] = [
-                        'filename' => $filename,
-                        'facility_id' => $facilityId,
-                        'size' => $this->formatBytes(filesize($file)),
-                        'created_at' => Carbon::createFromTimestamp(filemtime($file))->toIso8601String(),
-                        'is_automatic' => str_starts_with($filename, 'backup_auto_facility_'),
-                        'type' => 'facility',
-                    ];
+                    $dirFacilityId = (int) $basename;
+                    foreach (glob($dir.'/*.sql') ?: [] as $file) {
+                        if (! is_file($file)) {
+                            continue;
+                        }
+                        $filename = basename($file);
+                        if (! str_ends_with($filename, '.sql')) {
+                            continue;
+                        }
+                        $backups[] = [
+                            'filename' => $filename,
+                            'facility_id' => $dirFacilityId,
+                            'size' => $this->formatBytes(filesize($file)),
+                            'created_at' => Carbon::createFromTimestamp(filemtime($file))->toIso8601String(),
+                            'is_automatic' => str_starts_with($filename, 'backup_auto_facility_'),
+                            'type' => 'facility',
+                            'matches_selected_facility' => $dirFacilityId === $facilityId,
+                        ];
+                    }
                 }
             }
 

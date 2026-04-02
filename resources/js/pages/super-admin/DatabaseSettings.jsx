@@ -11,6 +11,7 @@ export default function DatabaseSettings() {
   const toast = useToastContext();
   const queryClient = useQueryClient();
   const [restoreConfirmFile, setRestoreConfirmFile] = useState(null);
+  const [restoreConfirmFacilityId, setRestoreConfirmFacilityId] = useState(null);
   const [restoreDeleteConfirm, setRestoreDeleteConfirm] = useState('');
   const [restoreIsFullDatabase, setRestoreIsFullDatabase] = useState(false);
   const [backupFacilityId, setBackupFacilityId] = useState('');
@@ -41,6 +42,12 @@ export default function DatabaseSettings() {
     const raw = facilitiesPayload?.data ?? facilitiesPayload;
     return Array.isArray(raw) ? raw : [];
   }, [facilitiesPayload]);
+
+  const facilityIdLabel = (id) => {
+    if (id == null || id === '') return '';
+    const f = facilities.find((x) => String(x.id) === String(id));
+    return f?.name ? `${f.name} (#${id})` : `Facility #${id}`;
+  };
 
   useEffect(() => {
     if (facilityId) {
@@ -198,15 +205,21 @@ export default function DatabaseSettings() {
     },
   });
 
-  const openRestoreDialog = (filename, isFull) => {
+  const openRestoreDialog = (filename, isFull, facilityIdForRestore = null) => {
     setRestoreConfirmFile(filename);
     setRestoreIsFullDatabase(!!isFull);
     setRestoreDeleteConfirm('');
+    setRestoreConfirmFacilityId(
+      facilityIdForRestore != null && facilityIdForRestore !== ''
+        ? Number(facilityIdForRestore)
+        : null
+    );
   };
 
   const closeRestoreDialog = () => {
     if (!restoreBackupMutation.isPending) {
       setRestoreConfirmFile(null);
+      setRestoreConfirmFacilityId(null);
       setRestoreDeleteConfirm('');
       setRestoreIsFullDatabase(false);
     }
@@ -218,7 +231,7 @@ export default function DatabaseSettings() {
       toast.showToast('Type DELETE to confirm', 'error');
       return;
     }
-    const fid = Number(backupFacilityId);
+    const fid = restoreConfirmFacilityId ?? Number(backupFacilityId);
     restoreBackupMutation.mutate(
       {
         filename: restoreConfirmFile,
@@ -313,10 +326,12 @@ export default function DatabaseSettings() {
 
   const latestFacilityBackup = useMemo(() => {
     if (!backups?.length) return null;
-    return (
-      backups.find(
-        (b) => b.type === 'facility' && String(b.facility_id) === String(backupFacilityId)
-      ) || null
+    const forFacility = backups.filter(
+      (b) => b.type === 'facility' && String(b.facility_id) === String(backupFacilityId)
+    );
+    if (!forFacility.length) return null;
+    return forFacility.reduce((a, b) =>
+      new Date(b.created_at) > new Date(a.created_at) ? b : a
     );
   }, [backups, backupFacilityId]);
 
@@ -381,7 +396,7 @@ export default function DatabaseSettings() {
           restoreConfirmFile
             ? restoreIsFullDatabase
               ? `Restore from ${restoreConfirmFile}? This replaces the entire application database. This cannot be undone.`
-              : `Restore from ${restoreConfirmFile}? All data for the selected facility will be replaced with this backup. Other facilities are not affected.`
+              : `Restore from ${restoreConfirmFile} into ${facilityIdLabel(restoreConfirmFacilityId ?? backupFacilityId)}? All data for that tenant will be replaced with this backup. Other facilities are not affected.`
             : ''
         }
         confirmLabel="Restore"
@@ -488,10 +503,11 @@ export default function DatabaseSettings() {
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Facility backup files</h2>
             <p className="text-sm text-gray-600 mt-1">
-              This list includes per-facility exports for the selection, and any legacy whole-database{' '}
-              <code className="text-xs bg-gray-100 px-1 rounded">backup_*.sql</code> files in the backups root (those
-              apply to the entire app). Download to keep a copy off-server; restore for <span className="font-medium">Facility</span>{' '}
-              rows only overwrites that tenant; <span className="font-medium">Full DB</span> restores everything.
+              Shows <span className="font-medium">all</span> per-facility SQL files on the server (every folder under{' '}
+              <code className="text-xs bg-gray-100 px-1 rounded">backup/facilities/</code>), plus legacy whole-database{' '}
+              <code className="text-xs bg-gray-100 px-1 rounded">backup_*.sql</code> files in the backups root. The
+              dropdown above chooses the default target for <span className="font-medium">Backup now</span>; each row
+              shows which facility it belongs to.
             </p>
           </div>
           <button
@@ -537,14 +553,27 @@ export default function DatabaseSettings() {
           </div>
         ) : (
           <div className="space-y-2">
-            {backups.slice(0, 50).map((backup) => (
+            {backups.slice(0, 100).map((backup) => (
               <div
-                key={`${backup.type}-${backup.filename}`}
-                className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
+                key={`${backup.type}-${backup.facility_id ?? 'root'}-${backup.filename}`}
+                className={`flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 ${
+                  backup.matches_selected_facility ? 'border-[var(--theme-primary)]/40 bg-[var(--theme-primary)]/5' : 'border-gray-200'
+                }`}
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium text-gray-900 truncate">{backup.filename}</span>
+                    {backup.type === 'facility' && backup.facility_id != null && (
+                      <span
+                        className={`shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${
+                          backup.matches_selected_facility
+                            ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]/10 text-gray-900'
+                            : 'border-slate-200 bg-slate-50 text-slate-700'
+                        }`}
+                      >
+                        {facilityIdLabel(backup.facility_id)}
+                      </span>
+                    )}
                     {backup.type === 'full_mysqldump' ? (
                       <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border border-amber-200 bg-amber-50 text-amber-900">
                         Full DB
@@ -597,7 +626,11 @@ export default function DatabaseSettings() {
                     <button
                       type="button"
                       onClick={() =>
-                        openRestoreDialog(backup.filename, backup.type === 'full_mysqldump')
+                        openRestoreDialog(
+                          backup.filename,
+                          backup.type === 'full_mysqldump',
+                          backup.type === 'facility' ? backup.facility_id : null
+                        )
                       }
                       disabled={restoreBackupMutation.isPending}
                       className="inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm font-medium text-red-800 bg-white border border-red-300 rounded-lg hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
@@ -682,7 +715,11 @@ export default function DatabaseSettings() {
               type="button"
               onClick={() => {
                 if (latestFacilityBackup) {
-                  openRestoreDialog(latestFacilityBackup.filename, false);
+                  openRestoreDialog(
+                    latestFacilityBackup.filename,
+                    false,
+                    latestFacilityBackup.facility_id
+                  );
                 } else {
                   toast.showToast('No facility backups for this facility yet', 'error');
                 }
