@@ -361,7 +361,7 @@ class MedicationAdministrationController extends BaseApiController
 
         $administration = MedicationAdministration::create($validated);
 
-        // Emails are sent by MedicationAdministrationObserver (facility admin + administrator only).
+        // In-app notifications and realtime events are handled by MedicationAdministrationObserver (no email on administration).
 
         return response()->json($administration->load(['medication', 'resident', 'branch', 'administeredBy']), 201);
     }

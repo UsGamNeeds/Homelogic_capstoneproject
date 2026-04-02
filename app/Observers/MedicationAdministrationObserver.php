@@ -7,7 +7,6 @@ use App\Models\Notification;
 use App\Models\User;
 use App\Models\PharmacyInventory;
 use App\Models\PharmacyStockTransaction;
-use App\Services\NotificationService;
 use App\Events\MedicationAdministrationCreated;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -94,11 +93,6 @@ class MedicationAdministrationObserver
                 ],
             ]);
         }
-
-        // Email: facility admin and administrator only (not caregivers)
-        $notificationService = app(NotificationService::class);
-        $emailRecipients = $notificationService->recipientsForMedicationAdministrationFacilityEmails($administration->resident);
-        $notificationService->sendMedicationAdministrationEmail($administration, $emailRecipients);
 
         // Broadcast real-time event
         event(new MedicationAdministrationCreated($administration));

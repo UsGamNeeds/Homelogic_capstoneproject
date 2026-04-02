@@ -255,9 +255,9 @@ class GroceryStatusUpdateController extends BaseApiController
             return response()->json(['message' => 'Grocery status update not found'], 404);
         }
         
-        // Only admins can delete
+        // Only super admins and facility/branch admins can delete (legacy users.role + Spatie)
         $user = request()->user();
-        if (!$user->hasRole('administrator') && !$user->hasRole('super_admin')) {
+        if (! $user->isSuperAdmin() && ! $user->isAnyAdmin()) {
             return response()->json([
                 'message' => 'You do not have permission to delete updates.',
             ], 403);
