@@ -99,10 +99,10 @@ export default function AssessmentCharts() {
             subtitle={reportSubtitle}
             resident={selectedResident}
         >
-            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-                <div className="max-w-7xl mx-auto px-4 py-8">
+            <div className="min-h-screen print:min-h-0 bg-gradient-to-br from-gray-50 to-gray-100 print:bg-white">
+                <div className="max-w-7xl mx-auto px-4 py-8 print:max-w-none print:px-2 print:py-4">
                     {/* Header */}
-                    <div className="mb-8">
+                    <div className="mb-8 print:mb-4">
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
                             <div>
                                 <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
@@ -240,7 +240,7 @@ export default function AssessmentCharts() {
                 </div>
 
                 {/* Statistics Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 print:grid-cols-4 gap-4 md:gap-6 print:gap-3 mb-8 print:mb-4">
                     <div className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-transparent">
                         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-purple-500 to-purple-600"></div>
                         <div className="p-6">
@@ -299,16 +299,16 @@ export default function AssessmentCharts() {
                     </div>
                 </div>
 
-                {/* Charts Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                {/* Charts Grid — print:grid-cols-2 keeps both charts on one row (print width is often below lg) */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 print:grid-cols-2 gap-6 print:gap-4">
+                    <div className="report-chart-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 print:p-4 print:shadow-none">
+                        <div className="flex items-center justify-between mb-4 print:mb-2">
+                            <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2 print:text-lg">
                                 <BarChart3 className="h-5 w-5 text-purple-600" />
                                 Assessments by Type
                             </h2>
                         </div>
-                        <div className="h-80">
+                        <div className="h-80 print:h-52 print:max-h-56">
                             {data?.by_type?.length ? (
                                 <Bar
                         data={{
@@ -335,7 +335,7 @@ export default function AssessmentCharts() {
                         }}
                                 />
                             ) : (
-                                <div className="h-80 flex items-center justify-center text-gray-500">
+                                <div className="h-80 print:h-52 print:max-h-56 flex items-center justify-center text-gray-500">
                         <div className="text-center">
                             <BarChart3 className="h-12 w-12 text-gray-300 mx-auto mb-2" />
                             <p>No data available</p>
@@ -345,14 +345,14 @@ export default function AssessmentCharts() {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                    <div className="report-chart-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 print:p-4 print:shadow-none">
+                        <div className="flex items-center justify-between mb-4 print:mb-2">
+                            <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2 print:text-lg">
                                 <LineChartIcon className="h-5 w-5 text-emerald-600" />
                                 Completion Trends (Last 7 Days)
                             </h2>
                         </div>
-                        <div className="h-80">
+                        <div className="h-80 print:h-52 print:max-h-56">
                             {data?.completion_trends?.length ? (
                                 <Line
                         data={{
@@ -382,7 +382,7 @@ export default function AssessmentCharts() {
                         }}
                                 />
                             ) : (
-                                <div className="h-80 flex items-center justify-center text-gray-500">
+                                <div className="h-80 print:h-52 print:max-h-56 flex items-center justify-center text-gray-500">
                         <div className="text-center">
                             <LineChartIcon className="h-12 w-12 text-gray-300 mx-auto mb-2" />
                             <p>No data available</p>
