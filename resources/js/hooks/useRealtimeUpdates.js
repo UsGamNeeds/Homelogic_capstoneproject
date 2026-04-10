@@ -155,8 +155,9 @@ export function useUserNotifications(userId, options = {}) {
         const privateChannel = echo.private(`App.Models.User.${userId}`);
 
         const listener = (data) => {
-            queryClient.invalidateQueries({ queryKey: ['notifications', userId] });
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
             queryClient.invalidateQueries({ queryKey: ['notifications-unread'] });
+            queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
 
             if (options.showToast !== false) {
                 toast.info(data.title || 'New Notification', {
