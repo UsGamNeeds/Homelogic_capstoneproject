@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import api from '../../services/api';
 import { offlinePost } from '../../services/offlineApi';
 import { useResidentUpdates } from '../../hooks/useRealtimeUpdates';
@@ -20,6 +20,7 @@ import {
     parsePacificDateString,
     formatPacificTimeFromInstant,
     getPacificHourFromInstant,
+    calculateAgeFromPacificBirthDate,
 } from '../../utils/pacificTime';
 import {
     Pill,
@@ -37,6 +38,14 @@ import {
     RefreshCw,
     X,
     BellRing,
+    FileText,
+    Heart,
+    ShieldAlert,
+    Utensils,
+    MapPin,
+    ExternalLink,
+    Stethoscope,
+    ClipboardList,
 } from 'lucide-react';
 
 
@@ -277,7 +286,7 @@ export default function ResidentMedicationsPage() {
             });
             return response.data;
         },
-        enabled: !!residentId && activeTab === 'prn',
+        enabled: !!residentId,
         staleTime: 5 * 60 * 1000,
     });
 
@@ -912,255 +921,220 @@ export default function ResidentMedicationsPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             <Breadcrumbs items={[
                 { label: 'My Residents', path: '/my-residents' },
                 { label: residentDisplayName !== 'Resident' ? residentDisplayName : 'Resident', path: residentId ? `/my-residents/${residentId}` : '/my-residents' },
                 { label: 'Medications', path: '' },
             ]} />
 
-            {/* Header Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center gap-4 min-w-0">
-                    <Tooltip content="Back to residents" position="bottom">
-                        <button
-                            type="button"
-                            onClick={() => navigate('/medications/residents')}
-                            className="p-2 hover:bg-gray-100 rounded-full transition-colors group shrink-0"
-                            aria-label="Back to residents"
-                        >
-                            <ArrowLeft className="w-5 h-5 text-gray-400 group-hover:text-[var(--theme-primary)]" strokeWidth={2.25} />
-                        </button>
-                    </Tooltip>
-                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-gray-200 bg-gray-100 shadow-sm">
-                        {resident?.profile_image_url || resident?.profile_image ? (
-                            <img
-                                src={resident.profile_image_url || `/storage/${resident.profile_image}`}
-                                alt={residentDisplayName}
-                                className="h-full w-full object-cover"
-                                onError={(event) => {
-                                    event.currentTarget.style.display = 'none';
-                                    const next = event.currentTarget.nextElementSibling;
-                                    if (next) {
-                                        next.classList.remove('hidden');
-                                        next.classList.add('flex');
-                                    }
-                                }}
-                            />
-                        ) : null}
-                        <div
-                            className={`absolute inset-0 ${resident?.profile_image_url || resident?.profile_image ? 'hidden' : 'flex'} items-center justify-center bg-[var(--theme-primary)]/10 text-[var(--theme-primary)]`}
-                        >
-                            {getResidentAvatarInitials(resident, residentDisplayName) || <User className="w-6 h-6" />}
+            {/* ── 3-column clinical layout ─────────────────────────────────── */}
+            <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_272px] gap-4 items-start">
+
+                {/* ── LEFT: Resident profile panel ── */}
+                <ResidentProfilePanel
+                    resident={resident}
+                    isLoading={residentLoading}
+                    residentId={residentId}
+                    navigate={navigate}
+                />
+
+                {/* ── CENTRE: Medication content ── */}
+                <div className="space-y-4 min-w-0">
+
+                    {/* Compact action header */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <Tooltip content="Back to residents" position="bottom">
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/medications/residents')}
+                                    className="p-1.5 hover:bg-gray-100 rounded-full transition-colors group shrink-0"
+                                    aria-label="Back to residents"
+                                >
+                                    <ArrowLeft className="w-4 h-4 text-gray-400 group-hover:text-[var(--theme-primary)]" strokeWidth={2.25} />
+                                </button>
+                            </Tooltip>
+                            <div>
+                                <h2 className="text-base font-bold text-gray-900">Resident Medication</h2>
+                                <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest hidden sm:block">
+                                    Pacific Time (PT) · {formatPacificDate(getPacificNow())}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                            <div className="relative">
+                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" aria-hidden="true" />
+                                <input
+                                    type="text"
+                                    placeholder="Search..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent w-32 sm:w-40 transition-all"
+                                    aria-label="Search medications"
+                                />
+                            </div>
+                            <button
+                                onClick={() => setActiveOnly(!activeOnly)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    activeOnly ? 'bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
+                            >
+                                <Filter className="w-3.5 h-3.5" aria-hidden="true" />
+                                {activeOnly ? 'Active' : 'All'}
+                            </button>
+                            <button
+                                onClick={() => { setSearch(''); setActiveOnly(true); setSelectedMeds(new Set()); }}
+                                className="px-2 py-1.5 text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                Reset
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => navigate(`/medication-history?resident=${residentId}`)}
+                                className="px-3 py-1.5 bg-[var(--theme-primary)]/10 text-[var(--theme-primary)] rounded-lg text-xs font-bold hover:bg-[var(--theme-primary)]/20 transition-all"
+                            >
+                                History
+                            </button>
                         </div>
                     </div>
-                    <div className="min-w-0">
-                        <h2 className="text-2xl font-bold text-gray-900 tracking-tight truncate">
-                            Medications for {residentDisplayName}
-                        </h2>
-                        <p className="text-sm text-gray-500 font-medium">View and administer medications for this resident.</p>
-                    </div>
-                </div>
-                
-                <div className="flex items-center gap-3 shrink-0">
-                    <div className="text-right hidden lg:block">
-                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">Pacific Time (PT)</p>
-                        <p className="text-sm font-semibold text-gray-700">{formatPacificDate(getPacificNow())}</p>
-                        <p className="text-xs text-gray-400">{formatPacificTime(getPacificNow())}</p>
-                    </div>
-                    <div className="h-10 w-px bg-gray-100 hidden lg:block mx-1"></div>
 
-                    <button
-                        type="button"
-                        onClick={() => navigate(`/medication-history?resident=${residentId}`)}
-                        className="px-4 py-2 bg-[var(--theme-primary)]/10 text-[var(--theme-primary)] rounded-lg text-sm font-bold hover:bg-[var(--theme-primary)]/20 transition-all"
-                    >
-                        History
-                    </button>
-                </div>
-            </div>
-
-            {/* Safety Strip — persistent clinical context */}
-            <ResidentSafetyStrip resident={resident} isLoading={residentLoading} />
-
-            {/* Filter & Bulk Actions Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                    <div className="relative flex-1 w-full">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Search by medication name..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-lg text-sm focus:ring-2 focus:ring-[var(--theme-primary)] transition-all"
-                        />
-                    </div>
-                    
-                    <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                        {selectedMeds.size > 0 && (
-                            <div className="flex items-center gap-2 pr-2 border-r border-gray-100 mr-2">
-                                <span className="text-xs font-bold text-gray-500">{selectedMeds.size} selected</span>
+                    {/* Bulk actions — only rendered when items are selected */}
+                    {selectedMeds.size > 0 && (
+                        <div className="bg-blue-50 rounded-xl border border-blue-100 px-4 py-3 flex items-center gap-3 flex-wrap">
+                            <span className="text-sm font-bold text-blue-700">{selectedMeds.size} selected</span>
+                            <button
+                                onClick={handleBulkAdminister}
+                                disabled={isBulkAdministering}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-green-700 transition-all flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {isBulkAdministering
+                                    ? <RefreshCw className="w-4 h-4 animate-spin" aria-hidden="true" />
+                                    : <CheckCircle className="w-4 h-4" aria-hidden="true" />
+                                }
+                                Administer All
+                            </button>
+                            <Tooltip content="Deselect all" position="top">
                                 <button
-                                    onClick={handleBulkAdminister}
-                                    disabled={isBulkAdministering}
-                                    className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-green-700 transition-all flex items-center gap-2 disabled:opacity-50"
+                                    type="button"
+                                    onClick={() => setSelectedMeds(new Set())}
+                                    className="p-2 text-blue-400 hover:text-red-500 transition-colors"
+                                    aria-label="Deselect all"
                                 >
-                                    {isBulkAdministering ? (
-                                        <RefreshCw className="w-4 h-4 animate-spin" />
-                                    ) : (
-                                        <CheckCircle className="w-4 h-4" />
-                                    )}
-                                    Administer All
+                                    <X className="w-4 h-4" strokeWidth={2.25} />
                                 </button>
-                                <Tooltip content="Deselect all" position="top">
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedMeds(new Set())}
-                                        className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                                        aria-label="Deselect all"
-                                    >
-                                        <X className="w-4 h-4" strokeWidth={2.25} />
-                                    </button>
-                                </Tooltip>
+                            </Tooltip>
+                        </div>
+                    )}
+
+                    {/* Tabs + medication list card */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        {/* Pacific Time notice */}
+                        <div className="flex items-center gap-2 px-4 py-2 bg-blue-50/60 border-b border-blue-100/80 text-xs text-blue-600" role="note" aria-label="Timezone notice">
+                            <Clock className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
+                            <span>All administration windows and timestamps are in <strong>Pacific Time (PT)</strong>.</span>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="px-4 pt-4 border-b border-gray-100 bg-gray-50/50">
+                            <div className="max-w-full overflow-x-auto">
+                                <div className="flex items-center gap-1 min-w-max pb-1">
+                                    {[
+                                        { key: 'scheduled', label: 'Scheduled', count: scheduledMeds.length, defaultColor: 'bg-blue-500' },
+                                        { key: 'am', label: 'AM', count: amMeds.length, defaultColor: 'bg-amber-500' },
+                                        { key: 'pm', label: 'PM', count: pmMeds.length, defaultColor: 'bg-indigo-500' },
+                                        { key: 'prn', label: 'PRN', count: prnMeds.length, defaultColor: 'bg-purple-500' },
+                                    ].map(tab => {
+                                        const overdueCount = overdueTabCounts[tab.key] ?? 0;
+                                        const activeBadgeColor = tab.count === 0
+                                            ? 'bg-emerald-500'
+                                            : overdueCount > 0 ? 'bg-red-500' : tab.defaultColor;
+                                        const inactiveBadgeColor = tab.count === 0 ? 'bg-emerald-400' : overdueCount > 0 ? 'bg-red-400' : 'bg-gray-300';
+                                        return (
+                                            <button
+                                                key={tab.key}
+                                                onClick={() => { setActiveTab(tab.key); setExpandedRows(new Set()); setSelectedMeds(new Set()); }}
+                                                aria-selected={activeTab === tab.key}
+                                                className={`relative flex items-center gap-2 px-6 py-3 text-sm font-bold rounded-t-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] ${
+                                                    activeTab === tab.key
+                                                        ? 'bg-white text-gray-900 border-x border-t border-gray-100 -mb-px shadow-[0_-2px_10px_rgba(0,0,0,0.02)]'
+                                                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100/50'
+                                                }`}
+                                            >
+                                                {tab.label}
+                                                {overdueCount > 0 && activeTab !== tab.key && (
+                                                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white" aria-label="Overdue items" />
+                                                )}
+                                                <span
+                                                    className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black text-white transition-colors ${
+                                                        activeTab === tab.key ? activeBadgeColor : inactiveBadgeColor
+                                                    }`}
+                                                    aria-label={`${tab.count} ${tab.label} medication${tab.count !== 1 ? 's' : ''}${overdueCount > 0 ? `, ${overdueCount} overdue` : ''}`}
+                                                >
+                                                    {tab.count}
+                                                </span>
+                                                {activeTab === tab.key && (
+                                                    <div className={`absolute bottom-0 left-4 right-4 h-1 rounded-t-full ${activeBadgeColor}`} aria-hidden="true" />
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
-                        )}
+                        </div>
 
-                        <button
-                            onClick={() => setActiveOnly(!activeOnly)}
-                            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                                activeOnly ? 'bg-[var(--theme-primary)] text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                            }`}
-                        >
-                            <Filter className="w-4 h-4" />
-                            {activeOnly ? 'Active Only' : 'All Meds'}
-                        </button>
-                        <button
-                            onClick={() => { setSearch(''); setActiveOnly(true); setSelectedMeds(new Set()); }}
-                            className="px-4 py-2 text-sm font-semibold text-gray-500 hover:text-gray-700 transition-colors"
-                        >
-                            Reset
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Main Content with Tabs */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                {/* Pacific Time context banner */}
-                <div className="flex items-center gap-2 px-4 py-2 bg-blue-50/60 border-b border-blue-100/80 text-xs text-blue-600" role="note" aria-label="Timezone notice">
-                    <Clock className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
-                    <span>All administration windows and timestamps are displayed in <strong>Pacific Time (PT)</strong>.</span>
-                </div>
-
-                {/* Tabs Header */}
-                <div className="px-4 pt-4 border-b border-gray-100 bg-gray-50/50">
-                    <div className="max-w-full overflow-x-auto">
-                        <div className="flex items-center gap-1 min-w-max pb-1">
-                            {[
-                                { key: 'scheduled', label: 'Scheduled', count: scheduledMeds.length, defaultColor: 'bg-blue-500' },
-                                { key: 'am', label: 'AM', count: amMeds.length, defaultColor: 'bg-amber-500' },
-                                { key: 'pm', label: 'PM', count: pmMeds.length, defaultColor: 'bg-indigo-500' },
-                                { key: 'prn', label: 'PRN', count: prnMeds.length, defaultColor: 'bg-purple-500' },
-                            ].map(tab => {
-                                const overdueCount = overdueTabCounts[tab.key] ?? 0;
-                                // Red if any overdue, green if all cleared, default color if pending
-                                const activeBadgeColor = tab.count === 0
-                                    ? 'bg-emerald-500'
-                                    : overdueCount > 0
-                                        ? 'bg-red-500'
-                                        : tab.defaultColor;
-                                const inactiveBadgeColor = tab.count === 0 ? 'bg-emerald-400' : overdueCount > 0 ? 'bg-red-400' : 'bg-gray-300';
-
-                                return (
-                                    <button
-                                        key={tab.key}
-                                        onClick={() => { setActiveTab(tab.key); setExpandedRows(new Set()); setSelectedMeds(new Set()); }}
-                                        aria-selected={activeTab === tab.key}
-                                        className={`relative flex items-center gap-2 px-6 py-3 text-sm font-bold rounded-t-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] ${
-                                            activeTab === tab.key
-                                                ? 'bg-white text-gray-900 border-x border-t border-gray-100 -mb-px shadow-[0_-2px_10px_rgba(0,0,0,0.02)]'
-                                                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100/50'
-                                        }`}
-                                    >
-                                        {tab.label}
-                                        {overdueCount > 0 && activeTab !== tab.key && (
-                                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white" aria-label="Overdue items" />
-                                        )}
-                                        <span
-                                            className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black text-white transition-colors ${
-                                                activeTab === tab.key ? activeBadgeColor : inactiveBadgeColor
-                                            }`}
-                                            aria-label={`${tab.count} ${tab.label} medication${tab.count !== 1 ? 's' : ''}${overdueCount > 0 ? `, ${overdueCount} overdue` : ''}`}
+                        {/* Medication list */}
+                        <div className="min-h-[400px]">
+                            {currentTabMedications.length > 0 ? (
+                                <div className="divide-y divide-gray-50">
+                                    {currentTabMedications.map((med, idx) => renderMedicationRow(med, idx))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
+                                    <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4" aria-hidden="true">
+                                        <Pill className="w-8 h-8 text-gray-300" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-gray-900 mb-1">No medications found</h3>
+                                    <p className="text-sm text-gray-500 max-w-xs mx-auto">
+                                        {search
+                                            ? `No medications matching "${search}" were found.`
+                                            : `There are currently no medications in the ${activeTab} category.`}
+                                    </p>
+                                    {search && (
+                                        <button
+                                            onClick={() => setSearch('')}
+                                            className="mt-4 text-sm font-bold text-[var(--theme-primary)] hover:underline"
                                         >
-                                            {tab.count}
-                                        </span>
-                                        {activeTab === tab.key && (
-                                            <div className={`absolute bottom-0 left-4 right-4 h-1 rounded-t-full ${activeBadgeColor}`} aria-hidden="true" />
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-
-                {/* List Content */}
-                <div className="min-h-[400px]">
-                    {currentTabMedications.length > 0 ? (
-                        <div className="divide-y divide-gray-50">
-                            {currentTabMedications.map((med, idx) => renderMedicationRow(med, idx))}
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
-                            <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4">
-                                <Pill className="w-8 h-8 text-gray-300" />
-                            </div>
-                            <h3 className="text-lg font-bold text-gray-900 mb-1">No medications found</h3>
-                            <p className="text-sm text-gray-500 max-w-xs mx-auto">
-                                {search 
-                                    ? `No medications matching "${search}" were found in the ${activeTab} tab.`
-                                    : `There are currently no medications in the ${activeTab} category.`}
-                            </p>
-                            {search && (
-                                <button
-                                    onClick={() => setSearch('')}
-                                    className="mt-4 text-sm font-bold text-[var(--theme-primary)] hover:underline"
-                                >
-                                    Clear search
-                                </button>
+                                            Clear search
+                                        </button>
+                                    )}
+                                </div>
                             )}
                         </div>
-                    )}
+                    </div>
 
-                    {/* PRN History — shown below PRN tab */}
-                    {activeTab === 'prn' && (
-                        <PrnHistoryPanel
-                            entries={prnHistoryList}
-                            isLoading={prnHistoryLoading}
-                        />
-                    )}
+                    {/* Footer legend */}
+                    <div className="flex flex-wrap items-center justify-center gap-5 px-4 text-[10px] text-gray-400 uppercase font-black tracking-widest">
+                        {[
+                            { color: 'bg-blue-500', label: 'Scheduled' },
+                            { color: 'bg-amber-500', label: 'AM Only' },
+                            { color: 'bg-indigo-500', label: 'PM Only' },
+                            { color: 'bg-purple-500', label: 'PRN' },
+                        ].map(({ color, label }) => (
+                            <div key={label} className="flex items-center gap-1.5">
+                                <div className={`w-2 h-2 rounded-full ${color}`} aria-hidden="true" />
+                                {label}
+                            </div>
+                        ))}
+                    </div>
                 </div>
-            </div>
-            
-            {/* Footer Legend */}
-            <div className="flex flex-wrap items-center justify-center gap-6 px-4 text-[10px] text-gray-400 uppercase font-black tracking-widest">
-                <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                    Scheduled
+
+                {/* ── RIGHT: Orders + PRN history ── */}
+                <div className="space-y-4">
+                    <PhysicianOrderPanel residentId={residentId} navigate={navigate} />
+                    <PrnRightPanel entries={prnHistoryList} isLoading={prnHistoryLoading} />
                 </div>
-                <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                    AM Only
-                </div>
-                <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                    PM Only
-                </div>
-                <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                    PRN (As Needed)
-                </div>
+
             </div>
         </div>
     );
@@ -2178,7 +2152,302 @@ function MedicationWindowBadge({ medication, slotTime }) {
     return null;
 }
 
-// ─── PRN History Panel ────────────────────────────────────────────────────────
+// ─── Resident Profile Panel (left column) ─────────────────────────────────────
+
+function ResidentProfilePanel({ resident, isLoading, residentId, navigate }) {
+    if (isLoading) {
+        return (
+            <aside className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-3" aria-label="Resident profile loading">
+                <div className="flex flex-col items-center gap-3 pb-3 border-b border-gray-100">
+                    <div className="w-20 h-20 rounded-full bg-gray-100 animate-pulse" />
+                    <div className="h-4 w-32 rounded bg-gray-100 animate-pulse" />
+                    <div className="h-3 w-20 rounded bg-gray-100 animate-pulse" />
+                </div>
+                {[1, 2, 3, 4].map(i => <div key={i} className="h-10 rounded-lg bg-gray-50 animate-pulse" />)}
+            </aside>
+        );
+    }
+
+    if (!resident) return null;
+
+    const fullName = [resident.first_name, resident.middle_names, resident.last_name].filter(Boolean).join(' ') || resident.name || 'Resident';
+    const initials = [resident.first_name?.[0], resident.last_name?.[0]].filter(Boolean).join('').toUpperCase();
+    const age = resident.date_of_birth ? calculateAgeFromPacificBirthDate(resident.date_of_birth) : null;
+    const dobFormatted = resident.date_of_birth
+        ? new Date(resident.date_of_birth).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+        : null;
+    const room = resident.room_number || resident.room;
+
+    const codeStatusColor =
+        (resident.code_status || '').toLowerCase().includes('full') ? 'bg-red-500' :
+        (resident.code_status || '').toLowerCase().includes('dnr') ? 'bg-amber-500' :
+        (resident.code_status || '').toLowerCase().includes('comfort') ? 'bg-blue-500' :
+        'bg-gray-400';
+
+    const allergies = Array.isArray(resident.allergies)
+        ? resident.allergies.join(', ')
+        : (typeof resident.allergies === 'string' ? resident.allergies : null)
+          || resident.allergies_text
+          || null;
+
+    const quickLinks = [
+        { label: 'Progress Notes', path: `/t-logs?resident_id=${residentId}`, icon: FileText },
+        { label: 'Vitals', path: `/vitals?resident_id=${residentId}`, icon: Heart },
+        { label: 'Care Plans', path: `/residents/${residentId}?tab=care`, icon: ClipboardList },
+        { label: 'Documents', path: `/residents/${residentId}?tab=documents`, icon: FileText },
+    ];
+
+    return (
+        <aside
+            className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+            aria-label="Resident clinical profile"
+        >
+            {/* Avatar + name */}
+            <div className="flex flex-col items-center gap-2 px-4 pt-5 pb-4 border-b border-gray-100 bg-gradient-to-b from-[var(--theme-primary-bg)] to-white">
+                <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-md bg-[var(--theme-primary)]/10">
+                    {resident.profile_image_url || resident.profile_image ? (
+                        <img
+                            src={resident.profile_image_url || `/storage/${resident.profile_image}`}
+                            alt={fullName}
+                            className="w-full h-full object-cover"
+                            onError={e => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}
+                        />
+                    ) : null}
+                    <div className={`absolute inset-0 ${resident.profile_image_url || resident.profile_image ? 'hidden' : 'flex'} items-center justify-center text-[var(--theme-primary)] text-xl font-bold`}>
+                        {initials || <User className="w-8 h-8" />}
+                    </div>
+                </div>
+                <div className="text-center">
+                    <h2 className="text-sm font-bold text-gray-900 leading-tight">{fullName.toUpperCase()}</h2>
+                    {dobFormatted && (
+                        <p className="text-[11px] text-gray-500 mt-0.5">
+                            {dobFormatted}{age !== null ? ` (${age} y.o.)` : ''}
+                        </p>
+                    )}
+                </div>
+                {/* Room + Gender pills */}
+                <div className="flex items-center gap-2 flex-wrap justify-center">
+                    {resident.gender && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 uppercase">
+                            {resident.gender}
+                        </span>
+                    )}
+                    {room && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--theme-primary)]/10 text-[var(--theme-primary)] flex items-center gap-1">
+                            <MapPin className="w-3 h-3" aria-hidden="true" /> Rm {room}
+                        </span>
+                    )}
+                </div>
+            </div>
+
+            {/* Clinical details */}
+            <dl className="divide-y divide-gray-50 text-xs">
+                {/* Code Status */}
+                {resident.code_status && (
+                    <div className="flex items-start gap-2 px-3 py-2.5">
+                        <ShieldAlert className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                        <div className="min-w-0 flex-1">
+                            <dt className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Code Status</dt>
+                            <dd className="flex items-center gap-1.5 mt-0.5">
+                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${codeStatusColor}`} aria-hidden="true" />
+                                <span className="font-semibold text-gray-800">{resident.code_status}</span>
+                            </dd>
+                        </div>
+                    </div>
+                )}
+
+                {/* Allergies */}
+                <div className="flex items-start gap-2 px-3 py-2.5">
+                    <AlertCircle className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                        <dt className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Allergies</dt>
+                        <dd className={`mt-0.5 font-medium ${allergies ? 'text-red-700' : 'text-gray-400 italic'}`}>
+                            {allergies || 'None recorded'}
+                        </dd>
+                    </div>
+                </div>
+
+                {/* Diet */}
+                {(resident.diet || resident.dietary_restrictions) && (
+                    <div className="flex items-start gap-2 px-3 py-2.5">
+                        <Utensils className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                        <div className="min-w-0 flex-1">
+                            <dt className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Diet</dt>
+                            <dd className="mt-0.5 font-medium text-gray-800">{resident.diet || resident.dietary_restrictions}</dd>
+                        </div>
+                    </div>
+                )}
+
+                {/* General medication instructions */}
+                {resident.general_medication_instructions && (
+                    <div className="flex items-start gap-2 px-3 py-2.5">
+                        <Pill className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                        <div className="min-w-0 flex-1">
+                            <dt className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Med Instructions</dt>
+                            <dd className="mt-0.5 text-gray-700 leading-relaxed line-clamp-4">{resident.general_medication_instructions}</dd>
+                        </div>
+                    </div>
+                )}
+
+                {/* Diagnosis */}
+                {resident.diagnosis && (
+                    <div className="flex items-start gap-2 px-3 py-2.5">
+                        <Stethoscope className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                        <div className="min-w-0 flex-1">
+                            <dt className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Diagnosis</dt>
+                            <dd className="mt-0.5 text-gray-700 leading-relaxed line-clamp-3">{resident.diagnosis}</dd>
+                        </div>
+                    </div>
+                )}
+            </dl>
+
+            {/* Quick links */}
+            <div className="border-t border-gray-100 px-3 py-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Quick Links</p>
+                <div className="space-y-0.5">
+                    {quickLinks.map(({ label, path, icon: Icon }) => (
+                        <Link
+                            key={label}
+                            to={path}
+                            className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-medium text-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)]"
+                        >
+                            <Icon className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
+                            {label}
+                            <ExternalLink className="w-3 h-3 ml-auto text-gray-300" aria-hidden="true" />
+                        </Link>
+                    ))}
+                </div>
+            </div>
+        </aside>
+    );
+}
+
+// ─── Physician's Order Panel (right column top) ────────────────────────────────
+
+function PhysicianOrderPanel({ residentId, navigate }) {
+    return (
+        <section
+            className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+            aria-label="Physician's order"
+        >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-gray-400" aria-hidden="true" />
+                    <h3 className="text-sm font-bold text-gray-900">Physician's Order</h3>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => navigate(`/residents/${residentId}?tab=documents`)}
+                    className="text-xs font-semibold text-[var(--theme-primary)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] rounded"
+                >
+                    View All →
+                </button>
+            </div>
+            <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center mb-3" aria-hidden="true">
+                    <FileText className="w-6 h-6 text-gray-300" />
+                </div>
+                <p className="text-sm font-semibold text-gray-900">Medication Orders</p>
+                <p className="text-xs text-gray-400 mt-1">View physician orders in the resident's documents tab.</p>
+                <button
+                    type="button"
+                    onClick={() => navigate(`/residents/${residentId}?tab=documents`)}
+                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[var(--theme-primary)]/10 text-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/20 transition-colors"
+                >
+                    <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+                    Open Documents
+                </button>
+            </div>
+        </section>
+    );
+}
+
+// ─── PRN History Right Panel (right column, always expanded) ──────────────────
+
+function PrnRightPanel({ entries, isLoading }) {
+    if (isLoading) {
+        return (
+            <section className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" aria-label="PRN medication history loading">
+                <div className="px-4 py-3 border-b border-gray-100">
+                    <div className="h-4 w-36 animate-pulse rounded bg-gray-100" />
+                </div>
+                <div className="p-4 space-y-2">
+                    {[1, 2, 3].map(i => <div key={i} className="h-14 animate-pulse rounded-lg bg-gray-50" />)}
+                </div>
+            </section>
+        );
+    }
+
+    return (
+        <section
+            className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+            aria-label="PRN medication history"
+        >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-purple-500" aria-hidden="true" />
+                    <h3 className="text-sm font-bold text-gray-900">PRN Medication</h3>
+                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Last 7 days</span>
+            </div>
+
+            <div className="px-3 py-1.5 bg-gray-50/50 border-b border-gray-100">
+                <div className="grid grid-cols-3 gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    <span>Drug</span>
+                    <span>Effective</span>
+                    <span>Date & Time</span>
+                </div>
+            </div>
+
+            {entries.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                    <Pill className="w-8 h-8 text-gray-200 mb-2" aria-hidden="true" />
+                    <p className="text-xs text-gray-400">No PRN administrations in the last 7 days.</p>
+                </div>
+            ) : (
+                <ul className="divide-y divide-gray-50 max-h-96 overflow-y-auto" role="list">
+                    {entries.map(entry => {
+                        const medName = (entry.medication?.name || 'Medication').toUpperCase();
+                        const dateStr = entry.administered_at
+                            ? new Date(entry.administered_at).toLocaleDateString('en-US', {
+                                month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles',
+                            })
+                            : '—';
+                        const timeStr = entry.administered_at
+                            ? new Date(entry.administered_at).toLocaleTimeString('en-US', {
+                                hour: '2-digit', minute: '2-digit', timeZone: 'America/Los_Angeles',
+                            })
+                            : '';
+                        const isEffective = entry.status === 'completed';
+                        return (
+                            <li key={entry.id} className="grid grid-cols-3 gap-2 px-3 py-2.5 text-xs hover:bg-gray-50/60 transition-colors">
+                                <div className="min-w-0">
+                                    <p className="font-semibold text-gray-900 truncate text-[11px]">{medName}</p>
+                                    {entry.dosage_given && (
+                                        <p className="text-[10px] text-gray-400 truncate">{entry.dosage_given}</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                                        isEffective ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                                    }`}>
+                                        {isEffective ? 'Effective' : (entry.status || '—')}
+                                    </span>
+                                </div>
+                                <div className="text-[10px] text-gray-500">
+                                    <p>{dateStr}</p>
+                                    <p className="text-gray-400">{timeStr}</p>
+                                </div>
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
+        </section>
+    );
+}
+
+// ─── PRN History Panel (collapsed, used nowhere now — kept for reference) ──────
 
 function PrnHistoryPanel({ entries, isLoading }) {
     const [collapsed, setCollapsed] = React.useState(false);
