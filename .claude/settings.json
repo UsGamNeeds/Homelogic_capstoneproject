@@ -40,7 +40,19 @@
       "Bash(find /home/taal/Documents/Evergreen/app/Mail -name \"*.php\" -exec php -l {} \\\\;)",
       "Bash(git push:*)",
       "Bash(php artisan:*)",
-      "Bash(grep -A5 \"status.*pharmacy_orders\\\\|pharmacy_orders.*status\" /home/taal/Documents/Evergreen/database/migrations/*pharmacy*)"
+      "Bash(grep -A5 \"status.*pharmacy_orders\\\\|pharmacy_orders.*status\" /home/taal/Documents/Evergreen/database/migrations/*pharmacy*)",
+      "Bash(find /home/taal/Documents/Evergreen/resources/js/pages/caregiver -name \"*.jsx\" -exec basename {} \\\\;)",
+      "Bash(php -l app/Models/Notification.php)",
+      "Bash(php -l app/Http/Controllers/Api/NotificationController.php)",
+      "Bash(php -l app/Console/Commands/CleanupOldNotifications.php)",
+      "Bash(php -l database/migrations/2026_04_10_000001_add_facility_branch_to_notifications.php)",
+      "Bash(php -l database/migrations/2026_04_10_000002_backfill_notification_facility_ids.php)",
+      "Bash(find /home/taal/Documents/Evergreen/app/Observers -name \"*.php\" -exec php -l {} \\\\;)",
+      "Bash(php -l app/Console/Commands/GenerateNotifications.php)",
+      "Bash(php -l app/Models/NotificationPreference.php)",
+      "Bash(php -l app/Http/Controllers/Api/NotificationPreferenceController2.php)",
+      "Bash(php -l database/migrations/2026_04_10_000003_create_notification_preferences_table.php)",
+      "Bash(php -l routes/api.php)"
     ],
     "additionalDirectories": [
       "/home/taal/Documents/Evergreen/.claude/skills"

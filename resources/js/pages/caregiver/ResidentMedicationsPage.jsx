@@ -42,6 +42,7 @@ import {
 
 import Select from '../../components/ui/radix/Select';
 import Tooltip from '../../components/ui/Tooltip';
+import ResidentSafetyStrip from '../../components/residents/ResidentSafetyStrip';
 import logger from '../../utils/logger';
 import {
     parseAdminTimeToPacific,
@@ -927,6 +928,9 @@ export default function ResidentMedicationsPage() {
                     </button>
                 </div>
             </div>
+
+            {/* Safety Strip — persistent clinical context */}
+            <ResidentSafetyStrip resident={resident} isLoading={residentLoading} />
 
             {/* Filter & Bulk Actions Section */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">

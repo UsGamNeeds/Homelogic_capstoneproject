@@ -18,6 +18,7 @@ import {
 import api from '../../services/api';
 import Breadcrumbs from '../../components/ui/Breadcrumbs';
 import ResidentDocuments from '../../components/ResidentDocuments';
+import ResidentSafetyStrip from '../../components/residents/ResidentSafetyStrip';
 import logger from '../../utils/logger';
 import { isCaregiverRole } from '../../utils/userRoles';
 import { formatPacificCalendarMedium, calculateAgeFromPacificBirthDate } from '../../utils/pacificTime';
@@ -428,6 +429,8 @@ export default function ResidentDetailPage() {
                     <DefinitionItem label="Emergency Phone">{formatPhone(resident.emergency_contact_phone)}</DefinitionItem>
                 </div>
             </section>
+
+            <ResidentSafetyStrip resident={resident} isLoading={isLoading} />
 
             <nav className="flex flex-wrap gap-2 rounded-2xl bg-white p-2 shadow-sm ring-1 ring-gray-100">
                 {tabs.map(({ id, label, icon: Icon }) => {

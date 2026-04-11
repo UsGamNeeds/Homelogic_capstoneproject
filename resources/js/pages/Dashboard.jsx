@@ -808,6 +808,7 @@ export default function Dashboard() {
                         stats={stats}
                         todaysSchedule={todaysSchedule?.data || todaysSchedule || []}
                         upcomingEvents={upcomingEvents?.data || upcomingEvents || []}
+                        actionableItems={actionableItems}
                     />
                 </div>
             </div>
