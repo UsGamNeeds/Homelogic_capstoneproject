@@ -252,12 +252,23 @@ const caregiverNavigation = [
 
 export default function Layout() {
     const location = useLocation();
-    // Removed userMenuOpen state - now handled by Radix DropdownMenu
     const [expandedMenus, setExpandedMenus] = useState({});
     const [currentUser, setCurrentUser] = useState(null);
     const [isLoadingUser, setIsLoadingUser] = useState(true);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+        try { return localStorage.getItem('sidebar-collapsed') === 'true'; }
+        catch { return false; }
+    });
+
+    const toggleSidebar = () => {
+        setSidebarCollapsed(prev => {
+            const next = !prev;
+            try { localStorage.setItem('sidebar-collapsed', String(next)); } catch {}
+            return next;
+        });
+    };
     const toast = useToastContext();
 
     // Fetch current user — shares cache + staleTime with ThemeWrapper (see queries/currentUser.js)
@@ -579,92 +590,113 @@ export default function Layout() {
             )}
             
             {/* Sidebar */}
-            <aside 
-                className={`fixed md:relative inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${
-                    mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-                } w-64 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] flex flex-col`}
+            <aside
+                className={`fixed md:relative inset-y-0 left-0 z-50 transform transition-all duration-300 ease-in-out
+                    ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+                    ${sidebarCollapsed ? 'w-16' : 'w-64'}
+                    bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] flex flex-col`}
+                aria-label="Main sidebar"
             >
                 {/* Mobile close button */}
                 <button
                     onClick={() => setMobileMenuOpen(false)}
                     className="md:hidden absolute top-4 right-4 text-[var(--theme-text-on-primary)] hover:text-gray-300 cursor-pointer"
+                    aria-label="Close menu"
                 >
                     <X className="w-6 h-6" strokeWidth={2.5} />
                 </button>
-                {/* Logo */}
-                <div 
-                    className="p-6 border-b border-[var(--theme-primary-light)]"
+
+                {/* Logo / branding header */}
+                <div className={`border-b border-[var(--theme-primary-light)] flex items-center overflow-hidden
+                    ${sidebarCollapsed ? 'justify-center py-4 px-2' : 'p-4 gap-3'}`}
                 >
-                    <div className="flex items-center space-x-3">
-                        <div 
-                            className="w-12 h-12 bg-[var(--theme-primary)] rounded-full flex items-center justify-center shadow-lg overflow-hidden"
-                        >
-                            <img 
-                                src={facilityBranding.logo} 
-                                alt={facilityBranding.name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                    e.target.style.display = 'none';
-                                    e.target.nextElementSibling.style.display = 'flex';
-                                }}
-                            />
-                            <div 
-                                className="w-full h-full bg-[var(--theme-primary)] rounded-full flex items-center justify-center hidden"
-                            >
-                                <span className="text-[var(--theme-text-on-primary)] font-bold text-xl">
-                                    {facilityBranding.name.charAt(0).toUpperCase()}
-                                </span>
-                            </div>
-                        </div>
-                        <div>
-                            <span className="text-xl font-semibold text-[var(--theme-text-on-primary)]">
-                                {facilityBranding.name.split(' ')[0]}
+                    {/* Logo circle */}
+                    <div className="w-10 h-10 flex-shrink-0 rounded-full bg-[var(--theme-primary)] flex items-center justify-center shadow-lg overflow-hidden ring-2 ring-white/20">
+                        <img
+                            src={facilityBranding.logo}
+                            alt={facilityBranding.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}
+                        />
+                        <div className="w-full h-full bg-[var(--theme-primary)] rounded-full items-center justify-center hidden">
+                            <span className="text-[var(--theme-text-on-primary)] font-bold text-base">
+                                {facilityBranding.name.charAt(0).toUpperCase()}
                             </span>
-                            <p className="text-xs text-[var(--theme-text-on-primary)] opacity-80">
-                                {facilityBranding.name.split(' ').length > 1 ?
-                                    facilityBranding.name.split(' ').slice(1).join(' ') :
-                                    'Care Home'}
-                            </p>
                         </div>
                     </div>
+
+                    {/* Name — hidden when collapsed */}
+                    {!sidebarCollapsed && (
+                        <div className="flex-1 min-w-0">
+                            <span className="text-base font-bold text-[var(--theme-text-on-primary)] truncate block leading-tight">
+                                {facilityBranding.name.split(' ')[0]}
+                            </span>
+                            <p className="text-[11px] text-[var(--theme-text-on-primary)] opacity-70 truncate">
+                                {facilityBranding.name.split(' ').length > 1
+                                    ? facilityBranding.name.split(' ').slice(1).join(' ')
+                                    : 'Care Home'}
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 p-3 overflow-y-auto" aria-label="Main navigation">
+                <nav className="flex-1 p-2 overflow-y-auto" aria-label="Main navigation">
                     {isLoadingUser ? (
                         <div className="flex items-center justify-center py-8">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--theme-text-on-primary)]" aria-label="Loading navigation" />
                         </div>
                     ) : navigationItems.length === 0 ? (
-                        <div className="text-center py-8 text-[var(--theme-text-on-primary)] text-sm opacity-75">
+                        <div className={`text-center py-8 text-[var(--theme-text-on-primary)] text-sm opacity-75 ${sidebarCollapsed ? 'hidden' : ''}`}>
                             No navigation items available
                         </div>
                     ) : isCaregiver ? (
-                        // Caregiver: grouped nav with section labels
                         <CaregiverNav
                             items={navigationItems}
                             location={location}
                             expandedMenus={expandedMenus}
                             setExpandedMenus={setExpandedMenus}
                             onLinkClick={() => setMobileMenuOpen(false)}
+                            collapsed={sidebarCollapsed}
                         />
                     ) : (
-                        // Admin / super admin: flat list (unchanged behaviour)
-                        <div className="space-y-1">
-                        {navigationItems.map((item) => (
-                            <NavItem
-                                key={item.name}
-                                item={item}
-                                location={location}
-                                expandedMenus={expandedMenus}
-                                setExpandedMenus={setExpandedMenus}
-                                navigationItems={navigationItems}
-                                onLinkClick={() => setMobileMenuOpen(false)}
-                            />
-                        ))}
+                        <div className="space-y-0.5">
+                            {navigationItems.map((item) => (
+                                <NavItem
+                                    key={item.name}
+                                    item={item}
+                                    location={location}
+                                    expandedMenus={expandedMenus}
+                                    setExpandedMenus={setExpandedMenus}
+                                    navigationItems={navigationItems}
+                                    onLinkClick={() => setMobileMenuOpen(false)}
+                                    collapsed={sidebarCollapsed}
+                                />
+                            ))}
                         </div>
                     )}
                 </nav>
+
+                {/* Collapse toggle button — pinned to sidebar bottom */}
+                <div className="border-t border-[var(--theme-primary-light)] p-2">
+                    <Tooltip content={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} position="right">
+                        <button
+                            type="button"
+                            onClick={toggleSidebar}
+                            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                            className={`w-full flex items-center rounded-lg px-2 py-2.5 text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-light)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50
+                                ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
+                        >
+                            {sidebarCollapsed
+                                ? <ArrowRightFromLine className="w-4 h-4 flex-shrink-0" strokeWidth={2.25} aria-hidden="true" />
+                                : <>
+                                    <ArrowLeftToLine className="w-4 h-4 flex-shrink-0" strokeWidth={2.25} aria-hidden="true" />
+                                    <span className="text-sm font-medium">Collapse</span>
+                                  </>
+                            }
+                        </button>
+                    </Tooltip>
+                </div>
             </aside>
 
             {/* Main Content */}
@@ -828,15 +860,35 @@ function getItemActiveState(item, location, navigationItems) {
     return isActive;
 }
 
-function NavItem({ item, location, expandedMenus, setExpandedMenus, navigationItems, onLinkClick }) {
+function NavItem({ item, location, expandedMenus, setExpandedMenus, navigationItems, onLinkClick, collapsed = false }) {
     const Icon = item.icon;
     const hasChildren = item.children && item.children.length > 0;
     const isActive = getItemActiveState(item, location, navigationItems);
-    const isExpanded = expandedMenus[item.name] ?? (isActive && hasChildren);
+    const isExpanded = !collapsed && (expandedMenus[item.name] ?? (isActive && hasChildren));
 
     const activeClass = 'bg-white shadow-sm text-[var(--theme-text-on-white)]';
     const inactiveClass = 'text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-light)]';
 
+    // ── Collapsed: icon-only with tooltip ──────────────────────────────────────
+    if (collapsed) {
+        // For items with children, navigate to the parent path (first child's path) directly
+        const targetPath = hasChildren ? (item.children[0]?.path ?? item.path) : item.path;
+        return (
+            <Tooltip content={item.name} position="right">
+                <Link
+                    to={targetPath}
+                    onClick={onLinkClick}
+                    aria-label={item.name}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`flex items-center justify-center w-full py-2.5 rounded-lg transition-colors ${isActive ? activeClass : inactiveClass}`}
+                >
+                    <Icon className="w-5 h-5 flex-shrink-0" strokeWidth={2.25} aria-hidden="true" />
+                </Link>
+            </Tooltip>
+        );
+    }
+
+    // ── Expanded: full label ───────────────────────────────────────────────────
     if (hasChildren) {
         return (
             <div>
@@ -891,8 +943,7 @@ function NavItem({ item, location, expandedMenus, setExpandedMenus, navigationIt
 
 // ─── Caregiver nav with section dividers ──────────────────────────────────────
 
-function CaregiverNav({ items, location, expandedMenus, setExpandedMenus, onLinkClick }) {
-    // Group items by section preserving order
+function CaregiverNav({ items, location, expandedMenus, setExpandedMenus, onLinkClick, collapsed = false }) {
     const sections = React.useMemo(() => {
         const result = [];
         let current = null;
@@ -908,16 +959,20 @@ function CaregiverNav({ items, location, expandedMenus, setExpandedMenus, onLink
     }, [items]);
 
     return (
-        <div className="space-y-4">
+        <div className={collapsed ? 'space-y-0.5' : 'space-y-4'}>
             {sections.map(({ section, items: sectionItems }) => (
                 <div key={section}>
-                    {/* Section label — hidden for "Home" to keep it minimal */}
-                    {section !== 'Home' && (
+                    {/* Section label — hidden for "Home" and when sidebar is collapsed */}
+                    {section !== 'Home' && !collapsed && (
                         <div className="px-3 pb-1">
                             <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 select-none">
                                 {section}
                             </span>
                         </div>
+                    )}
+                    {/* Subtle divider between sections in collapsed mode */}
+                    {section !== 'Home' && collapsed && (
+                        <div className="border-t border-white/10 my-1" aria-hidden="true" />
                     )}
                     <div className="space-y-0.5">
                         {sectionItems.map(item => (
@@ -929,6 +984,7 @@ function CaregiverNav({ items, location, expandedMenus, setExpandedMenus, onLink
                                 setExpandedMenus={setExpandedMenus}
                                 navigationItems={items}
                                 onLinkClick={onLinkClick}
+                                collapsed={collapsed}
                             />
                         ))}
                     </div>
