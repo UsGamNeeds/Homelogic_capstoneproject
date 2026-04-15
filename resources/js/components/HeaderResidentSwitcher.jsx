@@ -88,13 +88,13 @@ export default function HeaderResidentSwitcher({ currentUser, userLoading }) {
                                 to={to}
                                 aria-label={`Show ${name} in this view`}
                                 aria-current={isActive ? 'page' : undefined}
-                                className={`shrink-0 rounded-full p-0.5 motion-safe:transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] focus-visible:ring-offset-2 ${
+                                className={`shrink-0 rounded-full p-0.5 motion-safe:transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] focus-visible:ring-offset-1 ${
                                     isActive
-                                        ? 'ring-2 ring-[var(--theme-primary)] ring-offset-2 ring-offset-white'
+                                        ? 'ring-2 ring-[var(--theme-primary)] ring-offset-1 ring-offset-white'
                                         : 'opacity-90 hover:opacity-100'
                                 }`}
                             >
-                                <ResidentAvatarInline resident={resident} className="h-9 w-9 text-[11px]" />
+                                <ResidentAvatarInline resident={resident} className="h-7 w-7 text-[10px]" />
                             </Link>
                         </Tooltip>
                     );
@@ -103,9 +103,9 @@ export default function HeaderResidentSwitcher({ currentUser, userLoading }) {
                     <Link
                         to={allResidentsTo}
                         aria-label="Clear resident filter; view all residents"
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 bg-gray-50 text-gray-500 motion-safe:transition-colors hover:border-[var(--theme-primary)] hover:bg-[var(--theme-primary-bg)] hover:text-[var(--theme-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] focus-visible:ring-offset-2"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 bg-gray-50 text-gray-500 motion-safe:transition-colors hover:border-[var(--theme-primary)] hover:bg-[var(--theme-primary-bg)] hover:text-[var(--theme-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] focus-visible:ring-offset-1"
                     >
-                        <Users className="h-4 w-4" aria-hidden="true" />
+                        <Users className="h-3.5 w-3.5" aria-hidden="true" />
                     </Link>
                 </Tooltip>
             </div>

@@ -325,12 +325,12 @@ export default function NotificationDropdown() {
                         setIsOpen(!isOpen);
                         if (!isOpen) refetch();
                     }}
-                    className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="relative p-1.5 hover:bg-gray-100 rounded-md transition-colors"
                     aria-label="Notifications"
                 >
-                    <Bell className="w-5 h-5 text-gray-600" strokeWidth={2.25} />
+                    <Bell className="w-4 h-4 text-gray-600" strokeWidth={2.25} />
                     {unreadCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold px-1 leading-none">
+                        <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-red-500 rounded-full flex items-center justify-center text-white text-[9px] font-bold px-0.5 leading-none">
                             {unreadCount > 9 ? '9+' : unreadCount}
                         </span>
                     )}

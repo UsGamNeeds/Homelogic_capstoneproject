@@ -78,7 +78,7 @@ function LiveClock({ serverTime, timezoneOffset }) {
         return () => window.clearInterval(id);
     }, [serverTime]);
 
-    return <span className="text-sm font-semibold text-gray-800">{time}</span>;
+    return <span className="text-xs font-semibold text-gray-800 tabular-nums">{time}</span>;
 }
 
 const superAdminNavigation = [
@@ -592,24 +592,24 @@ export default function Layout() {
             {/* Main Content */}
             <div className="flex-1 flex flex-col overflow-hidden md:ml-0">
                 {/* Top Bar */}
-                <header className="bg-white border-b border-gray-200 px-3 md:px-5 py-2 md:py-2.5 flex items-center justify-between gap-2 shadow-sm min-h-0">
-                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
+                <header className="bg-white border-b border-gray-200 px-2 md:px-4 py-1 md:py-1.5 flex items-center justify-between gap-1.5 sm:gap-2 shadow-sm min-h-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink">
                         <button
                             type="button"
                             onClick={() => setMobileMenuOpen(true)}
-                            className="md:hidden text-gray-700 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] rounded"
+                            className="md:hidden text-gray-700 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] rounded p-0.5"
                             aria-label="Open menu"
                         >
-                            <Menu className="w-6 h-6" strokeWidth={2.5} aria-hidden="true" />
+                            <Menu className="w-5 h-5" strokeWidth={2.5} aria-hidden="true" />
                         </button>
                         <PageBackButton />
                         {/* Facility context indicator */}
                         <Link
                             to="/profile"
-                            className="group flex items-center gap-2 min-w-0 rounded-lg px-1.5 py-0.5 -mx-1.5 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)]"
+                            className="group flex items-center gap-1.5 min-w-0 rounded-lg px-1 py-0.5 -mx-1 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)]"
                             aria-label={`Active facility: ${facilityBranding.name}. Go to profile settings.`}
                         >
-                            <div className="flex-shrink-0 w-7 h-7 rounded-full overflow-hidden border border-gray-200 bg-[var(--theme-primary)] hidden sm:flex items-center justify-center">
+                            <div className="flex-shrink-0 w-6 h-6 rounded-full overflow-hidden border border-gray-200 bg-[var(--theme-primary)] hidden sm:flex items-center justify-center">
                                 <img
                                     src={facilityBranding.logo}
                                     alt=""
@@ -633,7 +633,7 @@ export default function Layout() {
                             userLoading={isLoadingUserData}
                         />
                     ) : null}
-                    <div className="flex items-center space-x-1.5 md:space-x-3 shrink-0">
+                    <div className="flex items-center space-x-1 md:space-x-2 shrink-0">
                         <LiveClock serverTime={currentUser?.app_current_time} timezoneOffset={currentUser?.app_timezone_offset} />
                         {/* Hide search, notifications, and calendar for super admin */}
                         {currentUser?.role !== 'super_admin' && (
@@ -642,7 +642,7 @@ export default function Layout() {
                                     <button
                                         type="button"
                                         onClick={() => setCommandPaletteOpen(true)}
-                                        className="hidden md:flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)]"
+                                        className="hidden md:flex items-center space-x-1.5 px-2 py-1 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors border border-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)]"
                                         aria-label="Open search"
                                     >
                                         <Command className="w-4 h-4" aria-hidden="true" />
@@ -655,10 +655,10 @@ export default function Layout() {
                                 <Tooltip content="Progress notes" position="bottom">
                                     <Link
                                         to={tLogsPath}
-                                        className="p-2 rounded-full hover:bg-gray-100 transition-colors relative inline-flex"
+                                        className="p-1.5 rounded-full hover:bg-gray-100 transition-colors relative inline-flex"
                                         aria-label="Progress notes"
                                     >
-                                        <FileText className="w-5 h-5 text-gray-700" strokeWidth={2.25} />
+                                        <FileText className="w-4 h-4 text-gray-700" strokeWidth={2.25} />
                                     </Link>
                                 </Tooltip>
                             </>
@@ -668,7 +668,7 @@ export default function Layout() {
                                 trigger={
                                     <button
                                         type="button"
-                                        className="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center overflow-hidden focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                                        className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center overflow-hidden focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
                                         aria-label="Open account menu"
                                     >
                                         {currentUser?.profile_image_url ? (
@@ -678,7 +678,7 @@ export default function Layout() {
                                                 className="w-full h-full object-cover"
                                             />
                                         ) : (
-                                            <User className="w-6 h-6 text-gray-600" strokeWidth={2.25} />
+                                            <User className="w-4 h-4 text-gray-600" strokeWidth={2.25} />
                                         )}
                                     </button>
                                 }

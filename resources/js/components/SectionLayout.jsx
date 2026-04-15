@@ -41,7 +41,7 @@ export default function SectionLayout({ title, tabs = [] }) {
             <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
 
                 {/* Thin primary-colour accent bar */}
-                <div className="h-1.5 bg-gradient-to-r from-[var(--theme-primary)] to-[var(--theme-primary-dark)]" aria-hidden="true" />
+                <div className="h-1 bg-gradient-to-r from-[var(--theme-primary)] to-[var(--theme-primary-dark)]" aria-hidden="true" />
 
                 {/* ── Tab bar (Synkwise-style: icon above label) ────────── */}
                 <div className="border-t-2 border-gray-100 bg-white">
@@ -63,8 +63,8 @@ export default function SectionLayout({ title, tabs = [] }) {
                                     role="tab"
                                     aria-selected={isActive}
                                     className={`
-                                        relative flex flex-col items-center gap-1
-                                        px-5 py-3 min-w-[80px] whitespace-nowrap
+                                        relative flex flex-col items-center gap-0.5
+                                        px-3 py-2 min-w-[72px] whitespace-nowrap
                                         motion-safe:transition-colors
                                         focus-visible:outline-none
                                         focus-visible:ring-2 focus-visible:ring-inset
@@ -76,10 +76,10 @@ export default function SectionLayout({ title, tabs = [] }) {
                                     `}
                                 >
                                     <Icon
-                                        className={`w-5 h-5 motion-safe:transition-colors ${isActive ? 'text-[var(--theme-primary)]' : 'text-gray-400'}`}
+                                        className={`w-4 h-4 motion-safe:transition-colors ${isActive ? 'text-[var(--theme-primary)]' : 'text-gray-400'}`}
                                         aria-hidden="true"
                                     />
-                                    <span className={`text-[11px] font-bold tracking-wide leading-tight text-center ${isActive ? 'text-[var(--theme-primary)]' : 'text-gray-500'}`}>
+                                    <span className={`text-[10px] font-bold tracking-wide leading-tight text-center ${isActive ? 'text-[var(--theme-primary)]' : 'text-gray-500'}`}>
                                         {tab.label}
                                     </span>
                                     {isActive && (

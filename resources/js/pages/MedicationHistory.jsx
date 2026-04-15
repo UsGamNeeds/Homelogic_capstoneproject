@@ -211,36 +211,34 @@ export default function MedicationHistory() {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm p-6">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-                    <div>
-                        {medicationId && medicationData ? (
-                            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                <p className="text-sm text-blue-900">
-                                    <span className="font-semibold">Viewing history for:</span> {medicationData.name || 'Medication'}
-                                    {medicationData.resident && (
-                                        <span className="text-blue-700"> • Resident: {medicationData.resident.first_name} {medicationData.resident.last_name}</span>
-                                    )}
-                                </p>
-                            </div>
-                        ) : (
-                            <p className="text-gray-600 max-w-2xl text-sm">
-                                Filter by resident, status, and date range to audit compliance and follow up on missed doses.
+        <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+                <div className="mb-3">
+                    {medicationId && medicationData ? (
+                        <div className="p-2 bg-blue-50 border border-blue-200 rounded-md">
+                            <p className="text-xs text-blue-900 leading-snug">
+                                <span className="font-semibold">Viewing history for:</span> {medicationData.name || 'Medication'}
+                                {medicationData.resident && (
+                                    <span className="text-blue-700"> • Resident: {medicationData.resident.first_name} {medicationData.resident.last_name}</span>
+                                )}
                             </p>
-                        )}
-                    </div>
+                        </div>
+                    ) : (
+                        <p className="text-xs text-gray-500 max-w-3xl leading-snug">
+                            Filter by resident, status, and date range to audit compliance and follow up on missed doses.
+                        </p>
+                    )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Resident</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Resident</label>
                         <div className="relative">
-                            <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <User className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden="true" />
                             <select
                                 value={residentId}
                                 onChange={(event) => setResidentId(event.target.value)}
-                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent appearance-none bg-white"
+                                className="w-full pl-8 pr-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent appearance-none bg-white"
                             >
                                 <option value="">All residents</option>
                                 {residents.map((resident) => (
@@ -253,13 +251,13 @@ export default function MedicationHistory() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
                         <div className="relative">
-                            <ClipboardList className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <ClipboardList className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden="true" />
                             <select
                                 value={status}
                                 onChange={(event) => setStatus(event.target.value)}
-                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent appearance-none bg-white"
+                                className="w-full pl-8 pr-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent appearance-none bg-white"
                             >
                                 {statusOptions.map((option) => (
                                     <option key={option.value} value={option.value}>
@@ -271,48 +269,47 @@ export default function MedicationHistory() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">From</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">From</label>
                         <div className="relative">
-                            <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <Calendar className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden="true" />
                             <input
                                 type="date"
                                 value={dateFrom}
                                 onChange={(event) => setDateFrom(event.target.value)}
-                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                className="w-full pl-8 pr-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">To</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">To</label>
                         <div className="relative">
-                            <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <Calendar className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden="true" />
                             <input
                                 type="date"
                                 value={dateTo}
                                 onChange={(event) => setDateTo(event.target.value)}
-                                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                className="w-full pl-8 pr-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                             />
                         </div>
                     </div>
                 </div>
 
-                <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-gray-100 pt-4">
-                    <p className="text-sm text-gray-500 max-w-xl">
-                        Download a printable medication administration log (MAR-style PDF) for one resident and the date range
-                        above.
+                <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-t border-gray-100 pt-3">
+                    <p className="text-xs text-gray-500 max-w-xl leading-snug">
+                        MAR-style PDF: select a resident and date range, then export.
                     </p>
                     <button
                         type="button"
                         onClick={handleExportMedicationLogPdf}
                         disabled={!canExportMedicationLogPdf || exportingPdf}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                        className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                     >
-                        <Download className="w-4 h-4" />
-                        {exportingPdf ? 'Exporting…' : 'Export medication log (PDF)'}
+                        <Download className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                        {exportingPdf ? 'Exporting…' : 'Export log (PDF)'}
                     </button>
                 </div>
-                {exportPdfError ? <p className="text-sm text-red-600 mt-2">{exportPdfError}</p> : null}
+                {exportPdfError ? <p className="text-xs text-red-600 mt-1.5">{exportPdfError}</p> : null}
             </div>
 
             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
