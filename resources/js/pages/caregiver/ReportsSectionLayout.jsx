@@ -52,10 +52,6 @@ const TABS = [
 
 export default function ReportsSectionLayout() {
     return (
-        <SectionLayout
-            title="Reports"
-            subtitle="Analytics, compliance, and operational reporting"
-            tabs={TABS}
-        />
+        <SectionLayout title="Reports" tabs={TABS} />
     );
 }

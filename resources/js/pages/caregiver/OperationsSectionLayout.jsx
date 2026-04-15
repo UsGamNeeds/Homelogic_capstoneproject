@@ -13,10 +13,6 @@ const TABS = [
 
 export default function OperationsSectionLayout() {
     return (
-        <SectionLayout
-            title="Operations"
-            subtitle="Facility management, compliance and staff"
-            tabs={TABS}
-        />
+        <SectionLayout title="Operations" tabs={TABS} />
     );
 }

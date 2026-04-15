@@ -13,10 +13,6 @@ const TABS = [
 
 export default function ClinicalSectionLayout() {
     return (
-        <SectionLayout
-            title="Clinical"
-            subtitle="Health monitoring and clinical records"
-            tabs={TABS}
-        />
+        <SectionLayout title="Clinical" tabs={TABS} />
     );
 }

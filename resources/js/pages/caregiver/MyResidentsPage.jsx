@@ -105,25 +105,6 @@ export default function MyResidentsPage() {
         }));
     }, [residents]);
 
-    // Get the branch name from the user's assigned branch (primary source)
-    // Fallback to residents list only if user doesn't have assigned_branch loaded
-    const branchName = React.useMemo(() => {
-        // First priority: Use the user's assigned branch directly
-        if (currentUser?.assigned_branch?.name) {
-            return currentUser.assigned_branch.name;
-        }
-        // Second priority: Try to get from user's assigned_branch_id if branch object isn't loaded
-        if (currentUser?.assigned_branch_id && residents.length > 0) {
-            const residentFromBranch = residents.find((r) => r?.branch_id === currentUser.assigned_branch_id);
-            if (residentFromBranch?.branch?.name) {
-                return residentFromBranch.branch.name;
-            }
-        }
-        // Last resort: Get from any resident (shouldn't happen if backend filtering works correctly)
-        const withBranch = allResidents.find((r) => r?.branch?.name);
-        return withBranch?.branch?.name || null;
-    }, [allResidents, currentUser?.assigned_branch?.name, currentUser?.assigned_branch_id]);
-
     const renderResidentCard = (resident) => {
         const isActive = resident?.is_active === true || resident?.is_active === 1 || resident?.is_active === '1';
         const fullName = [resident.first_name, resident.middle_names, resident.last_name].filter(Boolean).join(' ');
@@ -131,8 +112,18 @@ export default function MyResidentsPage() {
         const ageYears = calculateAgeFromPacificBirthDate(resident.date_of_birth);
         const room = resident.room_number || resident.room;
 
+        const profilePath = `/my-residents/${resident.id}`;
+
         return (
-            <EntityCardShell key={resident.id}>
+            <EntityCardShell
+                key={resident.id}
+                className="cursor-pointer"
+                aria-label={`Open profile for ${fullName || 'resident'}`}
+                onClick={(e) => {
+                    if (e.target.closest('button')) return;
+                    navigate(profilePath);
+                }}
+            >
                 <EntityCardHeader
                     left={
                         <div className="flex flex-wrap items-start gap-3">
@@ -166,7 +157,8 @@ export default function MyResidentsPage() {
                                         variant="edit"
                                         icon={Edit}
                                         aria-label="Edit resident"
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                            e.stopPropagation();
                                             setEditing(resident);
                                             setShowForm(true);
                                         }}
@@ -178,7 +170,10 @@ export default function MyResidentsPage() {
                                     variant="view"
                                     icon={Eye}
                                     aria-label="View profile"
-                                    onClick={() => navigate(`/my-residents/${resident.id}`)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(profilePath);
+                                    }}
                                 />
                             </Tooltip>
                         </>
@@ -228,10 +223,16 @@ export default function MyResidentsPage() {
         const ageYears = calculateAgeFromPacificBirthDate(resident.date_of_birth);
         const room = resident.room_number || resident.room;
 
+        const profilePath = `/my-residents/${resident.id}`;
+
         return (
             <tr
                 key={resident.id}
-                className="group border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
+                className="group cursor-pointer border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
+                onClick={(e) => {
+                    if (e.target.closest('button')) return;
+                    navigate(profilePath);
+                }}
             >
                 <td className="py-3 pl-4 pr-3">
                     <div className="flex items-center gap-3">
@@ -256,11 +257,11 @@ export default function MyResidentsPage() {
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         {canEditResidents && (
                             <Tooltip content="Edit" position="top">
-                                <CardIconButton variant="edit" icon={Edit} aria-label="Edit resident" onClick={() => { setEditing(resident); setShowForm(true); }} />
+                                <CardIconButton variant="edit" icon={Edit} aria-label="Edit resident" onClick={(e) => { e.stopPropagation(); setEditing(resident); setShowForm(true); }} />
                             </Tooltip>
                         )}
                         <Tooltip content="View profile" position="top">
-                            <CardIconButton variant="view" icon={Eye} aria-label="View profile" onClick={() => navigate(`/my-residents/${resident.id}`)} />
+                            <CardIconButton variant="view" icon={Eye} aria-label="View profile" onClick={(e) => { e.stopPropagation(); navigate(profilePath); }} />
                         </Tooltip>
                     </div>
                 </td>
@@ -278,123 +279,66 @@ export default function MyResidentsPage() {
 
     return (
         <div className="space-y-6">
-            <header className="rounded-2xl bg-gradient-to-r from-[var(--theme-primary)] via-[var(--theme-primary-light)] to-[var(--theme-primary-lighter)] p-6 text-white shadow-lg">
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div>
-                        <p className="text-sm font-medium uppercase tracking-wide text-white/90">Caregiver Console</p>
-                        <h1 className="text-2xl font-semibold md:text-3xl">My Residents</h1>
-                        <p className="mt-2 max-w-xl text-sm text-white/90">
-                            Review key details for the residents assigned to you. Quickly navigate to a resident&apos;s full
-                            profile to view care plans, medication records, vitals, and more.
-                        </p>
-                    </div>
-                    <div className="rounded-xl bg-white/10 px-4 py-3 text-sm text-white shadow-inner backdrop-blur">
-                        <span className="text-2xl font-semibold">{residents.length}</span>{' '}
-                        <span className="text-white/90">total residents</span>
-                    </div>
-                </div>
-                <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    {stats.map(({ key, label, icon: Icon, value }) => (
-                        <div
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by status">
+                    {[
+                        { key: 'all', label: `All (${allResidents.length})` },
+                        { key: 'active', label: `Active (${stats.find(s => s.key === 'active')?.value ?? 0})` },
+                        { key: 'inactive', label: `Inactive (${stats.find(s => s.key === 'inactive')?.value ?? 0})` },
+                    ].map(({ key, label }) => (
+                        <button
                             key={key}
-                            className="rounded-2xl border border-white/10 bg-white/15 p-4 shadow-sm backdrop-blur transition hover:bg-white/20"
+                            type="button"
+                            onClick={() => setStatusFilter(key)}
+                            aria-pressed={statusFilter === key}
+                            className={`rounded-full border px-3.5 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] ${
+                                statusFilter === key
+                                    ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)]'
+                                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                            }`}
                         >
-                            <div className="flex items-center justify-between">
-                                <dt className="text-sm font-medium text-white/90">{label}</dt>
-                                <span className="rounded-full bg-white/20 p-2">
-                                    <Icon className="h-4 w-4 text-white" />
-                                </span>
-                            </div>
-                            <dd className="mt-3 text-2xl font-semibold text-white">{value}</dd>
-                        </div>
+                            {label}
+                        </button>
                     ))}
-                    {branchName ? (
-                        <div className="rounded-2xl border border-white/10 bg-white/15 p-4 shadow-sm backdrop-blur transition hover:bg-white/20">
-                            <div className="flex items-center justify-between">
-                                <dt className="text-sm font-medium text-white/90">Branch</dt>
-                                <span className="rounded-full bg-white/20 p-2">
-                                    <MapPin className="h-4 w-4 text-white" />
-                                </span>
-                            </div>
-                            <dd className="mt-3 text-xl font-semibold text-white">{branchName}</dd>
-                        </div>
-                    ) : null}
                 </div>
-            </header>
-
-            <section className="rounded-2xl bg-white p-5 shadow-sm">
-                <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <h2 className="text-lg font-semibold text-gray-900">Resident Directory</h2>
-                            <p className="text-sm text-gray-500">
-                                Search by name, room, or contact information.
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            {/* View mode toggle */}
-                            <div className="flex items-center rounded-lg border border-gray-200 p-0.5 bg-gray-50">
-                                <Tooltip content="Grid view" position="top">
-                                    <button
-                                        type="button"
-                                        onClick={() => setViewMode('grid')}
-                                        aria-pressed={viewMode === 'grid'}
-                                        aria-label="Grid view"
-                                        className={`rounded p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] ${viewMode === 'grid' ? 'bg-white shadow-sm text-[var(--theme-primary)]' : 'text-gray-400 hover:text-gray-600'}`}
-                                    >
-                                        <LayoutGrid className="h-4 w-4" aria-hidden="true" />
-                                    </button>
-                                </Tooltip>
-                                <Tooltip content="List view" position="top">
-                                    <button
-                                        type="button"
-                                        onClick={() => setViewMode('list')}
-                                        aria-pressed={viewMode === 'list'}
-                                        aria-label="List view"
-                                        className={`rounded p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] ${viewMode === 'list' ? 'bg-white shadow-sm text-[var(--theme-primary)]' : 'text-gray-400 hover:text-gray-600'}`}
-                                    >
-                                        <List className="h-4 w-4" aria-hidden="true" />
-                                    </button>
-                                </Tooltip>
-                            </div>
-                            {/* Search */}
-                            <div className="relative w-full sm:w-64">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
-                                <input
-                                    type="search"
-                                    value={search}
-                                    onChange={(event) => setSearch(event.target.value)}
-                                    placeholder="Search residents…"
-                                    className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm shadow-sm focus:border-[var(--theme-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary-bg)]"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Status filter chips */}
-                    <div className="flex items-center gap-2" role="group" aria-label="Filter by status">
-                        {[
-                            { key: 'all', label: `All (${allResidents.length})` },
-                            { key: 'active', label: `Active (${stats.find(s => s.key === 'active')?.value ?? 0})` },
-                            { key: 'inactive', label: `Inactive (${stats.find(s => s.key === 'inactive')?.value ?? 0})` },
-                        ].map(({ key, label }) => (
+                <div className="flex items-center gap-2 sm:shrink-0">
+                    <div className="flex items-center rounded-lg border border-gray-200 p-0.5 bg-white">
+                        <Tooltip content="Grid view" position="top">
                             <button
-                                key={key}
                                 type="button"
-                                onClick={() => setStatusFilter(key)}
-                                aria-pressed={statusFilter === key}
-                                className={`rounded-full border px-3.5 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] ${
-                                    statusFilter === key
-                                        ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)]'
-                                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                                }`}
+                                onClick={() => setViewMode('grid')}
+                                aria-pressed={viewMode === 'grid'}
+                                aria-label="Grid view"
+                                className={`rounded p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] ${viewMode === 'grid' ? 'bg-gray-50 shadow-sm text-[var(--theme-primary)]' : 'text-gray-400 hover:text-gray-600'}`}
                             >
-                                {label}
+                                <LayoutGrid className="h-4 w-4" aria-hidden="true" />
                             </button>
-                        ))}
+                        </Tooltip>
+                        <Tooltip content="List view" position="top">
+                            <button
+                                type="button"
+                                onClick={() => setViewMode('list')}
+                                aria-pressed={viewMode === 'list'}
+                                aria-label="List view"
+                                className={`rounded p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] ${viewMode === 'list' ? 'bg-gray-50 shadow-sm text-[var(--theme-primary)]' : 'text-gray-400 hover:text-gray-600'}`}
+                            >
+                                <List className="h-4 w-4" aria-hidden="true" />
+                            </button>
+                        </Tooltip>
+                    </div>
+                    <div className="relative w-full min-w-[12rem] sm:w-64">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+                        <input
+                            type="search"
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                            placeholder="Search residents…"
+                            aria-label="Search residents by name, room, or contact"
+                            className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm shadow-sm focus:border-[var(--theme-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary-bg)]"
+                        />
                     </div>
                 </div>
-            </section>
+            </div>
 
             {error ? (
                 <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">

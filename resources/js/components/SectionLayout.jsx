@@ -2,7 +2,7 @@
  * SectionLayout — persistent section navigation wrapper.
  *
  * Wraps a group of routes so that every page inside the section
- * shows the same header + Synkwise-style icon tab bar.
+ * shows the accent bar + Synkwise-style icon tab bar (title prop is for a11y labels only).
  * The active tab is determined by matching the current pathname.
  *
  * Usage:
@@ -24,7 +24,7 @@ function pathnameMatchesTab(pathname, tab) {
     );
 }
 
-export default function SectionLayout({ title, subtitle, tabs = [] }) {
+export default function SectionLayout({ title, tabs = [] }) {
     const { pathname } = useLocation();
 
     // Find the best-matching active tab (longest matching primary path wins)
@@ -41,14 +41,6 @@ export default function SectionLayout({ title, subtitle, tabs = [] }) {
 
                 {/* Thin primary-colour accent bar */}
                 <div className="h-1.5 bg-gradient-to-r from-[var(--theme-primary)] to-[var(--theme-primary-dark)]" aria-hidden="true" />
-
-                {/* Title row */}
-                <div className="px-5 py-3 flex items-center gap-3">
-                    <div>
-                        <h1 className="text-lg font-bold text-gray-900">{title}</h1>
-                        {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
-                    </div>
-                </div>
 
                 {/* ── Tab bar (Synkwise-style: icon above label) ────────── */}
                 <div className="border-t-2 border-gray-100 bg-white">

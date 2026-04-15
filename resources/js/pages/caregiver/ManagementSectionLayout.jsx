@@ -37,10 +37,6 @@ const TABS = [
 
 export default function ManagementSectionLayout() {
     return (
-        <SectionLayout
-            title="Management"
-            subtitle="Pharmacy, billing, administration, and staff operations"
-            tabs={TABS}
-        />
+        <SectionLayout title="Management" tabs={TABS} />
     );
 }

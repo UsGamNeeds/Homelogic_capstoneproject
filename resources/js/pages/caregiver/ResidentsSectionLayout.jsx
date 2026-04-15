@@ -32,10 +32,6 @@ const TABS = [
 
 export default function ResidentsSectionLayout() {
     return (
-        <SectionLayout
-            title="Residents"
-            subtitle="Resident care, scheduling, and documentation"
-            tabs={TABS}
-        />
+        <SectionLayout title="Residents" tabs={TABS} />
     );
 }
