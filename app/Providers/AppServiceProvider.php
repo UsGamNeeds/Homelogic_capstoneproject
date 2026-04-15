@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\DB;
 use App\Models\Appointment;
@@ -66,6 +67,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (! config('mail.notifications_enabled')) {
+            Config::set('mail.default', 'array');
+        }
+
         // Optimize SQLite for better performance in development
         if (config('database.default') === 'sqlite') {
             DB::statement('PRAGMA journal_mode=WAL;');

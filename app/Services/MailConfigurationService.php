@@ -21,6 +21,10 @@ class MailConfigurationService
      */
     public function configureForFacility(Facility $facility): void
     {
+        if (! config('mail.notifications_enabled')) {
+            return;
+        }
+
         try {
             $settings = \App\Models\FacilitySetting::where('facility_id', $facility->id)
                 ->where('category', 'email')
