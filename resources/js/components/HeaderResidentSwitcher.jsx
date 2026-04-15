@@ -1,0 +1,99 @@
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { Users } from 'lucide-react';
+import api from '../services/api';
+import ResidentAvatarInline from './ui/ResidentAvatarInline';
+import Tooltip from './ui/Tooltip';
+import {
+    shouldShowHeaderResidentSwitcher,
+    parseResidentIdFromPath,
+    buildSwitchHref,
+} from '../utils/headerResidentSwitcher';
+
+function residentFullName(r) {
+    return [r.first_name, r.middle_names, r.last_name].filter(Boolean).join(' ') || 'Resident';
+}
+
+/**
+ * Synkwise-style horizontal resident strip in the app header (Residents + Clinical hubs).
+ */
+export default function HeaderResidentSwitcher({ currentUser, userLoading }) {
+    const location = useLocation();
+    const { pathname, search } = location;
+
+    const visible = shouldShowHeaderResidentSwitcher(pathname);
+    const activeId = parseResidentIdFromPath(pathname);
+
+    const { data, isLoading } = useQuery({
+        queryKey: ['my-residents', '', currentUser?.assigned_branch_id],
+        queryFn: async () => {
+            const params = {
+                per_page: 50,
+                show_all: true,
+            };
+            if (currentUser?.assigned_branch_id) {
+                params.branch_id = currentUser.assigned_branch_id;
+            }
+            const response = await api.get('/residents', { params });
+            return response.data;
+        },
+        enabled: visible && !userLoading && !!currentUser,
+        staleTime: 60 * 1000,
+    });
+
+    const residents = React.useMemo(() => data?.data ?? [], [data?.data]);
+
+    if (!visible || userLoading || !currentUser) {
+        return null;
+    }
+
+    if (isLoading || residents.length === 0) {
+        return null;
+    }
+
+    return (
+        <div
+            className="flex min-w-0 max-w-[min(100%,28rem)] flex-1 items-center justify-center"
+            aria-label="Switch resident"
+        >
+            <div
+                className="flex max-w-full items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                role="list"
+            >
+                {residents.map((resident) => {
+                    const id = String(resident.id);
+                    const isActive = activeId === id;
+                    const to = buildSwitchHref(pathname, search, id);
+                    const name = residentFullName(resident);
+                    return (
+                        <Tooltip key={id} content={name} position="bottom">
+                            <Link
+                                role="listitem"
+                                to={to}
+                                aria-label={`Open profile for ${name}`}
+                                aria-current={isActive ? 'page' : undefined}
+                                className={`shrink-0 rounded-full p-0.5 motion-safe:transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] focus-visible:ring-offset-2 ${
+                                    isActive
+                                        ? 'ring-2 ring-[var(--theme-primary)] ring-offset-2 ring-offset-white'
+                                        : 'opacity-90 hover:opacity-100'
+                                }`}
+                            >
+                                <ResidentAvatarInline resident={resident} className="h-9 w-9 text-[11px]" />
+                            </Link>
+                        </Tooltip>
+                    );
+                })}
+                <Tooltip content="All residents" position="bottom">
+                    <Link
+                        to="/my-residents"
+                        aria-label="View all residents"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 bg-gray-50 text-gray-500 motion-safe:transition-colors hover:border-[var(--theme-primary)] hover:bg-[var(--theme-primary-bg)] hover:text-[var(--theme-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] focus-visible:ring-offset-2"
+                    >
+                        <Users className="h-4 w-4" aria-hidden="true" />
+                    </Link>
+                </Tooltip>
+            </div>
+        </div>
+    );
+}

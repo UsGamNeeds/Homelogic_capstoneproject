@@ -40,6 +40,13 @@ import RealtimeIndicator from './RealtimeIndicator';
 import DropdownMenu, { DropdownMenuItem, DropdownMenuSeparator } from './ui/radix/DropdownMenu';
 import Tooltip from './ui/Tooltip';
 import PageBackButton from './ui/PageBackButton';
+import HeaderResidentSwitcher from './HeaderResidentSwitcher';
+import {
+    RESIDENT_HUB_PREFIXES,
+    RESIDENT_LEGACY_DETAIL,
+    CLINICAL_HUB_PREFIXES,
+    shouldShowHeaderResidentSwitcher,
+} from '../utils/headerResidentSwitcher';
 import { filterNavigationByModuleAccess } from '../utils/moduleAccess';
 import { filterNavigationByPermissionAccess } from '../utils/permissionAccess';
 import {
@@ -84,11 +91,6 @@ const superAdminNavigation = [
 
 const HUB_SECTION = 'Hubs';
 
-/** Prefixes for sidebar active state when nested routes are open inside a hub. */
-const RESIDENT_HUB_PREFIXES = ['/my-residents', '/assessments', '/appointments', '/charts', '/t-logs'];
-/** Legacy route: /residents/:id/detail (does not match /residents/sign-out). */
-const RESIDENT_LEGACY_DETAIL = /^\/residents\/[^/]+\/detail(?:\/|$)/;
-const CLINICAL_HUB_PREFIXES = ['/vitals', '/view-vitals', '/medication-history', '/sleep', '/sleep-patterns', '/medications', '/medication-deliveries'];
 const OPERATIONS_HUB_PREFIXES = ['/housekeeping', '/grocery-status', '/fire-drills', '/incidents', '/leave-requests'];
 const MANAGEMENT_HUB_PREFIXES = ['/pharmacy', '/billing', '/check-in-dashboard', '/staff', '/visitors', '/residents/sign-out', '/residents/sign-outs', '/administration'];
 
@@ -564,8 +566,8 @@ export default function Layout() {
             {/* Main Content */}
             <div className="flex-1 flex flex-col overflow-hidden md:ml-0">
                 {/* Top Bar */}
-                <header className="bg-white border-b border-gray-200 px-4 md:px-6 py-4 flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <header className="bg-white border-b border-gray-200 px-4 md:px-6 py-4 flex items-center justify-between gap-2 shadow-sm">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
                         <button
                             type="button"
                             onClick={() => setMobileMenuOpen(true)}
@@ -599,7 +601,13 @@ export default function Layout() {
                             </div>
                         </Link>
                     </div>
-                    <div className="flex items-center space-x-2 md:space-x-4">
+                    {!isSuperAdmin && shouldShowHeaderResidentSwitcher(location.pathname) ? (
+                        <HeaderResidentSwitcher
+                            currentUser={currentUserData}
+                            userLoading={isLoadingUserData}
+                        />
+                    ) : null}
+                    <div className="flex items-center space-x-2 md:space-x-4 shrink-0">
                         <LiveClock serverTime={currentUser?.app_current_time} timezoneOffset={currentUser?.app_timezone_offset} />
                         {/* Hide search, notifications, and calendar for super admin */}
                         {currentUser?.role !== 'super_admin' && (
