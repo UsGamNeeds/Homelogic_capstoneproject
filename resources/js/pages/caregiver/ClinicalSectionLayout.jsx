@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { ClipboardList, Heart, Moon, LayoutDashboard, Pill, Truck } from 'lucide-react';
 import SectionLayout from '../../components/SectionLayout';
 
@@ -12,7 +13,10 @@ const TABS = [
 ];
 
 export default function ClinicalSectionLayout() {
+    const { pathname } = useLocation();
+    const showTabBar = pathname !== '/clinical';
+
     return (
-        <SectionLayout title="Clinical" tabs={TABS} />
+        <SectionLayout title="Clinical" tabs={TABS} showTabBar={showTabBar} />
     );
 }
