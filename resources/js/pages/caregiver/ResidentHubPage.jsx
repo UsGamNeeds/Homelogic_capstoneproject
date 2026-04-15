@@ -41,7 +41,6 @@ import {
     getPacificNow,
 } from '../../utils/pacificTime';
 import ResidentDocuments from '../../components/ResidentDocuments';
-import ResidentMedicationsPage from './ResidentMedicationsPage';
 import logger from '../../utils/logger';
 import { isCaregiverRole } from '../../utils/userRoles';
 
@@ -49,7 +48,7 @@ import { isCaregiverRole } from '../../utils/userRoles';
 const RESIDENT_TAB_BASE = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard, kind: 'tab' },
     { id: '_directory', label: 'Directory', icon: Users, kind: 'link', href: '/my-residents' },
-    { id: 'medications', label: 'Medications', icon: Pill, kind: 'tab' },
+    { id: 'medications', label: 'Medications', icon: Pill, kind: 'link', getPath: (rid) => `/my-residents/${rid}/medications/list` },
     { id: 'vitals', label: 'Vitals', icon: Heart, kind: 'tab' },
     { id: 'assessments', label: 'Assessments', icon: ClipboardList, kind: 'tab', requiresAssessmentsModule: true },
     { id: 'appointments', label: 'Appointments', icon: Calendar, kind: 'tab' },
@@ -123,10 +122,14 @@ export default function ResidentHubPage() {
     );
 
     React.useEffect(() => {
+        if (activeTab === 'medications' && residentId) {
+            navigate(`/my-residents/${residentId}/medications/list`, { replace: true });
+            return;
+        }
         if (!visibleTabIds.includes(activeTab)) {
             setSearchParams({ tab: 'overview' }, { replace: true });
         }
-    }, [activeTab, visibleTabIds, setSearchParams]);
+    }, [activeTab, visibleTabIds, residentId, navigate, setSearchParams]);
 
     const { data: resident, isLoading, error } = useQuery({
         queryKey: ['resident-hub', residentId],
@@ -261,7 +264,7 @@ export default function ResidentHubPage() {
                     <div className="flex items-center gap-2 shrink-0 flex-wrap">
                         <button
                             type="button"
-                            onClick={() => setTab('medications')}
+                            onClick={() => navigate(`/my-residents/${residentId}/medications/list`)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] hover:opacity-90 transition-opacity"
                         >
                             <Pill className="w-3.5 h-3.5" aria-hidden="true" />
@@ -289,10 +292,11 @@ export default function ResidentHubPage() {
                         {visibleTabs.map((tab) => {
                             const Icon = tab.icon;
                             if (tab.kind === 'link') {
+                                const linkTo = tab.getPath ? tab.getPath(residentId) : tab.href;
                                 return (
                                     <Link
                                         key={tab.id}
-                                        to={tab.href}
+                                        to={linkTo}
                                         role="tab"
                                         aria-selected={false}
                                         className="relative flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--theme-primary)] min-w-[68px] text-gray-400 hover:text-gray-700 hover:bg-gray-50"
@@ -338,8 +342,15 @@ export default function ResidentHubPage() {
 
             {/* ── Tab content ──────────────────────────────────────────────── */}
             <div className="pt-4">
-                {activeTab === 'overview'     && <OverviewTab resident={resident} residentId={residentId} navigate={navigate} setTab={setTab} />}
-                {activeTab === 'medications'  && <ResidentMedicationsPage embedded={true} />}
+                {activeTab === 'overview'     && (
+                    <OverviewTab
+                        resident={resident}
+                        residentId={residentId}
+                        navigate={navigate}
+                        setTab={setTab}
+                        medicationHubListPath={`/my-residents/${residentId}/medications/list`}
+                    />
+                )}
                 {activeTab === 'notes'        && <NotesTab residentId={residentId} />}
                 {activeTab === 'care'         && <CarePlanTab resident={resident} residentId={residentId} currentUser={currentUser} />}
                 {activeTab === 'documents'    && <ResidentDocuments residentId={residentId} />}
@@ -379,7 +390,7 @@ function StatCard({ icon: Icon, label, value, accent, onClick }) {
     );
 }
 
-function OverviewTab({ resident, residentId, navigate, setTab }) {
+function OverviewTab({ resident, residentId, navigate, setTab, medicationHubListPath }) {
     const { data: medsData } = useQuery({
         queryKey: ['overview-meds', residentId],
         queryFn: async () => {
@@ -417,7 +428,7 @@ function OverviewTab({ resident, residentId, navigate, setTab }) {
         <div className="space-y-6">
             {/* Quick stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard icon={Pill}     label="Active Meds"      value={medsCount}               onClick={() => setTab('medications')} />
+                <StatCard icon={Pill}     label="Active Meds"      value={medsCount}               onClick={() => navigate(medicationHubListPath)} />
                 <StatCard icon={Calendar} label="Upcoming Appts"   value={upcomingAppts.length}    onClick={() => setTab('appointments')} />
                 <StatCard icon={FileText} label="Recent Notes"     value={Array.isArray(recentNotes) ? recentNotes.length : 0} onClick={() => setTab('notes')} />
                 <StatCard icon={Heart}    label="Vitals on File"   value={Array.isArray(vitalSigns) ? vitalSigns.length : 0} onClick={() => setTab('vitals')} />

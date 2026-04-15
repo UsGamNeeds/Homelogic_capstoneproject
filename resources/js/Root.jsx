@@ -1,5 +1,5 @@
 import React, { useEffect, Suspense, lazy } from 'react';
-import { Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams, Outlet } from 'react-router-dom';
 import { toast } from 'sonner';
 import logger from './utils/logger';
 import { hardReloadWithCacheBust } from './utils/hardReload';
@@ -145,6 +145,13 @@ const Reminders = lazyWithRetry(() => import('./pages/Reminders'));
 const MedicationHistory = lazyWithRetry(() => import('./pages/MedicationHistory'));
 const CaregiverMedicationsResidents = lazyWithRetry(() => import('./pages/caregiver/CaregiverMedicationsResidents'));
 const ResidentMedicationsPage = lazyWithRetry(() => import('./pages/caregiver/ResidentMedicationsPage'));
+const ResidentMedicationHubLayout = lazyWithRetry(() => import('./pages/caregiver/medication-hub/ResidentMedicationHubLayout'));
+const MedicationHubOverviewTab = lazyWithRetry(() => import('./pages/caregiver/medication-hub/MedicationHubOverviewTab'));
+const MedicationHubPlaceholderTab = lazyWithRetry(() => import('./pages/caregiver/medication-hub/MedicationHubPlaceholderTab'));
+const MedicationHubDeliveriesTab = lazyWithRetry(() => import('./pages/caregiver/medication-hub/MedicationHubDeliveriesTab'));
+const MedicationHubOrdersTab = lazyWithRetry(() => import('./pages/caregiver/medication-hub/MedicationHubOrdersTab'));
+const MedicationHubProfileSliceTab = lazyWithRetry(() => import('./pages/caregiver/medication-hub/MedicationHubProfileSliceTab'));
+const MedicationHubMedLogTab = lazyWithRetry(() => import('./pages/caregiver/medication-hub/MedicationHubMedLogTab'));
 const Reports = lazyWithRetry(() => import('./pages/Reports'));
 const Assessments = lazyWithRetry(() => import('./pages/Assessments'));
 const AssessmentDetail = lazyWithRetry(() => import('./pages/AssessmentDetail'));
@@ -328,8 +335,63 @@ function App() {
                     <Route path="charts" element={<Suspense fallback={<PageLoader />}><CaregiverChartsPage /></Suspense>} />
                     <Route path="t-logs" element={<Suspense fallback={<PageLoader />}><TLogs /></Suspense>} />
                 </Route>
-                {/* Resident record hub: outside ResidentsSectionLayout to avoid duplicate hub + resident tab bars */}
-                <Route path="my-residents/:residentId" element={<Suspense fallback={<PageLoader />}><ResidentHubPage /></Suspense>} />
+                {/* Resident record hub + per-resident Medication Hub (nested) */}
+                <Route path="my-residents/:residentId" element={<Outlet />}>
+                    <Route index element={<Suspense fallback={<PageLoader />}><ResidentHubPage /></Suspense>} />
+                    <Route path="medications" element={<Suspense fallback={<PageLoader />}><ResidentMedicationHubLayout /></Suspense>}>
+                        <Route index element={<Navigate to="overview" replace />} />
+                        <Route path="overview" element={<Suspense fallback={<PageLoader />}><MedicationHubOverviewTab /></Suspense>} />
+                        <Route path="list" element={<Suspense fallback={<PageLoader />}><ResidentMedicationsPage embedded /></Suspense>} />
+                        <Route
+                            path="mar"
+                            element={
+                                <Suspense fallback={<PageLoader />}>
+                                    <MedicationHubPlaceholderTab
+                                        title="Med pass / MAR"
+                                        description="Shift-based administration views will be consolidated here. Until then, use Medications to record doses in the administration window, or the facility-wide Medications board."
+                                    />
+                                </Suspense>
+                            }
+                        />
+                        <Route path="log" element={<Suspense fallback={<PageLoader />}><MedicationHubMedLogTab /></Suspense>} />
+                        <Route
+                            path="prn"
+                            element={
+                                <Suspense fallback={<PageLoader />}>
+                                    <MedicationHubPlaceholderTab
+                                        title="PRN medications"
+                                        description="A dedicated PRN view is planned. PRN doses can be managed from the Medications tab today."
+                                    />
+                                </Suspense>
+                            }
+                        />
+                        <Route
+                            path="pharmacy"
+                            element={
+                                <Suspense fallback={<PageLoader />}>
+                                    <MedicationHubPlaceholderTab
+                                        title="Pharmacy"
+                                        description="Order and pharmacy workflow integration will appear here in a later phase."
+                                    />
+                                </Suspense>
+                            }
+                        />
+                        <Route path="deliveries" element={<Suspense fallback={<PageLoader />}><MedicationHubDeliveriesTab /></Suspense>} />
+                        <Route
+                            path="narcotics"
+                            element={
+                                <Suspense fallback={<PageLoader />}>
+                                    <MedicationHubPlaceholderTab
+                                        title="Narcotics count"
+                                        description="Controlled substance counting will be available to administrators in a future release."
+                                    />
+                                </Suspense>
+                            }
+                        />
+                        <Route path="orders" element={<Suspense fallback={<PageLoader />}><MedicationHubOrdersTab /></Suspense>} />
+                        <Route path="context" element={<Suspense fallback={<PageLoader />}><MedicationHubProfileSliceTab /></Suspense>} />
+                    </Route>
+                </Route>
                 {/* ── Clinical section (persistent tab bar) ─────────────────── */}
                 <Route element={<Suspense fallback={<PageLoader />}><ClinicalSectionLayout /></Suspense>}>
                     <Route path="clinical"            element={<Suspense fallback={<PageLoader />}><ClinicalHubPage /></Suspense>} />
@@ -451,10 +513,10 @@ function App() {
     );
 }
 
-/** Redirect /medications/residents/:residentId → /my-residents/:residentId?tab=medications */
+/** Redirect /medications/residents/:residentId → per-resident Medication Hub (medications list). */
 function MedResidentRedirect() {
     const { residentId } = useParams();
-    return <Navigate to={`/my-residents/${residentId}?tab=medications`} replace />;
+    return <Navigate to={`/my-residents/${residentId}/medications/list`} replace />;
 }
 
 // App component export

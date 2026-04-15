@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Users, Search, MapPin, Calendar, Phone, Activity, Edit, Eye, LayoutGrid, List, DoorOpen } from 'lucide-react';
+import { Users, Search, MapPin, Calendar, Phone, Activity, Edit, Eye, LayoutGrid, List, DoorOpen, Pill } from 'lucide-react';
 import api from '../../services/api';
 import ResidentForm from '../../components/ResidentForm';
 import Tooltip from '../../components/ui/Tooltip';
@@ -132,6 +132,7 @@ export default function MyResidentsPage() {
         const room = resident.room_number || resident.room;
 
         const profilePath = `/my-residents/${resident.id}`;
+        const medicationHubPath = `/my-residents/${resident.id}/medications/overview`;
 
         return (
             <EntityCardShell
@@ -184,6 +185,17 @@ export default function MyResidentsPage() {
                                     />
                                 </Tooltip>
                             ) : null}
+                            <Tooltip content="Medication hub" position="top">
+                                <CardIconButton
+                                    variant="resolve"
+                                    icon={Pill}
+                                    aria-label="Open medication hub"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(medicationHubPath);
+                                    }}
+                                />
+                            </Tooltip>
                             <Tooltip content="View profile" position="top">
                                 <CardIconButton
                                     variant="view"
@@ -243,6 +255,7 @@ export default function MyResidentsPage() {
         const room = resident.room_number || resident.room;
 
         const profilePath = `/my-residents/${resident.id}`;
+        const medicationHubPath = `/my-residents/${resident.id}/medications/overview`;
 
         return (
             <tr
@@ -279,6 +292,9 @@ export default function MyResidentsPage() {
                                 <CardIconButton variant="edit" icon={Edit} aria-label="Edit resident" onClick={(e) => { e.stopPropagation(); setEditing(resident); setShowForm(true); }} />
                             </Tooltip>
                         )}
+                        <Tooltip content="Medication hub" position="top">
+                            <CardIconButton variant="resolve" icon={Pill} aria-label="Open medication hub" onClick={(e) => { e.stopPropagation(); navigate(medicationHubPath); }} />
+                        </Tooltip>
                         <Tooltip content="View profile" position="top">
                             <CardIconButton variant="view" icon={Eye} aria-label="View profile" onClick={(e) => { e.stopPropagation(); navigate(profilePath); }} />
                         </Tooltip>

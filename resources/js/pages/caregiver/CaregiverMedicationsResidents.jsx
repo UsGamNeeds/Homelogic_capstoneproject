@@ -57,7 +57,7 @@ export default function CaregiverMedicationsResidents() {
         return (
             <Link
                 key={resident.id}
-                to={`/medications/residents/${resident.id}`}
+                to={`/my-residents/${resident.id}/medications/list`}
                 aria-label={fullName ? `View medications for ${fullName}` : 'View medications for this resident'}
                 className="block rounded-2xl text-left text-inherit no-underline outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] focus-visible:ring-offset-2"
             >

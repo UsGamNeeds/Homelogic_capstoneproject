@@ -434,7 +434,7 @@ export default function MedicationDashboard() {
                                 {pagedUpcoming.map((item, idx) => (
                                     <button
                                         key={idx}
-                                        onClick={() => navigate(`/medications/residents/${item.resident_id}`)}
+                                        onClick={() => navigate(`/my-residents/${item.resident_id}/medications/list`)}
                                         className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors w-full text-left"
                                     >
                                         <AvatarFallback name={item.resident_name} image={null} />
@@ -491,7 +491,7 @@ export default function MedicationDashboard() {
                                 {pagedMissed.map((item, idx) => (
                                     <button
                                         key={idx}
-                                        onClick={() => navigate(`/medications/residents/${item.resident_id}`)}
+                                        onClick={() => navigate(`/my-residents/${item.resident_id}/medications/list`)}
                                         className="flex items-center gap-3 p-3 rounded-lg bg-red-50/50 hover:bg-red-50 transition-colors w-full text-left"
                                     >
                                         <AvatarFallback name={item.resident_name} image={null} />
@@ -640,7 +640,7 @@ export default function MedicationDashboard() {
                                             <Tooltip content="View details" position="left">
                                                 <button
                                                     type="button"
-                                                    onClick={() => navigate(`/medications/residents/${r.resident_id}`)}
+                                                    onClick={() => navigate(`/my-residents/${r.resident_id}/medications/list`)}
                                                     className="text-[var(--theme-primary)] hover:text-[var(--theme-primary-hover)] transition-colors"
                                                     aria-label="View medication details for resident"
                                                 >

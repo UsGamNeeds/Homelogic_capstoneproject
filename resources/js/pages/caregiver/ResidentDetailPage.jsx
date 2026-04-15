@@ -615,7 +615,7 @@ export default function ResidentDetailPage() {
                                 </p>
                             </div>
                             <Link
-                                to={`/medications/residents/${resident.id}`}
+                                to={`/my-residents/${resident.id}/medications/list`}
                                 className="rounded-lg border-2 border-[var(--theme-primary)] bg-[var(--theme-primary)] px-4 py-2 text-sm font-semibold text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-hover)] transition-colors shadow-sm"
                             >
                                 Manage Medications

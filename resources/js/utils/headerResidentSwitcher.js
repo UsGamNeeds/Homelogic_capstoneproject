@@ -60,6 +60,15 @@ export function shouldShowHeaderResidentSwitcher(pathname) {
 }
 
 const RE_MY_RESIDENTS = /^\/my-residents\/([^/]+)/;
+
+/**
+ * Path after /my-residents/:residentId (e.g. "/medications/list", or "" on the resident hub index).
+ */
+export function getMyResidentsPathSuffix(pathname) {
+    if (!pathname || !pathname.startsWith('/my-residents/')) return '';
+    const rest = pathname.replace(/^\/my-residents\/[^/]+/, '');
+    return rest || '';
+}
 const RE_RESIDENTS_DETAIL = /^\/residents\/([^/]+)\/detail/;
 const RE_CHARTS_RESIDENT = /^\/charts\/resident\/([^/]+)/;
 const RE_APPT_CREATE = /^\/appointments\/create\/([^/]+)/;
@@ -111,7 +120,8 @@ export function buildResidentsSectionResidentNavigateTo(pathname, search, newRes
         sp.delete(RESIDENT_CONTEXT_QUERY_KEY);
         sp.delete('resident_id');
         const hubSearch = sp.toString() ? `?${sp.toString()}` : '';
-        return { pathname: `/my-residents/${id}`, search: hubSearch };
+        const suffix = getMyResidentsPathSuffix(pathname);
+        return { pathname: `/my-residents/${id}${suffix}`, search: hubSearch };
     }
 
     sp.set(RESIDENT_CONTEXT_QUERY_KEY, id);
@@ -170,7 +180,8 @@ export function buildSwitchHref(pathname, search, newResidentId) {
     const id = String(newResidentId);
 
     if (pathname.match(RE_MY_RESIDENTS)) {
-        return `/my-residents/${id}${search || ''}`;
+        const suffix = getMyResidentsPathSuffix(pathname);
+        return `/my-residents/${id}${suffix}${search || ''}`;
     }
     if (pathname.match(RE_RESIDENTS_DETAIL)) {
         return `/residents/${id}/detail${search || ''}`;
@@ -183,6 +194,9 @@ export function buildSwitchHref(pathname, search, newResidentId) {
     }
 
     const tab = defaultTabForPathWhenSwitchingToHub(pathname);
+    if (tab === 'medications') {
+        return `/my-residents/${id}/medications/list`;
+    }
     if (tab) {
         return `/my-residents/${id}?tab=${encodeURIComponent(tab)}`;
     }

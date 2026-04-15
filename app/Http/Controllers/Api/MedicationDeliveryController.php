@@ -38,6 +38,11 @@ class MedicationDeliveryController extends BaseApiController
             $query->where('branch_id', $request->get('branch_id'));
         }
 
+        // Filter by resident (e.g. Medication Hub per-resident tab)
+        if ($request->filled('resident_id')) {
+            $query->where('resident_id', $request->get('resident_id'));
+        }
+
         // Filter by delivery type
         if ($request->has('delivery_type')) {
             $query->where('delivery_type', $request->get('delivery_type'));

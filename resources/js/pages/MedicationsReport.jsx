@@ -376,7 +376,7 @@ export default function MedicationsReport() {
 
                                                 if (r.id) {
                                                     return (
-                                                        <a href={`/medications/residents/${r.id}`} className="inline-flex items-center gap-2 group" title={name} aria-label={name}>
+                                                        <a href={`/my-residents/${r.id}/medications/list`} className="inline-flex items-center gap-2 group" title={name} aria-label={name}>
                                                             {avatar}
                                                             <span className="font-medium text-gray-900 group-hover:text-[var(--theme-primary)]">{name}</span>
                                                         </a>

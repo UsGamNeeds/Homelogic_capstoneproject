@@ -481,7 +481,6 @@ export default function Dashboard() {
             iconColor: 'text-[var(--theme-primary)]',
             link: '/administration/residents',
             description: 'Active residents',
-            trend: 'positive',
         },
         {
             title: 'Last 30 Days Appointments',
@@ -492,7 +491,6 @@ export default function Dashboard() {
             iconColor: 'text-[var(--theme-primary)]',
             link: '/appointments',
             description: 'Scheduled in last 30 days',
-            trend: 'positive',
         },
         {
             title: 'Last 30 Days Vitals',
@@ -503,7 +501,6 @@ export default function Dashboard() {
             iconColor: 'text-[var(--theme-secondary)]',
             link: '/vitals',
             description: 'Recorded in last 30 days',
-            trend: 'positive',
         },
         {
             title: 'Total Staff',
@@ -514,7 +511,6 @@ export default function Dashboard() {
             iconColor: 'text-[var(--theme-primary)]',
             link: '/administration/users',
             description: 'Active staff',
-            trend: 'positive',
         },
         {
             title: 'Active Medications',
@@ -525,7 +521,6 @@ export default function Dashboard() {
             iconColor: 'text-[var(--theme-secondary)]',
             link: '/medications',
             description: 'Current prescriptions',
-            trend: 'positive',
         },
         {
             title: 'Pending Assessments',
@@ -536,7 +531,7 @@ export default function Dashboard() {
             iconColor: 'text-[var(--theme-primary)]',
             link: '/assessments',
             description: 'Awaiting completion',
-            trend: (stats?.pending_assessments ?? 0) > 0 ? 'warning' : 'positive',
+            trend: (stats?.pending_assessments ?? 0) > 0 ? 'warning' : undefined,
         },
     ];
 
@@ -816,9 +811,9 @@ export default function Dashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-                <div className="space-y-6">
+        <div className="min-h-screen bg-gray-100">
+            <div className="max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-5 py-3 sm:py-4">
+                <div className="space-y-3">
                     {error && (
                         <div className="bg-white rounded-xl shadow-sm border-l-4 border-amber-500 p-4">
                             <div className="flex items-center space-x-3">
@@ -856,57 +851,92 @@ export default function Dashboard() {
 
                     {!isLoading && (
                         <>
-                            {/* Minimal Welcome Header */}
-                            <div className="bg-gradient-to-br from-[var(--theme-primary)] to-[var(--theme-primary-dark)] rounded-xl shadow-sm p-6 text-white">
-                                <h1 className="text-2xl font-bold mb-1">
-                                    {greeting}, {currentUser?.first_name || currentUser?.name || 'User'} 👋
-                                </h1>
-                                <p className="text-white/90 text-sm">
-                                    {isCaregiver ? 'Welcome to your Care Dashboard' : 'Managing care with compassion and excellence'}
-                                </p>
+                            {/* Compact admin hero — date + context without large vertical padding */}
+                            <div
+                                className="bg-gradient-to-br from-[var(--theme-primary)] to-[var(--theme-primary-dark)] rounded-lg shadow-sm px-4 py-3 text-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+                                role="banner"
+                            >
+                                <div>
+                                    <h1 className="text-xl font-bold leading-tight tracking-tight">
+                                        {greeting}, {currentUser?.first_name || currentUser?.name || 'User'} 👋
+                                    </h1>
+                                    <p className="text-white/80 text-xs mt-1">
+                                        {new Date().toLocaleDateString('en-US', {
+                                            weekday: 'long',
+                                            month: 'short',
+                                            day: 'numeric',
+                                            year: 'numeric',
+                                        })}
+                                        {' · '}
+                                        Facility overview — manage care with compassion and excellence
+                                    </p>
+                                </div>
                             </div>
 
-                            {/* Actionable Items Section - Most Important, Show First */}
-                            {actionableItems.length > 0 && (
-                                <ActionableItemsSection
-                                    items={actionableItems}
-                                    onItemClick={(item) => item.link && navigate(item.link)}
-                                />
-                            )}
-
-                            {/* Key Stat Cards - Primary Metrics */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {statCards.map((card, index) => (
-                                    <StatCard
-                                        key={index}
-                                        {...card}
-                                        onClick={() => card.link && navigate(card.link)}
-                                    />
-                                ))}
+                            {/* Attention queue + KPI grid: side-by-side on large screens */}
+                            <div
+                                className={
+                                    actionableItems.length > 0
+                                        ? 'grid grid-cols-1 gap-3 lg:grid-cols-12'
+                                        : 'grid grid-cols-1 gap-3'
+                                }
+                            >
+                                {actionableItems.length > 0 && (
+                                    <div className="lg:col-span-5 min-w-0 order-1">
+                                        <ActionableItemsSection
+                                            items={actionableItems}
+                                            onItemClick={(item) => item.link && navigate(item.link)}
+                                            dense
+                                        />
+                                    </div>
+                                )}
+                                <div
+                                    className={
+                                        actionableItems.length > 0
+                                            ? 'lg:col-span-7 min-w-0 order-2 lg:order-2'
+                                            : ''
+                                    }
+                                >
+                                    <div
+                                        className={
+                                            actionableItems.length > 0
+                                                ? 'grid grid-cols-2 gap-3 xl:grid-cols-3'
+                                                : 'grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6'
+                                        }
+                                    >
+                                        {statCards.map((card, index) => (
+                                            <StatCard
+                                                key={index}
+                                                {...card}
+                                                dense
+                                                onClick={() => card.link && navigate(card.link)}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Upcoming Events from All Modules */}
-                            <UpcomingEventsWidget limit={3} />
-
-                            {/* Upcoming Fire Drills Widget - Important Safety Item */}
-                            {upcomingFireDrills?.data && upcomingFireDrills.data.length > 0 && (
-                                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                                    <div className="px-6 py-4 border-b border-gray-200">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <Flame className="w-5 h-5 text-orange-600" />
-                                                <h2 className="text-lg font-bold text-[var(--theme-primary)]">Upcoming Fire Drills</h2>
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                                <UpcomingEventsWidget limit={4} dense />
+                                {upcomingFireDrills?.data && upcomingFireDrills.data.length > 0 && (
+                                <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                                    <div className="px-4 py-2.5 border-b border-gray-200">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <Flame className="w-4 h-4 text-orange-600 shrink-0" />
+                                                <h2 className="text-base font-bold text-[var(--theme-primary)] truncate">Upcoming Fire Drills</h2>
                                             </div>
                                             <button
+                                                type="button"
                                                 onClick={() => navigate('/fire-drills')}
-                                                className="text-xs text-[var(--theme-primary)] hover:text-[var(--theme-primary-hover)] hover:underline transition-colors"
+                                                className="text-[11px] font-medium text-[var(--theme-primary)] hover:text-[var(--theme-primary-hover)] hover:underline transition-colors shrink-0"
                                             >
                                                 View All
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="p-4">
-                                        <div className="space-y-3">
+                                    <div className="p-3">
+                                        <div className="space-y-2">
                                             {upcomingFireDrills.data.slice(0, 5).map((drill) => {
                                                 if (!drill.scheduled_date) return null;
                                                 let drillDate;
@@ -956,7 +986,7 @@ export default function Dashboard() {
                                                 return (
                                                     <div
                                                         key={drill.id}
-                                                        className={`flex items-center justify-between p-3 ${urgencyBg} rounded-xl hover:opacity-90 transition-colors cursor-pointer`}
+                                                        className={`flex items-center justify-between p-2.5 ${urgencyBg} rounded-lg hover:opacity-90 transition-colors cursor-pointer`}
                                                         onClick={() => navigate('/fire-drills')}
                                                     >
                                                         <div className="flex items-center space-x-3 flex-1">
@@ -982,11 +1012,12 @@ export default function Dashboard() {
                                         </div>
                                     </div>
                                 </div>
-                            )}
+                                )}
+                            </div>
 
                             {/* Trends Chart for Admins - Analytics Section */}
                             {!isCaregiver && trendsData && (
-                                <TrendsChartWidget data={trendsData} />
+                                <TrendsChartWidget data={trendsData} dense />
                             )}
 
                             {/* Resident Vitals Trend Chart - Only for Caregivers */}
@@ -1003,72 +1034,73 @@ export default function Dashboard() {
                                     stats={stats}
                                     moduleStats={moduleStats}
                                     navigate={navigate}
+                                    dense
                                 />
                             )}
 
                             {/* Key Insights Section - Moved from Sidebar */}
                             {!isCaregiver && stats && (
-                                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                                    <div className="px-6 py-4 border-b border-gray-200">
+                                <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                                    <div className="px-4 py-2.5 border-b border-gray-200">
                                         <div className="flex items-center gap-2">
-                                            <TrendingUp className="w-5 h-5 text-[var(--theme-primary)]" />
-                                            <h2 className="text-lg font-bold text-[var(--theme-primary)]">Key Insights</h2>
+                                            <TrendingUp className="w-4 h-4 text-[var(--theme-primary)]" />
+                                            <h2 className="text-base font-bold text-[var(--theme-primary)]">Key Insights</h2>
                                         </div>
-                                        <p className="text-xs text-gray-500 mt-1">Performance metrics and analytics</p>
+                                        <p className="text-[11px] text-gray-500 mt-0.5">Performance metrics and analytics</p>
                                     </div>
-                                    <div className="p-6">
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                                            <div className="flex items-center gap-3 p-4 rounded-lg border border-gray-200">
-                                                <div className="bg-blue-50 text-blue-600 p-2 rounded-lg">
-                                                    <Users className="w-5 h-5" />
+                                    <div className="p-3 sm:p-4">
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+                                            <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg border border-gray-200">
+                                                <div className="bg-blue-50 text-blue-600 p-1.5 rounded-md shrink-0">
+                                                    <Users className="w-4 h-4 sm:w-5 sm:h-5" />
                                                 </div>
-                                                <div>
-                                                    <p className="text-xs text-gray-600">Occupancy Rate</p>
-                                                    <p className="text-lg font-semibold text-gray-900">
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] sm:text-xs text-gray-600 leading-tight">Occupancy Rate</p>
+                                                    <p className="text-base sm:text-lg font-semibold text-gray-900 tabular-nums">
                                                         {(stats.occupancy_rate ?? 0).toFixed(1)}%
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-3 p-4 rounded-lg border border-gray-200">
-                                                <div className="bg-green-50 text-green-600 p-2 rounded-lg">
-                                                    <ClipboardList className="w-5 h-5" />
+                                            <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg border border-gray-200">
+                                                <div className="bg-green-50 text-green-600 p-1.5 rounded-md shrink-0">
+                                                    <ClipboardList className="w-4 h-4 sm:w-5 sm:h-5" />
                                                 </div>
-                                                <div>
-                                                    <p className="text-xs text-gray-600">Compliance Score</p>
-                                                    <p className="text-lg font-semibold text-gray-900">
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] sm:text-xs text-gray-600 leading-tight">Compliance Score</p>
+                                                    <p className="text-base sm:text-lg font-semibold text-gray-900 tabular-nums">
                                                         {(stats.compliance_score ?? 0).toFixed(1)}%
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-3 p-4 rounded-lg border border-gray-200">
-                                                <div className="bg-purple-50 text-purple-600 p-2 rounded-lg">
-                                                    <Pill className="w-5 h-5" />
+                                            <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg border border-gray-200">
+                                                <div className="bg-purple-50 text-purple-600 p-1.5 rounded-md shrink-0">
+                                                    <Pill className="w-4 h-4 sm:w-5 sm:h-5" />
                                                 </div>
-                                                <div>
-                                                    <p className="text-xs text-gray-600">Medication Adherence</p>
-                                                    <p className="text-lg font-semibold text-gray-900">
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] sm:text-xs text-gray-600 leading-tight">Medication Adherence</p>
+                                                    <p className="text-base sm:text-lg font-semibold text-gray-900 tabular-nums">
                                                         {(stats.medication_adherence_rate ?? 0).toFixed(1)}%
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-3 p-4 rounded-lg border border-gray-200">
-                                                <div className="bg-orange-50 text-orange-600 p-2 rounded-lg">
-                                                    <Clock className="w-5 h-5" />
+                                            <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg border border-gray-200">
+                                                <div className="bg-orange-50 text-orange-600 p-1.5 rounded-md shrink-0">
+                                                    <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
                                                 </div>
-                                                <div>
-                                                    <p className="text-xs text-gray-600">Avg Response Time</p>
-                                                    <p className="text-lg font-semibold text-gray-900">
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] sm:text-xs text-gray-600 leading-tight">Avg Response Time</p>
+                                                    <p className="text-base sm:text-lg font-semibold text-gray-900 tabular-nums">
                                                         {(stats.average_incident_response_time ?? 0).toFixed(1)} hrs
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-3 p-4 rounded-lg border border-gray-200">
-                                                <div className="bg-indigo-50 text-indigo-600 p-2 rounded-lg">
-                                                    <UserCheck className="w-5 h-5" />
+                                            <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg border border-gray-200 col-span-2 sm:col-span-1 lg:col-span-1">
+                                                <div className="bg-indigo-50 text-indigo-600 p-1.5 rounded-md shrink-0">
+                                                    <UserCheck className="w-4 h-4 sm:w-5 sm:h-5" />
                                                 </div>
-                                                <div>
-                                                    <p className="text-xs text-gray-600">Staff Count</p>
-                                                    <p className="text-lg font-semibold text-gray-900">
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] sm:text-xs text-gray-600 leading-tight">Staff Count</p>
+                                                    <p className="text-base sm:text-lg font-semibold text-gray-900 tabular-nums">
                                                         {stats.staff_utilization ?? 0}
                                                     </p>
                                                 </div>
@@ -1086,7 +1118,7 @@ export default function Dashboard() {
 }
 
 // Modules Overview Component  
-function ModulesOverview({ stats, moduleStats, navigate }) {
+function ModulesOverview({ stats, moduleStats, navigate, dense = false }) {
     const modules = [
         {
             name: 'Assessments',
@@ -1211,35 +1243,36 @@ function ModulesOverview({ stats, moduleStats, navigate }) {
     ];
 
     return (
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-            <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <BarChart3 className="w-5 h-5 text-[var(--theme-primary)]" />
-                        <h2 className="text-base sm:text-lg font-bold text-[var(--theme-primary)]">Modules Overview</h2>
+        <div className={`bg-white border border-gray-100 overflow-hidden ${dense ? 'rounded-lg shadow-sm' : 'rounded-xl shadow-md'}`}>
+            <div className={`border-b border-gray-200 ${dense ? 'px-3 py-2.5' : 'px-4 sm:px-6 py-3 sm:py-4'}`}>
+                <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <BarChart3 className={`${dense ? 'w-4 h-4' : 'w-5 h-5'} text-[var(--theme-primary)] shrink-0`} />
+                        <h2 className={`font-bold text-[var(--theme-primary)] truncate ${dense ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`}>Modules Overview</h2>
                     </div>
-                    <span className="text-xs text-gray-500 hidden sm:inline">Quick access to all modules</span>
+                    <span className={`text-gray-500 hidden sm:inline shrink-0 ${dense ? 'text-[10px]' : 'text-xs'}`}>Quick access to all modules</span>
                 </div>
             </div>
-            <div className="p-4 sm:p-6">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
+            <div className={dense ? 'p-3' : 'p-4 sm:p-6'}>
+                <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 ${dense ? 'gap-2 sm:gap-2.5' : 'gap-3 sm:gap-4'}`}>
                     {modules.map((module, index) => {
                         const Icon = module.icon;
                         return (
                             <button
                                 key={index}
+                                type="button"
                                 onClick={() => navigate(module.path)}
-                                className="group relative bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-200 p-3 sm:p-4 text-left active:scale-95 touch-manipulation"
+                                className={`group relative bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-200 text-left active:scale-95 touch-manipulation ${dense ? 'p-2 sm:p-2.5' : 'p-3 sm:p-4'}`}
                             >
-                                <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${module.color} rounded-t-lg`}></div>
-                                <div className="flex flex-col items-center text-center space-y-2 mt-1">
-                                    <div className={`${module.bgColor} p-2 sm:p-3 rounded-lg group-hover:scale-110 transition-transform duration-200`}>
-                                        <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${module.iconColor}`} />
+                                <div className={`absolute top-0 left-0 right-0 ${dense ? 'h-0.5' : 'h-1'} bg-gradient-to-r ${module.color} rounded-t-lg`}></div>
+                                <div className={`flex flex-col items-center text-center ${dense ? 'space-y-1 mt-0.5' : 'space-y-2 mt-1'}`}>
+                                    <div className={`${module.bgColor} ${dense ? 'p-1.5' : 'p-2 sm:p-3'} rounded-lg group-hover:scale-105 transition-transform duration-200`}>
+                                        <Icon className={`${dense ? 'w-4 h-4 sm:w-5 sm:h-5' : 'w-5 h-5 sm:w-6 sm:h-6'} ${module.iconColor}`} />
                                     </div>
                                     <div className="flex-1 w-full">
-                                        <p className="text-xs sm:text-sm font-semibold text-gray-900 mb-1">{module.name}</p>
-                                        <p className="text-lg sm:text-xl font-bold text-[var(--theme-primary)]">{module.count}</p>
-                                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{module.description}</p>
+                                        <p className={`font-semibold text-gray-900 ${dense ? 'text-[11px] sm:text-xs mb-0' : 'text-xs sm:text-sm mb-1'}`}>{module.name}</p>
+                                        <p className={`font-bold text-[var(--theme-primary)] tabular-nums ${dense ? 'text-sm sm:text-base' : 'text-lg sm:text-xl'}`}>{module.count}</p>
+                                        <p className={`text-gray-500 line-clamp-2 ${dense ? 'text-[10px] mt-0.5' : 'text-xs mt-1'}`}>{module.description}</p>
                                     </div>
                                 </div>
                                 <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1255,7 +1288,7 @@ function ModulesOverview({ stats, moduleStats, navigate }) {
 }
 
 // Trends Chart Widget for Admins
-function TrendsChartWidget({ data }) {
+function TrendsChartWidget({ data, dense = false }) {
     const { primary, secondary } = useTheme();
 
     if (!data || !data.labels || data.labels.length === 0) {
@@ -1328,17 +1361,17 @@ function TrendsChartWidget({ data }) {
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-            <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+        <div className={`bg-white border border-gray-100 overflow-hidden ${dense ? 'rounded-lg shadow-sm' : 'rounded-xl shadow-md'}`}>
+            <div className={`border-b border-gray-200 ${dense ? 'px-3 py-2.5' : 'px-4 sm:px-6 py-3 sm:py-4'}`}>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <BarChart3 className="w-5 h-5 text-[var(--theme-primary)]" />
-                        <h2 className="text-base sm:text-lg font-bold text-[var(--theme-primary)]">7-Day Trends Overview</h2>
+                        <BarChart3 className={`${dense ? 'w-4 h-4' : 'w-5 h-5'} text-[var(--theme-primary)]`} />
+                        <h2 className={`font-bold text-[var(--theme-primary)] ${dense ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`}>7-Day Trends Overview</h2>
                     </div>
                 </div>
             </div>
-            <div className="p-4 sm:p-6">
-                <div style={{ height: '250px' }}>
+            <div className={dense ? 'p-3' : 'p-4 sm:p-6'}>
+                <div style={{ height: dense ? '200px' : '250px' }}>
                     <Line data={chartData} options={options} />
                 </div>
             </div>

@@ -1992,7 +1992,7 @@ function QuickAdminister({ medication, onSuccess, residentId, residentName, curr
                                                 medication_id: medication.id,
                                                 medication_administration_id: lastAdministrationId,
                                             },
-                                            action_url: `/medications/residents/${residentId}`,
+                                            action_url: `/my-residents/${residentId}/medications/list`,
                                         });
                                         setPrnFollowupOpen(false);
                                         setSuccessMessage((prev) => (prev ? `${prev} Follow-up scheduled.` : 'Follow-up scheduled.'));
