@@ -24,7 +24,7 @@ const initialStats = [
 ];
 
 /**
- * @param {'record' | 'medicationHub'} [primaryResidentPath='record'] — Card click target: full resident record or Medication Hub overview.
+ * @param {'record' | 'medicationHub' | 'clinicalHub'} [primaryResidentPath='record'] — Card click target: resident record, medication hub, or clinical section (Vitals + tab bar).
  */
 export default function HubResidentsOverview({ primaryResidentPath = 'record' }) {
     const navigate = useNavigate();
@@ -101,11 +101,23 @@ export default function HubResidentsOverview({ primaryResidentPath = 'record' })
         }));
     }, [allResidents]);
 
-    const primaryPathForResident = React.useCallback(
-        (id) =>
-            primaryResidentPath === 'medicationHub'
-                ? `/my-residents/${id}/medications/overview`
-                : `/my-residents/${id}`,
+    const navigateTargetForResident = React.useCallback(
+        (resident) => {
+            const id = resident?.id;
+            if (primaryResidentPath === 'medicationHub') {
+                return `/my-residents/${id}/medications/overview`;
+            }
+            if (primaryResidentPath === 'clinicalHub') {
+                const q = new URLSearchParams();
+                q.set(RESIDENT_CONTEXT_QUERY_KEY, String(id));
+                const bid = resident?.branch_id ?? resident?.branch?.id;
+                if (bid != null && bid !== '') {
+                    q.set('branch', String(bid));
+                }
+                return `/vitals?${q.toString()}`;
+            }
+            return `/my-residents/${id}`;
+        },
         [primaryResidentPath],
     );
 
@@ -119,7 +131,9 @@ export default function HubResidentsOverview({ primaryResidentPath = 'record' })
         const cardAria =
             primaryResidentPath === 'medicationHub'
                 ? `Open medication hub for ${fullName || 'resident'}`
-                : `Open resident record for ${fullName || 'resident'}`;
+                : primaryResidentPath === 'clinicalHub'
+                    ? `Open clinical hub for ${fullName || 'resident'}`
+                    : `Open resident record for ${fullName || 'resident'}`;
 
         return (
             <EntityCardShell
@@ -128,7 +142,7 @@ export default function HubResidentsOverview({ primaryResidentPath = 'record' })
                 aria-label={cardAria}
                 onClick={(e) => {
                     if (e.target.closest('button')) return;
-                    navigate(primaryPathForResident(resident.id));
+                    navigate(navigateTargetForResident(resident));
                 }}
             >
                 <EntityCardHeader

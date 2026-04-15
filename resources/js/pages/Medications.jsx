@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { useBranchUpdates } from '../hooks/useRealtimeUpdates';
 import logger from '../utils/logger';
@@ -56,6 +56,7 @@ import {
     canSelectMedicationRowForBulkAdministration,
     getMedicationAdministrations,
 } from '../utils/medicationSchedule';
+import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
 
 const INSTRUCTION_DISPLAY_MAP = {
     'q.i.d': 'Four times a day',
@@ -158,6 +159,7 @@ const isMedicationPeriodActiveNow = (medication, referenceDate = getPacificNow()
 export default function Medications() {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [activeOnly, setActiveOnly] = useState(true);
     const [search, setSearch] = useState('');
     const [residentFilter, setResidentFilter] = useState('');
@@ -175,6 +177,14 @@ export default function Medications() {
     const [expandedRows, setExpandedRows] = useState(new Set());
     const [selectedMeds, setSelectedMeds] = useState(new Set());
     const [isBulkAdministering, setIsBulkAdministering] = useState(false);
+
+    React.useEffect(() => {
+        const rid =
+            searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) ||
+            searchParams.get('resident_id') ||
+            '';
+        setResidentFilter(rid);
+    }, [searchParams]);
 
     // Fetch current user
     React.useEffect(() => {

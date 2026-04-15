@@ -16,6 +16,7 @@ import ResidentAvatarInline from '../components/ui/ResidentAvatarInline';
 import { DataPillSection } from '../components/ui/DataPill';
 import { useToastContext } from '../contexts/ToastContext';
 import BranchSelector from '../components/BranchSelector';
+import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
 
 export default function Vitals() {
     const queryClient = useQueryClient();
@@ -58,10 +59,11 @@ export default function Vitals() {
     const canEdit = isSuperAdmin || isAdmin || permissions.includes('edit_vitals');
     const canDelete = isSuperAdmin || isAdmin || permissions.includes('delete_vitals');
 
-    // Reset resident filter when branch changes
     React.useEffect(() => {
-        setResidentFilter('');
-    }, [selectedBranchId]);
+        const rid =
+            searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) || searchParams.get('resident_id') || '';
+        setResidentFilter(rid);
+    }, [searchParams]);
 
     const { data, isLoading } = useQuery({
         queryKey: ['vitals', dateFilter, residentFilter, selectedBranchId],

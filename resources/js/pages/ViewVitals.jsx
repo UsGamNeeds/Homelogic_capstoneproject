@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { Line } from 'react-chartjs-2';
 import {
@@ -18,6 +18,7 @@ import { Download, Plus, MoreVertical, Calendar, User, Building2, ChevronLeft, C
 import logger from '../utils/logger';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Tooltip from '../components/ui/Tooltip';
+import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
 
 ChartJS.register(
     CategoryScale,
@@ -36,6 +37,7 @@ const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
 
 export default function ViewVitals() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const queryClient = useQueryClient();
     const [branchId, setBranchId] = useState('');
     const [residentId, setResidentId] = useState('');
@@ -173,6 +175,14 @@ export default function ViewVitals() {
             setCurrentPage(1);
         }
     }, [isCaregiver, caregiverBranchId, branchId]);
+
+    useEffect(() => {
+        const b = searchParams.get('branch') || '';
+        const rid =
+            searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) || searchParams.get('resident_id') || '';
+        if (b) setBranchId(b);
+        if (rid) setResidentId(rid);
+    }, [searchParams]);
 
     // Fetch branches
     const { data: branchesData } = useQuery({

@@ -4,6 +4,7 @@ import api from '../services/api';
 import { Calendar, ClipboardList, Pill, User, ChevronLeft, ChevronRight, FileText, Download, AlertTriangle, CheckCircle2, XCircle, Ban } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { formatPacificDate as formatDate, formatPacificTime as formatTime } from '../utils/pacificTime';
+import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
 import EmptyState from '../components/ui/EmptyState';
 
 const statusOptions = [
@@ -42,7 +43,12 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
     const [searchParams, setSearchParams] = useSearchParams();
     const [residentId, setResidentId] = useState(() => {
         if (embedded && embeddedResidentId) return String(embeddedResidentId);
-        return searchParams.get('resident') || '';
+        return (
+            searchParams.get('resident') ||
+            searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) ||
+            searchParams.get('resident_id') ||
+            ''
+        );
     });
     const [medicationId, setMedicationId] = useState(() => searchParams.get('medication') || '');
     const [status, setStatus] = useState(() => searchParams.get('status') || '');
@@ -58,7 +64,11 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
 
     useEffect(() => {
         if (embedded) return;
-        const nextResident = searchParams.get('resident') || '';
+        const nextResident =
+            searchParams.get('resident') ||
+            searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) ||
+            searchParams.get('resident_id') ||
+            '';
         const nextMedication = searchParams.get('medication') || '';
         const nextStatus = searchParams.get('status') || '';
         const nextDateFrom = searchParams.get('date_from') || '';
@@ -77,7 +87,7 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
     useEffect(() => {
         if (embedded) return;
         const nextParams = new URLSearchParams();
-        if (residentId) nextParams.set('resident', residentId);
+        if (residentId) nextParams.set(RESIDENT_CONTEXT_QUERY_KEY, residentId);
         if (medicationId) nextParams.set('medication', medicationId);
         if (status) nextParams.set('status', status);
         if (dateFrom) nextParams.set('date_from', dateFrom);

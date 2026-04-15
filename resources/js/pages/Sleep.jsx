@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { Moon, Plus, Search, Calendar, Clock, User, Edit, Trash2, Filter, ChevronDown, X } from 'lucide-react';
@@ -10,9 +11,11 @@ import EntityCardShell, { EntityCardHeader } from '../components/ui/EntityCardSh
 import CardIconButton from '../components/ui/CardIconButton';
 import DataPill, { DataPillSection } from '../components/ui/DataPill';
 import ResidentAvatarInline from '../components/ui/ResidentAvatarInline';
+import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
 
 export default function Sleep() {
     const queryClient = useQueryClient();
+    const [searchParams] = useSearchParams();
     const [dateFilter, setDateFilter] = useState('all');
     const [residentFilter, setResidentFilter] = useState('');
     const [search, setSearch] = useState('');
@@ -20,6 +23,15 @@ export default function Sleep() {
     const [editingRecord, setEditingRecord] = useState(null);
     const [selectedCalendarDate, setSelectedCalendarDate] = useState(null);
     const [sleepDeleteId, setSleepDeleteId] = useState(null);
+
+    React.useEffect(() => {
+        const rid =
+            searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) ||
+            searchParams.get('resident_id') ||
+            searchParams.get('resident') ||
+            '';
+        setResidentFilter(rid);
+    }, [searchParams]);
 
     const { data: currentUser } = useQuery({
         queryKey: ['current-user'],
