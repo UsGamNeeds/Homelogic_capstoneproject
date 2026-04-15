@@ -38,9 +38,12 @@ const StatusIcon = ({ status, className = 'w-3.5 h-3.5' }) => {
     return null;
 };
 
-export default function MedicationHistory() {
+export default function MedicationHistory({ embedded = false, embeddedResidentId = '' } = {}) {
     const [searchParams, setSearchParams] = useSearchParams();
-    const [residentId, setResidentId] = useState(() => searchParams.get('resident') || '');
+    const [residentId, setResidentId] = useState(() => {
+        if (embedded && embeddedResidentId) return String(embeddedResidentId);
+        return searchParams.get('resident') || '';
+    });
     const [medicationId, setMedicationId] = useState(() => searchParams.get('medication') || '');
     const [status, setStatus] = useState(() => searchParams.get('status') || '');
     const [dateFrom, setDateFrom] = useState(() => searchParams.get('date_from') || '');
@@ -54,6 +57,7 @@ export default function MedicationHistory() {
     const perPage = 25;
 
     useEffect(() => {
+        if (embedded) return;
         const nextResident = searchParams.get('resident') || '';
         const nextMedication = searchParams.get('medication') || '';
         const nextStatus = searchParams.get('status') || '';
@@ -68,9 +72,10 @@ export default function MedicationHistory() {
         setDateFrom((prev) => (prev === nextDateFrom ? prev : nextDateFrom));
         setDateTo((prev) => (prev === nextDateTo ? prev : nextDateTo));
         setPage((prev) => (prev === nextPage ? prev : nextPage));
-    }, [searchParams]);
+    }, [searchParams, embedded]);
 
     useEffect(() => {
+        if (embedded) return;
         const nextParams = new URLSearchParams();
         if (residentId) nextParams.set('resident', residentId);
         if (medicationId) nextParams.set('medication', medicationId);
@@ -84,7 +89,13 @@ export default function MedicationHistory() {
         if (current !== next) {
             setSearchParams(nextParams, { replace: true });
         }
-    }, [residentId, medicationId, status, dateFrom, dateTo, page, searchParams, setSearchParams]);
+    }, [residentId, medicationId, status, dateFrom, dateTo, page, searchParams, setSearchParams, embedded]);
+
+    useEffect(() => {
+        if (embedded && embeddedResidentId) {
+            setResidentId(String(embeddedResidentId));
+        }
+    }, [embedded, embeddedResidentId]);
 
     useEffect(() => {
         setPage((prev) => (prev === 1 ? prev : 1));
@@ -127,6 +138,13 @@ export default function MedicationHistory() {
         if (!residentsResponse) return [];
         return residentsResponse.data || residentsResponse;
     }, [residentsResponse]);
+
+    const embeddedResidentLabel = useMemo(() => {
+        if (!embedded || !residentId) return '';
+        const r = residents.find((x) => String(x.id) === String(residentId));
+        if (!r) return `Resident #${residentId}`;
+        return [r.first_name, r.middle_names, r.last_name].filter(Boolean).join(' ') || `Resident #${residentId}`;
+    }, [embedded, residentId, residents]);
 
     const {
         data: historyResponse,
@@ -230,24 +248,31 @@ export default function MedicationHistory() {
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 ${embedded ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
                     <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Resident</label>
-                        <div className="relative">
-                            <User className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden="true" />
-                            <select
-                                value={residentId}
-                                onChange={(event) => setResidentId(event.target.value)}
-                                className="w-full pl-8 pr-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent appearance-none bg-white"
-                            >
-                                <option value="">All residents</option>
-                                {residents.map((resident) => (
-                                    <option key={resident.id} value={resident.id}>
-                                        {resident.first_name} {resident.last_name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                        {embedded ? (
+                            <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900">
+                                <User className="w-3.5 h-3.5 shrink-0 text-gray-400" aria-hidden="true" />
+                                <span className="font-medium truncate">{embeddedResidentLabel || '—'}</span>
+                            </div>
+                        ) : (
+                            <div className="relative">
+                                <User className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden="true" />
+                                <select
+                                    value={residentId}
+                                    onChange={(event) => setResidentId(event.target.value)}
+                                    className="w-full pl-8 pr-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent appearance-none bg-white"
+                                >
+                                    <option value="">All residents</option>
+                                    {residents.map((resident) => (
+                                        <option key={resident.id} value={resident.id}>
+                                            {resident.first_name} {resident.last_name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </div>
 
                     <div>
