@@ -12,7 +12,7 @@ return [
     |
     */
 
-    'notifications_enabled' => env('MAIL_NOTIFICATIONS_ENABLED', true),
+    'notifications_enabled' => env('MAIL_NOTIFICATIONS_ENABLED', false),
 
     /*
     |--------------------------------------------------------------------------
