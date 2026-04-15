@@ -8,6 +8,7 @@ import Tooltip from './ui/Tooltip';
 import {
     shouldShowHeaderResidentSwitcher,
     isResidentsHubPathForSwitcher,
+    isClinicalSectionForSwitcher,
     parseResidentContextId,
     buildSwitchHref,
     buildResidentsSectionResidentNavigateTo,
@@ -19,7 +20,7 @@ function residentFullName(r) {
 }
 
 function getSwitcherLinkTo(pathname, search, id) {
-    if (isResidentsHubPathForSwitcher(pathname)) {
+    if (isResidentsHubPathForSwitcher(pathname) || isClinicalSectionForSwitcher(pathname)) {
         return buildResidentsSectionResidentNavigateTo(pathname, search, id);
     }
     return buildSwitchHref(pathname, search, id);

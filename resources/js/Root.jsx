@@ -322,17 +322,8 @@ function App() {
                 {/* ── Residents section (persistent tab bar) ───────────────── */}
                 <Route element={<Suspense fallback={<PageLoader />}><ResidentsSectionLayout /></Suspense>}>
                     <Route path="residents" element={<Suspense fallback={<PageLoader />}><ResidentsHubPage /></Suspense>} />
-                    <Route path="assessments/:id/review" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="assessments"><AssessmentReview /></ModuleProtectedRoute></Suspense>} />
-                    <Route path="assessments/:id" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="assessments"><AssessmentDetail /></ModuleProtectedRoute></Suspense>} />
-                    <Route path="assessments" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="assessments"><Assessments /></ModuleProtectedRoute></Suspense>} />
-                    <Route path="appointments/dashboard" element={<Suspense fallback={<PageLoader />}><AppointmentsDashboard /></Suspense>} />
-                    <Route path="appointments/create/:residentId" element={<Suspense fallback={<PageLoader />}><CreateAppointment /></Suspense>} />
-                    <Route path="appointments/:id" element={<Suspense fallback={<PageLoader />}><AppointmentDetail /></Suspense>} />
-                    <Route path="appointments" element={<Suspense fallback={<PageLoader />}><Appointments /></Suspense>} />
                     <Route path="my-residents" element={<Suspense fallback={<PageLoader />}><MyResidentsPage /></Suspense>} />
                     <Route path="residents/:residentId/detail" element={<Suspense fallback={<PageLoader />}><ResidentDetailPage /></Suspense>} />
-                    <Route path="charts/resident/:residentId" element={<Suspense fallback={<PageLoader />}><CaregiverResidentChart /></Suspense>} />
-                    <Route path="charts" element={<Suspense fallback={<PageLoader />}><CaregiverChartsPage /></Suspense>} />
                     <Route path="t-logs" element={<Suspense fallback={<PageLoader />}><TLogs /></Suspense>} />
                 </Route>
                 {/* Resident record hub + per-resident Medication Hub (nested) */}
@@ -407,6 +398,15 @@ function App() {
                     <Route path="medications/residents" element={<Suspense fallback={<PageLoader />}><CaregiverMedicationsResidents /></Suspense>} />
                     <Route path="medications" element={<Suspense fallback={<PageLoader />}><Medications /></Suspense>} />
                     <Route path="medication-deliveries" element={<Suspense fallback={<PageLoader />}><MedicationDeliveries /></Suspense>} />
+                    <Route path="assessments/:id/review" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="assessments"><AssessmentReview /></ModuleProtectedRoute></Suspense>} />
+                    <Route path="assessments/:id" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="assessments"><AssessmentDetail /></ModuleProtectedRoute></Suspense>} />
+                    <Route path="assessments" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="assessments"><Assessments /></ModuleProtectedRoute></Suspense>} />
+                    <Route path="appointments/dashboard" element={<Suspense fallback={<PageLoader />}><AppointmentsDashboard /></Suspense>} />
+                    <Route path="appointments/create/:residentId" element={<Suspense fallback={<PageLoader />}><CreateAppointment /></Suspense>} />
+                    <Route path="appointments/:id" element={<Suspense fallback={<PageLoader />}><AppointmentDetail /></Suspense>} />
+                    <Route path="appointments" element={<Suspense fallback={<PageLoader />}><Appointments /></Suspense>} />
+                    <Route path="charts/resident/:residentId" element={<Suspense fallback={<PageLoader />}><CaregiverResidentChart /></Suspense>} />
+                    <Route path="charts" element={<Suspense fallback={<PageLoader />}><CaregiverChartsPage /></Suspense>} />
                 </Route>
 
                 <Route path="reminders" element={<Suspense fallback={<PageLoader />}><Reminders /></Suspense>} />

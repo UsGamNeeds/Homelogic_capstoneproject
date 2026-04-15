@@ -6,9 +6,6 @@
 /** Prefixes for Residents hub routes (excludes /residents hub index — handled separately). */
 export const RESIDENT_HUB_PREFIXES = [
     '/my-residents',
-    '/assessments',
-    '/appointments',
-    '/charts',
     '/t-logs',
 ];
 
@@ -24,6 +21,9 @@ export const CLINICAL_HUB_PREFIXES = [
     '/sleep-patterns',
     '/medications',
     '/medication-deliveries',
+    '/appointments',
+    '/assessments',
+    '/charts',
 ];
 
 const RESIDENTS_MANAGEMENT_PATH_PREFIXES = ['/residents/sign-out', '/residents/sign-outs'];
@@ -42,7 +42,7 @@ export function isResidentsHubPathForSwitcher(pathname) {
     return RESIDENT_HUB_PREFIXES.some(p => pathnameMatchesPrefix(pathname, p));
 }
 
-function isClinicalSectionForSwitcher(pathname) {
+export function isClinicalSectionForSwitcher(pathname) {
     if (pathname === '/clinical') return true;
     return CLINICAL_HUB_PREFIXES.some(p => pathnameMatchesPrefix(pathname, p));
 }
