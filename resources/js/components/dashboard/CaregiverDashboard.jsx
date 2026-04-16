@@ -434,17 +434,8 @@ export default function CaregiverDashboard({
 // ── Resident Quick-Access Strip ───────────────────────────────────────────────
 
 function ResidentStrip({ residents, medReminderIds, navigate }) {
-    const stripRef = React.useRef(null);
-
-    React.useEffect(() => {
-        if (stripRef.current && shouldAnimate()) {
-            slideInUpNoFade(stripRef.current, { duration: 280, delay: 60 });
-        }
-    }, []);
-
     return (
         <section
-            ref={stripRef}
             aria-label="My residents quick access"
             className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
         >
@@ -488,7 +479,7 @@ function ResidentStrip({ residents, medReminderIds, navigate }) {
                         >
                             {/* Avatar */}
                             <div className="relative">
-                                <div className="w-11 h-11 rounded-full bg-[var(--theme-primary-bg)] text-[var(--theme-primary)] flex items-center justify-center text-sm font-bold group-hover:ring-2 group-hover:ring-[var(--theme-primary)]/30 transition-all">
+                                <div className="w-11 h-11 rounded-full bg-[var(--theme-primary-bg)] text-[var(--theme-primary-dark)] flex items-center justify-center text-sm font-bold ring-1 ring-black/5 group-hover:ring-2 group-hover:ring-[var(--theme-primary)]/40 transition-all [&_svg]:text-[var(--theme-primary-dark)]">
                                     {initials || <User className="w-5 h-5" aria-hidden="true" />}
                                 </div>
                                 {/* Medication pending dot */}
@@ -501,16 +492,16 @@ function ResidentStrip({ residents, medReminderIds, navigate }) {
                                 )}
                             </div>
 
-                            {/* Name */}
-                            <span className="text-[10px] font-semibold text-gray-700 text-center leading-tight w-full truncate group-hover:text-[var(--theme-primary)] transition-colors">
+                            {/* Name — use high-contrast grays; avoid theme primary for small text (light brand colors) */}
+                            <span className="text-[10px] font-semibold text-gray-900 text-center leading-tight w-full truncate group-hover:text-[var(--theme-primary-dark)] transition-colors">
                                 {resident.first_name || fullName}
                             </span>
 
                             {/* Room badge */}
                             {room ? (
-                                <span className="text-[9px] text-gray-400 font-medium">Rm {room}</span>
+                                <span className="text-[9px] text-gray-600 font-medium">Rm {room}</span>
                             ) : (
-                                <span className="text-[9px] text-gray-300">—</span>
+                                <span className="text-[9px] text-gray-400">—</span>
                             )}
                         </button>
                     );
@@ -793,7 +784,7 @@ function StatCard({ title, value, icon: Icon, onClick, urgent }) {
             {urgent && <div className="absolute top-0 left-0 right-0 h-0.5 bg-red-500" aria-hidden="true" />}
             <div className="flex items-center justify-between mb-3">
                 <div className={`p-2.5 rounded-lg group-hover:scale-110 transition-transform duration-200
-                    ${urgent ? 'bg-red-50 text-red-600' : 'bg-[var(--theme-primary-bg)] text-[var(--theme-primary)]'}`}
+                    ${urgent ? 'bg-red-50 text-red-600' : 'bg-[var(--theme-primary-bg)] text-[var(--theme-primary-dark)]'}`}
                     aria-hidden="true"
                 >
                     <Icon className="w-5 h-5" />
