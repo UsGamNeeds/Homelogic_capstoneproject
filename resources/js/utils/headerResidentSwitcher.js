@@ -77,6 +77,26 @@ const RE_APPT_CREATE = /^\/appointments\/create\/([^/]+)/;
 export const RESIDENT_CONTEXT_QUERY_KEY = 'residentId';
 
 /**
+ * Compare query strings without treating key order as a change.
+ * React Router / the browser may serialize ?a=1&b=2 vs ?b=2&a=1; string compare would loop on setSearchParams.
+ */
+export function urlSearchParamsShallowEqual(a, b) {
+    const toSp = (x) => {
+        if (x instanceof URLSearchParams) return x;
+        const s = x == null ? '' : String(x);
+        return new URLSearchParams(s.startsWith('?') ? s.slice(1) : s);
+    };
+    const aa = toSp(a);
+    const bb = toSp(b);
+    if (aa.toString() === bb.toString()) return true;
+    const keys = new Set([...aa.keys(), ...bb.keys()]);
+    for (const k of keys) {
+        if (aa.get(k) !== bb.get(k)) return false;
+    }
+    return true;
+}
+
+/**
  * Active resident: `residentId` or `resident_id` query wins; else id embedded in path.
  */
 export function parseResidentContextId(search, pathname) {
@@ -170,6 +190,37 @@ function defaultTabForPathWhenSwitchingToHub(pathname) {
 }
 
 /**
+ * Clinical hub list routes: keep the same pathname and swap resident via ?residentId= (not /my-residents/...).
+ */
+function buildClinicalListHrefWithResident(pathname, search, newResidentId) {
+    const id = String(newResidentId);
+    if (!pathname) return null;
+
+    const pathOk =
+        pathname === '/medication-history'
+        || pathname === '/vitals'
+        || pathname === '/view-vitals'
+        || pathname === '/sleep'
+        || pathname === '/sleep-patterns'
+        || pathname.startsWith('/sleep-patterns/')
+        || pathname === '/medication-deliveries'
+        || pathname.startsWith('/medication-deliveries/')
+        || pathname === '/assessments'
+        || pathname === '/appointments'
+        || pathname.startsWith('/appointments/dashboard')
+        || (pathname.startsWith('/medications') && !/^\/medications\/residents\/[^/]+/.test(pathname));
+
+    if (!pathOk) return null;
+
+    const sp = new URLSearchParams(search?.startsWith('?') ? search.slice(1) : search || '');
+    sp.set(RESIDENT_CONTEXT_QUERY_KEY, id);
+    sp.delete('resident');
+    sp.delete('resident_id');
+    const qs = sp.toString();
+    return `${pathname}${qs ? `?${qs}` : ''}`;
+}
+
+/**
  * Target path + query when choosing a resident from the header strip.
  * @param {string} pathname
  * @param {string} search - location.search including leading ?
@@ -192,6 +243,9 @@ export function buildSwitchHref(pathname, search, newResidentId) {
     if (pathname.match(RE_APPT_CREATE)) {
         return `/appointments/create/${id}${search || ''}`;
     }
+
+    const clinicalList = buildClinicalListHrefWithResident(pathname, search, id);
+    if (clinicalList) return clinicalList;
 
     const tab = defaultTabForPathWhenSwitchingToHub(pathname);
     if (tab === 'medications') {

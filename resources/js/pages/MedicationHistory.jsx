@@ -4,7 +4,7 @@ import api from '../services/api';
 import { Calendar, ClipboardList, Pill, User, ChevronLeft, ChevronRight, FileText, Download, AlertTriangle, CheckCircle2, XCircle, Ban } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { formatPacificDate as formatDate, formatPacificTime as formatTime } from '../utils/pacificTime';
-import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
+import { RESIDENT_CONTEXT_QUERY_KEY, urlSearchParamsShallowEqual } from '../utils/headerResidentSwitcher';
 import EmptyState from '../components/ui/EmptyState';
 
 const statusOptions = [
@@ -94,9 +94,7 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
         if (dateTo) nextParams.set('date_to', dateTo);
         if (page > 1) nextParams.set('page', String(page));
 
-        const current = searchParams.toString();
-        const next = nextParams.toString();
-        if (current !== next) {
+        if (!urlSearchParamsShallowEqual(searchParams, nextParams)) {
             setSearchParams(nextParams, { replace: true });
         }
     }, [residentId, medicationId, status, dateFrom, dateTo, page, searchParams, setSearchParams, embedded]);
