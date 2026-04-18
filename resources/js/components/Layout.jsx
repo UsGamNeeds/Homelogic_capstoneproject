@@ -94,19 +94,24 @@ const HUB_SECTION = 'Hubs';
 const OPERATIONS_HUB_PREFIXES = ['/housekeeping', '/grocery-status', '/fire-drills', '/incidents', '/leave-requests'];
 const MANAGEMENT_HUB_PREFIXES = ['/pharmacy', '/billing', '/check-in-dashboard', '/staff', '/visitors', '/residents/sign-out', '/residents/sign-outs', '/administration'];
 
-/** Caregivers: six primary destinations — detail lives inside each hub. */
+/**
+ * Caregivers: care-focused nav. NO Management hub (pharmacy, billing, admin).
+ * Can still do: dashboard, their residents, clinical tasks, operations, reports.
+ */
 const caregiverNavigation = [
-    { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard',  children: null, section: 'Home' },
+    { name: 'Dashboard',  icon: LayoutDashboard, path: '/dashboard',    children: null, section: 'Home' },
     { name: 'Residents',  icon: Users,           path: '/my-residents', children: null, section: HUB_SECTION, activePathPrefixes: RESIDENT_HUB_PREFIXES, activePathRegex: RESIDENT_LEGACY_DETAIL },
     { name: 'Clinical',   icon: Stethoscope,     path: '/clinical',     children: null, section: HUB_SECTION, activePathPrefixes: CLINICAL_HUB_PREFIXES },
     { name: 'Operations', icon: Wrench,          path: '/operations',   children: null, section: HUB_SECTION, activePathPrefixes: OPERATIONS_HUB_PREFIXES },
-    { name: 'Management', icon: Briefcase,       path: '/management',   children: null, section: HUB_SECTION, activePathPrefixes: MANAGEMENT_HUB_PREFIXES },
     { name: 'Reports',    icon: FileText,        path: '/reports',      children: null, section: HUB_SECTION },
 ];
 
-/** Facility staff: same hub structure as caregivers. */
+/**
+ * Facility staff (administrator / admin / nurse etc): full hub access including
+ * the Management hub (pharmacy, billing, staff scheduling, administration).
+ */
 const facilityStaffHubNavigation = [
-    { name: 'Dashboard',  icon: LayoutDashboard, path: '/dashboard',  children: null, section: 'Home' },
+    { name: 'Dashboard',  icon: LayoutDashboard, path: '/dashboard',    children: null, section: 'Home' },
     { name: 'Residents',  icon: Users,           path: '/my-residents', children: null, section: HUB_SECTION, activePathPrefixes: RESIDENT_HUB_PREFIXES, activePathRegex: RESIDENT_LEGACY_DETAIL },
     { name: 'Clinical',   icon: Stethoscope,     path: '/clinical',     children: null, section: HUB_SECTION, activePathPrefixes: CLINICAL_HUB_PREFIXES },
     { name: 'Operations', icon: Wrench,          path: '/operations',   children: null, section: HUB_SECTION, activePathPrefixes: OPERATIONS_HUB_PREFIXES },

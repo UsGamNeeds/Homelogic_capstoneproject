@@ -9,7 +9,14 @@ import {
     Clock,
     ArrowRight,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import ScrollReveal from '../../components/ui/ScrollReveal';
+import { currentUserQueryOptions } from '../../queries/currentUser';
+import { isCaregiverRole } from '../../utils/userRoles';
+
+// Tiles that require admin-level access (administrator or admin).
+// Caregivers do NOT see these — they manage care tasks, not facility operations.
+const ADMIN_ONLY_IDS = new Set(['pharmacy', 'billing', 'charts', 'administration']);
 
 const TILES = [
     {
@@ -69,9 +76,17 @@ const TILES = [
 ];
 
 export default function ManagementHubPage() {
+    const { data: currentUser } = useQuery(currentUserQueryOptions);
+    const isCaregiver = isCaregiverRole(currentUser?.role);
+
+    // Caregivers skip the admin-only tiles; they only see check-in and scheduling
+    const visibleTiles = isCaregiver
+        ? TILES.filter(t => !ADMIN_ONLY_IDS.has(t.id))
+        : TILES;
+
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {TILES.map((tile, i) => {
+            {visibleTiles.map((tile, i) => {
                 const Icon = tile.icon;
                 return (
                     <ScrollReveal key={tile.id} animationType="fade" delay={i * 80}>
