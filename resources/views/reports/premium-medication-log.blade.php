@@ -2,167 +2,201 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* Modern Base Styles */
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #334155;
             -webkit-print-color-adjust: exact;
+            background: #ffffff;
+            margin: 0;
+            padding: 30px;
         }
         @page {
             size: A4 landscape;
             margin: 0;
         }
-        .text-primary { color: {{ $primaryColor ?? '#1E3A5F' }}; }
-        .bg-primary { background-color: {{ $primaryColor ?? '#1E3A5F' }}; }
-        .border-primary { border-color: {{ $primaryColor ?? '#1E3A5F' }}; }
-        .text-secondary { color: {{ $secondaryColor ?? '#86EFAC' }}; }
-        .bg-secondary { background-color: {{ $secondaryColor ?? '#86EFAC' }}; }
-        .border-secondary { border-color: {{ $secondaryColor ?? '#86EFAC' }}; }
+
+        /* Branding */
+        .primary-text { color: {{ $primaryColor ?? '#1E3A5F' }}; }
+        .primary-bg { background-color: {{ $primaryColor ?? '#1E3A5F' }}; }
+        .secondary-bg { background-color: {{ $secondaryColor ?? '#86EFAC' }}; }
+        .secondary-border { border-color: {{ $secondaryColor ?? '#86EFAC' }}; }
+
+        /* Component Classes */
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 2px solid {{ $secondaryColor ?? '#86EFAC' }}; padding-bottom: 20px; }
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .gap-6 { gap: 1.5rem; }
+        .gap-4 { gap: 1rem; }
+        .h-16 { height: 4rem; }
+        .w-16 { width: 4rem; }
+        .rounded-lg { border-radius: 0.5rem; }
+        .font-bold { font-weight: 700; }
+        .text-2xl { font-size: 1.5rem; }
+        .text-lg { font-size: 1.125rem; }
+        .text-sm { font-size: 0.875rem; }
+        .text-xs { font-size: 0.75rem; }
+        .text-gray-500 { color: #64748b; }
+        .text-right { text-align: right; }
+        
+        /* Grid */
+        .grid { display: block; width: 100%; margin-bottom: 30px; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; }
+        .grid::after { content: ""; display: table; clear: both; }
+        .grid-col { float: left; width: 25%; box-sizing: border-box; padding: 0 10px; border-right: 1px solid #e2e8f0; }
+        .grid-col:last-child { border-right: none; }
+        
+        /* Table */
+        .med-table { width: 100%; border-collapse: collapse; font-size: 10px; border: 1px solid #e2e8f0; margin-bottom: 25px; border-radius: 8px; overflow: hidden; }
+        .med-table th { background: #f8fafc; padding: 10px; color: #475569; border: 1px solid #e2e8f0; font-weight: 700; }
+        .med-table td { padding: 8px; border: 1px solid #e2e8f0; text-align: center; }
+        .med-table .time-label { background: #ffffff; text-align: left; font-weight: 700; width: 100px; color: {{ $primaryColor ?? '#1E3A5F' }}; }
+
+        .cell-taken { background-color: #f0fdf4; color: #15803d; font-weight: 700; }
+        .cell-not_taken { background-color: #fef2f2; color: #b91c1c; }
+        .cell-inactive { background-color: #f1f5f9; color: #94a3b8; }
+
+        .pill { display: inline-block; padding: 6px 12px; background: {{ $primaryColor ?? '#1E3A5F' }}; color: #ffffff; border-radius: 6px; font-weight: 700; font-size: 12px; }
+        .section-header { font-size: 16px; font-weight: 700; color: {{ $primaryColor ?? '#1E3A5F' }}; margin-bottom: 15px; border-left: 5px solid {{ $secondaryColor ?? '#86EFAC' }}; padding-left: 12px; }
     </style>
 </head>
-<body class="bg-white p-8">
+<body class="bg-white">
     <!-- Header Section -->
-    <div class="flex justify-between items-start mb-8 border-b-2 border-secondary pb-6">
+    <div class="header">
         <div class="flex items-center gap-6">
             @if(!empty($facilityLogoDataUri))
-                <img src="{{ $facilityLogoDataUri }}" class="h-16 w-auto object-contain" />
+                <img src="{{ $facilityLogoDataUri }}" class="h-16" />
             @else
-                <div class="h-16 w-16 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-xl">
+                <div class="h-16 w-16 primary-bg rounded-lg flex items-center justify-center font-bold text-white text-2xl">
                     {{ substr($facilityName, 0, 1) }}
                 </div>
             @endif
             <div>
-                <h1 class="text-2xl font-bold text-primary tracking-tight">Medication Administration Log</h1>
-                <p class="text-lg font-semibold text-gray-700">{{ $facilityName }} @if($branchName) — {{ $branchName }} @endif</p>
+                <h1 class="text-2xl font-bold primary-text">Medication Administration Log</h1>
+                <p class="text-lg font-bold">{{ $facilityName }} @if($branchName) — {{ $branchName }} @endif</p>
                 <p class="text-sm text-gray-500">{{ $facilityAddress ?? 'Facility Address' }}</p>
             </div>
         </div>
         <div class="text-right">
-            <div class="inline-block bg-primary text-white px-4 py-2 rounded-md font-bold text-sm mb-2">
+            <div class="pill">
                 Period: {{ $rangeLabel }}
             </div>
-            <p class="text-xs text-gray-400">Exported: {{ $exportedAt }}</p>
+            <p class="text-xs text-gray-500" style="margin-top: 5px;">Exported: {{ $exportedAt }}</p>
         </div>
     </div>
 
     <!-- Resident Info Card -->
-    <div class="grid grid-cols-4 gap-6 mb-8 bg-gray-50 p-6 rounded-xl border border-gray-200">
-        <div class="flex items-center gap-4 border-r border-gray-200">
-            @if(!empty($residentPhotoDataUri))
-                <img src="{{ $residentPhotoDataUri }}" class="h-20 w-20 rounded-lg object-cover border-2 border-secondary" />
-            @else
-                <div class="h-20 w-20 bg-gray-200 rounded-lg flex items-center justify-center text-primary font-bold text-2xl border-2 border-secondary">
-                    {{ $residentInitials }}
+    <div class="grid">
+        <div class="grid-col">
+            <div class="flex items-center gap-4">
+                @if(!empty($residentPhotoDataUri))
+                    <img src="{{ $residentPhotoDataUri }}" style="height: 60px; width: 60px; border-radius: 8px; border: 2px solid {{ $secondaryColor ?? '#86EFAC' }}; object-fit: cover;" />
+                @else
+                    <div style="height: 60px; width: 60px; border-radius: 8px; border: 2px solid {{ $secondaryColor ?? '#86EFAC' }}; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-weight: bold; color: {{ $primaryColor ?? '#1E3A5F' }};">
+                        {{ $residentInitials }}
+                    </div>
+                @endif
+                <div>
+                    <p class="text-xs font-bold text-gray-500">RESIDENT</p>
+                    <p class="text-sm font-bold primary-text">{{ $residentName }}</p>
+                    <p class="text-xs text-gray-500">Room: {{ $residentRoom ?? 'N/A' }}</p>
                 </div>
-            @endif
-            <div>
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Resident</p>
-                <p class="text-lg font-bold text-primary">{{ $residentName }}</p>
-                <p class="text-sm text-gray-600">Room: {{ $residentRoom ?? 'N/A' }}</p>
             </div>
         </div>
-        <div>
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Clinical Details</p>
-            <p class="text-sm"><strong>DOB:</strong> {{ $residentDob }}</p>
-            <p class="text-sm"><strong>Physician:</strong> {{ $physician }}</p>
+        <div class="grid-col">
+            <p class="text-xs font-bold text-gray-500">CLINICAL DETAILS</p>
+            <p class="text-xs"><strong>DOB:</strong> {{ $residentDob }}</p>
+            <p class="text-xs"><strong>Physician:</strong> {{ $physician }}</p>
         </div>
-        <div class="col-span-2">
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Conditions & Allergies</p>
-            <p class="text-sm"><strong>Diagnosis:</strong> {{ $diagnosis }}</p>
-            <p class="text-sm text-red-600"><strong>Allergies:</strong> {{ $allergies }}</p>
+        <div class="grid-col" style="width: 50%;">
+            <p class="text-xs font-bold text-gray-500">CONDITIONS & ALLERGIES</p>
+            <p class="text-xs" style="margin-bottom: 2px;"><strong>Diagnosis:</strong> {{ $diagnosis }}</p>
+            <p class="text-xs text-red-600"><strong>Allergies:</strong> {{ $allergies }}</p>
         </div>
     </div>
 
     <!-- Medications Table -->
-    <div class="space-y-8">
-        <div>
-            <h2 class="text-xl font-bold text-primary mb-4 flex items-center gap-2">
-                <span class="w-2 h-6 bg-secondary rounded-full"></span>
-                Scheduled Medications
-            </h2>
-            
-            @forelse($scheduledSections as $section)
-                <div class="mb-8 border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                    <div class="bg-gray-100 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
-                        <div>
-                            <span class="text-lg font-bold text-primary">{{ $section['title'] }}</span>
-                            <span class="ml-4 text-sm text-gray-600 italic">{{ $section['strength'] }} {{ $section['form_line'] }}</span>
-                        </div>
-                        <div class="text-xs font-semibold text-gray-500 bg-white px-3 py-1 rounded-full border border-gray-300">
-                            {{ $section['instructions'] }}
-                        </div>
-                    </div>
-                    
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-xs border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50 text-gray-600">
-                                    <th class="border-b border-r p-2 text-left w-24">Time</th>
-                                    @foreach($days as $day)
-                                        <th class="border-b border-r p-2 text-center {{ count($days) > 14 ? 'w-6' : 'w-10' }}">
-                                            <span class="block text-[10px] font-bold">{{ $day['dom'] }}</span>
-                                            <span class="block text-[8px] uppercase">{{ substr($day['short'], 0, 3) }}</span>
-                                        </th>
-                                    @endforeach
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($section['rows'] as $row)
-                                    <tr>
-                                        <td class="border-b border-r p-2 font-bold text-primary bg-white">{{ $row['time_label'] }}</td>
-                                        @foreach($days as $day)
-                                            @php
-                                                $cell = $row['cells'][$day['date']] ?? ['text' => '—', 'tone' => 'inactive'];
-                                            @endphp
-                                            <td class="border-b border-r p-2 text-center @if($cell['tone'] == 'taken') bg-green-50 text-green-700 font-bold @elseif($cell['tone'] == 'not_taken') bg-red-50 text-red-700 @else bg-gray-50 text-gray-300 @endif">
-                                                {{ $cell['text'] }}
-                                            </td>
-                                        @endforeach
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            @empty
-                <div class="p-8 text-center text-gray-400 italic">No scheduled medications recorded for this period.</div>
-            @endforelse
+    <div>
+        <div class="section-header">
+            Scheduled Medications
         </div>
+        
+        @forelse($scheduledSections as $section)
+            <div style="margin-bottom: 25px;">
+                <div style="margin-bottom: 10px;">
+                    <span class="text-lg font-bold primary-text">{{ $section['title'] }}</span>
+                    <span class="text-sm text-gray-500 italic" style="margin-left: 10px;">{{ $section['strength'] }} {{ $section['form_line'] }}</span>
+                    <div class="text-xs" style="color: #64748b; margin-top: 2px;">{{ $section['instructions'] }}</div>
+                </div>
+                
+                <table class="med-table">
+                    <thead>
+                        <tr>
+                            <th class="time-label">Time</th>
+                            @foreach($days as $day)
+                                <th>
+                                    <div>{{ $day['dom'] }}</div>
+                                    <div style="font-size: 8px;">{{ substr($day['short'], 0, 3) }}</div>
+                                </th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($section['rows'] as $row)
+                            <tr>
+                                <td class="time-label">{{ $row['time_label'] }}</td>
+                                @foreach($days as $day)
+                                    @php
+                                        $cell = $row['cells'][$day['date']] ?? ['text' => '—', 'tone' => 'inactive'];
+                                    @endphp
+                                    <td class="cell-{{ $cell['tone'] }}">
+                                        {{ $cell['text'] }}
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @empty
+            <div style="padding: 20px; text-align: center; color: #94a3b8; font-style: italic;">No scheduled medications.</div>
+        @endforelse
+    </div>
 
         @if(count($prnSections) > 0)
         <div>
-            <h2 class="text-xl font-bold text-primary mb-4 flex items-center gap-2">
-                <span class="w-2 h-6 bg-orange-400 rounded-full"></span>
+            <div class="section-header" style="border-color: #fb923c;">
                 PRN (As Needed) Medications
-            </h2>
-            <div class="grid grid-cols-2 gap-6">
+            </div>
+            <div style="display: table; width: 100%;">
                 @foreach($prnSections as $prn)
-                <div class="border border-gray-200 rounded-lg overflow-hidden shadow-sm h-fit">
-                    <div class="bg-orange-50 px-4 py-3 border-b border-orange-100">
-                        <span class="text-md font-bold text-orange-800">{{ $prn['title'] }}</span>
-                        <p class="text-xs text-orange-600 font-medium tracking-tight">{{ $prn['instructions'] }}</p>
+                <div style="display: table-cell; width: 48%; padding-right: 2%; vertical-align: top;">
+                    <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+                        <div style="background: #fff7ed; padding: 10px; border-bottom: 1px solid #fed7aa;">
+                            <span style="font-weight: bold; color: #9a3412;">{{ $prn['title'] }}</span>
+                            <div style="font-size: 10px; color: #c2410c;">{{ $prn['instructions'] }}</div>
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <th style="text-align: left; padding: 5px;">Date/Time</th>
+                                    <th style="text-align: center; padding: 5px;">Init.</th>
+                                    <th style="text-align: left; padding: 5px;">Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($prn['rows'] as $r)
+                                <tr style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 5px;">{{ $r['date'] }} <span style="color: #94a3b8;">{{ $r['time'] }}</span></td>
+                                    <td style="padding: 5px; text-align: center; font-weight: bold; color: #16a34a;">{{ $r['initials'] }}</td>
+                                    <td style="padding: 5px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px;">{{ $r['notes'] }}</td>
+                                </tr>
+                                @empty
+                                <tr><td colspan="3" style="padding: 10px; text-align: center; color: #94a3b8; font-style: italic;">No PRN administrations.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
-                    <table class="w-full text-[11px] border-collapse">
-                        <thead class="bg-white">
-                            <tr class="text-gray-500 border-b">
-                                <th class="p-2 text-left">Date/Time</th>
-                                <th class="p-2 text-center uppercase tracking-tighter">Initial</th>
-                                <th class="p-2 text-left">Notes</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($prn['rows'] as $r)
-                            <tr class="border-b last:border-0 hover:bg-gray-50 transition-colors">
-                                <td class="p-2 text-gray-700">{{ $r['date'] }} <span class="text-gray-400 italic">{{ $r['time'] }}</span></td>
-                                <td class="p-2 text-center font-bold text-green-600">{{ $r['initials'] }}</td>
-                                <td class="p-2 text-gray-500 overflow-hidden text-ellipsis whitespace-nowrap">{{ $r['notes'] }}</td>
-                            </tr>
-                            @empty
-                            <tr><td colspan="3" class="p-4 text-center text-gray-300 italic">No PRN administrations.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
                 </div>
                 @endforeach
             </div>
@@ -171,22 +205,18 @@
     </div>
 
     <!-- Footer Legend -->
-    <div class="mt-12 p-6 bg-primary text-white rounded-xl flex justify-between items-center bg-opacity-95">
-        <div class="flex gap-8 text-xs font-medium">
-            <div class="flex items-center gap-2">
-                <span class="w-3 h-3 bg-green-400 rounded-sm"></span>
-                Dose Administered
+    <div style="margin-top: 40px; padding: 15px; background: {{ $primaryColor ?? '#1E3A5F' }}; color: #ffffff; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 10px;">
+        <div style="display: flex; gap: 20px;">
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <span style="display: inline-block; width: 10px; height: 10px; background: #4ade80; border-radius: 2px;"></span>
+                Given
             </div>
-            <div class="flex items-center gap-2">
-                <span class="w-3 h-3 bg-red-400 rounded-sm"></span>
-                Dose Missed/Refused
-            </div>
-            <div class="flex items-center gap-2 text-gray-300 italic">
-                <span>—</span>
-                Not Scheduled
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <span style="display: inline-block; width: 10px; height: 10px; background: #f87171; border-radius: 2px;"></span>
+                Missed
             </div>
         </div>
-        <div class="text-[10px] text-primary-foreground opacity-70">
+        <div style="opacity: 0.6;">
             Powered by HomeLogic360 | Secure Clinical Reporting
         </div>
     </div>

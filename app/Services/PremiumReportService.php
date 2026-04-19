@@ -41,11 +41,16 @@ class PremiumReportService
 
         // Use system chrome binary and required linux flags
         $browsershot->setChromePath('/usr/bin/google-chrome')
+            ->setNodeBinary('/usr/bin/node')
+            ->setNpmBinary('/usr/bin/npm')
+            ->timeout(60) // Increase timeout to 60s for network-heavy reports
             ->addChromiumArguments([
                 'no-sandbox',
                 'disable-setuid-sandbox',
                 'disable-dev-shm-usage',
-                'disable-gpu'
+                'disable-gpu',
+                'disable-extensions',
+                'font-render-hinting=none'
             ]);
 
         return $browsershot->pdf();
