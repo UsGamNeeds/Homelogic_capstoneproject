@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Resident;
 use App\Models\User;
 use App\Services\MedicationLogReportService;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\PremiumReportService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,7 +15,8 @@ use Illuminate\Http\Response;
 class MedicationLogReportController extends Controller
 {
     public function __construct(
-        private MedicationLogReportService $medicationLogReportService
+        private MedicationLogReportService $medicationLogReportService,
+        private PremiumReportService $premiumReportService
     ) {}
 
     public function __invoke(Request $request, Resident $resident): JsonResponse|Response
@@ -43,17 +44,23 @@ class MedicationLogReportController extends Controller
 
         $safeName = preg_replace('/[^a-zA-Z0-9_-]+/', '_', $resident->last_name ?: 'resident');
         $filename = sprintf(
-            'Medication_Log_%s_%s_%s.pdf',
+            'Premium_Medication_Log_%s_%s_%s.pdf',
             $validated['date_from'],
             $validated['date_to'],
             $safeName
         );
 
-        $pdf = Pdf::loadView('reports.medication-log', $data)
-            ->setPaper('letter', 'landscape')
-            ->setOption('isRemoteEnabled', true);
+        $pdfBinary = $this->premiumReportService->generate(
+            'reports.premium-medication-log',
+            $data,
+            $filename,
+            ['orientation' => 'landscape']
+        );
 
-        return $pdf->download($filename);
+        return response($pdfBinary, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
     }
 
     private function isCaregiver(?User $user): bool
