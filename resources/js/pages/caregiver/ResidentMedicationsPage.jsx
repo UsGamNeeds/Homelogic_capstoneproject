@@ -156,7 +156,7 @@ const isMedicationPeriodActiveNow = (medication, referenceDate = getPacificNow()
     return true;
 };
 
-export default function ResidentMedicationsPage({ embedded = false }) {
+export default function ResidentMedicationsPage({ embedded = false, variant = 'list', marDate = null }) {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const params = useParams();
@@ -175,6 +175,28 @@ export default function ResidentMedicationsPage({ embedded = false }) {
     const [isBulkAdministering, setIsBulkAdministering] = useState(false);
     const [prnFollowupCompletingId, setPrnFollowupCompletingId] = useState(null);
 
+    const isMar = variant === 'mar';
+    const resolvedMarDate = isMar ? (marDate || getPacificISODate()) : null;
+    const medsQueryKey = isMar
+        ? ['resident-medications', residentId, activeOnly, 'mar', resolvedMarDate]
+        : ['resident-medications', residentId, activeOnly];
+    const todayResidentAdminsQueryKey = isMar
+        ? ['medication-administrations', 'resident-day', residentId, resolvedMarDate]
+        : ['medication-administrations', 'today', residentId];
+    const pacificTodayIso = getPacificISODate();
+    const isMarRecordingDay = !isMar || resolvedMarDate === pacificTodayIso;
+    const periodReferenceDate = React.useMemo(() => {
+        if (isMar && resolvedMarDate) {
+            return parsePacificDateString(resolvedMarDate) || getPacificNow();
+        }
+        return getPacificNow();
+    }, [isMar, resolvedMarDate]);
+
+    React.useEffect(() => {
+        if (!isMarRecordingDay) {
+            setSelectedMeds(new Set());
+        }
+    }, [isMarRecordingDay, resolvedMarDate]);
 
     // Fetch current user
     React.useEffect(() => {
@@ -197,7 +219,6 @@ export default function ResidentMedicationsPage({ embedded = false }) {
     }, [currentUser?.app_current_time]);
 
     // Real-time: must match queryKey `resident-medications` (not `medications`) so cache refetches.
-    const todayResidentAdminsQueryKey = ['medication-administrations', 'today', residentId];
 
     useResidentUpdates(
         residentId,
@@ -228,38 +249,40 @@ export default function ResidentMedicationsPage({ embedded = false }) {
 
     // Fetch medications for this resident
     const { data, isLoading, refetch: refetchMeds } = useQuery({
-        queryKey: ['resident-medications', residentId, activeOnly],
+        queryKey: medsQueryKey,
         queryFn: async () => {
-            const response = await api.get('/medications', {
-                params: {
-                    resident_id: residentId,
-                    per_page: 100,
-                    active_only: activeOnly ? 'true' : 'false',
-                    for_administration: 'true',
-                    hide_administered: activeOnly ? 'true' : 'false',
-                },
-            });
+            const params = {
+                resident_id: residentId,
+                per_page: 100,
+                active_only: activeOnly ? 'true' : 'false',
+                for_administration: 'true',
+                hide_administered: isMar ? 'false' : (activeOnly ? 'true' : 'false'),
+            };
+            if (isMar && resolvedMarDate) {
+                params.administration_date = resolvedMarDate;
+            }
+            const response = await api.get('/medications', { params });
             return response.data;
         },
         enabled: !!residentId,
     });
 
-    /** One request for today's administrations for this resident (replaces N per-medication fetches in badges / Quick Administer). */
+    /** Administrations for the selected Pacific calendar day (MAR) or today (list). */
     const { data: todayResidentAdminsPage } = useQuery({
         queryKey: todayResidentAdminsQueryKey,
         queryFn: async () => {
-            const today = getPacificISODate();
+            const day = isMar ? resolvedMarDate : getPacificISODate();
             const response = await api.get('/medication-administrations', {
                 params: {
                     resident_id: residentId,
-                    date_from: today,
-                    date_to: today,
+                    date_from: day,
+                    date_to: day,
                     per_page: 500,
                 },
             });
             return response.data;
         },
-        enabled: !!residentId,
+        enabled: !!residentId && (!isMar || !!resolvedMarDate),
         staleTime: 30 * 1000,
     });
 
@@ -317,12 +340,11 @@ export default function ResidentMedicationsPage({ embedded = false }) {
     }, [resident]);
 
     const { activePeriodMedications, endedPeriodMedications } = React.useMemo(() => {
-        const now = getPacificNow();
         const active = [];
         const ended = [];
 
         medicationsList.forEach((medication) => {
-            if (isMedicationPeriodActiveNow(medication, now)) {
+            if (isMedicationPeriodActiveNow(medication, periodReferenceDate)) {
                 active.push(medication);
             } else {
                 ended.push(medication);
@@ -330,7 +352,7 @@ export default function ResidentMedicationsPage({ embedded = false }) {
         });
 
         return { activePeriodMedications: active, endedPeriodMedications: ended };
-    }, [medicationsList]);
+    }, [medicationsList, periodReferenceDate]);
 
     const { scheduledMeds, amMeds, pmMeds, prnMeds } = React.useMemo(() => {
         const displayList = activeOnly ? activePeriodMedications : medicationsList;
@@ -585,7 +607,7 @@ export default function ResidentMedicationsPage({ embedded = false }) {
                             <button
                                 type="button"
                                 onClick={completeFollowup}
-                                disabled={completing}
+                                disabled={completing || !isMarRecordingDay}
                                 className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] hover:opacity-95 disabled:opacity-50"
                             >
                                 {completing ? 'Saving…' : 'Mark complete'}
@@ -613,7 +635,7 @@ export default function ResidentMedicationsPage({ embedded = false }) {
                                     <button
                                         type="button"
                                         onClick={completeFollowup}
-                                        disabled={completing}
+                                        disabled={completing || !isMarRecordingDay}
                                         className="px-4 py-2 rounded-lg text-sm font-bold bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] hover:opacity-95 disabled:opacity-50"
                                     >
                                         {completing ? 'Saving…' : 'Mark follow-up complete'}
@@ -636,7 +658,7 @@ export default function ResidentMedicationsPage({ embedded = false }) {
             );
         }
 
-        const periodActive = isMedicationPeriodActiveNow(medication);
+        const periodActive = isMedicationPeriodActiveNow(medication, periodReferenceDate);
         const isExpanded = expandedRows.has(medication.uniqueId);
         const isSelected = selectedMeds.has(medication.uniqueId);
         const instruction = (medication.instructions || '').toLowerCase().trim();
@@ -672,7 +694,7 @@ export default function ResidentMedicationsPage({ embedded = false }) {
                     onClick={() => toggleRow(medication.uniqueId)}
                 >
                     {/* Checkbox for Bulk Administration */}
-                    {activeTab !== 'prn' && (
+                    {activeTab !== 'prn' && isMarRecordingDay && (
                         <div
                             className={`flex-shrink-0 mr-1 ${canBulkSelect.ok ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}
                             onClick={(e) => {
@@ -694,6 +716,9 @@ export default function ResidentMedicationsPage({ embedded = false }) {
                                 {isSelected && <CheckCircle className="w-3.5 h-3.5 text-white" />}
                             </div>
                         </div>
+                    )}
+                    {activeTab !== 'prn' && !isMarRecordingDay && (
+                        <div className="flex-shrink-0 w-9 mr-1" aria-hidden />
                     )}
 
                     {/* Expand/Collapse Icon */}
@@ -806,28 +831,39 @@ export default function ResidentMedicationsPage({ embedded = false }) {
 
                             {/* Section 2: Administration Status */}
                             <div className="space-y-4">
-                                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Today's Status</h4>
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                    {isMar
+                                        ? `This day's status${periodReferenceDate ? ` · ${formatPacificDate(periodReferenceDate)}` : ''}`
+                                        : "Today's Status"}
+                                </h4>
                                 <MedicationTimeBadges
                                     medication={medication}
                                     activeTab={activeTab}
                                     todayAdminData={todayAdminDataForRow}
                                 />
                                 
-                                <div className="pt-2 border-t border-gray-200">
-                                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Record Administration</h4>
-                                    <QuickAdminister 
-                                        medication={medication}
-                                        residentId={residentId}
-                                        residentName={residentDisplayName}
-                                        currentUser={currentUser}
-                                        todayResidentAdminsQueryKey={todayResidentAdminsQueryKey}
-                                        todayAdminData={todayAdminDataForRow}
-                                        onSuccess={() => { 
-                                            queryClient.invalidateQueries(['resident-medications', residentId]);
-                                            queryClient.invalidateQueries({ queryKey: todayResidentAdminsQueryKey });
-                                        }} 
-                                    />
-                                </div>
+                                {isMarRecordingDay ? (
+                                    <div className="pt-2 border-t border-gray-200">
+                                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Record Administration</h4>
+                                        <QuickAdminister
+                                            medication={medication}
+                                            residentId={residentId}
+                                            residentName={residentDisplayName}
+                                            currentUser={currentUser}
+                                            todayResidentAdminsQueryKey={todayResidentAdminsQueryKey}
+                                            todayAdminData={todayAdminDataForRow}
+                                            periodReferenceDate={periodReferenceDate}
+                                            onSuccess={() => {
+                                                queryClient.invalidateQueries({ queryKey: ['resident-medications', residentId] });
+                                                queryClient.invalidateQueries({ queryKey: todayResidentAdminsQueryKey });
+                                            }}
+                                        />
+                                    </div>
+                                ) : (
+                                    <p className="pt-2 text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                                        This date is read-only. Switch Med pass to <span className="font-semibold">Today</span> to record new administrations.
+                                    </p>
+                                )}
                             </div>
 
                             {/* Section 3: Notes & Actions */}
@@ -861,6 +897,7 @@ export default function ResidentMedicationsPage({ embedded = false }) {
     };
 
     const handleBulkAdminister = async () => {
+        if (!isMarRecordingDay) return;
         if (selectedMeds.size === 0) return;
         setIsBulkAdministering(true);
         
@@ -939,6 +976,15 @@ export default function ResidentMedicationsPage({ embedded = false }) {
 
                 {/* ── CENTRE: Medication content ── */}
                 <div className="space-y-4 min-w-0">
+                    {isMar && !isMarRecordingDay ? (
+                        <div
+                            className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+                            role="status"
+                        >
+                            <span className="font-semibold">Viewing another day.</span>{' '}
+                            Administration recording and bulk select are available only when Med pass is set to today's date ({pacificTodayIso}).
+                        </div>
+                    ) : null}
 
                     {/* Bulk actions — only rendered when items are selected */}
                     {selectedMeds.size > 0 && (
@@ -946,7 +992,7 @@ export default function ResidentMedicationsPage({ embedded = false }) {
                             <span className="text-sm font-bold text-blue-700">{selectedMeds.size} selected</span>
                             <button
                                 onClick={handleBulkAdminister}
-                                disabled={isBulkAdministering}
+                                disabled={isBulkAdministering || !isMarRecordingDay}
                                 className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-green-700 transition-all flex items-center gap-2 disabled:opacity-50"
                             >
                                 {isBulkAdministering
@@ -1265,7 +1311,16 @@ function MedicationTimeBadges({ medication, activeTab, todayAdminData }) {
 }
 
 // Quick Administer Component
-function QuickAdminister({ medication, onSuccess, residentId, residentName, currentUser, todayResidentAdminsQueryKey, todayAdminData }) {
+function QuickAdminister({
+    medication,
+    onSuccess,
+    residentId,
+    residentName,
+    currentUser,
+    todayResidentAdminsQueryKey,
+    todayAdminData,
+    periodReferenceDate: periodReferenceDateProp = null,
+}) {
     const queryClient = useQueryClient();
     const [status, setStatus] = useState('completed');
     const [submitting, setSubmitting] = useState(false);
@@ -1395,9 +1450,10 @@ function QuickAdminister({ medication, onSuccess, residentId, residentName, curr
         [parseTimeToToday]
     );
 
+    const periodRefForMed = periodReferenceDateProp || getPacificNow();
     const computeMedicationPeriodActive = React.useCallback(
-        () => isMedicationPeriodActiveNow(medication),
-        [medication.start_date, medication.end_date]
+        () => isMedicationPeriodActiveNow(medication, periodRefForMed),
+        [medication.start_date, medication.end_date, periodRefForMed]
     );
 
     const hasAdminForWindow = React.useCallback((scheduledDate) => {

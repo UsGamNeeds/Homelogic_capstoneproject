@@ -154,6 +154,7 @@ const MedicationHubDeliveriesTab = lazyWithRetry(() => import('./pages/caregiver
 const MedicationHubOrdersTab = lazyWithRetry(() => import('./pages/caregiver/medication-hub/MedicationHubOrdersTab'));
 const MedicationHubProfileSliceTab = lazyWithRetry(() => import('./pages/caregiver/medication-hub/MedicationHubProfileSliceTab'));
 const MedicationHubMedLogTab = lazyWithRetry(() => import('./pages/caregiver/medication-hub/MedicationHubMedLogTab'));
+const MedicationHubMarTab = lazyWithRetry(() => import('./pages/caregiver/medication-hub/MedicationHubMarTab'));
 const Reports = lazyWithRetry(() => import('./pages/Reports'));
 const Assessments = lazyWithRetry(() => import('./pages/Assessments'));
 const AssessmentDetail = lazyWithRetry(() => import('./pages/AssessmentDetail'));
@@ -339,10 +340,7 @@ function App() {
                             path="mar"
                             element={
                                 <Suspense fallback={<PageLoader />}>
-                                    <MedicationHubPlaceholderTab
-                                        title="Med pass / MAR"
-                                        description="Shift-based administration views will be consolidated here. Until then, use Medications to record doses in the administration window, or the facility-wide Medications board."
-                                    />
+                                    <MedicationHubMarTab />
                                 </Suspense>
                             }
                         />

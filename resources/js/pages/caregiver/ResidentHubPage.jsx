@@ -25,7 +25,6 @@ import {
     Phone,
     Languages,
     Building2,
-    Users,
     CheckCircle,
     TrendingUp,
     BarChart3,
@@ -44,10 +43,9 @@ import ResidentDocuments from '../../components/ResidentDocuments';
 import logger from '../../utils/logger';
 import { isCaregiverRole } from '../../utils/userRoles';
 
-// ─── Tab definitions (overview + directory link, then merged hub-style sections) ─────────────
+// ─── Tab definitions (overview + merged hub-style sections) ─────────────────────────────────
 const RESIDENT_TAB_BASE = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard, kind: 'tab' },
-    { id: '_directory', label: 'Directory', icon: Users, kind: 'link', href: '/my-residents' },
     { id: 'medications', label: 'Medications', icon: Pill, kind: 'link', getPath: (rid) => `/my-residents/${rid}/medications/list` },
     { id: 'vitals', label: 'Vitals', icon: Heart, kind: 'tab' },
     { id: 'assessments', label: 'Assessments', icon: ClipboardList, kind: 'tab', requiresAssessmentsModule: true },
