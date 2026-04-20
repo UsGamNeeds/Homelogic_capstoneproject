@@ -73,8 +73,8 @@ class MedicationLogReportController extends Controller
             ]);
 
             return response()->json([
-                'message' => 'Failed to generate report. Please try again later.',
-                'error' => config('app.debug') ? $e->getMessage() : null,
+                'message' => 'Failed to generate report.',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

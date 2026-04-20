@@ -80,7 +80,9 @@ export default function Reports() {
             toast.success('Report generated successfully');
         } catch (error) {
             console.error('Download error:', error);
-            const message = error.response?.data?.message || error.message || 'Failed to generate report.';
+            const apiError = error.response?.data?.error;
+            const apiMessage = error.response?.data?.message;
+            const message = apiError || apiMessage || error.message || 'Failed to generate report.';
             toast.error(message);
         } finally {
             setIsExporting(false);

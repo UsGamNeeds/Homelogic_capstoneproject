@@ -88,7 +88,7 @@ class SleepLogReportController extends Controller
 
             return response()->json([
                 'message' => 'Failed to generate sleep report.',
-                'error' => config('app.debug') ? $e->getMessage() : null,
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

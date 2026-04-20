@@ -89,7 +89,7 @@ class VitalsLogReportController extends Controller
 
             return response()->json([
                 'message' => 'Failed to generate vitals report.',
-                'error' => config('app.debug') ? $e->getMessage() : null,
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

@@ -76,7 +76,7 @@ class PremiumReportService
         }
 
         // Optimized settings for production stability
-        $browsershot->timeout(120)
+        $browsershot->timeout(180) // 3 minutes timeout for heavy reports
             ->noSandbox()
             ->addChromiumArguments([
                 'disable-setuid-sandbox',
@@ -85,17 +85,23 @@ class PremiumReportService
                 'disable-extensions',
                 'font-render-hinting=none',
                 'disable-web-security',
-                'no-sandbox'
+                'no-sandbox',
+                'single-process'
             ]);
 
         try {
-            return $browsershot->pdf();
+            Log::debug('PremiumReportService: Attempting browsershot->pdf()');
+            $pdf = $browsershot->pdf();
+            Log::debug('PremiumReportService: PDF generated successfully');
+            return $pdf;
         } catch (\Exception $e) {
             Log::error('Browsershot PDF generation failed', [
                 'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
                 'view' => $view
             ]);
-            throw $e;
+            throw new \Exception("PDF Generation Error: " . $e->getMessage());
         }
     }
 }
