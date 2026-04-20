@@ -42,6 +42,8 @@ export default function Reports() {
     const [marResidentCard, setMarResidentCard] = useState(true);
     const [marLegend, setMarLegend] = useState(true);
     const [marPrnNotes, setMarPrnNotes] = useState(true);
+    /** all | taken (given) | missed (not given) */
+    const [marAdminOutcomes, setMarAdminOutcomes] = useState('all');
     const [marMedFilterAll, setMarMedFilterAll] = useState(true);
     const [marMedSelectedIds, setMarMedSelectedIds] = useState(() => new Set());
     const [reportHubStep, setReportHubStep] = useState('grid');
@@ -72,6 +74,7 @@ export default function Reports() {
         setMarResidentCard(true);
         setMarLegend(true);
         setMarPrnNotes(true);
+        setMarAdminOutcomes('all');
         setMarMedFilterAll(true);
         setMarMedSelectedIds(new Set());
         setReportHubStep('mar');
@@ -113,12 +116,25 @@ export default function Reports() {
             try {
                 const text = await res.data.text();
                 const parsed = JSON.parse(text);
+                if (parsed.errors && typeof parsed.errors === 'object') {
+                    const first = Object.values(parsed.errors).flat().find(Boolean);
+                    if (first) {
+                        return first;
+                    }
+                }
                 return parsed.error || parsed.message || error.message || 'Failed to generate report.';
             } catch {
                 return error.message || 'Failed to generate report.';
             }
         }
-        return res.data?.error || res.data?.message || error.message || 'Failed to generate report.';
+        const d = res.data;
+        if (d?.errors && typeof d.errors === 'object') {
+            const first = Object.values(d.errors).flat().find(Boolean);
+            if (first) {
+                return first;
+            }
+        }
+        return d?.error || d?.message || error.message || 'Failed to generate report.';
     };
 
     const handleDownload = async (type, residentId, residentName, marRange = null) => {
@@ -156,12 +172,16 @@ export default function Reports() {
                             date_from: range.dateFrom,
                             date_to: range.dateTo,
                             orientation: range.orientation ?? 'landscape',
-                            include_scheduled: range.include_scheduled ?? true,
-                            include_prn: range.include_prn ?? true,
-                            include_resident_card: range.include_resident_card ?? true,
-                            include_legend: range.include_legend ?? true,
-                            include_prn_admin_notes: range.include_prn_admin_notes ?? true,
+                            include_scheduled: (range.include_scheduled ?? true) ? 1 : 0,
+                            include_prn: (range.include_prn ?? true) ? 1 : 0,
+                            include_resident_card: (range.include_resident_card ?? true) ? 1 : 0,
+                            include_legend: (range.include_legend ?? true) ? 1 : 0,
+                            include_prn_admin_notes: (range.include_prn_admin_notes ?? true) ? 1 : 0,
                         };
+                        const outcomes = range.administration_outcomes ?? 'all';
+                        if (outcomes && outcomes !== 'all') {
+                            params.administration_outcomes = outcomes;
+                        }
                         if (range.medication_ids?.length) {
                             params.medication_ids = range.medication_ids;
                         }
@@ -438,6 +458,45 @@ export default function Reports() {
                                 </label>
                             </fieldset>
 
+                            <fieldset className="space-y-2 border border-gray-100 rounded-xl p-4 bg-gray-50/80">
+                                <legend className="text-xs font-bold text-gray-700 px-1">Administrations in this date range</legend>
+                                <p className="text-xs text-gray-600 -mt-1 mb-2">
+                                    Limit the PDF to doses that were <strong>given</strong> (completed / pharmacy confirmed) or <strong>not given</strong> (missed, refused, etc.). Scheduled grids and PRN tables both respect this filter.
+                                </p>
+                                <div className="flex flex-col gap-2">
+                                    <label className="inline-flex items-center gap-2 text-sm text-gray-800 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="mar-admin-outcomes"
+                                            checked={marAdminOutcomes === 'all'}
+                                            onChange={() => setMarAdminOutcomes('all')}
+                                            className="text-teal-600 focus:ring-teal-500"
+                                        />
+                                        All (given and not given)
+                                    </label>
+                                    <label className="inline-flex items-center gap-2 text-sm text-gray-800 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="mar-admin-outcomes"
+                                            checked={marAdminOutcomes === 'taken'}
+                                            onChange={() => setMarAdminOutcomes('taken')}
+                                            className="text-teal-600 focus:ring-teal-500"
+                                        />
+                                        Given only
+                                    </label>
+                                    <label className="inline-flex items-center gap-2 text-sm text-gray-800 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="mar-admin-outcomes"
+                                            checked={marAdminOutcomes === 'missed'}
+                                            onChange={() => setMarAdminOutcomes('missed')}
+                                            className="text-teal-600 focus:ring-teal-500"
+                                        />
+                                        Not given only (missed, refused, etc.)
+                                    </label>
+                                </div>
+                            </fieldset>
+
                             <fieldset className="space-y-3 border border-gray-100 rounded-xl p-4 bg-gray-50/80">
                                 <legend className="text-xs font-bold text-gray-700 px-1">Medications</legend>
                                 {marResidentLoading ? (
@@ -522,6 +581,7 @@ export default function Reports() {
                                         include_resident_card: marResidentCard,
                                         include_legend: marLegend,
                                         include_prn_admin_notes: marPrnNotes,
+                                        administration_outcomes: marAdminOutcomes,
                                         medication_ids: medicationIdsPayload,
                                     });
                                 }}

@@ -33,17 +33,15 @@ class MedicationLogReportController extends Controller
             }
         }
 
+        // Note: do not use the strict `boolean` rule on query strings — browsers and proxies send
+        // values like "on", "true", 1/0, etc. Use $request->boolean() when reading flags.
         $validated = $request->validate([
             'date_from' => 'required|date_format:Y-m-d',
             'date_to' => 'required|date_format:Y-m-d|after_or_equal:date_from',
             'orientation' => 'sometimes|in:portrait,landscape',
-            'include_scheduled' => 'sometimes|boolean',
-            'include_prn' => 'sometimes|boolean',
-            'include_resident_card' => 'sometimes|boolean',
-            'include_legend' => 'sometimes|boolean',
-            'include_prn_admin_notes' => 'sometimes|boolean',
             'medication_ids' => 'sometimes|array',
             'medication_ids.*' => 'integer|min:1',
+            'administration_outcomes' => 'sometimes|in:all,taken,missed',
         ]);
 
         if (! $request->boolean('include_scheduled', true) && ! $request->boolean('include_prn', true)) {
@@ -78,6 +76,7 @@ class MedicationLogReportController extends Controller
             'include_legend' => $request->boolean('include_legend', true),
             'include_prn_admin_notes' => $request->boolean('include_prn_admin_notes', true),
             'medication_ids' => $medicationIds,
+            'administration_outcomes' => $validated['administration_outcomes'] ?? 'all',
         ];
 
         $orientation = $validated['orientation'] ?? 'landscape';

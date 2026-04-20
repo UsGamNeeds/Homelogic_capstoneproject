@@ -23,7 +23,8 @@ class MedicationLogReportService
      *     include_resident_card?: bool,
      *     include_legend?: bool,
      *     include_prn_admin_notes?: bool,
-     *     medication_ids?: list<int>|null
+     *     medication_ids?: list<int>|null,
+     *     administration_outcomes?: 'all'|'taken'|'missed'
      * }  $options  medication_ids: non-empty list limits to those orders; null = all for this resident
      * @return array<string, mixed>
      */
@@ -62,6 +63,17 @@ class MedicationLogReportService
         }
 
         $administrations = $administrationsQuery->get();
+
+        $outcomes = $options['administration_outcomes'] ?? 'all';
+        if ($outcomes === 'taken') {
+            $administrations = $administrations->filter(
+                fn (MedicationAdministration $a) => in_array($a->status, ['completed', 'pharmacy_administration_confirm'], true)
+            )->values();
+        } elseif ($outcomes === 'missed') {
+            $administrations = $administrations->filter(
+                fn (MedicationAdministration $a) => ! in_array($a->status, ['completed', 'pharmacy_administration_confirm'], true)
+            )->values();
+        }
 
         $byMedication = $administrations->groupBy('medication_id');
 
@@ -115,6 +127,12 @@ class MedicationLogReportService
 
         $palette = ReportBranding::palette($facility);
 
+        $outcomeFilterLabel = match ($outcomes) {
+            'taken' => 'Showing given administrations only (completed / confirmed).',
+            'missed' => 'Showing not-given administrations only (missed, refused, held, etc.).',
+            default => null,
+        };
+
         return [
             'facilityName' => $facility?->name ?? $branch?->name ?? 'Facility',
             'facilityAddress' => $facility?->address ?? $branch?->address,
@@ -131,6 +149,7 @@ class MedicationLogReportService
             'allergies' => $this->formatAllergies($resident),
             'diet' => $resident->dietary_restrictions ?: '—',
             'rangeLabel' => $dateFrom->format('M d, Y').' - '.$dateTo->format('M d, Y'),
+            'outcomeFilterLabel' => $outcomeFilterLabel,
             'exportedAt' => Carbon::now($tz)->format('M d, Y g:i A T'),
             'days' => $days,
             'scheduledSections' => $scheduledSections,

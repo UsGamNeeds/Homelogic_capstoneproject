@@ -85,6 +85,9 @@
                 Period: {{ $rangeLabel }}
             </div>
             <p class="text-xs text-gray-500" style="margin-top: 5px;">Exported: {{ $exportedAt }}</p>
+            @if(!empty($outcomeFilterLabel))
+                <p class="text-xs font-semibold" style="margin-top: 8px; max-width: 260px; margin-left: auto; color: #0369a1; line-height: 1.35;">{{ $outcomeFilterLabel }}</p>
+            @endif
         </div>
     </div>
 

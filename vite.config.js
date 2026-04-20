@@ -27,6 +27,11 @@ export default defineConfig({
         hmr: {
             host: 'localhost',
         },
+        // Avoid ENOSPC when fs.inotify.max_user_watches is low (common on Linux with large trees)
+        watch: {
+            usePolling: true,
+            interval: 1000,
+        },
     },
     optimizeDeps: {
         include: ['animejs'],
