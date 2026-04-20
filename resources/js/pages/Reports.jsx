@@ -196,6 +196,12 @@ export default function Reports() {
                 case 'appointments':
                     endpoint = `/residents/${residentId}/reports/appointments`;
                     break;
+                case 'incidents':
+                    endpoint = `/residents/${residentId}/reports/incidents`;
+                    break;
+                case 'assessments':
+                    endpoint = `/residents/${residentId}/reports/assessments`;
+                    break;
                 default:
                     throw new Error('Invalid report type');
             }
@@ -216,7 +222,13 @@ export default function Reports() {
             const link = document.createElement('a');
             link.href = url;
             const safeName = String(residentName || 'Resident').replace(/\s+/g, '_');
-            const filename = `${type.toUpperCase()}_Log_${safeName}.pdf`;
+            const filenamePrefix =
+                type === 'incidents'
+                    ? 'Incident_History'
+                    : type === 'assessments'
+                      ? 'Assessment_Summary'
+                      : `${type.toUpperCase()}_Log`;
+            const filename = `${filenamePrefix}_${safeName}.pdf`;
             
             link.setAttribute('download', filename);
             document.body.appendChild(link);
@@ -661,25 +673,39 @@ export default function Reports() {
                         </button>
 
                         <button
-                            disabled
-                            className="flex flex-col items-center justify-center p-8 bg-amber-50 opacity-60 rounded-2xl border border-amber-100 relative cursor-not-allowed"
+                            type="button"
+                            onClick={() => handleDownload('incidents', selectedResident.id, selectedResident.name)}
+                            disabled={isExporting}
+                            className="flex flex-col items-center justify-center p-8 bg-amber-50 hover:bg-amber-100 rounded-2xl border border-amber-100 transition-all group relative"
                         >
-                            <div className="h-12 w-12 bg-white rounded-xl shadow-sm text-amber-600 flex items-center justify-center mb-3">
+                            <div className="h-12 w-12 bg-white rounded-xl shadow-sm text-amber-700 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                                 <AlertTriangle className="h-6 w-6" />
                             </div>
                             <span className="font-bold text-amber-900">Incident History</span>
-                            <span className="text-xs text-amber-600 mt-1">Coming soon</span>
+                            <span className="text-xs text-amber-700 mt-1">Resident incidents (default: last year)</span>
+                            {isExporting && (
+                                <div className="absolute inset-0 bg-white/60 flex items-center justify-center rounded-2xl">
+                                    <Loader2 className="h-6 w-6 animate-spin text-amber-600" />
+                                </div>
+                            )}
                         </button>
 
                         <button
-                            disabled
-                            className="flex flex-col items-center justify-center p-8 bg-purple-50 opacity-60 rounded-2xl border border-purple-100 relative cursor-not-allowed"
+                            type="button"
+                            onClick={() => handleDownload('assessments', selectedResident.id, selectedResident.name)}
+                            disabled={isExporting}
+                            className="flex flex-col items-center justify-center p-8 bg-purple-50 hover:bg-purple-100 rounded-2xl border border-purple-100 transition-all group relative"
                         >
-                            <div className="h-12 w-12 bg-white rounded-xl shadow-sm text-purple-600 flex items-center justify-center mb-3">
+                            <div className="h-12 w-12 bg-white rounded-xl shadow-sm text-purple-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                                 <FileText className="h-6 w-6" />
                             </div>
                             <span className="font-bold text-purple-900">Assessments</span>
-                            <span className="text-xs text-purple-600 mt-1">Coming soon</span>
+                            <span className="text-xs text-purple-600 mt-1">Summary list (default: last year)</span>
+                            {isExporting && (
+                                <div className="absolute inset-0 bg-white/60 flex items-center justify-center rounded-2xl">
+                                    <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+                                </div>
+                            )}
                         </button>
                     </div>
                     )}

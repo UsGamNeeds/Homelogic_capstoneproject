@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\AppointmentController;
+use App\Http\Controllers\Api\AppointmentReportController;
 use App\Http\Controllers\Api\AssessmentController;
 use App\Http\Controllers\Api\AssessmentQuestionController;
+use App\Http\Controllers\Api\AssessmentSummaryReportController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BehaviorDataController;
 use App\Http\Controllers\Api\BillingInvoiceController;
@@ -26,6 +28,7 @@ use App\Http\Controllers\Api\FacilityController;
 use App\Http\Controllers\Api\FacilitySettingsController;
 use App\Http\Controllers\Api\GeocodingController;
 use App\Http\Controllers\Api\HousekeepingReportController;
+use App\Http\Controllers\Api\IncidentHistoryReportController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\MedicationAdministrationController;
 use App\Http\Controllers\Api\MedicationController;
@@ -42,9 +45,8 @@ use App\Http\Controllers\Api\ResidentChartController;
 use App\Http\Controllers\Api\ResidentController;
 use App\Http\Controllers\Api\ResidentSignOutController;
 use App\Http\Controllers\Api\RoleController;
-use App\Http\Controllers\Api\SleepRecordController;
 use App\Http\Controllers\Api\SleepLogReportController;
-use App\Http\Controllers\Api\AppointmentReportController;
+use App\Http\Controllers\Api\SleepRecordController;
 use App\Http\Controllers\Api\StaffClockInController;
 use App\Http\Controllers\Api\StaffEmailPreferenceController;
 use App\Http\Controllers\Api\SystemSettingsController;
@@ -110,6 +112,8 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
     Route::get('/residents/{resident}/reports/vitals-log', VitalsLogReportController::class)->middleware('auth:sanctum');
     Route::get('/residents/{resident}/reports/sleep-log', SleepLogReportController::class)->middleware('auth:sanctum');
     Route::get('/residents/{resident}/reports/appointments', AppointmentReportController::class)->middleware('auth:sanctum');
+    Route::get('/residents/{resident}/reports/incidents', IncidentHistoryReportController::class)->middleware('auth:sanctum');
+    Route::get('/residents/{resident}/reports/assessments', AssessmentSummaryReportController::class)->middleware('auth:sanctum');
     Route::apiResource('residents', ResidentController::class)->middleware('auth:sanctum');
     Route::get('/residents/{id}/appointments', [ResidentController::class, 'appointments'])->middleware('auth:sanctum');
     Route::get('/residents/{id}/vitals', [ResidentController::class, 'vitals'])->middleware('auth:sanctum');
