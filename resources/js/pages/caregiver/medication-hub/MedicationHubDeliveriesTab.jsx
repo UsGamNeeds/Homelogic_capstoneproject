@@ -1,13 +1,24 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { Truck, AlertCircle } from 'lucide-react';
+import { Truck, AlertCircle, Plus } from 'lucide-react';
 import api from '../../../services/api';
 import { formatPacificCalendarMedium, formatPacificDateTimeShort } from '../../../utils/pacificTime';
 import logger from '../../../utils/logger';
+import { isMedicationClinicalAdmin } from '../../../utils/medicationHubPermissions';
+import { RESIDENT_CONTEXT_QUERY_KEY } from '../../../utils/headerResidentSwitcher';
 
 export default function MedicationHubDeliveriesTab() {
     const { residentId } = useParams();
+
+    const { data: currentUser } = useQuery({
+        queryKey: ['current-user'],
+        queryFn: async () => (await api.get('/user')).data,
+        staleTime: 60_000,
+    });
+    const isClinicalAdmin = isMedicationClinicalAdmin(currentUser);
+    const addDeliveryHref = `/medication-deliveries?${RESIDENT_CONTEXT_QUERY_KEY}=${encodeURIComponent(residentId ?? '')}`;
+
     const { data, isLoading, error } = useQuery({
         queryKey: ['med-hub-deliveries', residentId],
         queryFn: async () => (await api.get('/medication-deliveries', { params: { resident_id: residentId, per_page: 50 } })).data,
@@ -47,16 +58,38 @@ export default function MedicationHubDeliveriesTab() {
                     <Truck className="w-5 h-5 text-[var(--theme-primary)]" aria-hidden="true" />
                     <h2 className="text-base font-bold">Deliveries for this resident</h2>
                 </div>
-                <Link
-                    to="/medication-deliveries"
-                    className="text-xs font-bold text-[var(--theme-primary)] hover:underline"
-                >
-                    All facility deliveries →
-                </Link>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                    {isClinicalAdmin && (
+                        <Link
+                            to={addDeliveryHref}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--theme-primary)] px-3 py-1.5 text-xs font-bold text-[var(--theme-text-on-primary)] shadow-sm hover:opacity-95 transition-opacity"
+                        >
+                            <Plus className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                            Add delivery
+                        </Link>
+                    )}
+                    <Link
+                        to="/medication-deliveries"
+                        className="text-xs font-bold text-[var(--theme-primary)] hover:underline"
+                    >
+                        All facility deliveries →
+                    </Link>
+                </div>
             </div>
 
             {rows.length === 0 ? (
-                <p className="text-sm text-gray-500 rounded-xl border border-gray-100 bg-white p-6">No delivery records for this resident.</p>
+                <div className="text-sm text-gray-500 rounded-xl border border-gray-100 bg-white p-6 space-y-3">
+                    <p>No delivery records for this resident.</p>
+                    {isClinicalAdmin && (
+                        <Link
+                            to={addDeliveryHref}
+                            className="inline-flex items-center gap-1.5 text-sm font-bold text-[var(--theme-primary)] hover:underline"
+                        >
+                            <Plus className="w-4 h-4 shrink-0" aria-hidden="true" />
+                            Add a delivery for this resident
+                        </Link>
+                    )}
+                </div>
             ) : (
                 <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm">
                     <table className="min-w-full text-sm">
