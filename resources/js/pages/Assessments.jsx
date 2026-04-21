@@ -12,6 +12,7 @@ import Modal from '../components/ui/Modal';
 import Tooltip from '../components/ui/Tooltip';
 import { hasModuleAccess } from '../utils/moduleAccess';
 import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
+import { isCaregiverRole } from '../utils/userRoles';
 
 export default function Assessments({ embedded = false, embeddedResidentId = null } = {}) {
     const queryClient = useQueryClient();
@@ -70,12 +71,14 @@ export default function Assessments({ embedded = false, embeddedResidentId = nul
         const role = currentUser.role?.toLowerCase().trim() || '';
         return role === 'admin';
     }, [currentUser]);
+
+    const isCaregiver = useMemo(() => isCaregiverRole(currentUser?.role), [currentUser?.role]);
     
     // Permission checks
     const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
-    const canCreate = isSuperAdmin || isAdmin || permissions.includes('create_assessments');
-    const canEdit = isSuperAdmin || isAdmin || permissions.includes('edit_assessments');
-    const canDelete = isSuperAdmin || isAdmin || permissions.includes('delete_assessments');
+    const canCreate = !isCaregiver && (isSuperAdmin || isAdmin || permissions.includes('create_assessments'));
+    const canEdit = !isCaregiver && (isSuperAdmin || isAdmin || permissions.includes('edit_assessments'));
+    const canDelete = !isCaregiver && (isSuperAdmin || isAdmin || permissions.includes('delete_assessments'));
 
     // Show loading state
     if (isLoadingUser) {
@@ -109,14 +112,6 @@ export default function Assessments({ embedded = false, embeddedResidentId = nul
             </div>
         );
     }
-
-    // Check if user is a caregiver
-    const isCaregiver = React.useMemo(() => {
-        if (!currentUser) return false;
-        const role = currentUser.role?.toLowerCase().trim() || '';
-        const roleNormalized = role.replace(/[\s_]/g, '');
-        return roleNormalized === 'caregiver' || (role.includes('care') && role.includes('giver'));
-    }, [currentUser]);
 
     // Fetch residents for form
     const { data: residentsData } = useQuery({
@@ -289,15 +284,15 @@ export default function Assessments({ embedded = false, embeddedResidentId = nul
         }
     };
 
-    // Full-page route: historically admin-only UI. Embedded resident hub allows caregivers with module access.
-    if (currentUser && !isAdmin && !embedded) {
+    // Full-page route: allow caregivers with module access (read-only). Block other non-admin roles.
+    if (currentUser && !isAdmin && !isCaregiver && !embedded) {
         return (
             <div>
                 <SectionCard>
                     <div className="text-center py-12">
                         <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                         <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Restricted</h2>
-                        <p className="text-gray-600">Assessments can only be created and viewed by administrators.</p>
+                        <p className="text-gray-600">This page is not available for your role. Please contact an administrator.</p>
                     </div>
                 </SectionCard>
             </div>
@@ -353,7 +348,11 @@ export default function Assessments({ embedded = false, embeddedResidentId = nul
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
                     <div>
                         <h2 className="text-xl font-semibold text-gray-900 mb-2">Assessment Management</h2>
-                        <p className="text-gray-600">View and manage resident assessments.</p>
+                        <p className="text-gray-600">
+                            {isCaregiver
+                                ? 'View resident assessments. Only administrators can add or change assessments.'
+                                : 'View and manage resident assessments.'}
+                        </p>
                     </div>
                     {canCreate && (
                         <button
@@ -465,33 +464,44 @@ export default function Assessments({ embedded = false, embeddedResidentId = nul
                                             {assessment.status?.replace('_', ' ')}
                                         </span>
                                         <div className="flex flex-col items-end space-y-1">
-                                            {assessment.status === 'completed' || assessment.status === 'approved' ? (
-                                                <Tooltip content="Assessment is already completed or approved" position="top">
-                                                    <span className="inline-flex">
-                                                        <button
-                                                            type="button"
-                                                            disabled
-                                                            className="px-3 py-1 text-sm text-gray-400 bg-gray-200 cursor-not-allowed rounded-lg transition-colors"
-                                                            aria-label="Start assessment unavailable: assessment is already completed or approved"
-                                                        >
-                                                            Start Assessment
-                                                        </button>
-                                                    </span>
-                                                </Tooltip>
-                                            ) : (
+                                            {isCaregiver ? (
                                                 <Link
-                                                    to={`/assessments/${assessment.id}`}
+                                                    to={`/assessments/${assessment.id}/review`}
                                                     className="px-3 py-1 text-sm text-[var(--theme-text-on-primary)] bg-[var(--theme-primary)] hover:bg-[var(--theme-primary-hover)] rounded-lg transition-colors"
                                                 >
-                                                    Start Assessment
+                                                    View
                                                 </Link>
+                                            ) : (
+                                                <>
+                                                    {assessment.status === 'completed' || assessment.status === 'approved' ? (
+                                                        <Tooltip content="Assessment is already completed or approved" position="top">
+                                                            <span className="inline-flex">
+                                                                <button
+                                                                    type="button"
+                                                                    disabled
+                                                                    className="px-3 py-1 text-sm text-gray-400 bg-gray-200 cursor-not-allowed rounded-lg transition-colors"
+                                                                    aria-label="Start assessment unavailable: assessment is already completed or approved"
+                                                                >
+                                                                    Start Assessment
+                                                                </button>
+                                                            </span>
+                                                        </Tooltip>
+                                                    ) : (
+                                                        <Link
+                                                            to={`/assessments/${assessment.id}`}
+                                                            className="px-3 py-1 text-sm text-[var(--theme-text-on-primary)] bg-[var(--theme-primary)] hover:bg-[var(--theme-primary-hover)] rounded-lg transition-colors"
+                                                        >
+                                                            Start Assessment
+                                                        </Link>
+                                                    )}
+                                                    <Link
+                                                        to={`/assessments/${assessment.id}/review`}
+                                                        className="px-3 py-1 text-sm text-[var(--theme-text-on-primary)] bg-[var(--theme-primary)] hover:bg-[var(--theme-primary-hover)] rounded-lg transition-colors"
+                                                    >
+                                                        Review
+                                                    </Link>
+                                                </>
                                             )}
-                                            <Link
-                                                to={`/assessments/${assessment.id}/review`}
-                                                className="px-3 py-1 text-sm text-[var(--theme-text-on-primary)] bg-[var(--theme-primary)] hover:bg-[var(--theme-primary-hover)] rounded-lg transition-colors"
-                                            >
-                                                Review
-                                            </Link>
                                         </div>
                                     </div>
                                 </div>

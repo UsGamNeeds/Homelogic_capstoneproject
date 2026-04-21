@@ -5,13 +5,14 @@ import api from '../services/api';
 import {
   ArrowLeft, Save, Building2, Palette, Settings, Users, Shield,
   MapPin, Phone, Mail, Image as ImageIcon, CheckCircle, XCircle,
-  Plus, Edit, Trash2, Search, Eye, AlertCircle, X, Calendar,
+  Plus, Edit, Trash2, Search, Eye, AlertCircle, Calendar,
   Briefcase, Award, Clock, User as UserIcon, Navigation, Cog
 } from 'lucide-react';
 import { useToastContext } from '../contexts/ToastContext';
 import FacilityPermissions from './FacilityPermissions';
 import EmptyState from '../components/ui/EmptyState';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import Modal from '../components/ui/Modal';
 import Tooltip from '../components/ui/Tooltip';
 import { getUserLocation } from '../utils/location';
 
@@ -1185,287 +1186,6 @@ function PermissionsTab({ facilityId, facilityName }) {
   );
 }
 
-// User Form Modal Component (simplified version)
-function UserFormModal({ record, facilityId, branches, roles, onClose, onSuccess }) {
-  const { showToast } = useToastContext();
-  const queryClient = useQueryClient();
-
-  const formatDateForInput = (dateString) => {
-    if (!dateString) return '';
-    if (dateString instanceof Date) {
-      return dateString.toISOString().split('T')[0];
-    }
-    if (typeof dateString !== 'string') return '';
-    if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return dateString;
-    const date = new Date(dateString);
-    return date.toISOString().split('T')[0];
-  };
-
-  const [form, setForm] = useState({
-    first_name: record?.first_name || '',
-    last_name: record?.last_name || '',
-    email: record?.email || '',
-    password: '',
-    phone_number: record?.phone_number || '',
-    date_of_birth: formatDateForInput(record?.date_of_birth),
-    sex: record?.sex || '',
-    date_employed: formatDateForInput(record?.date_employed) || formatDateForInput(new Date()),
-    role: record?.role || '',
-    assigned_branch_id: record?.assigned_branch_id || '',
-    facility_id: facilityId,
-    is_active: record?.is_active ?? true,
-  });
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const createMutation = useMutation({
-    mutationFn: async (data) => {
-      const name = `${data.first_name} ${data.last_name}`.trim() || data.email;
-      return api.post('/users', { ...data, name });
-    },
-    onSuccess: () => {
-      // Invalidate general users query
-      queryClient.invalidateQueries(['users']);
-      // Invalidate facility-users query for this facility
-      if (facilityId) {
-        queryClient.invalidateQueries(['facility-users', facilityId]);
-      }
-      showToast('User created successfully', 'success', { isFormSubmission: true });
-      onSuccess();
-    },
-    onError: (error) => {
-      const errorData = error.response?.data;
-      if (errorData?.errors) {
-        setErrors(errorData.errors);
-      } else {
-        showToast(errorData?.message || 'Failed to create user', 'error');
-      }
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async (data) => {
-      const name = `${data.first_name} ${data.last_name}`.trim() || data.email;
-      return api.put(`/users/${record.id}`, { ...data, name });
-    },
-    onSuccess: () => {
-      // Invalidate general users query
-      queryClient.invalidateQueries(['users']);
-      // Invalidate facility-users query for this facility
-      if (facilityId) {
-        queryClient.invalidateQueries(['facility-users', facilityId]);
-      }
-      showToast('User updated successfully', 'success', { isFormSubmission: true });
-      onSuccess();
-    },
-    onError: (error) => {
-      const errorData = error.response?.data;
-      if (errorData?.errors) {
-        setErrors(errorData.errors);
-      } else {
-        showToast(errorData?.message || 'Failed to update user', 'error');
-      }
-    },
-  });
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrors({});
-    setIsSubmitting(true);
-
-    const mutation = record ? updateMutation : createMutation;
-    mutation.mutate(form, {
-      onSettled: () => setIsSubmitting(false),
-    });
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex-shrink-0 p-6 border-b">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-black">
-              {record ? 'Edit User' : 'Add User'}
-            </h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-black text-2xl">
-              ×
-            </button>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6">
-          {Object.keys(errors).length > 0 && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <ul className="list-disc list-inside space-y-1">
-                {Object.entries(errors).map(([field, messages]) => (
-                  <li key={field} className="text-sm text-red-700">
-                    <strong>{field}:</strong> {Array.isArray(messages) ? messages.join(', ') : messages}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-1">First Name *</label>
-                <input
-                  type="text"
-                  value={form.first_name}
-                  onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] bg-white text-gray-900"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-1">Last Name *</label>
-                <input
-                  type="text"
-                  value={form.last_name}
-                  onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] bg-white text-gray-900"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-1">Email *</label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] bg-white text-gray-900"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-1">
-                  Password {record ? '(leave blank to keep current)' : '*'}
-                </label>
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  required={!record}
-                  minLength={8}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] bg-white text-gray-900"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-1">Phone *</label>
-                <input
-                  type="tel"
-                  value={form.phone_number}
-                  onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
-                  required={!record}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] bg-white text-gray-900"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-1">Date of Birth *</label>
-                <input
-                  type="date"
-                  value={form.date_of_birth}
-                  onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })}
-                  required={!record}
-                  max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] bg-white text-gray-900"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-1">Sex *</label>
-                <select
-                  value={form.sex}
-                  onChange={(e) => setForm({ ...form, sex: e.target.value })}
-                  required={!record}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] bg-white text-gray-900"
-                >
-                  <option value="">Select</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-1">Date Employed *</label>
-                <input
-                  type="date"
-                  value={form.date_employed}
-                  onChange={(e) => setForm({ ...form, date_employed: e.target.value })}
-                  required={!record}
-                  max={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] bg-white text-gray-900"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-1">Role *</label>
-                <select
-                  value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value })}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] bg-white text-gray-900"
-                >
-                  <option value="">Select Role</option>
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.name}>
-                      {role.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-1">Branch</label>
-                <select
-                  value={form.assigned_branch_id}
-                  onChange={(e) => setForm({ ...form, assigned_branch_id: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] bg-white text-gray-900"
-                >
-                  <option value="">Select Branch</option>
-                  {branches.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="md:col-span-2">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="is_active"
-                    checked={form.is_active}
-                    onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-                    className="w-4 h-4 text-[var(--theme-primary)] border-gray-300 rounded"
-                  />
-                  <label htmlFor="is_active" className="ml-2 text-sm font-bold text-gray-900">
-                    Active User
-                  </label>
-                </div>
-              </div>
-            </div>
-          </form>
-        </div>
-
-        <div className="flex-shrink-0 p-6 border-t bg-gray-50 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-white text-gray-700"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="px-6 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-primary-hover)] disabled:opacity-50"
-          >
-            {isSubmitting ? 'Saving...' : record ? 'Update' : 'Create'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // User Profile Modal Component (comprehensive)
 function UserProfileModal({ user, onClose, onEdit }) {
   // Fetch full user details if not already loaded
@@ -1480,31 +1200,27 @@ function UserProfileModal({ user, onClose, onEdit }) {
   });
 
   const displayUser = fullUser || user;
-
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--theme-primary)]"></div>
-          <p className="mt-4 text-gray-600">Loading user details...</p>
-        </div>
-      </div>
-    );
-  }
+  const modalTitle =
+    isLoading && !displayUser
+      ? 'Loading profile'
+      : displayUser?.name || displayUser?.email || 'User profile';
 
   return (
-    <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }} onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-        {/* Header with Profile Picture */}
-        <div className="bg-gradient-to-r from-[var(--theme-primary)] to-[#4a7a2a] p-4 md:p-8 text-white rounded-t-xl">
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between space-y-4 md:space-y-0">
-            <div className="flex flex-col md:flex-row md:items-center md:space-x-6 space-y-4 md:space-y-0">
-              {/* Profile Picture */}
+    <Modal isOpen={!!user} onClose={onClose} title={modalTitle} size="full" className="max-w-4xl">
+      {isLoading && !displayUser ? (
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-[var(--theme-primary)]" />
+          <p className="mt-4 text-gray-600">Loading user details...</p>
+        </div>
+      ) : (
+        <>
+          <div className="-mx-6 -mt-2 border-b border-white/20 bg-gradient-to-r from-[var(--theme-primary)] to-[#4a7a2a] px-6 py-5 text-white">
+            <div className="flex flex-col items-center gap-4 md:flex-row md:items-center md:gap-6">
               {displayUser.profile_image_url ? (
                 <img
                   src={displayUser.profile_image_url}
-                  alt={displayUser.name}
-                  className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-white shadow-lg mx-auto md:mx-0"
+                  alt={displayUser.name || displayUser.email || 'Profile'}
+                  className="mx-auto h-24 w-24 rounded-full border-4 border-white object-cover shadow-lg md:mx-0 md:h-32 md:w-32"
                   onError={(e) => {
                     e.target.style.display = 'none';
                     if (e.target.nextElementSibling) {
@@ -1513,40 +1229,34 @@ function UserProfileModal({ user, onClose, onEdit }) {
                   }}
                 />
               ) : null}
-              <div className={`w-24 h-24 md:w-32 md:h-32 rounded-full bg-white flex items-center justify-center border-4 border-white shadow-lg ${displayUser.profile_image_url ? 'hidden' : ''} mx-auto md:mx-0`}>
-                <span className="text-[var(--theme-primary)] font-bold text-4xl md:text-5xl">
+              <div
+                className={`mx-auto flex h-24 w-24 items-center justify-center rounded-full border-4 border-white bg-white shadow-lg md:mx-0 md:h-32 md:w-32 ${displayUser.profile_image_url ? 'hidden' : ''}`}
+              >
+                <span className="text-4xl font-bold text-[var(--theme-primary)] md:text-5xl">
                   {displayUser.name?.charAt(0)?.toUpperCase() || displayUser.email?.charAt(0)?.toUpperCase() || 'U'}
                 </span>
               </div>
-              <div className="text-center md:text-left">
-                <h2 className="text-2xl md:text-3xl font-bold mb-2">{displayUser.name || displayUser.email}</h2>
+              <div className="flex-1 text-center md:text-left">
                 {displayUser.email && (
-                  <div className="flex items-center justify-center md:justify-start space-x-2 mt-2 text-sm md:text-base text-green-50">
-                    <Mail className="w-4 h-4" />
+                  <div className="flex items-center justify-center gap-2 text-sm text-green-50 md:justify-start md:text-base">
+                    <Mail className="h-4 w-4 shrink-0" />
                     <span className="break-all">{displayUser.email}</span>
                   </div>
                 )}
                 <div className="mt-2">
-                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${displayUser.is_active
-                    ? 'bg-green-600 text-white'
-                    : 'bg-red-600 text-white'
-                    }`}>
+                  <span
+                    className={`inline-block rounded-full px-3 py-1 text-sm font-semibold ${
+                      displayUser.is_active ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+                    }`}
+                  >
                     {displayUser.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </div>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="text-white hover:text-green-200 transition-colors absolute top-4 right-4 md:relative md:top-0 md:right-0"
-            >
-              <X className="w-6 h-6" />
-            </button>
           </div>
-        </div>
 
-        {/* Body */}
-        <div className="p-4 md:p-8 overflow-y-auto flex-1">
+        <div className="pt-6">
           {/* Personal Information */}
           <div className="mb-6 md:mb-8">
             <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-4 flex items-center">
@@ -1739,24 +1449,26 @@ function UserProfileModal({ user, onClose, onEdit }) {
           )}
         </div>
 
-        {/* Footer */}
-        <div className="flex-shrink-0 p-6 border-t bg-gray-50 flex justify-end gap-3">
+        <div className="-mx-6 mt-8 flex flex-wrap justify-end gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4">
           <button
+            type="button"
             onClick={onClose}
-            className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-white transition-colors"
+            className="rounded-lg border border-gray-300 px-6 py-2 transition-colors hover:bg-white"
           >
             Close
           </button>
           <button
+            type="button"
             onClick={onEdit}
-            className="px-6 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors flex items-center gap-2"
+            className="flex items-center gap-2 rounded-lg bg-[var(--theme-primary)] px-6 py-2 text-white transition-colors hover:bg-[var(--theme-primary-hover)]"
           >
-            <Edit className="w-4 h-4" />
+            <Edit className="h-4 w-4" />
             Edit User
           </button>
         </div>
-      </div>
-    </div>
+        </>
+      )}
+    </Modal>
   );
 }
 

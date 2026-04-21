@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import api from '../../services/api';
@@ -48,6 +47,7 @@ import {
 
 import Select from '../../components/ui/radix/Select';
 import Tooltip from '../../components/ui/Tooltip';
+import Modal from '../../components/ui/Modal';
 import { RESIDENT_CONTEXT_QUERY_KEY } from '../../utils/headerResidentSwitcher';
 import ResidentSafetyStrip from '../../components/residents/ResidentSafetyStrip';
 import Breadcrumbs from '../../components/ui/Breadcrumbs';
@@ -1732,28 +1732,13 @@ function QuickAdminister({
                     {nextWindowCountdown && ` • Next window in ${nextWindowCountdown}`}
                 </p>
             )}
-            {isDosageModalOpen && createPortal(
-                (
-                <div
-                    className="fixed inset-0 z-[210] flex items-center justify-center p-4 backdrop-blur-sm bg-black/15 overflow-y-auto"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="resident-confirm-administration-title"
-                >
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-sm max-h-[min(90vh,100dvh)] overflow-y-auto my-auto">
-                        <div className="flex items-center justify-between border-b px-5 py-4">
-                            <h3 id="resident-confirm-administration-title" className="text-lg font-semibold text-gray-900">Confirm Administration</h3>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    closeDosageModal();
-                                }}
-                                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-                            >
-                                ×
-                            </button>
-                        </div>
-                        <div className="px-5 py-4 space-y-4">
+            <Modal
+                isOpen={isDosageModalOpen}
+                onClose={closeDosageModal}
+                title="Confirm administration"
+                size="sm"
+            >
+                <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Dosage Given
@@ -1790,8 +1775,8 @@ function QuickAdminister({
                                     disabled={submitting}
                                 />
                             </div>
-                        </div>
-                        <div className="flex justify-end gap-2 border-t px-5 py-4">
+                </div>
+                <div className="flex justify-end gap-2 border-t border-gray-200 pt-4 mt-4">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -1914,25 +1899,19 @@ function QuickAdminister({
                                 {submitting ? 'Saving...' : 'Confirm'}
                             </button>
                         </div>
-                    </div>
-                </div>
-                ),
-                document.body
-            )}
-            {prnFollowupOpen && createPortal(
-                (
-                <div
-                    className="fixed inset-0 z-[210] flex items-center justify-center p-4 backdrop-blur-sm bg-black/20 overflow-y-auto"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="prn-followup-modal-title"
-                >
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[min(90vh,100dvh)] overflow-hidden border border-gray-200 my-auto flex flex-col">
-                        <div className="px-5 py-3 border-b border-sky-100 bg-sky-50 flex-shrink-0">
-                            <h3 id="prn-followup-modal-title" className="text-lg font-semibold text-slate-800">Schedule Followup</h3>
-                            <p className="text-xs text-slate-600 mt-0.5">PRN dose recorded — optionally remind staff when to check back.</p>
-                        </div>
-                        <div className="px-5 py-4 space-y-4 min-h-0 flex-1 overflow-y-auto">
+            </Modal>
+            <Modal
+                isOpen={prnFollowupOpen}
+                onClose={() => {
+                    if (!followupSubmitting) setPrnFollowupOpen(false);
+                }}
+                title="Schedule followup"
+                size="md"
+            >
+                <p className="text-sm text-slate-600 mb-4">
+                    PRN dose recorded — optionally remind staff when to check back.
+                </p>
+                <div className="space-y-4 min-h-0">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     <span className="text-red-500">*</span> Schedule Date
@@ -1985,14 +1964,14 @@ function QuickAdminister({
                             {followupError && (
                                 <p className="text-xs text-red-600">{followupError}</p>
                             )}
-                        </div>
-                        <div className="flex justify-end gap-2 border-t px-5 py-4 bg-gray-50 flex-shrink-0">
+                </div>
+                <div className="flex justify-end gap-2 border-t border-gray-200 pt-4 mt-4">
                             <button
                                 type="button"
                                 onClick={() => {
                                     if (!followupSubmitting) setPrnFollowupOpen(false);
                                 }}
-                                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-white disabled:opacity-50"
+                                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                                 disabled={followupSubmitting}
                             >
                                 Skip
@@ -2046,11 +2025,7 @@ function QuickAdminister({
                                 {followupSubmitting ? 'Saving...' : 'Schedule'}
                             </button>
                         </div>
-                    </div>
-                </div>
-                ),
-                document.body
-            )}
+            </Modal>
         </div>
     );
 }

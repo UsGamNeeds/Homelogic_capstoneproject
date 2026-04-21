@@ -842,15 +842,12 @@ export default function ViewVitals() {
                                                                 {openMenuId === vital.id && (
                                                                     <>
                                                                         {/* Backdrop to close menu when clicking outside */}
-                                                                        <div 
-                                                                            className="fixed inset-0 z-[9998]" 
+                                                                        <div
+                                                                            className="fixed inset-0 z-[190]"
                                                                             onClick={() => setOpenMenuId(null)}
-                                                                            style={{ position: 'fixed' }}
+                                                                            aria-hidden
                                                                         />
-                                                                        <div 
-                                                                            className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200" 
-                                                                            style={{ zIndex: 9999, position: 'absolute' }}
-                                                                        >
+                                                                        <div className="absolute right-0 z-[191] mt-2 w-48 rounded-lg border border-gray-200 bg-white shadow-xl">
                                                                             <div className="py-1">
                                                                                 {vital.status === 'pending_review' && (
                                                                                     <button

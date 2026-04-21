@@ -15,7 +15,6 @@ import {
     Edit3,
     Trash2,
     Building2,
-    ArrowLeft,
 } from 'lucide-react';
 import api from '../services/api';
 import { getLocalDateString } from '../utils/pacificTime';
@@ -294,7 +293,6 @@ const closeAssignmentModal = () => {
                 size="xl"
             >
                 <TaskForm
-                    inModal
                     onClose={closeModal}
                     onSubmit={handleSubmit}
                     initialValues={editingTask}
@@ -313,7 +311,6 @@ const closeAssignmentModal = () => {
             >
                 {latestAssignmentTask ? (
                     <AssignmentForm
-                        inModal
                         task={latestAssignmentTask}
                         date={assignmentDate}
                         caregivers={caregivers}
@@ -338,7 +335,6 @@ const closeAssignmentModal = () => {
                             }
                         }}
                         isSaving={assignCaregiver.isLoading || removeAssignment.isLoading}
-                        onClose={closeAssignmentModal}
                     />
                 ) : null}
             </Modal>
@@ -624,7 +620,6 @@ const closeAssignmentModal = () => {
                 size="xl"
             >
                 <AreaForm
-                    inModal
                     onClose={() => {
                         setIsAreaModalOpen(false);
                         setEditingArea(null);
@@ -680,7 +675,7 @@ const closeAssignmentModal = () => {
     );
 }
 
-function TaskForm({ onClose, onSubmit, initialValues, isSaving, currentUser, branches, selectedBranchId: propSelectedBranchId, selectedAreaId, inModal = false }) {
+function TaskForm({ onClose, onSubmit, initialValues, isSaving, currentUser, branches, selectedBranchId: propSelectedBranchId, selectedAreaId }) {
     // Determine initial branch_id - use area's branch if editing, or selected branch from parent, or current user's branch
     const getInitialBranchId = React.useCallback(() => {
         if (initialValues?.area?.branch_id) {
@@ -851,24 +846,7 @@ function TaskForm({ onClose, onSubmit, initialValues, isSaving, currentUser, bra
     };
 
     return (
-        <div className={inModal ? '' : 'space-y-6'}>
-            {!inModal && (
-                <div className="flex items-center gap-3">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-100"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        Back to schedule
-                    </button>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        {initialValues ? 'Edit Task' : 'New Task'}
-                    </p>
-                </div>
-            )}
-
-            <div className="rounded-3xl bg-white shadow-lg ring-1 ring-gray-100">
+        <div className="rounded-3xl bg-white shadow-lg ring-1 ring-gray-100">
                 <div className="border-b border-gray-100 px-6 py-4 sm:px-8 sm:py-5">
                     <h2 className="text-xl font-semibold text-gray-900">
                         {initialValues ? initialValues.title : 'Create New Task'}
@@ -1075,11 +1053,10 @@ function TaskForm({ onClose, onSubmit, initialValues, isSaving, currentUser, bra
                     </FormProvider>
                 </div>
             </div>
-        </div>
     );
 }
 
-function AreaForm({ onClose, branchId, currentUser, initialValues, onSuccess, inModal = false }) {
+function AreaForm({ onClose, branchId, currentUser, initialValues, onSuccess }) {
     const queryClient = useQueryClient();
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -1153,42 +1130,7 @@ function AreaForm({ onClose, branchId, currentUser, initialValues, onSuccess, in
     };
 
     return (
-        <div className={inModal ? '' : 'fixed inset-0 z-[70] overflow-y-auto bg-gray-50'}>
-            <div className={inModal ? '' : 'mx-auto flex min-h-screen max-w-4xl flex-col px-4 py-8 sm:px-6 lg:px-8'}>
-                {!inModal && (
-                    <div className="flex items-center gap-3">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-100"
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                            Back to schedule
-                        </button>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                            {initialValues ? 'Edit Area' : 'New Area'}
-                        </p>
-                    </div>
-                )}
-
-                <div className={`rounded-3xl bg-white shadow-lg ring-1 ring-gray-100 ${inModal ? '' : 'mt-4'}`}>
-                    {!inModal && (
-                    <div
-                        className="rounded-t-3xl px-6 py-5 text-white"
-                        style={{
-                            background: 'linear-gradient(90deg, var(--theme-primary), var(--theme-primary-light))',
-                            color: 'var(--theme-text-on-primary)',
-                        }}
-                    >
-                        <div>
-                            <h2 className="text-2xl font-semibold leading-6">Cleaning Area</h2>
-                            <p className="mt-1 text-sm opacity-90">
-                                Define the space and shift label used across the housekeeping schedule.
-                            </p>
-                        </div>
-                    </div>
-                    )}
-
+        <div className="rounded-3xl bg-white shadow-lg ring-1 ring-gray-100">
                     <div className="space-y-6 px-6 py-6 sm:px-8 sm:py-8">
                         <FormProvider {...methods}>
                             <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
@@ -1292,13 +1234,11 @@ function AreaForm({ onClose, branchId, currentUser, initialValues, onSuccess, in
                             </form>
                         </FormProvider>
                     </div>
-                </div>
-            </div>
         </div>
     );
 }
 
-function AssignmentForm({ task, date, caregivers, onAssign, onRemove, isSaving, onClose, inModal = false }) {
+function AssignmentForm({ task, date, caregivers, onAssign, onRemove, isSaving }) {
     const [selectedCaregiver, setSelectedCaregiver] = React.useState('');
     const [removeConfirmId, setRemoveConfirmId] = React.useState(null);
     const assignments = task.assignments ?? [];
@@ -1332,21 +1272,6 @@ function AssignmentForm({ task, date, caregivers, onAssign, onRemove, isSaving, 
                 variant="danger"
                 isPending={isSaving}
             />
-            {!inModal && (
-                <div className="flex items-center gap-3">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-100"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        Back to schedule
-                    </button>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Assign Caregiver
-                    </p>
-                </div>
-            )}
 
             <div className="rounded-3xl bg-white shadow-lg ring-1 ring-gray-100">
                 <div className="border-b border-gray-100 px-6 py-4 sm:px-8 sm:py-5">

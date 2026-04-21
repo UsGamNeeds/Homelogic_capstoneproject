@@ -5,12 +5,21 @@ import api from '../services/api';
 import { ArrowLeft, ClipboardList, Calendar, User, CheckCircle, AlertCircle } from 'lucide-react';
 import logger from '../utils/logger';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import { isCaregiverRole } from '../utils/userRoles';
 
 export default function AssessmentDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
+
+    const { data: currentUser, isLoading: isLoadingUser } = useQuery({
+        queryKey: ['current-user'],
+        queryFn: async () => (await api.get('/user')).data,
+        staleTime: 60_000,
+    });
+
+    const readOnly = isCaregiverRole(currentUser?.role);
 
     const { data, isLoading, error, isSuccess } = useQuery({
         queryKey: ['assessment-detail', id],
@@ -66,7 +75,7 @@ export default function AssessmentDetail() {
     
     React.useEffect(() => {
         // Only run if query is successful and data is loaded
-        if (isLoading || !isSuccess) {
+        if (isLoading || !isSuccess || isLoadingUser || readOnly) {
             return;
         }
 
@@ -241,7 +250,7 @@ export default function AssessmentDetail() {
         } else {
             hasPrefilledRef.current.add(data.id);
         }
-    }, [data, isLoading, isSuccess, saveMutation, queryClient, id]); // Dependencies - include isSuccess to ensure data is loaded
+    }, [data, isLoading, isSuccess, isLoadingUser, readOnly, saveMutation, queryClient, id]); // Dependencies - include isSuccess to ensure data is loaded
 
     // Calculate section progress
     const getSectionProgress = (section) => {
@@ -323,7 +332,7 @@ export default function AssessmentDetail() {
                         </p>
                     </div>
                 </div>
-                {assessment.status !== 'approved' && assessment.status !== 'archived' && (
+                {!readOnly && assessment.status !== 'approved' && assessment.status !== 'archived' && (
                     <button
                         type="button"
                         onClick={() => setSubmitConfirmOpen(true)}
@@ -356,7 +365,9 @@ export default function AssessmentDetail() {
                     />
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
-                    You can save your progress and return anytime to complete the assessment.
+                    {readOnly
+                        ? 'You are viewing this assessment in read-only mode.'
+                        : 'You can save your progress and return anytime to complete the assessment.'}
                 </p>
             </div>
 
@@ -435,6 +446,7 @@ export default function AssessmentDetail() {
                                             <p className="text-xs text-gray-500 mb-2">Type: {q.response_type}</p>
                                             <QuestionInput
                                                 question={q}
+                                                readOnly={readOnly}
                                                 onSave={(value) => saveMutation.mutateAsync({ questionId: q.id, value })}
                                             />
                                         </div>
@@ -457,7 +469,7 @@ export default function AssessmentDetail() {
     );
 }
 
-function QuestionInput({ question, onSave }) {
+function QuestionInput({ question, onSave, readOnly = false }) {
     const initialValue = question.response_value ?? '';
     const [value, setValue] = React.useState(initialValue);
     const [saving, setSaving] = React.useState(false);
@@ -504,6 +516,9 @@ function QuestionInput({ question, onSave }) {
 
     // Debounced save on change for text/number/textarea
     React.useEffect(() => {
+        if (readOnly) {
+            return;
+        }
         // Skip auto-save for read-only age questions
         if (isAgeQuestion) {
             return;
@@ -538,12 +553,32 @@ function QuestionInput({ question, onSave }) {
                 clearTimeout(saveTimeoutRef.current);
             }
         };
-    }, [value, question.response_value, isAgeQuestion]);
+    }, [value, question.response_value, isAgeQuestion, readOnly]);
 
     const common = {
         className:
             'mt-2 w-full px-3 py-2 border border-gray-300 rounded text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent',
     };
+
+    if (readOnly) {
+        const raw = question.response_value;
+        let display = '';
+        if (raw !== null && raw !== undefined) {
+            if (typeof raw === 'boolean') {
+                display = raw ? 'Yes' : 'No';
+            } else {
+                const strVal = String(raw).trim();
+                if (strVal === 'true' || strVal === '1') display = 'Yes';
+                else if (strVal === 'false' || strVal === '0') display = 'No';
+                else display = strVal;
+            }
+        }
+        return (
+            <div className="mt-2 px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-sm text-gray-900 min-h-[2.5rem]">
+                {display ? display : <span className="text-gray-400 italic">No answer provided</span>}
+            </div>
+        );
+    }
 
     switch (question.response_type) {
         case 'number':

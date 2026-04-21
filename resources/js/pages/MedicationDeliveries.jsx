@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { toast } from 'sonner';
@@ -13,8 +14,14 @@ import CardIconButton from '../components/ui/CardIconButton';
 import DataPill, { DataPillSection } from '../components/ui/DataPill';
 import Select from '../components/ui/radix/Select';
 import logger from '../utils/logger';
+import { parseResidentContextId } from '../utils/headerResidentSwitcher';
 
 export default function MedicationDeliveries() {
+    const location = useLocation();
+    const headerResidentId = useMemo(
+        () => parseResidentContextId(location.search, location.pathname),
+        [location.search, location.pathname],
+    );
     const queryClient = useQueryClient();
     const [search, setSearch] = useState('');
     const [branchFilter, setBranchFilter] = useState(() => {
@@ -28,6 +35,8 @@ export default function MedicationDeliveries() {
     });
     const [showForm, setShowForm] = useState(false);
     const [formMode, setFormMode] = useState('full'); // 'full', 'quick', or 'bulk'
+    /** Bumps when opening the modal so form children remount with fresh state + header resident prefill. */
+    const [formOpenSeq, setFormOpenSeq] = useState(0);
     const [editing, setEditing] = useState(null);
     const [currentUser, setCurrentUser] = useState(null);
 
@@ -240,7 +249,8 @@ export default function MedicationDeliveries() {
             >
                 {formMode === 'bulk' ? (
                     <BulkMedicationDeliveryForm
-                        key="bulk"
+                        key={`bulk-${formOpenSeq}-${headerResidentId || '0'}`}
+                        defaultResidentId={headerResidentId || ''}
                         branches={branches}
                         residents={residents}
                         medications={medications}
@@ -261,8 +271,9 @@ export default function MedicationDeliveries() {
                     />
                 ) : (
                     <MedicationDeliveryForm
-                        key={editing?.id ?? `new-${formMode}`}
+                        key={editing?.id ?? `new-${formMode}-${formOpenSeq}-${headerResidentId || '0'}`}
                         record={editing}
+                        defaultResidentId={headerResidentId || ''}
                         branches={branches}
                         residents={residents}
                         medications={medications}
@@ -296,6 +307,7 @@ export default function MedicationDeliveries() {
                         <button
                             onClick={() => {
                                 setEditing(null);
+                                setFormOpenSeq((n) => n + 1);
                                 setShowForm(true);
                                 setFormMode('full');
                             }}
@@ -307,6 +319,7 @@ export default function MedicationDeliveries() {
                         <button
                             onClick={() => {
                                 setEditing(null);
+                                setFormOpenSeq((n) => n + 1);
                                 setShowForm(true);
                                 setFormMode('quick');
                             }}
@@ -318,6 +331,7 @@ export default function MedicationDeliveries() {
                         <button
                             onClick={() => {
                                 setEditing(null);
+                                setFormOpenSeq((n) => n + 1);
                                 setShowForm(true);
                                 setFormMode('bulk');
                             }}
@@ -610,6 +624,7 @@ export default function MedicationDeliveries() {
 
 function MedicationDeliveryForm({
     record,
+    defaultResidentId = '',
     branches,
     residents,
     medications,
@@ -630,7 +645,7 @@ function MedicationDeliveryForm({
     const [formData, setFormData] = useState({
         branch_id: record?.branch_id || caregiverBranchId || (isBranchAdmin && currentUser?.assigned_branch_id ? currentUser.assigned_branch_id : ''),
         delivery_type: record?.delivery_type || (formMode === 'quick' ? 'batch' : 'individual'),
-        resident_id: record?.resident_id || '',
+        resident_id: record?.resident_id || (defaultResidentId ? String(defaultResidentId) : ''),
         medication_id: record?.medication_id || '',
         pharmacy_name: record?.pharmacy_name || '',
         quantity_received: record?.quantity_received || '',
@@ -646,6 +661,19 @@ function MedicationDeliveryForm({
             setFormData(prev => ({ ...prev, branch_id: currentUser.assigned_branch_id }));
         }
     }, [isBranchAdmin, currentUser, record]);
+
+    // Match branch to header-selected resident (or prefilled resident) so the resident appears in the dropdown
+    React.useEffect(() => {
+        if (record) return;
+        const rid = formData.resident_id;
+        if (!rid || !residents?.length) return;
+        const r = residents.find((x) => String(x.id) === String(rid));
+        if (!r) return;
+        setFormData((prev) => {
+            if (String(prev.branch_id) === String(r.branch_id)) return prev;
+            return { ...prev, branch_id: String(r.branch_id) };
+        });
+    }, [record, formData.resident_id, residents]);
 
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1017,7 +1045,7 @@ function MedicationDeliveryForm({
     );
 }
 
-function BulkMedicationDeliveryForm({ branches, residents, medications, pharmacySuppliers = [], pharmacyTemplates = [], onSaveTemplate, isCaregiver, caregiverBranchId, onClose, onSuccess, currentUser, isFacilityAdmin, isBranchAdmin, inModal = false }) {
+function BulkMedicationDeliveryForm({ defaultResidentId = '', branches, residents, medications, pharmacySuppliers = [], pharmacyTemplates = [], onSaveTemplate, isCaregiver, caregiverBranchId, onClose, onSuccess, currentUser, isFacilityAdmin, isBranchAdmin, inModal = false }) {
     const [commonFields, setCommonFields] = useState({
         branch_id: caregiverBranchId || (isBranchAdmin && currentUser?.assigned_branch_id ? currentUser.assigned_branch_id : ''),
         pharmacy_name: '',
@@ -1035,7 +1063,7 @@ function BulkMedicationDeliveryForm({ branches, residents, medications, pharmacy
     const [deliveries, setDeliveries] = useState([
         {
             delivery_type: 'individual',
-            resident_id: '',
+            resident_id: defaultResidentId ? String(defaultResidentId) : '',
             medication_id: '',
             quantity_received: '',
             notes: '',
@@ -1055,6 +1083,17 @@ function BulkMedicationDeliveryForm({ branches, residents, medications, pharmacy
             setFilteredResidents(residents || []);
         }
     }, [commonFields.branch_id, residents]);
+
+    // Align branch with header-selected resident so the first row’s resident appears in the filtered list
+    React.useEffect(() => {
+        if (!defaultResidentId || !residents?.length) return;
+        const r = residents.find((x) => String(x.id) === String(defaultResidentId));
+        if (!r) return;
+        setCommonFields((prev) => {
+            if (String(prev.branch_id) === String(r.branch_id)) return prev;
+            return { ...prev, branch_id: String(r.branch_id) };
+        });
+    }, [defaultResidentId, residents]);
 
     const applyTemplate = (templateId) => {
         const tpl = pharmacyTemplates.find(t => t.id === Number(templateId));

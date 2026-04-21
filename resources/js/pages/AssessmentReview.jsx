@@ -6,11 +6,20 @@ import logger from '../utils/logger';
 import { ArrowLeft, ClipboardList, Calendar, User, CheckCircle, FileText, TrendingUp, Award } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import { isCaregiverRole } from '../utils/userRoles';
 
 export default function AssessmentReview() {
     const { id } = useParams();
     const queryClient = useQueryClient();
     const [completeConfirmOpen, setCompleteConfirmOpen] = useState(false);
+
+    const { data: currentUser } = useQuery({
+        queryKey: ['current-user'],
+        queryFn: async () => (await api.get('/user')).data,
+        staleTime: 60_000,
+    });
+
+    const readOnly = isCaregiverRole(currentUser?.role);
 
     const { data, isLoading, error } = useQuery({
         queryKey: ['assessment-review', id],
@@ -350,7 +359,7 @@ export default function AssessmentReview() {
                     )}
 
                     {/* Mark as Complete Button */}
-                    {assessment.sections?.length > 0 && assessment.status !== 'approved' && assessment.status !== 'archived' && (
+                    {!readOnly && assessment.sections?.length > 0 && assessment.status !== 'approved' && assessment.status !== 'archived' && (
                         <div className="bg-white rounded-xl shadow-lg p-6 border-2 border-[var(--theme-primary-light)]">
                             <div className="flex items-center justify-between">
                                 <div>

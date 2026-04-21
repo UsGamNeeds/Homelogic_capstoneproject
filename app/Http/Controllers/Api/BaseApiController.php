@@ -18,11 +18,24 @@ abstract class BaseApiController extends Controller
     protected function isCaregiver(?object $user = null): bool
     {
         $user = $user ?? auth()->user();
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
         return UserRoles::isCaregiverRole($user->role);
+    }
+
+    /**
+     * Caregivers may view assessments but must not create, edit, delete, or submit answers.
+     */
+    protected function forbidCaregiverMutation(?object $user = null): ?JsonResponse
+    {
+        $user = $user ?? auth()->user();
+        if ($this->isCaregiver($user)) {
+            return $this->error('Caregivers can view assessments but cannot modify them.', 403);
+        }
+
+        return null;
     }
 
     /**
@@ -35,7 +48,7 @@ abstract class BaseApiController extends Controller
         // Caregivers are restricted to their assigned branch
         if ($this->isCaregiver($user) && $user->assigned_branch_id) {
             $query->where('branch_id', $user->assigned_branch_id);
-        } 
+        }
         // Branch admins are restricted to their assigned branch
         elseif ($user && $user->isBranchAdmin() && $user->assigned_branch_id) {
             $query->where('branch_id', $user->assigned_branch_id);
@@ -85,7 +98,7 @@ abstract class BaseApiController extends Controller
     {
         $response = ['message' => $message];
 
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             $response['errors'] = $errors;
         }
 
@@ -110,20 +123,24 @@ abstract class BaseApiController extends Controller
             $branchId = $resource->branch_id ?? $resource->branch?->id ?? null;
             if ($branchId) {
                 $branch = \App\Models\Branch::find($branchId);
+
                 return $branch && $branch->facility_id === $user->facility_id;
             }
+
             return true; // If no branch, allow access
         }
 
         // Branch admins are restricted to their assigned branch
         if ($user && $user->isBranchAdmin()) {
             $branchId = $resource->branch_id ?? $resource->branch?->id ?? null;
+
             return $user->assigned_branch_id === $branchId;
         }
 
         // Caregivers are restricted to their assigned branch
         if ($this->isCaregiver($user)) {
             $branchId = $resource->branch_id ?? $resource->branch?->id ?? null;
+
             return $user->assigned_branch_id === $branchId;
         }
 
@@ -136,8 +153,8 @@ abstract class BaseApiController extends Controller
     protected function checkModuleAccess(string $module, ?object $user = null): bool
     {
         $user = $user ?? auth()->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return false;
         }
 
@@ -149,8 +166,9 @@ abstract class BaseApiController extends Controller
      */
     protected function requireModuleAccess(string $module, ?object $user = null): ?JsonResponse
     {
-        if (!$this->checkModuleAccess($module, $user)) {
+        if (! $this->checkModuleAccess($module, $user)) {
             $moduleName = \App\Constants\Modules::getDisplayName($module);
+
             return $this->error("{$moduleName} module is not available for your facility.", 403);
         }
 
@@ -164,7 +182,7 @@ abstract class BaseApiController extends Controller
     protected function applyFacilityFilter(Builder $query, ?object $user = null): void
     {
         $user = $user ?? auth()->user();
-        
+
         // Super admins can see all data (no filtering)
         if ($user && $user->role === 'super_admin') {
             return;
@@ -180,7 +198,7 @@ abstract class BaseApiController extends Controller
             $facility = null;
         }
 
-        if (!$facility && $user && $user->facility_id) {
+        if (! $facility && $user && $user->facility_id) {
             $facility = \App\Models\Facility::find($user->facility_id);
         }
 
@@ -199,7 +217,7 @@ abstract class BaseApiController extends Controller
     protected function checkFacilityAccess($resource, ?object $user = null): bool
     {
         $user = $user ?? auth()->user();
-        
+
         // Super admins have access to all resources
         if ($user && $user->role === 'super_admin') {
             return true;
@@ -213,11 +231,11 @@ abstract class BaseApiController extends Controller
             $facility = null;
         }
 
-        if (!$facility && $user && $user->facility_id) {
+        if (! $facility && $user && $user->facility_id) {
             $facility = \App\Models\Facility::find($user->facility_id);
         }
 
-        if (!$facility) {
+        if (! $facility) {
             return false;
         }
 
@@ -225,17 +243,17 @@ abstract class BaseApiController extends Controller
         $branchId = $resource->branch_id ?? $resource->branch?->id ?? null;
         if ($branchId) {
             $branch = \App\Models\Branch::find($branchId);
-            
+
             // Verify branch belongs to facility
-            if (!$branch || $branch->facility_id !== $facility->id) {
+            if (! $branch || $branch->facility_id !== $facility->id) {
                 return false;
             }
-            
+
             // If user is branch admin, verify it's their assigned branch
             if ($user && $user->isBranchAdmin() && $user->assigned_branch_id !== $branchId) {
                 return false;
             }
-            
+
             return true;
         }
 
@@ -249,13 +267,13 @@ abstract class BaseApiController extends Controller
     protected function requirePermission(string $permission, ?object $user = null): ?JsonResponse
     {
         $user = $user ?? auth()->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return $this->error('Unauthorized.', 401);
         }
 
-        if (!$user->hasPermission($permission)) {
-            return $this->error("Unauthorized. You do not have permission to perform this action.", 403);
+        if (! $user->hasPermission($permission)) {
+            return $this->error('Unauthorized. You do not have permission to perform this action.', 403);
         }
 
         return null;
@@ -330,14 +348,13 @@ abstract class BaseApiController extends Controller
     /**
      * Get facility branch IDs with caching for performance.
      * Use this method instead of whereHas('branch') when filtering by facility.
-     * 
-     * @param int $facilityId
+     *
      * @return array Array of branch IDs for the facility
      */
     protected function getFacilityBranchIds(int $facilityId): array
     {
         $cacheKey = "facility.{$facilityId}.branches";
-        
+
         return Cache::remember($cacheKey, 3600, function () use ($facilityId) {
             return \App\Models\Branch::where('facility_id', $facilityId)
                 ->pluck('id')
@@ -345,5 +362,3 @@ abstract class BaseApiController extends Controller
         });
     }
 }
-
-

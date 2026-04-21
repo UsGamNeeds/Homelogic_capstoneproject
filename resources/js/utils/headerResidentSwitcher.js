@@ -101,7 +101,8 @@ export function urlSearchParamsShallowEqual(a, b) {
  */
 export function parseResidentContextId(search, pathname) {
     const sp = new URLSearchParams(search?.startsWith('?') ? search.slice(1) : search || '');
-    const q = sp.get(RESIDENT_CONTEXT_QUERY_KEY) || sp.get('resident_id');
+    // Canonical query key first (matches header switcher), then legacy aliases.
+    const q = sp.get(RESIDENT_CONTEXT_QUERY_KEY) || sp.get('resident_id') || sp.get('resident');
     if (q) return String(q);
     return parseResidentIdFromPath(pathname);
 }
@@ -139,12 +140,15 @@ export function buildResidentsSectionResidentNavigateTo(pathname, search, newRes
     if (pathname.match(RE_MY_RESIDENTS)) {
         sp.delete(RESIDENT_CONTEXT_QUERY_KEY);
         sp.delete('resident_id');
+        sp.delete('resident');
         const hubSearch = sp.toString() ? `?${sp.toString()}` : '';
         const suffix = getMyResidentsPathSuffix(pathname);
         return { pathname: `/my-residents/${id}${suffix}`, search: hubSearch };
     }
 
     sp.set(RESIDENT_CONTEXT_QUERY_KEY, id);
+    sp.delete('resident');
+    sp.delete('resident_id');
     const searchStr = sp.toString() ? `?${sp.toString()}` : '';
     if (pathname.match(RE_CHARTS_RESIDENT)) {
         return { pathname: `/charts/resident/${id}`, search: searchStr };

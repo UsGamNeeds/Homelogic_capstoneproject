@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
@@ -2760,28 +2759,13 @@ function QuickAdminister({ medication, onSuccess }) {
                     {nextWindowCountdown && ` • Next window in ${nextWindowCountdown}`}
                 </p>
             )}
-            {isDosageModalOpen && createPortal(
-                (
-                <div
-                    className="fixed inset-0 z-[210] flex items-center justify-center p-4 backdrop-blur-sm bg-black/15 overflow-y-auto"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="confirm-administration-title"
-                >
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-sm max-h-[min(90vh,100dvh)] overflow-y-auto my-auto">
-                        <div className="flex items-center justify-between border-b px-5 py-4">
-                            <h3 id="confirm-administration-title" className="text-lg font-semibold text-gray-900">Confirm Administration</h3>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    closeDosageModal();
-                                }}
-                                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-                            >
-                                ×
-                            </button>
-                        </div>
-                        <div className="px-5 py-4 space-y-4">
+            <Modal
+                isOpen={isDosageModalOpen}
+                onClose={closeDosageModal}
+                title="Confirm administration"
+                size="sm"
+            >
+                <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-900 mb-2">
                                     Dosage Given
@@ -2818,8 +2802,8 @@ function QuickAdminister({ medication, onSuccess }) {
                                     disabled={submitting}
                                 />
                             </div>
-                        </div>
-                        <div className="flex justify-end gap-2 border-t px-5 py-4">
+                </div>
+                <div className="flex justify-end gap-2 border-t border-gray-200 pt-4 mt-4">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -3018,36 +3002,20 @@ function QuickAdminister({ medication, onSuccess }) {
                                 {submitting ? 'Saving...' : 'Confirm'}
                             </button>
                         </div>
-                    </div>
-                </div>
-                ),
-                document.body
-            )}
-            {isHospitalModalOpen && createPortal(
-                (
-                <div
-                    className="fixed inset-0 z-[210] flex items-center justify-center p-4 backdrop-blur-sm bg-black/15 overflow-y-auto"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="hospital-admission-modal-title"
-                >
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[min(90vh,100dvh)] overflow-y-auto my-auto">
-                        <div className="flex items-center justify-between border-b px-5 py-4">
-                            <h3 id="hospital-admission-modal-title" className="text-lg font-semibold text-gray-900">Hospital Admission Details</h3>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setIsHospitalModalOpen(false);
-                                    setHospitalNotes('');
-                                    setHospitalDocument(null);
-                                    setHospitalDocumentPreview(null);
-                                }}
-                                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-                            >
-                                ×
-                            </button>
-                        </div>
-                        <div className="px-5 py-4 space-y-4">
+            </Modal>
+            <Modal
+                isOpen={isHospitalModalOpen}
+                onClose={() => {
+                    if (submitting) return;
+                    setIsHospitalModalOpen(false);
+                    setHospitalNotes('');
+                    setHospitalDocument(null);
+                    setHospitalDocumentPreview(null);
+                }}
+                title="Hospital admission details"
+                size="md"
+            >
+                <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-900 mb-2">
                                     Notes *
@@ -3107,8 +3075,8 @@ function QuickAdminister({ medication, onSuccess }) {
                                     </div>
                                 )}
                             </div>
-                        </div>
-                        <div className="flex justify-end space-x-3 px-5 py-4 border-t">
+                </div>
+                <div className="flex justify-end space-x-3 border-t border-gray-200 pt-4 mt-4">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -3168,11 +3136,7 @@ function QuickAdminister({ medication, onSuccess }) {
                                 {submitting ? 'Recording...' : 'Record Hospital Admission'}
                             </button>
                         </div>
-                    </div>
-                </div>
-                ),
-                document.body
-            )}
+            </Modal>
         </div>
     );
 }

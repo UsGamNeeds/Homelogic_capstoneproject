@@ -2,9 +2,9 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
 import { Calendar, ClipboardList, Pill, User, ChevronLeft, ChevronRight, FileText, Download, AlertTriangle, CheckCircle2, XCircle, Ban } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import { formatPacificDate as formatDate, formatPacificTime as formatTime } from '../utils/pacificTime';
-import { RESIDENT_CONTEXT_QUERY_KEY, urlSearchParamsShallowEqual } from '../utils/headerResidentSwitcher';
+import { RESIDENT_CONTEXT_QUERY_KEY, urlSearchParamsShallowEqual, parseResidentContextId } from '../utils/headerResidentSwitcher';
 import EmptyState from '../components/ui/EmptyState';
 
 const statusOptions = [
@@ -41,14 +41,10 @@ const StatusIcon = ({ status, className = 'w-3.5 h-3.5' }) => {
 
 export default function MedicationHistory({ embedded = false, embeddedResidentId = '' } = {}) {
     const [searchParams, setSearchParams] = useSearchParams();
+    const location = useLocation();
     const [residentId, setResidentId] = useState(() => {
         if (embedded && embeddedResidentId) return String(embeddedResidentId);
-        return (
-            searchParams.get('resident') ||
-            searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) ||
-            searchParams.get('resident_id') ||
-            ''
-        );
+        return String(parseResidentContextId(location.search, location.pathname) || '');
     });
     const [medicationId, setMedicationId] = useState(() => searchParams.get('medication') || '');
     const [status, setStatus] = useState(() => searchParams.get('status') || '');
@@ -67,12 +63,7 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
 
     useEffect(() => {
         if (embedded) return;
-        const nextResident = String(
-            searchParams.get('resident') ||
-                searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) ||
-                searchParams.get('resident_id') ||
-                ''
-        );
+        const nextResident = String(parseResidentContextId(location.search, location.pathname) || '');
         const nextMedication = searchParams.get('medication') || '';
         const nextStatus = searchParams.get('status') || '';
         const nextDateFrom = searchParams.get('date_from') || '';
@@ -110,7 +101,7 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
             skipPushSearchFromStateRef.current = true;
             return nextPage;
         });
-    }, [searchParams, embedded]);
+    }, [searchParams, location.search, location.pathname, embedded]);
 
     useEffect(() => {
         if (embedded) return;
