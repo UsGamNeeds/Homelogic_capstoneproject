@@ -948,12 +948,11 @@ export function MedicationDeliveryForm({
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-900 mb-1">Pharmacy Name *</label>
+                                <label className="block text-sm font-medium text-gray-900 mb-1">Pharmacy Name (optional)</label>
                                 <input
                                     type="text"
                                     value={formData.pharmacy_name}
                                     onChange={(e) => setFormData({ ...formData, pharmacy_name: e.target.value })}
-                                    required
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-gray-900 bg-white"
                                 />
                                 {errors.pharmacy_name && <p className="text-xs text-red-600 mt-1">{errors.pharmacy_name[0]}</p>}
@@ -1243,11 +1242,11 @@ function BulkMedicationDeliveryForm({ defaultResidentId = '', branches, resident
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-900 mb-1">Pharmacy Name *</label>
+                                    <label className="block text-sm font-medium text-gray-900 mb-1">Pharmacy (optional)</label>
                                     <Select
                                         value={commonFields.pharmacy_name || ''}
                                         onValueChange={(value) => setCommonFields({ ...commonFields, pharmacy_name: value })}
-                                        placeholder="Select Pharmacy"
+                                        placeholder="Select pharmacy (optional)"
                                         options={pharmacySuppliers?.map(supplier => ({
                                             value: supplier.name,
                                             label: supplier.name,
