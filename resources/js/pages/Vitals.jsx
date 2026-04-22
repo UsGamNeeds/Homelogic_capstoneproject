@@ -16,13 +16,12 @@ import CardIconButton from '../components/ui/CardIconButton';
 import ResidentAvatarInline from '../components/ui/ResidentAvatarInline';
 import { DataPillSection } from '../components/ui/DataPill';
 import { useToastContext } from '../contexts/ToastContext';
-import BranchSelector from '../components/BranchSelector';
 import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
 
 export default function Vitals() {
     const queryClient = useQueryClient();
     const toast = useToastContext();
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const selectedBranchId = searchParams.get('branch');
     const [dateFilter, setDateFilter] = useState('all');
     const [residentFilter, setResidentFilter] = useState('');
@@ -95,13 +94,50 @@ export default function Vitals() {
 
 
     // Fetch branches for administrators (always fetch for form)
-    const { data: branchesData } = useQuery({
+    const { data: branchesData, isLoading: branchesLoading } = useQuery({
         queryKey: ['branches-list'],
         queryFn: async () => {
             const response = await api.get('/branches', { params: { per_page: 100 } });
             return response.data;
         },
     });
+
+    const branches = useMemo(() => {
+        const raw = branchesData?.data ?? branchesData;
+        if (!Array.isArray(raw)) return [];
+        return raw.filter((b) => b.is_active !== false);
+    }, [branchesData]);
+
+    // Apply a default ?branch= when none is in the URL (replaces the removed branch picker UI)
+    useEffect(() => {
+        if (selectedBranchId || branches.length === 0) return;
+        const userBranchId = currentUser?.assigned_branch_id;
+        let branchToSelect = null;
+        if (isCaregiver && userBranchId) {
+            if (branches.find((b) => String(b.id) === String(userBranchId))) {
+                branchToSelect = userBranchId;
+            }
+        }
+        if (branchToSelect == null && isFacilityAdmin && userBranchId) {
+            if (branches.find((b) => String(b.id) === String(userBranchId))) {
+                branchToSelect = userBranchId;
+            }
+        }
+        if (branchToSelect == null) {
+            branchToSelect = branches[0].id;
+        }
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set('branch', String(branchToSelect));
+        setSearchParams(newParams, { replace: true });
+    }, [
+        selectedBranchId,
+        branches,
+        isCaregiver,
+        isFacilityAdmin,
+        currentUser?.assigned_branch_id,
+        searchParams,
+        setSearchParams,
+    ]);
 
     // Fetch residents for form - filtered by branch
     const { data: residentsData } = useQuery({
@@ -148,16 +184,27 @@ export default function Vitals() {
         }
     );
 
-    // Show branch selector if no branch is selected
+    // Branch comes from ?branch= or is applied automatically (no branch picker on this page)
     if (!selectedBranchId) {
-        return (
-            <div className="space-y-6">
-                <BranchSelector currentUser={currentUser} />
-                <div className="rounded-xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-100">
-                    <Activity className="mx-auto h-12 w-12 text-gray-400" />
-                    <p className="mt-4 text-sm font-semibold text-gray-700">Please select a branch to continue</p>
-                    <p className="mt-2 text-xs text-gray-500">Select a branch from the dropdown above to view and manage vital signs.</p>
+        if (branchesLoading) {
+            return (
+                <div className="space-y-4 p-1">
+                    <ListSkeleton items={3} />
                 </div>
+            );
+        }
+        if (branches.length === 0) {
+            return (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+                    <p className="text-sm font-semibold text-amber-800">No branches available</p>
+                    <p className="mt-1 text-xs text-amber-700">Assign a branch to your profile or contact an administrator.</p>
+                </div>
+            );
+        }
+        return (
+            <div className="flex items-center justify-center py-16 text-gray-500 text-sm" aria-live="polite">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-[var(--theme-primary)]" aria-hidden="true" />
+                <span className="ml-2">Loading vitals…</span>
             </div>
         );
     }
@@ -207,7 +254,6 @@ export default function Vitals() {
                 />
             </Modal>
         <div className="space-y-6">
-            <BranchSelector currentUser={currentUser} />
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-3 mb-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                         <div className="min-w-0">
