@@ -102,7 +102,7 @@ export default function SuperAdminDashboard() {
       icon: Users,
       color: 'bg-[var(--theme-primary)]',
       hoverColor: 'hover:bg-[var(--theme-primary-hover)]',
-      link: '/administration/users',
+      link: '/team/users',
     },
   ];
 
@@ -149,7 +149,7 @@ export default function SuperAdminDashboard() {
       color: 'text-[var(--theme-primary)]',
       bgColor: 'bg-[var(--theme-primary-bg-light)]',
       hoverColor: 'hover:bg-[var(--theme-primary-bg-light)]',
-      onClick: () => navigate('/administration/users'),
+      onClick: () => navigate('/team/users'),
     },
     {
       title: 'Roles & Permissions',

@@ -54,6 +54,7 @@ export const MODULE_MAP = {
   
   // Residents module
   '/administration/residents': 'residents',
+  '/organization/residents': 'residents',
   '/my-residents': 'residents',
   '/residents': 'residents',
 
@@ -69,6 +70,7 @@ export const MODULE_MAP = {
   // Leave Requests module
   '/leave-requests': 'leave_requests',
   '/administration/leave-requests': 'leave_requests',
+  '/team/leave-requests': 'leave_requests',
   
   // Staff Scheduling module
   '/staff/schedule': 'staff_scheduling',

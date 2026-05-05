@@ -5,7 +5,7 @@ import {
     Search, ArrowRight, Users, Calendar, Heart, Pill, Moon,
     ClipboardList, Settings, AlertTriangle, FileText, LayoutDashboard,
     Sparkles, ShoppingCart, Flame, BarChart3, History, CalendarClock,
-    Stethoscope, Wrench, Briefcase,
+    Stethoscope, Wrench, Briefcase, Building2,
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -15,7 +15,10 @@ const ADMIN_COMMANDS = [
     { id: 'clinical-hub', label: 'Clinical', path: '/clinical', icon: Stethoscope, category: 'Hubs' },
     { id: 'operations-hub', label: 'Operations', path: '/operations', icon: Wrench, category: 'Hubs' },
     { id: 'management-hub', label: 'Management', path: '/management', icon: Briefcase, category: 'Hubs' },
-    { id: 'residents', label: 'Residents (admin)', path: '/administration/residents', icon: Users, category: 'Administration' },
+    { id: 'organization-hub', label: 'Organization', path: '/organization', icon: Building2, category: 'Hubs' },
+    { id: 'team-hub', label: 'Team & compliance', path: '/team', icon: Users, category: 'Hubs' },
+    { id: 'system-hub', label: 'System', path: '/administration', icon: Settings, category: 'Hubs' },
+    { id: 'residents', label: 'Residents (admin)', path: '/organization/residents', icon: Users, category: 'Organization' },
     { id: 'medications', label: 'Medications', path: '/medications', icon: Pill, category: 'Care' },
     { id: 'vitals', label: 'Vitals', path: '/vitals', icon: Heart, category: 'Care' },
     { id: 'appointments', label: 'Appointments', path: '/appointments', icon: Calendar, category: 'Care' },
@@ -23,7 +26,7 @@ const ADMIN_COMMANDS = [
     { id: 'sleep', label: 'Sleep Records', path: '/sleep', icon: Moon, category: 'Care' },
     { id: 'incidents', label: 'Incidents', path: '/incidents', icon: AlertTriangle, category: 'Care' },
     { id: 'reports', label: 'Reports', path: '/reports', icon: FileText, category: 'Reports' },
-    { id: 'users', label: 'Users', path: '/administration/users', icon: Users, category: 'Administration' },
+    { id: 'users', label: 'Users', path: '/team/users', icon: Users, category: 'Team & compliance' },
     { id: 'settings', label: 'Settings', path: '/profile', icon: Settings, category: 'Settings' },
 ];
 
@@ -98,7 +101,7 @@ export default function CommandPalette({ isOpen, onClose, isCaregiver = false })
             id: `resident-${r.id}`,
             label: [r.first_name, r.middle_names, r.last_name].filter(Boolean).join(' '),
             sublabel: [r.branch?.name, r.room_number ? `Room ${r.room_number}` : null].filter(Boolean).join(' · '),
-            path: isCaregiver ? `/my-residents/${r.id}` : `/administration/residents/${r.id}`,
+            path: isCaregiver ? `/my-residents/${r.id}` : `/organization/residents/${r.id}`,
             icon: Users,
             category: 'Resident',
             isResident: true,

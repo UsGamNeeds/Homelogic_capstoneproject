@@ -17,6 +17,18 @@ const PageLoader = () => (
     </div>
 );
 
+/** Legacy /administration/users/:id → /team/users/:id */
+function LegacyAdministrationUserViewRedirect() {
+    const { id } = useParams();
+    return <Navigate to={`/team/users/${id}`} replace />;
+}
+
+/** Legacy /administration/users/:id/edit → /team/users/:id/edit */
+function LegacyAdministrationUserEditRedirect() {
+    const { id } = useParams();
+    return <Navigate to={`/team/users/${id}/edit`} replace />;
+}
+
 // Utility function to retry failed dynamic imports
 // This fixes the "Failed to fetch dynamically imported module" error in production
 function retryLazyImport(importFn, retries = 5, delay = 300) {
@@ -136,6 +148,10 @@ const ManagementHubPage = lazyWithRetry(() => import('./pages/caregiver/Manageme
 const DocumentLibraryPage = lazyWithRetry(() => import('./pages/DocumentLibraryPage'));
 const AdministrationHubPage = lazyWithRetry(() => import('./pages/administration/AdministrationHubPage'));
 const AdministrationSectionLayout = lazyWithRetry(() => import('./pages/administration/AdministrationSectionLayout'));
+const OrganizationHubPage = lazyWithRetry(() => import('./pages/organization/OrganizationHubPage'));
+const OrganizationSectionLayout = lazyWithRetry(() => import('./pages/organization/OrganizationSectionLayout'));
+const TeamHubPage = lazyWithRetry(() => import('./pages/team/TeamHubPage'));
+const TeamSectionLayout = lazyWithRetry(() => import('./pages/team/TeamSectionLayout'));
 const SubscriptionBillingPage = lazyWithRetry(() => import('./pages/administration/SubscriptionBillingPage'));
 const ReportsSectionLayout = lazyWithRetry(() => import('./pages/caregiver/ReportsSectionLayout'));
 const Appointments = lazyWithRetry(() => import('./pages/Appointments'));
@@ -433,29 +449,57 @@ function App() {
                     <Route path="visitors/view-all" element={<Suspense fallback={<PageLoader />}><VisitorsView /></Suspense>} />
                 </Route>
                 
-                {/* ── Administration section (persistent tab bar) ─────────── */}
+                {/* ── Organization (facility structure & clinical reference data) ── */}
+                <Route element={<Suspense fallback={<PageLoader />}><OrganizationSectionLayout /></Suspense>}>
+                    <Route path="organization" element={<Suspense fallback={<PageLoader />}><OrganizationHubPage /></Suspense>} />
+                    <Route path="organization/residents" element={<Suspense fallback={<PageLoader />}><Residents /></Suspense>} />
+                    <Route path="organization/resident-contacts" element={<Suspense fallback={<PageLoader />}><ResidentContacts /></Suspense>} />
+                    <Route path="organization/branches" element={<Suspense fallback={<PageLoader />}><Branches /></Suspense>} />
+                    <Route path="organization/vital-ranges" element={<Suspense fallback={<PageLoader />}><VitalRanges /></Suspense>} />
+                    <Route path="organization/drugs" element={<Suspense fallback={<PageLoader />}><Drugs /></Suspense>} />
+                </Route>
+
+                {/* ── Team & compliance (people, access, billing, audit) ───────── */}
+                <Route element={<Suspense fallback={<PageLoader />}><TeamSectionLayout /></Suspense>}>
+                    <Route path="team" element={<Suspense fallback={<PageLoader />}><TeamHubPage /></Suspense>} />
+                    <Route path="team/billing" element={<Suspense fallback={<PageLoader />}><SubscriptionBillingPage /></Suspense>} />
+                    <Route path="team/leave-requests" element={<Suspense fallback={<PageLoader />}><LeaveRequests /></Suspense>} />
+                    <Route path="team/roles" element={<Suspense fallback={<PageLoader />}><Roles /></Suspense>} />
+                    <Route path="team/facility-permissions" element={<Suspense fallback={<PageLoader />}><Permissions /></Suspense>} />
+                    <Route path="team/users" element={<Suspense fallback={<PageLoader />}><Users /></Suspense>} />
+                    <Route path="team/users/create" element={<Suspense fallback={<PageLoader />}><UserCreate /></Suspense>} />
+                    <Route path="team/users/:id/edit" element={<Suspense fallback={<PageLoader />}><UserEdit /></Suspense>} />
+                    <Route path="team/users/:id" element={<Suspense fallback={<PageLoader />}><ViewUser /></Suspense>} />
+                    <Route path="team/employee-documents" element={<Suspense fallback={<PageLoader />}><EmployeeDocuments /></Suspense>} />
+                    <Route path="team/activity-logs" element={<Suspense fallback={<PageLoader />}><ActivityLogs /></Suspense>} />
+                    <Route path="team/deactivated" element={<Suspense fallback={<PageLoader />}><DeactivatedRecords /></Suspense>} />
+                </Route>
+
+                {/* ── System (low-traffic configuration) ─────────────────────── */}
                 <Route element={<Suspense fallback={<PageLoader />}><AdministrationSectionLayout /></Suspense>}>
                     <Route path="administration" element={<Suspense fallback={<PageLoader />}><AdministrationHubPage /></Suspense>} />
-                    <Route path="administration/billing" element={<Suspense fallback={<PageLoader />}><SubscriptionBillingPage /></Suspense>} />
-                    <Route path="administration/residents" element={<Suspense fallback={<PageLoader />}><Residents /></Suspense>} />
-                    <Route path="administration/resident-contacts" element={<Suspense fallback={<PageLoader />}><ResidentContacts /></Suspense>} />
-                    <Route path="administration/branches" element={<Suspense fallback={<PageLoader />}><Branches /></Suspense>} />
-                    <Route path="administration/vital-ranges" element={<Suspense fallback={<PageLoader />}><VitalRanges /></Suspense>} />
-                    <Route path="administration/leave-requests" element={<Suspense fallback={<PageLoader />}><LeaveRequests /></Suspense>} />
-                    <Route path="administration/roles" element={<Suspense fallback={<PageLoader />}><Roles /></Suspense>} />
-                    <Route path="administration/facility-permissions" element={<Suspense fallback={<PageLoader />}><Permissions /></Suspense>} />
-                    <Route path="administration/users" element={<Suspense fallback={<PageLoader />}><Users /></Suspense>} />
                     <Route path="administration/email-settings" element={<Suspense fallback={<PageLoader />}><SuperAdminEmailSettings /></Suspense>} />
-                    <Route path="administration/users/create" element={<Suspense fallback={<PageLoader />}><UserCreate /></Suspense>} />
-                    <Route path="administration/users/:id/edit" element={<Suspense fallback={<PageLoader />}><UserEdit /></Suspense>} />
-                    <Route path="administration/users/:id" element={<Suspense fallback={<PageLoader />}><ViewUser /></Suspense>} />
                     <Route path="administration/chart-data" element={<Suspense fallback={<PageLoader />}><ChartData /></Suspense>} />
                     <Route path="administration/behavior-charts" element={<Suspense fallback={<PageLoader />}><BehaviorChartsView /></Suspense>} />
-                    <Route path="administration/drugs" element={<Suspense fallback={<PageLoader />}><Drugs /></Suspense>} />
-                    <Route path="administration/employee-documents" element={<Suspense fallback={<PageLoader />}><EmployeeDocuments /></Suspense>} />
-                    <Route path="administration/activity-logs" element={<Suspense fallback={<PageLoader />}><ActivityLogs /></Suspense>} />
-                    <Route path="administration/deactivated" element={<Suspense fallback={<PageLoader />}><DeactivatedRecords /></Suspense>} />
                 </Route>
+
+                {/* Legacy /administration/* → canonical hub URLs */}
+                <Route path="administration/billing" element={<Navigate to="/team/billing" replace />} />
+                <Route path="administration/residents" element={<Navigate to="/organization/residents" replace />} />
+                <Route path="administration/resident-contacts" element={<Navigate to="/organization/resident-contacts" replace />} />
+                <Route path="administration/branches" element={<Navigate to="/organization/branches" replace />} />
+                <Route path="administration/vital-ranges" element={<Navigate to="/organization/vital-ranges" replace />} />
+                <Route path="administration/drugs" element={<Navigate to="/organization/drugs" replace />} />
+                <Route path="administration/leave-requests" element={<Navigate to="/team/leave-requests" replace />} />
+                <Route path="administration/roles" element={<Navigate to="/team/roles" replace />} />
+                <Route path="administration/facility-permissions" element={<Navigate to="/team/facility-permissions" replace />} />
+                <Route path="administration/users" element={<Navigate to="/team/users" replace />} />
+                <Route path="administration/users/create" element={<Navigate to="/team/users/create" replace />} />
+                <Route path="administration/users/:id/edit" element={<LegacyAdministrationUserEditRedirect />} />
+                <Route path="administration/users/:id" element={<LegacyAdministrationUserViewRedirect />} />
+                <Route path="administration/employee-documents" element={<Navigate to="/team/employee-documents" replace />} />
+                <Route path="administration/activity-logs" element={<Navigate to="/team/activity-logs" replace />} />
+                <Route path="administration/deactivated" element={<Navigate to="/team/deactivated" replace />} />
 
                 {/* ── Reports section (persistent tab bar) ─────────────────── */}
                 <Route element={<Suspense fallback={<PageLoader />}><ReportsSectionLayout /></Suspense>}>

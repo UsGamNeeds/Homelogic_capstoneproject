@@ -397,7 +397,7 @@ export default function Dashboard() {
             iconBg: 'bg-[var(--theme-primary-bg-light)]',
             iconColor: 'text-[var(--theme-primary)]',
             description: 'Assigned to me',
-            link: '/administration/residents',
+            link: '/organization/residents',
             trend: 'positive'
         },
         {
@@ -441,7 +441,7 @@ export default function Dashboard() {
             iconBg: 'bg-[var(--theme-primary-bg-light)]',
             iconColor: 'text-[var(--theme-secondary)]',
             description: 'Pending approval',
-            link: '/administration/leave-requests',
+            link: '/team/leave-requests',
             trend: (stats?.pending_leave_requests ?? 0) > 0 ? 'warning' : 'positive'
         },
         {
@@ -463,7 +463,7 @@ export default function Dashboard() {
             gradient: 'from-[var(--theme-primary)] to-[var(--theme-primary-light)]',
             iconBg: 'bg-[var(--theme-primary-bg-light)]',
             iconColor: 'text-[var(--theme-primary)]',
-            link: '/administration/residents',
+            link: '/organization/residents',
             description: 'Active residents',
         },
         {
@@ -493,7 +493,7 @@ export default function Dashboard() {
             gradient: 'from-[var(--theme-primary)] to-[var(--theme-primary-light)]',
             iconBg: 'bg-[var(--theme-primary-bg-light)]',
             iconColor: 'text-[var(--theme-primary)]',
-            link: '/administration/users',
+            link: '/team/users',
             description: 'Active staff',
         },
         {
@@ -637,7 +637,7 @@ export default function Dashboard() {
                 title: 'Pending Approvals',
                 description: `${stats.pending_leave_requests} leave request${stats.pending_leave_requests > 1 ? 's' : ''} awaiting your approval`,
                 priority: 'info',
-                link: '/administration/leave-requests',
+                link: '/team/leave-requests',
                 metadata: { count: stats.pending_leave_requests },
             });
         }

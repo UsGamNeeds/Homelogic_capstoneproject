@@ -73,7 +73,7 @@ export default function ViewUser() {
                         description="The user you're looking for doesn't exist or you don't have permission to view it."
                         action={{
                             label: 'Back to Users',
-                            onClick: () => navigate('/administration/users')
+                            onClick: () => navigate('/team/users')
                         }}
                     />
                 </div>
@@ -87,7 +87,7 @@ export default function ViewUser() {
                 {/* Header */}
                 <div className="mb-6">
                     <button
-                        onClick={() => navigate('/administration/users')}
+                        onClick={() => navigate('/team/users')}
                         className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition"
                     >
                         <ArrowLeft className="h-5 w-5" />
@@ -99,7 +99,7 @@ export default function ViewUser() {
                             <p className="text-gray-600 mt-1">View comprehensive user information and statistics</p>
                         </div>
                         <button
-                            onClick={() => navigate(`/administration/users/${id}/edit`)}
+                            onClick={() => navigate(`/team/users/${id}/edit`)}
                             className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition"
                         >
                             <Edit className="h-4 w-4" />
@@ -373,7 +373,7 @@ export default function ViewUser() {
                             <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
                             <div className="space-y-2">
                                 <button
-                                    onClick={() => navigate(`/administration/users/${id}/edit`)}
+                                    onClick={() => navigate(`/team/users/${id}/edit`)}
                                     className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition"
                                 >
                                     <Edit className="h-4 w-4" />

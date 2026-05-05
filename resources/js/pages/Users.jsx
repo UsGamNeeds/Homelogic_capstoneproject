@@ -256,7 +256,7 @@ export default function UsersPage() {
                                     variant="view"
                                     icon={Eye}
                                     aria-label="View profile"
-                                    onClick={() => navigate(`/administration/users/${user.id}`)}
+                                    onClick={() => navigate(`/team/users/${user.id}`)}
                                 />
                             </Tooltip>
                             {canEdit && (

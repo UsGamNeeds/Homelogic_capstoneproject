@@ -1,41 +1,59 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ClipboardList, Database, Mail, ArrowRight } from 'lucide-react';
+import { Users, Building2, Pill, MessageSquare, Activity, ArrowRight } from 'lucide-react';
 import ScrollReveal from '../../components/ui/ScrollReveal';
 
 const TILES = [
     {
-        id: 'behavior-charts',
-        title: 'Behavior Config',
-        description: 'Set up behavior monitoring categories and chart types.',
-        icon: ClipboardList,
-        path: '/administration/behavior-charts',
-        accent: 'text-orange-600',
-        bg: 'bg-orange-50',
-    },
-    {
-        id: 'chart-data',
-        title: 'Chart Data',
-        description: 'Manage reference data used by behavior and clinical charts.',
-        icon: Database,
-        path: '/administration/chart-data',
+        id: 'residents',
+        title: 'Residents',
+        description: 'Manage facility residents, admissions, and personal details.',
+        icon: Users,
+        path: '/organization/residents',
         accent: 'text-blue-600',
         bg: 'bg-blue-50',
     },
     {
-        id: 'email-settings',
-        title: 'Email settings',
-        description: 'Configure outbound email and notification delivery.',
-        icon: Mail,
-        path: '/administration/email-settings',
-        accent: 'text-indigo-600',
-        bg: 'bg-indigo-50',
+        id: 'branches',
+        title: 'Branches',
+        description: 'Configure facility branches, buildings, and rooms.',
+        icon: Building2,
+        path: '/organization/branches',
+        accent: 'text-emerald-600',
+        bg: 'bg-emerald-50',
+    },
+    {
+        id: 'drugs',
+        title: 'Drugs',
+        description: 'Manage the master list of medications and drug information.',
+        icon: Pill,
+        path: '/organization/drugs',
+        accent: 'text-cyan-600',
+        bg: 'bg-cyan-50',
+    },
+    {
+        id: 'resident-contacts',
+        title: 'Resident Contacts',
+        description: 'Manage emergency contacts and legal representatives.',
+        icon: MessageSquare,
+        path: '/organization/resident-contacts',
+        accent: 'text-sky-600',
+        bg: 'bg-sky-50',
+    },
+    {
+        id: 'vital-ranges',
+        title: 'Vital Ranges',
+        description: 'Configure normal ranges and alerts for clinical vitals.',
+        icon: Activity,
+        path: '/organization/vital-ranges',
+        accent: 'text-red-600',
+        bg: 'bg-red-50',
     },
 ];
 
-export default function AdministrationHubPage() {
+export default function OrganizationHubPage() {
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {TILES.map((tile, i) => {
                 const Icon = tile.icon;
                 return (

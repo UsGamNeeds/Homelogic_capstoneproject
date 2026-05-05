@@ -217,7 +217,7 @@ export default function NotificationDropdown() {
             case 'appointment_completed':
                 navUrl = '/appointments'; break;
             case 'leave_request': case 'leave_approved': case 'leave_rejected':
-                navUrl = '/administration/leave-requests'; break;
+                navUrl = '/team/leave-requests'; break;
             case 'vital_recorded': case 'vital_critical':
                 navUrl = metadata.resident_id ? `/vitals?resident_id=${metadata.resident_id}` : '/vitals'; break;
             case 'incident_reported':
@@ -225,13 +225,13 @@ export default function NotificationDropdown() {
             case 'sleep_record':
                 navUrl = metadata.resident_id ? `/sleep?resident_id=${metadata.resident_id}` : '/sleep'; break;
             case 'resident_created':
-                navUrl = '/administration/residents'; break;
+                navUrl = '/organization/residents'; break;
             case 'user_created':
-                navUrl = '/administration/users'; break;
+                navUrl = '/team/users'; break;
             case 'facility_created':
-                navUrl = '/administration/facilities'; break;
+                navUrl = '/super-admin/facilities'; break;
             case 'branch_created':
-                navUrl = '/administration/branches'; break;
+                navUrl = '/organization/branches'; break;
             case 'housekeeping_task_completed': case 'housekeeping_task_skipped':
                 navUrl = '/housekeeping/dashboard'; break;
             case 'fire_drill_scheduled': case 'fire_drill_today': case 'fire_drill_reminder':

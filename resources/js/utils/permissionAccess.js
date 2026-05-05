@@ -2,7 +2,22 @@
 // Maps navigation paths to required permission(s). Use a string for one permission, or an array of
 // strings — user needs at least one (OR). Example: Drugs shows if user has view_drugs OR view_medications.
 export const PERMISSION_MAP = {
-  // Administration menu items
+  // Organization hub
+  '/organization/residents': 'view_residents',
+  '/organization/resident-contacts': 'view_residents',
+  '/organization/branches': 'view_branches',
+  '/organization/vital-ranges': 'view_vital_ranges',
+  '/organization/drugs': ['view_drugs', 'view_medications', 'create_drugs', 'edit_drugs', 'delete_drugs'],
+  // Team & compliance hub
+  '/team/leave-requests': 'view_leave_requests',
+  '/team/roles': 'view_roles',
+  '/team/users': 'view_users',
+  '/team/facility-permissions': ['view_roles', 'view_permissions'],
+  '/team/deactivated': 'view_users',
+  '/team/employee-documents': 'view_employee_documents',
+  '/team/activity-logs': ['view_activity_logs', 'view_users'],
+
+  // Legacy /administration/* (redirects; kept for bookmarks / deep links)
   '/administration/residents': 'view_residents',
   '/administration/branches': 'view_branches',
   '/administration/vital-ranges': 'view_vital_ranges',
@@ -12,11 +27,9 @@ export const PERMISSION_MAP = {
   '/staff/attendance': 'view_schedules',
   '/administration/roles': 'view_roles',
   '/administration/users': 'view_users',
-  // Facility admins often have medication access without explicit view_drugs on the role
   '/administration/drugs': ['view_drugs', 'view_medications', 'create_drugs', 'edit_drugs', 'delete_drugs'],
-  '/administration/deactivated': 'view_users', // Inactive records
+  '/administration/deactivated': 'view_users',
   '/administration/employee-documents': 'view_employee_documents',
-  // Facility admins usually have view_users; view_activity_logs may be missing from older DB seeds
   '/administration/activity-logs': ['view_activity_logs', 'view_users'],
   
   // Other navigation items that require specific permissions

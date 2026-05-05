@@ -1062,7 +1062,7 @@ function AccountsTab({ facilityId }) {
         </div>
         <button
           type="button"
-          onClick={() => navigate(`/administration/users?create=1&facility_id=${facilityId}`)}
+          onClick={() => navigate(`/team/users?create=1&facility_id=${facilityId}`)}
           className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-primary-hover)] flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -1107,7 +1107,7 @@ function AccountsTab({ facilityId }) {
                   <Tooltip content="Edit user" position="top">
                     <button
                       type="button"
-                      onClick={() => navigate(`/administration/users?editUserId=${user.id}`)}
+                      onClick={() => navigate(`/team/users?editUserId=${user.id}`)}
                       className="p-1.5 text-[var(--theme-primary)] hover:bg-gray-100 rounded"
                       aria-label="Edit user"
                     >
@@ -1164,7 +1164,7 @@ function AccountsTab({ facilityId }) {
           onClose={() => setViewingProfile(null)}
           onEdit={() => {
             setViewingProfile(null);
-            navigate(`/administration/users?editUserId=${viewingProfile.id}`);
+            navigate(`/team/users?editUserId=${viewingProfile.id}`);
           }}
         />
       )}

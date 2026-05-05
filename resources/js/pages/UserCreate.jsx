@@ -1,7 +1,7 @@
 import { Navigate, useSearchParams } from 'react-router-dom';
 
 /**
- * Legacy route: /administration/users/create → users hub opens create modal (optional ?facility_id=).
+ * /team/users/create → users hub opens create modal (optional ?facility_id=).
  */
 export default function UserCreate() {
     const [searchParams] = useSearchParams();
@@ -11,5 +11,5 @@ export default function UserCreate() {
     if (facilityId) {
         qs.set('facility_id', facilityId);
     }
-    return <Navigate to={`/administration/users?${qs.toString()}`} replace />;
+    return <Navigate to={`/team/users?${qs.toString()}`} replace />;
 }

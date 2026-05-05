@@ -27,6 +27,7 @@ import {
     Stethoscope,
     Wrench,
     Briefcase,
+    UsersRound,
 } from 'lucide-react';
 import NotificationDropdown from './NotificationDropdown';
 import ReminderPanel from './ReminderPanel';
@@ -93,7 +94,9 @@ const HUB_SECTION = 'Hubs';
 
 const OPERATIONS_HUB_PREFIXES = ['/housekeeping', '/grocery-status', '/fire-drills', '/incidents', '/leave-requests'];
 const MANAGEMENT_HUB_PREFIXES = ['/pharmacy', '/billing', '/check-in-dashboard', '/staff', '/visitors', '/residents/sign-out', '/residents/sign-outs', '/document-library'];
-const ADMINISTRATION_HUB_PREFIXES = ['/administration'];
+const ORGANIZATION_HUB_PREFIXES = ['/organization'];
+const TEAM_HUB_PREFIXES = ['/team'];
+const SYSTEM_HUB_PREFIXES = ['/administration'];
 
 /**
  * Caregivers: care-focused nav. NO Management hub (pharmacy, billing, admin).
@@ -109,16 +112,18 @@ const caregiverNavigation = [
 
 /**
  * Facility staff (administrator / admin / nurse etc): full hub access including
- * the Management hub (pharmacy, billing, staff scheduling) and Administration.
+ * Management plus Organization, Team & compliance, and System configuration hubs.
  */
 const facilityStaffHubNavigation = [
-    { name: 'Dashboard',      icon: LayoutDashboard, path: '/dashboard',    children: null, section: 'Home' },
-    { name: 'Residents',      icon: Users,           path: '/my-residents', children: null, section: HUB_SECTION, activePathPrefixes: RESIDENT_HUB_PREFIXES, activePathRegex: RESIDENT_LEGACY_DETAIL },
-    { name: 'Clinical',       icon: Stethoscope,     path: '/clinical',     children: null, section: HUB_SECTION, activePathPrefixes: CLINICAL_HUB_PREFIXES },
-    { name: 'Operations',     icon: Wrench,          path: '/operations',   children: null, section: HUB_SECTION, activePathPrefixes: OPERATIONS_HUB_PREFIXES },
-    { name: 'Management',     icon: Briefcase,       path: '/management',   children: null, section: HUB_SECTION, activePathPrefixes: MANAGEMENT_HUB_PREFIXES },
-    { name: 'Administration', icon: Settings,        path: '/administration', children: null, section: HUB_SECTION, activePathPrefixes: ADMINISTRATION_HUB_PREFIXES },
-    { name: 'Reports',        icon: FileText,        path: '/reports',      children: null, section: HUB_SECTION },
+    { name: 'Dashboard',          icon: LayoutDashboard, path: '/dashboard',      children: null, section: 'Home' },
+    { name: 'Residents',          icon: Users,           path: '/my-residents',   children: null, section: HUB_SECTION, activePathPrefixes: RESIDENT_HUB_PREFIXES, activePathRegex: RESIDENT_LEGACY_DETAIL },
+    { name: 'Clinical',           icon: Stethoscope,     path: '/clinical',       children: null, section: HUB_SECTION, activePathPrefixes: CLINICAL_HUB_PREFIXES },
+    { name: 'Operations',         icon: Wrench,          path: '/operations',     children: null, section: HUB_SECTION, activePathPrefixes: OPERATIONS_HUB_PREFIXES },
+    { name: 'Management',         icon: Briefcase,       path: '/management',     children: null, section: HUB_SECTION, activePathPrefixes: MANAGEMENT_HUB_PREFIXES },
+    { name: 'Organization',       icon: Building2,      path: '/organization',   children: null, section: HUB_SECTION, activePathPrefixes: ORGANIZATION_HUB_PREFIXES },
+    { name: 'Team & compliance', icon: UsersRound,      path: '/team',            children: null, section: HUB_SECTION, activePathPrefixes: TEAM_HUB_PREFIXES },
+    { name: 'System',             icon: Settings,        path: '/administration', children: null, section: HUB_SECTION, activePathPrefixes: SYSTEM_HUB_PREFIXES },
+    { name: 'Reports',            icon: FileText,        path: '/reports',        children: null, section: HUB_SECTION },
 ];
 
 export default function Layout() {
@@ -427,7 +432,7 @@ export default function Layout() {
         return timeZone;
     }, [currentUser?.app_current_time]);
 
-    const leaveRequestsPath = isCaregiver ? '/leave-requests' : '/administration/leave-requests';
+    const leaveRequestsPath = isCaregiver ? '/leave-requests' : '/team/leave-requests';
     const tLogsPath = '/t-logs';
 
     // Get theme from ThemeProvider (CSS variables are automatically set)
