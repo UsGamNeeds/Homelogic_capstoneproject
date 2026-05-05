@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, Link, useLocation } from 'react-router-dom';
 import api from '../../services/api';
 import { offlinePost } from '../../services/offlineApi';
 import { useResidentUpdates } from '../../hooks/useRealtimeUpdates';
@@ -72,6 +72,19 @@ function getResidentAvatarInitials(resident, displayName) {
     const parts = displayName.trim().split(/\s+/).filter(Boolean);
     if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
     return displayName.slice(0, 2).toUpperCase();
+}
+
+/** Documents / care-plan links from medication views (hub uses `/my-residents/:id?tab=`). */
+function residentHubTabPath(residentId, tab, pathname, embedded) {
+    if (residentId == null || residentId === '') {
+        return '#';
+    }
+    const id = String(residentId);
+    const path = pathname || '';
+    if (path.includes('/my-residents/') || (embedded && path.startsWith('/medications'))) {
+        return `/my-residents/${id}?tab=${encodeURIComponent(tab)}`;
+    }
+    return `/residents/${id}/detail`;
 }
 
 const INSTRUCTION_DISPLAY_MAP = {
@@ -159,6 +172,7 @@ const isMedicationPeriodActiveNow = (medication, referenceDate = getPacificNow()
 export default function ResidentMedicationsPage({ embedded = false, variant = 'list', marDate = null }) {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
+    const location = useLocation();
     const params = useParams();
     const [searchParams] = useSearchParams();
     const residentId =
@@ -968,6 +982,9 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
         );
     }
 
+    const carePlanPath = residentHubTabPath(residentId, 'care', location.pathname, embedded);
+    const documentsPath = residentHubTabPath(residentId, 'documents', location.pathname, embedded);
+
     const medGrid = (
         <div className={`grid grid-cols-1 ${embedded ? 'lg:grid-cols-[1fr_272px]' : 'lg:grid-cols-[220px_1fr_272px]'} gap-4 items-start`}>
 
@@ -977,7 +994,8 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
                     resident={resident}
                     isLoading={residentLoading}
                     residentId={residentId}
-                    navigate={navigate}
+                    carePlanPath={carePlanPath}
+                    documentsPath={documentsPath}
                 />
             )}
 
@@ -1153,7 +1171,7 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
 
                 {/* ── RIGHT: Orders + PRN history ── */}
                 <div className="space-y-4">
-                    <PhysicianOrderPanel residentId={residentId} navigate={navigate} />
+                    <PhysicianOrderPanel documentsPath={documentsPath} navigate={navigate} />
                     <PrnRightPanel entries={prnHistoryList} isLoading={prnHistoryLoading} />
                 </div>
 
@@ -2173,7 +2191,7 @@ function MedicationWindowBadge({ medication, slotTime }) {
 
 // ─── Resident Profile Panel (left column) ─────────────────────────────────────
 
-function ResidentProfilePanel({ resident, isLoading, residentId, navigate }) {
+function ResidentProfilePanel({ resident, isLoading, residentId, carePlanPath, documentsPath }) {
     if (isLoading) {
         return (
             <aside className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-3" aria-label="Resident profile loading">
@@ -2212,8 +2230,8 @@ function ResidentProfilePanel({ resident, isLoading, residentId, navigate }) {
     const quickLinks = [
         { label: 'Progress Notes', path: `/t-logs?resident_id=${residentId}`, icon: FileText },
         { label: 'Vitals', path: `/vitals?resident_id=${residentId}`, icon: Heart },
-        { label: 'Care Plans', path: `/residents/${residentId}?tab=care`, icon: ClipboardList },
-        { label: 'Documents', path: `/residents/${residentId}?tab=documents`, icon: FileText },
+        { label: 'Care Plans', path: carePlanPath, icon: ClipboardList },
+        { label: 'Documents', path: documentsPath, icon: FileText },
     ];
 
     return (
@@ -2343,7 +2361,7 @@ function ResidentProfilePanel({ resident, isLoading, residentId, navigate }) {
 
 // ─── Physician's Order Panel (right column top) ────────────────────────────────
 
-function PhysicianOrderPanel({ residentId, navigate }) {
+function PhysicianOrderPanel({ documentsPath, navigate }) {
     return (
         <section
             className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
@@ -2356,7 +2374,7 @@ function PhysicianOrderPanel({ residentId, navigate }) {
                 </div>
                 <button
                     type="button"
-                    onClick={() => navigate(`/residents/${residentId}?tab=documents`)}
+                    onClick={() => navigate(documentsPath)}
                     className="text-xs font-semibold text-[var(--theme-primary)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] rounded"
                 >
                     View All →
@@ -2370,7 +2388,7 @@ function PhysicianOrderPanel({ residentId, navigate }) {
                 <p className="text-xs text-gray-400 mt-1">View physician orders in the resident's documents tab.</p>
                 <button
                     type="button"
-                    onClick={() => navigate(`/residents/${residentId}?tab=documents`)}
+                    onClick={() => navigate(documentsPath)}
                     className="mt-3 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] shadow-sm hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] focus-visible:ring-offset-2 transition-colors"
                 >
                     <ExternalLink className="w-3.5 h-3.5 shrink-0 text-[var(--theme-text-on-primary)]" aria-hidden="true" />
