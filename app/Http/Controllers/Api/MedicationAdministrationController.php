@@ -2,22 +2,21 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Models\MedicationAdministration;
 use App\Models\Medication;
-use Illuminate\Http\Request;
+use App\Models\MedicationAdministration;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Carbon\Carbon;
 
 class MedicationAdministrationController extends BaseApiController
 {
     public function index(Request $request): JsonResponse
     {
         $query = $this->buildQuery($request);
-        
+
         $perPage = (int) $request->get('per_page', 25);
         $perPage = max(1, min(100, $perPage));
 
@@ -31,7 +30,7 @@ class MedicationAdministrationController extends BaseApiController
     public function stats(Request $request): JsonResponse
     {
         $query = $this->buildQuery($request);
-        
+
         // Single aggregate query instead of 4 separate count queries
         $counts = (clone $query)->selectRaw("
             count(*) as total,
@@ -47,12 +46,12 @@ class MedicationAdministrationController extends BaseApiController
 
         // Calculate adherence
         $adherence = ($total > 0) ? round(($administered / $total) * 100) : 0;
-        
+
         // Daily breakdown for charts (last 7 days or selected range)
-        $dateFrom = $request->get('date_from') 
+        $dateFrom = $request->get('date_from')
             ? Carbon::createFromFormat('Y-m-d', $request->get('date_from'), config('app.timezone'))->startOfDay()
             : Carbon::now(config('app.timezone'))->subDays(6)->startOfDay();
-            
+
         $dateTo = $request->get('date_to')
             ? Carbon::createFromFormat('Y-m-d', $request->get('date_to'), config('app.timezone'))->endOfDay()
             : Carbon::now(config('app.timezone'))->endOfDay();
@@ -63,14 +62,14 @@ class MedicationAdministrationController extends BaseApiController
             ->groupBy('date', 'status')
             ->orderBy('date')
             ->get();
-            
+
         // Process daily data into chart format
         $chartData = [];
         $current = $dateFrom->copy();
         while ($current <= $dateTo) {
             $dateStr = $current->toDateString();
             $dayData = $dailyData->where('date', $dateStr);
-            
+
             $chartData[] = [
                 'date' => $dateStr,
                 'day' => $current->format('D'), // Mon, Tue, etc.
@@ -127,7 +126,7 @@ class MedicationAdministrationController extends BaseApiController
                 $residentBranch = \App\Models\Resident::where('id', $residentId)->value('branch_id');
 
                 if ($user->assigned_branch_id && (int) $residentBranch !== (int) $user->assigned_branch_id) {
-                    // This permission check is tricky in a builder helper. 
+                    // This permission check is tricky in a builder helper.
                     // Ideally, we should throw an exception or handle it upstream.
                     // For now, we'll force an empty result if permission denied.
                     $query->whereRaw('1 = 0');
@@ -138,7 +137,7 @@ class MedicationAdministrationController extends BaseApiController
         }
 
         // Filter by branch (only for non-caregivers - caregivers are already filtered above)
-        if (!$isCaregiver && $request->has('branch_id')) {
+        if (! $isCaregiver && $request->has('branch_id')) {
             $query->where('branch_id', $request->get('branch_id'));
         }
 
@@ -166,7 +165,7 @@ class MedicationAdministrationController extends BaseApiController
         if ($request->has('today') && $request->get('today') === 'true') {
             $query->whereDate('administered_at', today());
         }
-        
+
         return $query;
     }
 
@@ -181,24 +180,24 @@ class MedicationAdministrationController extends BaseApiController
     public function store(Request $request): JsonResponse
     {
         // Custom validation for administered_at to accept ISO format
-    $request->validate([
-        'medication_id' => 'required|exists:medications,id',
-        'resident_id' => 'required|exists:residents,id',
-        'branch_id' => 'required|exists:branches,id',
-        'administered_at' => ['required', function ($attribute, $value, $fail) {
-            // Try to parse the date - accept ISO strings and other formats
-            try {
-                Carbon::parse($value);
-            } catch (\Exception $e) {
-                $fail('The ' . $attribute . ' is not a valid date.');
-            }
-        }],
-        'status' => 'required|in:completed,missed,refused,hospital_admission,pharmacy_administration_confirm',
-        'dosage_given' => 'nullable|string|max:255',
-        'notes' => 'nullable|string',
-        'document' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:5120',
-    ]);
-        
+        $request->validate([
+            'medication_id' => 'required|exists:medications,id',
+            'resident_id' => 'required|exists:residents,id',
+            'branch_id' => 'required|exists:branches,id',
+            'administered_at' => ['required', function ($attribute, $value, $fail) {
+                // Try to parse the date - accept ISO strings and other formats
+                try {
+                    Carbon::parse($value);
+                } catch (\Exception $e) {
+                    $fail('The '.$attribute.' is not a valid date.');
+                }
+            }],
+            'status' => 'required|in:completed,missed,refused,hospital_admission,pharmacy_administration_confirm',
+            'dosage_given' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+            'document' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:5120',
+        ]);
+
         $validated = $request->only([
             'medication_id',
             'resident_id',
@@ -212,7 +211,7 @@ class MedicationAdministrationController extends BaseApiController
         // Handle document upload for hospital admissions
         if ($request->hasFile('document')) {
             $file = $request->file('document');
-            $fileName = time() . '_' . $file->getClientOriginalName();
+            $fileName = time().'_'.$file->getClientOriginalName();
             $filePath = $file->storeAs('hospital-admission-documents', $fileName, 'public');
             $validated['document_path'] = $filePath;
         }
@@ -221,7 +220,7 @@ class MedicationAdministrationController extends BaseApiController
         $medication = Medication::findOrFail($validated['medication_id']);
         if ($medication->resident_id != $validated['resident_id']) {
             return response()->json([
-                'message' => 'Resident does not match medication resident'
+                'message' => 'Resident does not match medication resident',
             ], 422);
         }
 
@@ -229,13 +228,13 @@ class MedicationAdministrationController extends BaseApiController
 
         // Parse administered_at — frontend sends a real UTC ISO-8601 string (new Date().toISOString()).
         // Parse as UTC then convert to app timezone for all date comparisons.
-        if (!isset($validated['administered_at']) || empty($validated['administered_at'])) {
+        if (! isset($validated['administered_at']) || empty($validated['administered_at'])) {
             $administeredAt = Carbon::now(config('app.timezone'));
         } else {
             $administeredAt = Carbon::parse($validated['administered_at'], 'UTC')
                 ->setTimezone(config('app.timezone'));
         }
-        
+
         $validated['administered_at'] = $administeredAt;
 
         // Enforce date range: cannot administer before start_date or after end_date (if set)
@@ -248,15 +247,15 @@ class MedicationAdministrationController extends BaseApiController
                 $startDateStr = $medication->start_date->toDateString();
             } else {
                 // If it's a string, extract just the date part
-                $startDateStr = is_string($medication->start_date) ? $medication->start_date : (string)$medication->start_date;
+                $startDateStr = is_string($medication->start_date) ? $medication->start_date : (string) $medication->start_date;
                 if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $startDateStr, $matches)) {
                     $startDateStr = $matches[1];
                 }
             }
-            
+
             // Get the date part of administered_at in app timezone as YYYY-MM-DD string
             $administeredDateStr = $administeredAt->copy()->setTimezone(config('app.timezone'))->toDateString();
-            
+
             // Compare date strings directly (YYYY-MM-DD format allows string comparison)
             if ($administeredDateStr < $startDateStr) {
                 \Log::warning('Medication administration rejected - date before start', [
@@ -264,8 +263,9 @@ class MedicationAdministrationController extends BaseApiController
                     'start_date' => $startDateStr,
                     'administered_date' => $administeredDateStr,
                 ]);
+
                 return response()->json([
-                    'message' => 'Medication cannot be administered before its start date.'
+                    'message' => 'Medication cannot be administered before its start date.',
                 ], 422);
             }
         }
@@ -277,19 +277,19 @@ class MedicationAdministrationController extends BaseApiController
                 $endDateStr = $medication->end_date->toDateString();
             } else {
                 // If it's a string, extract just the date part
-                $endDateStr = is_string($medication->end_date) ? $medication->end_date : (string)$medication->end_date;
+                $endDateStr = is_string($medication->end_date) ? $medication->end_date : (string) $medication->end_date;
                 if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $endDateStr, $matches)) {
                     $endDateStr = $matches[1];
                 }
             }
-            
+
             // Get the date part of administered_at in app timezone as YYYY-MM-DD string
             $administeredDateStr = $administeredAt->copy()->setTimezone(config('app.timezone'))->toDateString();
-            
+
             // Compare date strings directly (YYYY-MM-DD format allows string comparison)
             if ($administeredDateStr > $endDateStr) {
                 return response()->json([
-                    'message' => 'Medication administration period has ended.'
+                    'message' => 'Medication administration period has ended.',
                 ], 422);
             }
         }
@@ -299,7 +299,7 @@ class MedicationAdministrationController extends BaseApiController
         $instruction = strtolower(trim((string) $medication->instructions));
         $isPrn = str_contains($instruction, 'prn');
 
-        if (!$isPrn) {
+        if (! $isPrn) {
             $timeSlots = array_filter([
                 $medication->time_1,
                 $medication->time_2,
@@ -312,8 +312,8 @@ class MedicationAdministrationController extends BaseApiController
                 $adminDate = $administeredAt->copy()->setTimezone($tz)->toDateString();
                 $toleranceSeconds = 2 * 60 * 60;
 
-                $dayStart = $adminDate . ' 00:00:00';
-                $dayEnd   = $adminDate . ' 23:59:59';
+                $dayStart = $adminDate.' 00:00:00';
+                $dayEnd = $adminDate.' 23:59:59';
                 $todayAdmins = MedicationAdministration::where('medication_id', $medication->id)
                     ->whereBetween('administered_at', [$dayStart, $dayEnd])
                     ->where('status', '!=', 'missed')
@@ -325,6 +325,7 @@ class MedicationAdministrationController extends BaseApiController
                     $scheduledTime = Carbon::parse("$adminDate $slot", $tz);
                     $matched = $todayAdmins->contains(function ($admin) use ($scheduledTime, $toleranceSeconds) {
                         $adminTime = Carbon::parse($admin->administered_at)->setTimezone(config('app.timezone'));
+
                         return abs($adminTime->diffInSeconds($scheduledTime, false)) <= $toleranceSeconds;
                     });
                     if ($matched) {
@@ -334,7 +335,7 @@ class MedicationAdministrationController extends BaseApiController
 
                 if ($administeredSlotCount >= count($timeSlots)) {
                     return response()->json([
-                        'message' => 'Daily administration limit reached for this medication.'
+                        'message' => 'Daily administration limit reached for this medication.',
                     ], 422);
                 }
             }
@@ -347,21 +348,21 @@ class MedicationAdministrationController extends BaseApiController
             ], 422);
         }
 
-        // Prevent duplicate administrations: check if a record with the same medication_id, 
+        // Prevent duplicate administrations: check if a record with the same medication_id,
         // administered_at (within 1 minute), and status already exists
         $existingAdministration = MedicationAdministration::where('medication_id', $validated['medication_id'])
             ->where('resident_id', $validated['resident_id'])
             ->where('status', $validated['status'])
             ->whereBetween('administered_at', [
                 $administeredAt->copy()->subMinute(),
-                $administeredAt->copy()->addMinute()
+                $administeredAt->copy()->addMinute(),
             ])
             ->first();
 
         if ($existingAdministration) {
             // Return the existing record instead of creating a duplicate
             return response()->json(
-                $existingAdministration->load(['medication', 'resident', 'branch', 'administeredBy']), 
+                $existingAdministration->load(['medication', 'resident', 'branch', 'administeredBy']),
                 200
             );
         }
@@ -470,7 +471,7 @@ class MedicationAdministrationController extends BaseApiController
             ], 403);
         }
 
-        if (!$isSuperAdmin && !$isAdmin) {
+        if (! $isSuperAdmin && ! $isAdmin) {
             if ($error = $this->requirePermission('delete_medications')) {
                 return $error;
             }
@@ -577,6 +578,158 @@ class MedicationAdministrationController extends BaseApiController
     }
 
     /**
+     * Administrator-only: flip a "missed" administration to "completed" for a past slot.
+     *
+     * Rules (agreed with product):
+     * - Only `administrator` and `super_admin` roles may call this. Caregivers/branch-admins cannot.
+     * - The target row must currently have status = 'missed' and its ±60-minute window must already be closed.
+     * - The medication must have been active on the scheduled date (start_date/end_date).
+     * - `administered_at` is preserved exactly (it stays on the originally scheduled slot time) so
+     *   printed MARs read identically to a normally-administered dose. No visible audit fields are touched;
+     *   the Loggable trait silently records the change in `activity_logs` for internal investigation.
+     * - `administered_by` is resolved to the most clinically-appropriate caregiver for the day
+     *   (see resolveAdministeredByForLateMark) so the cell shows the right initials on the MAR.
+     */
+    public function markAdministered(Request $request, $id): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return $this->error('Unauthorized.', 401);
+        }
+
+        $isAdministrator = $user->role === 'administrator' || $user->hasRole('administrator');
+        $isSuperAdmin = $user->role === 'super_admin' || $user->hasRole('super_admin');
+        if (! $isAdministrator && ! $isSuperAdmin) {
+            return $this->error('Only facility administrators can mark a missed medication as administered.', 403);
+        }
+
+        try {
+            $administration = DB::transaction(function () use ($id, $user) {
+                $administration = MedicationAdministration::lockForUpdate()->find($id);
+                if (! $administration) {
+                    throw new \RuntimeException('not_found');
+                }
+
+                // Facility/branch scoping: administrators may only act inside their own facility.
+                if (! $this->checkBranchAccess($administration, $user)) {
+                    throw new \RuntimeException('forbidden_facility');
+                }
+
+                if ($administration->status !== 'missed') {
+                    throw new \RuntimeException('not_missed');
+                }
+
+                $medication = Medication::find($administration->medication_id);
+                if (! $medication) {
+                    throw new \RuntimeException('medication_missing');
+                }
+
+                $tz = config('app.timezone');
+                $scheduledTime = Carbon::parse($administration->administered_at)->setTimezone($tz);
+
+                // The administration window must already have closed. A 'missed' record should
+                // only ever exist after its window closed, but we re-check to be defensive.
+                $windowEnd = $scheduledTime->copy()->addMinutes(60);
+                if ($windowEnd->isFuture()) {
+                    throw new \RuntimeException('window_not_closed');
+                }
+
+                $scheduledDateStr = $scheduledTime->toDateString();
+                if ($medication->start_date) {
+                    $startDateStr = $medication->start_date instanceof Carbon
+                        ? $medication->start_date->toDateString()
+                        : (string) $medication->start_date;
+                    if ($scheduledDateStr < $startDateStr) {
+                        throw new \RuntimeException('before_start_date');
+                    }
+                }
+                if ($medication->end_date) {
+                    $endDateStr = $medication->end_date instanceof Carbon
+                        ? $medication->end_date->toDateString()
+                        : (string) $medication->end_date;
+                    if ($scheduledDateStr > $endDateStr) {
+                        throw new \RuntimeException('after_end_date');
+                    }
+                }
+
+                $resolvedAdministeredBy = $this->resolveAdministeredByForLateMark(
+                    (int) $administration->resident_id,
+                    $scheduledTime,
+                    (int) $user->id
+                );
+
+                // Flip the dose. administered_at intentionally untouched.
+                $administration->status = 'completed';
+                $administration->administered_by = $resolvedAdministeredBy;
+                $administration->save();
+
+                return $administration;
+            });
+        } catch (\RuntimeException $e) {
+            return match ($e->getMessage()) {
+                'not_found' => $this->error('Medication administration not found.', 404),
+                'forbidden_facility' => $this->error('You do not have access to this medication administration.', 403),
+                'not_missed' => $this->error('Only missed medications can be marked as administered.', 422),
+                'window_not_closed' => $this->error('This medication slot is still within its administration window.', 422),
+                'before_start_date' => $this->error('Medication was not active on the scheduled date (before start date).', 422),
+                'after_end_date' => $this->error('Medication was not active on the scheduled date (after end date).', 422),
+                'medication_missing' => $this->error('Associated medication record not found.', 404),
+                default => $this->error('Unable to mark administration: '.$e->getMessage(), 422),
+            };
+        }
+
+        return response()->json(
+            $administration->load(['medication', 'resident', 'branch', 'administeredBy']),
+            200
+        );
+    }
+
+    /**
+     * Find the caregiver to credit for an admin-flipped missed dose.
+     *
+     * Tie-breaker (agreed with product): the LAST caregiver to administer to this resident on
+     * the same day BEFORE the missed slot's scheduled time. If none exists before, fall back to
+     * the FIRST caregiver to administer AFTER the missed slot the same day. If no caregiver
+     * touched the resident at all that day, attribute the dose to the administrator doing
+     * the flip.
+     */
+    private function resolveAdministeredByForLateMark(int $residentId, Carbon $scheduledTime, int $adminUserId): int
+    {
+        $tz = config('app.timezone');
+        $dayStart = $scheduledTime->copy()->setTimezone($tz)->startOfDay();
+        $dayEnd = $scheduledTime->copy()->setTimezone($tz)->endOfDay();
+
+        $baseQuery = MedicationAdministration::query()
+            ->where('resident_id', $residentId)
+            ->whereBetween('administered_at', [$dayStart, $dayEnd])
+            ->whereIn('status', ['completed', 'refused', 'hospital_admission', 'pharmacy_administration_confirm'])
+            ->whereNotNull('administered_by')
+            ->whereHas('administeredBy', function ($q) {
+                $q->whereIn('role', \App\Constants\UserRoles::CAREGIVER_ROLES);
+            });
+
+        $lastBefore = (clone $baseQuery)
+            ->where('administered_at', '<', $scheduledTime)
+            ->orderByDesc('administered_at')
+            ->first();
+
+        if ($lastBefore && $lastBefore->administered_by) {
+            return (int) $lastBefore->administered_by;
+        }
+
+        $firstAfter = (clone $baseQuery)
+            ->where('administered_at', '>', $scheduledTime)
+            ->orderBy('administered_at')
+            ->first();
+
+        if ($firstAfter && $firstAfter->administered_by) {
+            return (int) $firstAfter->administered_by;
+        }
+
+        return $adminUserId;
+    }
+
+    /**
      * Mark missed medications for a date range
      * This endpoint allows manually triggering the missed medication marking process
      */
@@ -590,7 +743,7 @@ class MedicationAdministrationController extends BaseApiController
 
         // Get system user (first admin user)
         $systemUser = \App\Models\User::whereIn('role', ['super_admin', 'administrator', 'admin'])->first();
-        if (!$systemUser) {
+        if (! $systemUser) {
             return response()->json(['message' => 'No system user found to mark missed medications'], 500);
         }
         $systemUserId = $systemUser->id;
@@ -618,7 +771,7 @@ class MedicationAdministrationController extends BaseApiController
         $user = $request->user();
         $medicationsQuery = Medication::where('is_active', true)
             ->where('start_date', '<=', $dateTo->toDateString())
-            ->where(function ($q) use ($dateTo) {
+            ->where(function ($q) {
                 $q->whereNull('end_date')
                     ->orWhere('end_date', '>=', $dateFrom->toDateString());
             });
@@ -646,7 +799,7 @@ class MedicationAdministrationController extends BaseApiController
                     $timeField = "time_{$i}";
                     $scheduledTimeStr = $medication->$timeField;
 
-                    if (!$scheduledTimeStr) {
+                    if (! $scheduledTimeStr) {
                         continue;
                     }
 
@@ -658,7 +811,7 @@ class MedicationAdministrationController extends BaseApiController
                         }
 
                         $scheduledTime = $currentDate->copy();
-                        $scheduledTime->setTime((int)$timeParts[0], (int)$timeParts[1], 0);
+                        $scheduledTime->setTime((int) $timeParts[0], (int) $timeParts[1], 0);
                     } catch (\Exception $e) {
                         continue;
                     }
@@ -674,17 +827,17 @@ class MedicationAdministrationController extends BaseApiController
                         ->exists();
 
                     // Only mark as missed if no administration exists and the window has passed
-                    if (!$hasAdministration && $windowEnd->isPast()) {
+                    if (! $hasAdministration && $windowEnd->isPast()) {
                         // Check if missed record already exists
                         $hasMissedRecord = MedicationAdministration::where('medication_id', $medication->id)
                             ->where('status', 'missed')
                             ->whereBetween('administered_at', [
                                 $scheduledTime->copy()->subMinutes(5),
-                                $scheduledTime->copy()->addMinutes(5)
+                                $scheduledTime->copy()->addMinutes(5),
                             ])
                             ->exists();
 
-                        if (!$hasMissedRecord) {
+                        if (! $hasMissedRecord) {
                             try {
                                 MedicationAdministration::create([
                                     'medication_id' => $medication->id,
@@ -697,7 +850,7 @@ class MedicationAdministrationController extends BaseApiController
                                 ]);
                                 $count++;
                             } catch (\Exception $e) {
-                                $errors[] = "Failed to mark medication ID {$medication->id} as missed: " . $e->getMessage();
+                                $errors[] = "Failed to mark medication ID {$medication->id} as missed: ".$e->getMessage();
                             }
                         }
                     }
@@ -773,4 +926,3 @@ class MedicationAdministrationController extends BaseApiController
         return false;
     }
 }
-

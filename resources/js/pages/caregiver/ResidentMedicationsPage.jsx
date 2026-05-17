@@ -188,10 +188,19 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
     const [selectedMeds, setSelectedMeds] = useState(new Set());
     const [isBulkAdministering, setIsBulkAdministering] = useState(false);
     const [prnFollowupCompletingId, setPrnFollowupCompletingId] = useState(null);
+    const [showMissedOnly, setShowMissedOnly] = useState(false);
+    // { administrationId, medicationName, timeLabel, scheduledAt } | null
+    const [lateMarkTarget, setLateMarkTarget] = useState(null);
+    const [lateMarkSubmitting, setLateMarkSubmitting] = useState(false);
+    const [lateMarkError, setLateMarkError] = useState('');
 
     const isMar = variant === 'mar';
     const isPrnHub = variant === 'prn';
     const resolvedMarDate = isMar ? (marDate || getPacificISODate()) : null;
+    const isAdministrator = React.useMemo(() => {
+        const role = currentUser?.role;
+        return role === 'administrator' || role === 'super_admin';
+    }, [currentUser?.role]);
 
     React.useEffect(() => {
         if (isPrnHub) {
@@ -861,6 +870,10 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
                                     medication={medication}
                                     activeTab={activeTab}
                                     todayAdminData={todayAdminDataForRow}
+                                    isAdministrator={isAdministrator}
+                                    canLateMark={isMar && isAdministrator}
+                                    showOnlyMissed={isMar && showMissedOnly}
+                                    onAdminLateMark={(target) => setLateMarkTarget(target)}
                                 />
                                 
                                 {isMarRecordingDay ? (
@@ -1008,6 +1021,33 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
                         >
                             <span className="font-semibold">Viewing another day.</span>{' '}
                             Administration recording and bulk select are available only when Med pass is set to today's date ({pacificTodayIso}).
+                            {isAdministrator ? (
+                                <span className="block mt-1 text-xs text-amber-900">
+                                    As an administrator you can still mark missed doses on this day as administered using the green "Mark administered" buttons.
+                                </span>
+                            ) : null}
+                        </div>
+                    ) : null}
+
+                    {isMar ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowMissedOnly((v) => !v)}
+                                aria-pressed={showMissedOnly}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] ${
+                                    showMissedOnly
+                                        ? 'bg-red-50 border-red-300 text-red-700 hover:bg-red-100'
+                                        : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                                }`}
+                                title="Filter the day's view to medications with missed doses"
+                            >
+                                <XCircle className="w-3.5 h-3.5" aria-hidden="true" />
+                                {showMissedOnly ? 'Showing missed only' : 'Show missed only'}
+                            </button>
+                            {showMissedOnly ? (
+                                <span className="text-xs text-gray-500">Filtering time-slot badges to status “Missed”.</span>
+                            ) : null}
                         </div>
                     ) : null}
 
@@ -1180,6 +1220,29 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
 
     if (embedded) return medGrid;
 
+    /**
+     * Administrator-only: flip a missed dose to administered via the new backend endpoint.
+     * The endpoint preserves the originally scheduled administered_at, credits the appropriate
+     * caregiver, and silently logs the change in activity_logs (no visible audit fields on the MAR).
+     */
+    const submitLateMark = React.useCallback(async () => {
+        if (!lateMarkTarget?.administrationId) return;
+        setLateMarkSubmitting(true);
+        setLateMarkError('');
+        try {
+            await api.patch(`/medication-administrations/${lateMarkTarget.administrationId}/mark-administered`);
+            // Refresh both the day's administrations and the per-resident med rollups.
+            queryClient.invalidateQueries({ queryKey: todayResidentAdminsQueryKey });
+            queryClient.invalidateQueries({ queryKey: ['resident-medications', residentId] });
+            setLateMarkTarget(null);
+        } catch (err) {
+            const msg = err?.response?.data?.message || err?.message || 'Failed to mark dose as administered.';
+            setLateMarkError(msg);
+        } finally {
+            setLateMarkSubmitting(false);
+        }
+    }, [lateMarkTarget, queryClient, todayResidentAdminsQueryKey, residentId]);
+
     return (
         <div className="space-y-4">
             <Breadcrumbs items={[
@@ -1188,23 +1251,89 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
                 { label: 'Medications', path: '' },
             ]} />
             {medGrid}
+
+            {/* Administrator-only confirmation: mark a missed dose as administered (backdated to scheduled time) */}
+            <Modal
+                isOpen={!!lateMarkTarget}
+                onClose={() => {
+                    if (lateMarkSubmitting) return;
+                    setLateMarkTarget(null);
+                    setLateMarkError('');
+                }}
+                title="Mark dose as administered"
+                size="md"
+            >
+                {lateMarkTarget ? (
+                    <div className="space-y-4">
+                        <p className="text-sm text-gray-700">
+                            Mark <span className="font-semibold">{lateMarkTarget.medicationName}</span> as administered for the
+                            {' '}<span className="font-semibold">{lateMarkTarget.timeLabel}</span> dose?
+                        </p>
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                            The dose will be recorded at its originally scheduled time. If a caregiver administered another
+                            dose for this resident the same day, that caregiver will be credited; otherwise the dose is
+                            credited to you.
+                        </div>
+                        {lateMarkError ? (
+                            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                                {lateMarkError}
+                            </div>
+                        ) : null}
+                        <div className="flex items-center justify-end gap-2 pt-1">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (lateMarkSubmitting) return;
+                                    setLateMarkTarget(null);
+                                    setLateMarkError('');
+                                }}
+                                disabled={lateMarkSubmitting}
+                                className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={submitLateMark}
+                                disabled={lateMarkSubmitting}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-sm font-bold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
+                            >
+                                {lateMarkSubmitting ? (
+                                    <RefreshCw className="w-4 h-4 animate-spin" aria-hidden="true" />
+                                ) : (
+                                    <CheckCircle className="w-4 h-4" aria-hidden="true" />
+                                )}
+                                {lateMarkSubmitting ? 'Saving…' : 'Mark administered'}
+                            </button>
+                        </div>
+                    </div>
+                ) : null}
+            </Modal>
         </div>
     );
 
 }
 
 // Medication Time Badges Component (todayAdminData supplied by parent — one API call per resident, not per row)
-function MedicationTimeBadges({ medication, activeTab, todayAdminData }) {
+function MedicationTimeBadges({
+    medication,
+    activeTab,
+    todayAdminData,
+    isAdministrator = false,
+    canLateMark = false,
+    onAdminLateMark = null,
+    showOnlyMissed = false,
+}) {
     const formatTime = (timeValue) => formatPacificTimeValue(timeValue);
 
-    // Helper to get the status of a time (completed, missed, refused, or null if not administered)
+    // Resolve the slot's status AND the underlying admin record (so admins can flip the right row).
     const parseScheduledTime = (timeValue) => toPacificDateFromTime(timeValue, { referenceDate: getPacificNow() });
 
-    const getTimeStatus = (timeValue) => {
-        if (!timeValue) return null;
+    const getTimeSlotInfo = (timeValue) => {
+        if (!timeValue) return { status: null, admin: null };
 
         const scheduledTime = parseScheduledTime(timeValue);
-        if (!scheduledTime) return null;
+        if (!scheduledTime) return { status: null, admin: null };
 
         // Use a wider tolerance (2 hours) to match administrations that were recorded as refused/missed
         // This ensures they show up on the card even if recorded at a slightly different time
@@ -1222,7 +1351,7 @@ function MedicationTimeBadges({ medication, activeTab, todayAdminData }) {
         // If no match found within tolerance, match by hour:minute within 15 minutes
         if (!matchingAdmin && todayAdminData?.data?.length > 0) {
             const scheduledTotalMinutes = scheduledTime.getUTCHours() * 60 + scheduledTime.getUTCMinutes();
-            
+
             matchingAdmin = todayAdminData.data.find((admin) => {
                 const adminTime = parseAdminTimeToPacific(admin.administered_at);
                 if (!adminTime) return false;
@@ -1262,17 +1391,21 @@ function MedicationTimeBadges({ medication, activeTab, todayAdminData }) {
 
         if (matchingAdmin) {
             if (matchingAdmin.status === 'missed' && (!windowClosed || windowEndedBeforeCreated())) {
-                return null;
+                return { status: null, admin: null };
             }
-            return matchingAdmin.status;
+            return { status: matchingAdmin.status, admin: matchingAdmin, scheduledTime, windowClosed };
         }
 
         if (windowClosed && !windowEndedBeforeCreated()) {
-            return 'missed';
+            // Predicted missed — no persisted row yet, so admin cannot flip it until the cron creates one.
+            return { status: 'missed', admin: null, scheduledTime, windowClosed };
         }
 
-        return null;
+        return { status: null, admin: null, scheduledTime, windowClosed };
     };
+
+    // Backwards-compat shim for any consumers reading only the status string.
+    const getTimeStatus = (timeValue) => getTimeSlotInfo(timeValue).status;
 
     const times = [
         { value: medication.time_1, label: 'Time 1' },
@@ -1295,69 +1428,129 @@ function MedicationTimeBadges({ medication, activeTab, todayAdminData }) {
         return toMin(a.value) - toMin(b.value);
     });
 
+    const getStatusStyles = (status) => {
+        switch (status) {
+            case 'completed':
+                return 'bg-green-500 text-white';
+            case 'missed':
+                return 'bg-red-500 text-white';
+            case 'refused':
+                return 'bg-yellow-500 text-white';
+            case 'hospital_admission':
+                return 'bg-blue-500 text-white';
+            case 'pharmacy_administration_confirm':
+                return 'bg-purple-500 text-white';
+            default:
+                return 'bg-green-100 text-[var(--theme-primary)]';
+        }
+    };
+
+    const getStatusIcon = (status) => {
+        switch (status) {
+            case 'completed':
+                return <CheckCircle className="w-3 h-3 ml-1" />;
+            case 'missed':
+                return <XCircle className="w-3 h-3 ml-1" />;
+            case 'refused':
+                return <AlertCircle className="w-3 h-3 ml-1" />;
+            default:
+                return null;
+        }
+    };
+
+    const getStatusLabel = (status) => {
+        switch (status) {
+            case 'completed':
+                return 'Taken';
+            case 'missed':
+                return 'Missed';
+            case 'refused':
+                return 'Refused';
+            case 'hospital_admission':
+                return 'Hospital';
+            case 'pharmacy_administration_confirm':
+                return 'Pharmacy Confirm';
+            default:
+                return '';
+        }
+    };
+
+    // Format a richer tooltip with caregiver name, dose status, and notes.
+    const buildSlotTooltip = (timeStr, status, admin) => {
+        const lines = [];
+        if (status) {
+            lines.push(`${getStatusLabel(status)} · ${timeStr}`);
+        } else {
+            lines.push(`Scheduled for ${timeStr}`);
+        }
+        if (admin?.administered_by_name || admin?.administeredBy) {
+            const u = admin.administeredBy || {};
+            const first = u.first_name || '';
+            const last = u.last_name || '';
+            const fullName = (admin.administered_by_name || `${first} ${last}`.trim() || u.name || '').trim();
+            const role = u.role ? ` (${u.role.replace(/_/g, ' ')})` : '';
+            if (fullName) lines.push(`By: ${fullName}${role}`);
+        }
+        if (admin?.administered_at) {
+            const t = parseAdminTimeToPacific(admin.administered_at);
+            if (t) {
+                lines.push(`Recorded: ${t.toLocaleString('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit', hour12: true })}`);
+            }
+        }
+        if (admin?.notes) {
+            lines.push(`Notes: ${String(admin.notes).slice(0, 140)}`);
+        }
+        return lines.join('\n');
+    };
+
     return (
         <div className="flex flex-wrap gap-2">
             {times.map((time, idx) => {
                 const timeStr = formatTime(time.value);
-                const status = getTimeStatus(time.value);
-                
-                const getStatusStyles = (status) => {
-                    switch (status) {
-                        case 'completed':
-                            return 'bg-green-500 text-white';
-                        case 'missed':
-                            return 'bg-red-500 text-white';
-                        case 'refused':
-                            return 'bg-yellow-500 text-white';
-                        case 'pharmacy_administration_confirm':
-                            return 'bg-purple-500 text-white';
-                        default:
-                            return 'bg-green-100 text-[var(--theme-primary)]';
-                    }
-                };
+                const { status, admin } = getTimeSlotInfo(time.value);
 
-                const getStatusIcon = (status) => {
-                    switch (status) {
-                        case 'completed':
-                            return <CheckCircle className="w-3 h-3 ml-1" />;
-                        case 'missed':
-                            return <XCircle className="w-3 h-3 ml-1" />;
-                        case 'refused':
-                            return <AlertCircle className="w-3 h-3 ml-1" />;
-                        default:
-                            return null;
-                    }
-                };
+                if (!timeStr) return null;
+                if (showOnlyMissed && status !== 'missed') return null;
 
-                const getStatusLabel = (status) => {
-                    switch (status) {
-                        case 'completed':
-                            return 'Taken';
-                        case 'missed':
-                            return 'Missed';
-                        case 'refused':
-                            return 'Refused';
-                        case 'pharmacy_administration_confirm':
-                            return 'Pharmacy Confirm';
-                        default:
-                            return '';
-                    }
-                };
-                
-                return timeStr ? (
-                    <span
-                        key={idx}
-                        className={`inline-flex items-center px-2 py-1 rounded text-xs ${getStatusStyles(status)}`}
-                        title={status ? `${getStatusLabel(status)} at ${timeStr}` : `Scheduled for ${timeStr}`}
-                    >
-                        <Clock className="w-3 h-3 mr-1" />
-                        {timeStr}
-                        {getStatusIcon(status)}
-                        {status && (
-                            <span className="ml-1 text-xs font-medium">{getStatusLabel(status)}</span>
-                        )}
+                // An administrator may flip a persisted missed row to completed. We require an actual
+                // admin record (admin.id) so we have something concrete to PATCH.
+                const showLateMarkAction = canLateMark
+                    && isAdministrator
+                    && status === 'missed'
+                    && !!admin?.id
+                    && typeof onAdminLateMark === 'function';
+
+                return (
+                    <span key={idx} className="inline-flex items-center gap-1">
+                        <span
+                            className={`inline-flex items-center px-2 py-1 rounded text-xs ${getStatusStyles(status)}`}
+                            title={buildSlotTooltip(timeStr, status, admin)}
+                        >
+                            <Clock className="w-3 h-3 mr-1" />
+                            {timeStr}
+                            {getStatusIcon(status)}
+                            {status && (
+                                <span className="ml-1 text-xs font-medium">{getStatusLabel(status)}</span>
+                            )}
+                        </span>
+                        {showLateMarkAction ? (
+                            <button
+                                type="button"
+                                onClick={() => onAdminLateMark({
+                                    administrationId: admin.id,
+                                    medicationName: medication?.drug?.name || medication?.name || 'Medication',
+                                    timeLabel: timeStr,
+                                    scheduledAt: admin.administered_at,
+                                })}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded border border-emerald-300 bg-emerald-50 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                                title="Document this dose as administered (facility administrator only)"
+                            >
+                                <CheckCircle className="w-3 h-3" aria-hidden="true" />
+                                Mark administered
+                            </button>
+                        ) : null}
                     </span>
-                ) : null;
+                );
             })}
         </div>
     );

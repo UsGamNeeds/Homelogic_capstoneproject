@@ -2,12 +2,12 @@
 
 namespace App\Observers;
 
+use App\Events\MedicationAdministrationCreated;
 use App\Models\MedicationAdministration;
 use App\Models\Notification;
-use App\Models\User;
 use App\Models\PharmacyInventory;
 use App\Models\PharmacyStockTransaction;
-use App\Events\MedicationAdministrationCreated;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -37,7 +37,7 @@ class MedicationAdministrationObserver
             ->where('is_active', true)
             ->pluck('caregiver')
             ->filter();
-        
+
         // If no caregivers, notify all admins/managers
         if ($caregivers->isEmpty()) {
             $caregivers = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
@@ -51,32 +51,32 @@ class MedicationAdministrationObserver
             $alreadyIncluded = $caregivers->contains(function ($caregiver) use ($administeredBy) {
                 return $caregiver->id === $administeredBy->id;
             });
-            if (!$alreadyIncluded) {
+            if (! $alreadyIncluded) {
                 $caregivers->push($administeredBy);
             }
         }
 
         foreach ($caregivers as $caregiver) {
             $medicationName = $administration->medication->drug?->name ?? $administration->medication->name ?? 'Medication';
-            $residentName = trim(($administration->resident->first_name ?? '') . ' ' . ($administration->resident->last_name ?? ''));
-            $administeredByName = trim(($administration->administeredBy->first_name ?? '') . ' ' . ($administration->administeredBy->last_name ?? ''));
-            
+            $residentName = trim(($administration->resident->first_name ?? '').' '.($administration->resident->last_name ?? ''));
+            $administeredByName = trim(($administration->administeredBy->first_name ?? '').' '.($administration->administeredBy->last_name ?? ''));
+
             // Format administered time
-            $administeredAt = $administration->administered_at 
-                ? Carbon::parse($administration->administered_at)->format('M d, Y g:i A') 
+            $administeredAt = $administration->administered_at
+                ? Carbon::parse($administration->administered_at)->format('M d, Y g:i A')
                 : 'TBD';
-            
+
             // Build message
             $message = "{$medicationName} was administered to {$residentName}";
             if ($administeredByName) {
                 $message .= " by {$administeredByName}";
             }
             $message .= " on {$administeredAt}";
-            
+
             if ($administration->dosage_given) {
                 $message .= " (Dosage: {$administration->dosage_given})";
             }
-            
+
             Notification::create([
                 'user_id' => $caregiver->id,
                 'facility_id' => $administration->resident?->branch?->facility_id ?? null,
@@ -101,17 +101,45 @@ class MedicationAdministrationObserver
     }
 
     /**
+     * Handle the MedicationAdministration "updated" event.
+     *
+     * Triggered when an administrator uses the late-mark endpoint to flip a missed dose to
+     * completed. In that case the dose was never previously dispensed, so pharmacy inventory
+     * still needs to drop now. We intentionally do NOT send the standard "X was administered"
+     * notification here — it would be misleading wording for a backdated entry.
+     */
+    public function updated(MedicationAdministration $administration): void
+    {
+        $originalStatus = $administration->getOriginal('status');
+        $statusChanged = $originalStatus !== $administration->status;
+        $becameCompleted = $statusChanged && $administration->status === 'completed';
+
+        if (! $becameCompleted) {
+            return;
+        }
+
+        // Only reduce inventory if the prior status had not already consumed stock.
+        if ($originalStatus === 'completed') {
+            return;
+        }
+
+        $administration->loadMissing(['medication.drug', 'resident.branch.facility']);
+        $this->reduceInventory($administration);
+    }
+
+    /**
      * Reduce pharmacy inventory when medication is administered
      */
     private function reduceInventory(MedicationAdministration $administration): void
     {
         try {
             // Check if medication has a drug_id
-            if (!$administration->medication || !$administration->medication->drug_id) {
+            if (! $administration->medication || ! $administration->medication->drug_id) {
                 Log::debug('Medication administration has no drug_id, skipping inventory reduction', [
                     'administration_id' => $administration->id,
                     'medication_id' => $administration->medication_id,
                 ]);
+
                 return;
             }
 
@@ -119,10 +147,11 @@ class MedicationAdministrationObserver
             $branchId = $administration->branch_id;
             $performedBy = $administration->administered_by;
 
-            if (!$branchId) {
+            if (! $branchId) {
                 Log::warning('Medication administration has no branch_id, skipping inventory reduction', [
                     'administration_id' => $administration->id,
                 ]);
+
                 return;
             }
 
@@ -132,12 +161,13 @@ class MedicationAdministrationObserver
                 ->where('branch_id', $branchId)
                 ->first();
 
-            if (!$inventory) {
+            if (! $inventory) {
                 Log::info('No pharmacy inventory found for drug and branch, skipping inventory reduction', [
                     'drug_id' => $drugId,
                     'branch_id' => $branchId,
                     'administration_id' => $administration->id,
                 ]);
+
                 return;
             }
 
@@ -158,7 +188,7 @@ class MedicationAdministrationObserver
                     ->lockForUpdate()
                     ->first();
 
-                if (!$inventory) {
+                if (! $inventory) {
                     return;
                 }
 
@@ -181,7 +211,7 @@ class MedicationAdministrationObserver
                     'quantity_after' => $quantityAfter,
                     'unit_cost' => $inventory->unit_cost,
                     'performed_by' => $performedBy,
-                    'reference_number' => 'MA-' . $administration->id, // Medication Administration reference
+                    'reference_number' => 'MA-'.$administration->id, // Medication Administration reference
                     'notes' => "Medication administered to resident ID: {$administration->resident_id}",
                     'transaction_date' => $administration->administered_at ?? now(),
                 ]);
@@ -205,4 +235,3 @@ class MedicationAdministrationObserver
         }
     }
 }
-
