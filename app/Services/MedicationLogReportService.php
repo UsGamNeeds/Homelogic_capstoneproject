@@ -138,6 +138,11 @@ class MedicationLogReportService
             default => null,
         };
 
+        $caregiverKey = $this->buildCaregiverKey($administrations);
+        $allergiesText = $this->formatAllergies($resident);
+        $hasAllergies = $allergiesText !== '' && $allergiesText !== '—';
+        $doseSummary = $this->buildDoseSummary($administrations);
+
         return [
             'facilityName' => $facility?->name ?? $branch?->name ?? 'Facility',
             'facilityAddress' => $facility?->address ?? $branch?->address,
@@ -151,7 +156,8 @@ class MedicationLogReportService
                 : '',
             'physician' => $resident->physician_name ?: $resident->primary_care_doctor ?: $resident->pep_or_doctor,
             'diagnosis' => $this->formatResidentDiagnosis($resident),
-            'allergies' => $this->formatAllergies($resident),
+            'allergies' => $allergiesText,
+            'hasAllergies' => $hasAllergies,
             'diet' => $resident->dietary_restrictions ?: '—',
             'rangeLabel' => $dateFrom->format('M d, Y').' - '.$dateTo->format('M d, Y'),
             'outcomeFilterLabel' => $outcomeFilterLabel,
@@ -160,10 +166,117 @@ class MedicationLogReportService
             'dayChunks' => $dayChunks,
             'scheduledSections' => $scheduledSections,
             'prnSections' => array_values(array_filter($prnSections)),
+            'caregiverKey' => $caregiverKey,
+            'doseSummary' => $doseSummary,
             'facilityLogoDataUri' => ReportBranding::imageToDataUri($facility?->logo),
             'residentPhotoDataUri' => ReportBranding::imageToDataUri($resident->profile_image),
             ...$palette,
         ];
+    }
+
+    /**
+     * Build the legend that explains the initials shown in each MAR cell.
+     * Auditors looking at the printed report can match e.g. "JD" to "Jane Doe (Caregiver)".
+     *
+     * @param  Collection<int, MedicationAdministration>  $administrations
+     * @return list<array{initials: string, name: string, role: string}>
+     */
+    private function buildCaregiverKey(Collection $administrations): array
+    {
+        $seen = [];
+        foreach ($administrations as $admin) {
+            $user = $admin->administeredBy ?? null;
+            if (! $user) {
+                continue;
+            }
+            // Only include rows whose printed cell would actually show initials (taken/confirmed).
+            if (! in_array($admin->status, ['completed', 'pharmacy_administration_confirm'], true)) {
+                continue;
+            }
+            $initials = $this->userInitials($user);
+            if ($initials === '') {
+                continue;
+            }
+            $name = $this->formatUserDisplayName($user);
+            $role = $this->formatUserRole($user);
+            // Dedupe per (initials + name); if two users share initials we still list both.
+            $key = strtolower($initials.'|'.$name);
+            if (! isset($seen[$key])) {
+                $seen[$key] = [
+                    'initials' => $initials,
+                    'name' => $name !== '' ? $name : 'Unknown user',
+                    'role' => $role,
+                ];
+            }
+        }
+
+        $rows = array_values($seen);
+        usort($rows, fn ($a, $b) => strcmp($a['initials'], $b['initials']));
+
+        return $rows;
+    }
+
+    /**
+     * Build a short doses-administered summary for the top of the report:
+     * total recorded vs given vs missed vs refused, plus a compliance percentage.
+     *
+     * @param  Collection<int, MedicationAdministration>  $administrations
+     * @return array{total: int, given: int, missed: int, refused: int, other: int, compliance: int}
+     */
+    private function buildDoseSummary(Collection $administrations): array
+    {
+        $total = $administrations->count();
+        $given = $administrations->whereIn('status', ['completed', 'pharmacy_administration_confirm'])->count();
+        $missed = $administrations->where('status', 'missed')->count();
+        $refused = $administrations->where('status', 'refused')->count();
+        $other = max(0, $total - $given - $missed - $refused);
+        $compliance = $total > 0 ? (int) round(($given / $total) * 100) : 0;
+
+        return [
+            'total' => $total,
+            'given' => $given,
+            'missed' => $missed,
+            'refused' => $refused,
+            'other' => $other,
+            'compliance' => $compliance,
+        ];
+    }
+
+    private function formatUserDisplayName(User $user): string
+    {
+        $first = trim((string) ($user->first_name ?? ''));
+        $last = trim((string) ($user->last_name ?? ''));
+        if ($first !== '' || $last !== '') {
+            return trim($first.' '.$last);
+        }
+
+        return trim((string) ($user->name ?? ''));
+    }
+
+    private function formatUserRole(?User $user): string
+    {
+        if (! $user) {
+            return '';
+        }
+        $role = trim((string) ($user->role ?? ''));
+        if ($role === '') {
+            return '';
+        }
+        $map = [
+            'super_admin' => 'Super Admin',
+            'administrator' => 'Administrator',
+            'admin' => 'Branch Admin',
+            'caregiver' => 'Caregiver',
+            'care_giver' => 'Caregiver',
+            'nurse' => 'Nurse',
+            'registered_nurse' => 'Registered Nurse',
+            'licensed_nurse' => 'Licensed Nurse',
+            'clinical_supervisor' => 'Clinical Supervisor',
+            'manager' => 'Manager',
+            'support_staff' => 'Support Staff',
+        ];
+
+        return $map[$role] ?? ucwords(str_replace('_', ' ', $role));
     }
 
     private function initialsFromName(string $name): string

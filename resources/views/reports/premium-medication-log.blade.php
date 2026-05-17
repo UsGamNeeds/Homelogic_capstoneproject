@@ -124,6 +124,39 @@
     </div>
     @endif
 
+    {{-- Prominent allergies banner: state surveyors want allergies to be unmissable on every MAR. --}}
+    @if(!empty($hasAllergies))
+    <div style="margin: 0 0 20px 0; padding: 10px 16px; background: #fef2f2; border: 1.5px solid #fecaca; border-left: 6px solid #b91c1c; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+        <span style="display: inline-block; width: 26px; height: 26px; line-height: 26px; text-align: center; background: #b91c1c; color: #ffffff; border-radius: 50%; font-weight: 700; font-size: 14px;">!</span>
+        <div style="font-size: 11px; color: #7f1d1d;">
+            <span style="font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;">Allergies:</span>
+            <span style="font-weight: 600;">{{ $allergies }}</span>
+        </div>
+    </div>
+    @endif
+
+    {{-- Period totals strip: total scheduled vs given vs missed vs refused, plus compliance percent. --}}
+    @if(!empty($doseSummary) && (int) ($doseSummary['total'] ?? 0) > 0)
+    @php $ds = $doseSummary; @endphp
+    <div style="margin: 0 0 18px 0; padding: 12px 16px; background: {{ $primaryColor ?? '#1E3A5F' }}; color: #ffffff; border-radius: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 18px; font-size: 11px;">
+        <div>
+            <span style="font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; opacity: 0.75;">Period</span>
+            <span style="margin-left: 6px; font-weight: 700;">{{ $rangeLabel }}</span>
+        </div>
+        <div style="opacity: 0.5;">|</div>
+        <div><span style="opacity: 0.75;">Recorded:</span> <span style="font-weight: 700;">{{ $ds['total'] }}</span></div>
+        <div style="color: #bbf7d0;"><span style="opacity: 0.85;">Given:</span> <span style="font-weight: 700;">{{ $ds['given'] }}</span></div>
+        <div style="color: #fecaca;"><span style="opacity: 0.85;">Missed:</span> <span style="font-weight: 700;">{{ $ds['missed'] }}</span></div>
+        <div style="color: #fde68a;"><span style="opacity: 0.85;">Refused:</span> <span style="font-weight: 700;">{{ $ds['refused'] }}</span></div>
+        @if(($ds['other'] ?? 0) > 0)
+        <div style="color: #ddd6fe;"><span style="opacity: 0.85;">Other:</span> <span style="font-weight: 700;">{{ $ds['other'] }}</span></div>
+        @endif
+        <div style="margin-left: auto; padding: 4px 10px; background: rgba(255,255,255,0.16); border-radius: 999px; font-weight: 700;">
+            Compliance: {{ $ds['compliance'] }}%
+        </div>
+    </div>
+    @endif
+
     <!-- Medications Table -->
     @if($includeScheduledSection ?? true)
     <div>
@@ -228,9 +261,55 @@
         </div>
         @endif
 
+    {{-- Caregiver initials key: lets a surveyor map "JD" back to "Jane Doe (Caregiver)". --}}
+    @if(!empty($caregiverKey) && count($caregiverKey) > 0)
+    <div style="margin-top: 28px; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+        <p style="margin: 0 0 8px 0; font-size: 11px; font-weight: 700; color: {{ $primaryColor ?? '#1E3A5F' }}; text-transform: uppercase; letter-spacing: 0.5px;">
+            Caregivers on this period
+        </p>
+        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+            <tbody>
+                @foreach(array_chunk($caregiverKey, 3) as $row)
+                <tr>
+                    @foreach($row as $cg)
+                    <td style="width: 33.33%; padding: 4px 8px; vertical-align: top;">
+                        <span style="display: inline-block; min-width: 26px; padding: 2px 6px; background: #ecfdf5; color: #15803d; border-radius: 4px; font-weight: 700; text-align: center;">{{ $cg['initials'] }}</span>
+                        <span style="margin-left: 6px; font-weight: 600; color: #334155;">{{ $cg['name'] }}</span>
+                        @if(!empty($cg['role']))
+                        <span style="color: #64748b;"> &middot; {{ $cg['role'] }}</span>
+                        @endif
+                    </td>
+                    @endforeach
+                    @for($i = count($row); $i < 3; $i++)
+                    <td style="width: 33.33%;"></td>
+                    @endfor
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+    @endif
+
+    {{-- Administrator review signature: physical sign-off when the report is printed for audits. --}}
+    <div style="margin-top: 24px; padding: 14px 16px; border: 1px dashed #cbd5e1; border-radius: 10px; font-size: 10px; color: #475569;">
+        <p style="margin: 0 0 12px 0; font-weight: 700; color: {{ $primaryColor ?? '#1E3A5F' }}; text-transform: uppercase; letter-spacing: 0.5px;">Administrator review</p>
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+                <td style="width: 60%; padding-right: 16px; vertical-align: bottom;">
+                    <div style="border-bottom: 1px solid #94a3b8; height: 22px;"></div>
+                    <p style="margin: 4px 0 0 0; font-size: 9px; color: #64748b;">Reviewed by (print &amp; sign)</p>
+                </td>
+                <td style="width: 40%; vertical-align: bottom;">
+                    <div style="border-bottom: 1px solid #94a3b8; height: 22px;"></div>
+                    <p style="margin: 4px 0 0 0; font-size: 9px; color: #64748b;">Date</p>
+                </td>
+            </tr>
+        </table>
+    </div>
+
     <!-- Footer Legend -->
     @if($includeLegend ?? true)
-    <div style="margin-top: 40px; padding: 15px; background: {{ $primaryColor ?? '#1E3A5F' }}; color: #ffffff; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 10px;">
+    <div style="margin-top: 28px; padding: 15px; background: {{ $primaryColor ?? '#1E3A5F' }}; color: #ffffff; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 10px;">
         <div style="display: flex; gap: 20px;">
             <div style="display: flex; align-items: center; gap: 5px;">
                 <span style="display: inline-block; width: 10px; height: 10px; background: #4ade80; border-radius: 2px;"></span>
