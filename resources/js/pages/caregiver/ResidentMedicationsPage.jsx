@@ -189,10 +189,6 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
     const [isBulkAdministering, setIsBulkAdministering] = useState(false);
     const [prnFollowupCompletingId, setPrnFollowupCompletingId] = useState(null);
     const [showMissedOnly, setShowMissedOnly] = useState(false);
-    // { administrationId, medicationName, timeLabel, scheduledAt } | null
-    const [lateMarkTarget, setLateMarkTarget] = useState(null);
-    const [lateMarkSubmitting, setLateMarkSubmitting] = useState(false);
-    const [lateMarkError, setLateMarkError] = useState('');
 
     const isMar = variant === 'mar';
     const isPrnHub = variant === 'prn';
@@ -572,6 +568,41 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
         });
     }, []);
 
+    /**
+     * Administrator-only: flip a persisted missed row to completed.
+     * Optimistically updates the MAR so the slot shows completed immediately; rolls back on error.
+     */
+    const markMissedAsAdministered = React.useCallback(async (target) => {
+        const adminId = target?.administrationId;
+        if (!adminId || !residentId) return;
+
+        const queryKey = todayResidentAdminsQueryKey;
+        const previous = queryClient.getQueryData(queryKey);
+
+        queryClient.setQueryData(queryKey, (old) => {
+            if (!old || !Array.isArray(old.data)) return old;
+            return {
+                ...old,
+                data: old.data.map((row) =>
+                    (row.id === adminId || String(row.id) === String(adminId))
+                        ? { ...row, status: 'completed' }
+                        : row
+                ),
+            };
+        });
+
+        try {
+            await api.patch(`/medication-administrations/${adminId}/mark-administered`);
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey }),
+                queryClient.invalidateQueries({ queryKey: ['resident-medications', residentId] }),
+            ]);
+        } catch (err) {
+            queryClient.setQueryData(queryKey, previous);
+            const msg = err?.response?.data?.message || err?.message || 'Failed to mark dose as administered.';
+            alert(msg);
+        }
+    }, [queryClient, todayResidentAdminsQueryKey, residentId]);
 
     const renderMedicationRow = (medication, index) => {
         if (medication.isPrnFollowupReminder) {
@@ -873,7 +904,7 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
                                     isAdministrator={isAdministrator}
                                     canLateMark={isMar && isAdministrator}
                                     showOnlyMissed={isMar && showMissedOnly}
-                                    onAdminLateMark={(target) => setLateMarkTarget(target)}
+                                    onAdminLateMark={markMissedAsAdministered}
                                 />
                                 
                                 {isMarRecordingDay ? (
@@ -1023,7 +1054,7 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
                             Administration recording and bulk select are available only when Med pass is set to today's date ({pacificTodayIso}).
                             {isAdministrator ? (
                                 <span className="block mt-1 text-xs text-amber-900">
-                                    As an administrator you can still mark missed doses on this day as administered using the green "Mark administered" buttons.
+                                    As an administrator you can still mark missed doses on this day as administered using the checkmark control beside each missed time.
                                 </span>
                             ) : null}
                         </div>
@@ -1220,29 +1251,6 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
 
     if (embedded) return medGrid;
 
-    /**
-     * Administrator-only: flip a missed dose to administered via the new backend endpoint.
-     * The endpoint preserves the originally scheduled administered_at, credits the appropriate
-     * caregiver, and silently logs the change in activity_logs (no visible audit fields on the MAR).
-     */
-    const submitLateMark = React.useCallback(async () => {
-        if (!lateMarkTarget?.administrationId) return;
-        setLateMarkSubmitting(true);
-        setLateMarkError('');
-        try {
-            await api.patch(`/medication-administrations/${lateMarkTarget.administrationId}/mark-administered`);
-            // Refresh both the day's administrations and the per-resident med rollups.
-            queryClient.invalidateQueries({ queryKey: todayResidentAdminsQueryKey });
-            queryClient.invalidateQueries({ queryKey: ['resident-medications', residentId] });
-            setLateMarkTarget(null);
-        } catch (err) {
-            const msg = err?.response?.data?.message || err?.message || 'Failed to mark dose as administered.';
-            setLateMarkError(msg);
-        } finally {
-            setLateMarkSubmitting(false);
-        }
-    }, [lateMarkTarget, queryClient, todayResidentAdminsQueryKey, residentId]);
-
     return (
         <div className="space-y-4">
             <Breadcrumbs items={[
@@ -1251,64 +1259,6 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
                 { label: 'Medications', path: '' },
             ]} />
             {medGrid}
-
-            {/* Administrator-only confirmation: mark a missed dose as administered (backdated to scheduled time) */}
-            <Modal
-                isOpen={!!lateMarkTarget}
-                onClose={() => {
-                    if (lateMarkSubmitting) return;
-                    setLateMarkTarget(null);
-                    setLateMarkError('');
-                }}
-                title="Mark dose as administered"
-                size="md"
-            >
-                {lateMarkTarget ? (
-                    <div className="space-y-4">
-                        <p className="text-sm text-gray-700">
-                            Mark <span className="font-semibold">{lateMarkTarget.medicationName}</span> as administered for the
-                            {' '}<span className="font-semibold">{lateMarkTarget.timeLabel}</span> dose?
-                        </p>
-                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                            The dose will be recorded at its originally scheduled time. If a caregiver administered another
-                            dose for this resident the same day, that caregiver will be credited; otherwise the dose is
-                            credited to you.
-                        </div>
-                        {lateMarkError ? (
-                            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                                {lateMarkError}
-                            </div>
-                        ) : null}
-                        <div className="flex items-center justify-end gap-2 pt-1">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    if (lateMarkSubmitting) return;
-                                    setLateMarkTarget(null);
-                                    setLateMarkError('');
-                                }}
-                                disabled={lateMarkSubmitting}
-                                className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                onClick={submitLateMark}
-                                disabled={lateMarkSubmitting}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-sm font-bold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
-                            >
-                                {lateMarkSubmitting ? (
-                                    <RefreshCw className="w-4 h-4 animate-spin" aria-hidden="true" />
-                                ) : (
-                                    <CheckCircle className="w-4 h-4" aria-hidden="true" />
-                                )}
-                                {lateMarkSubmitting ? 'Saving…' : 'Mark administered'}
-                            </button>
-                        </div>
-                    </div>
-                ) : null}
-            </Modal>
         </div>
     );
 
@@ -1536,17 +1486,20 @@ function MedicationTimeBadges({
                         {showLateMarkAction ? (
                             <button
                                 type="button"
-                                onClick={() => onAdminLateMark({
-                                    administrationId: admin.id,
-                                    medicationName: medication?.drug?.name || medication?.name || 'Medication',
-                                    timeLabel: timeStr,
-                                    scheduledAt: admin.administered_at,
-                                })}
-                                className="inline-flex shrink-0 items-center gap-0.5 rounded-md border border-emerald-800/25 bg-white px-1.5 py-0.5 text-[10px] font-semibold leading-none !text-emerald-950 shadow-sm ring-1 ring-emerald-950/[0.06] transition-colors hover:border-emerald-800/40 hover:bg-emerald-50/80 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 active:scale-[0.98] [&_svg]:size-2.5 [&_svg]:shrink-0 [&_svg]:!text-emerald-800"
-                                title="Document this dose as administered (facility administrator only)"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onAdminLateMark({
+                                        administrationId: admin.id,
+                                        medicationName: medication?.drug?.name || medication?.name || 'Medication',
+                                        timeLabel: timeStr,
+                                        scheduledAt: admin.administered_at,
+                                    });
+                                }}
+                                className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-emerald-700/90 bg-emerald-600 !text-white shadow-sm transition hover:bg-emerald-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-95 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:!text-white"
+                                title="Mark this missed dose as administered (administrator)"
+                                aria-label={`Mark ${timeStr} dose as administered`}
                             >
                                 <CheckCircle aria-hidden="true" />
-                                Mark administered
                             </button>
                         ) : null}
                     </span>
