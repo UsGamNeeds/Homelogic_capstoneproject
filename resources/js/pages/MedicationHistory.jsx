@@ -39,6 +39,21 @@ const StatusIcon = ({ status, className = 'w-3.5 h-3.5' }) => {
     return null;
 };
 
+/** Match server mark-administered payload for optimistic history cache updates. */
+function applyOptimisticMarkAdministeredRow(row) {
+    if (!row) return row;
+    const med = row.medication;
+    const fromMed = med ? [med.quantity, med.form].filter(Boolean).join(' ').trim() : '';
+    const hasDosage = row.dosage_given != null && String(row.dosage_given).trim() !== '';
+
+    return {
+        ...row,
+        status: 'completed',
+        notes: 'Administered',
+        dosage_given: hasDosage ? row.dosage_given : (fromMed || 'Administered'),
+    };
+}
+
 export default function MedicationHistory({ embedded = false, embeddedResidentId = '' } = {}) {
     const queryClient = useQueryClient();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -251,7 +266,7 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
                 return {
                     ...old,
                     data: old.data.map((row) =>
-                        String(row.id) === String(adminId) ? { ...row, status: 'completed' } : row
+                        String(row.id) === String(adminId) ? applyOptimisticMarkAdministeredRow(row) : row
                     ),
                 };
             });

@@ -661,6 +661,18 @@ class MedicationAdministrationController extends BaseApiController
                 // Flip the dose. administered_at intentionally untouched.
                 $administration->status = 'completed';
                 $administration->administered_by = $resolvedAdministeredBy;
+                $administration->notes = 'Administered';
+
+                $dosageFromMedication = trim(implode(' ', array_filter([
+                    $medication->quantity ? (string) $medication->quantity : null,
+                    $medication->form ? (string) $medication->form : null,
+                ])));
+
+                $currentDosage = $administration->dosage_given;
+                if ($currentDosage === null || $currentDosage === '') {
+                    $administration->dosage_given = $dosageFromMedication !== '' ? $dosageFromMedication : 'Administered';
+                }
+
                 $administration->save();
 
                 return $administration;

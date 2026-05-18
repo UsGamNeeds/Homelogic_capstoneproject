@@ -112,9 +112,12 @@ class AdminMarkAdministeredTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('status', 'completed');
+        $response->assertJsonPath('notes', 'Administered');
 
         $fresh = MedicationAdministration::find($missed->id);
         $this->assertSame('completed', $fresh->status);
+        $this->assertSame('Administered', $fresh->notes);
+        $this->assertSame('Administered', $fresh->dosage_given);
         // administered_at must be unchanged (the dose is still attributed to the scheduled slot)
         $this->assertTrue(
             $originalAdministeredAt->equalTo(Carbon::parse($fresh->administered_at)),
@@ -139,6 +142,7 @@ class AdminMarkAdministeredTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('status', 'completed');
+        $response->assertJsonPath('notes', 'Administered');
     }
 
     public function test_caregiver_cannot_use_endpoint(): void

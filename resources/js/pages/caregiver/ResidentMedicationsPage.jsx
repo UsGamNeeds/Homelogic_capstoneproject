@@ -169,6 +169,21 @@ const isMedicationPeriodActiveNow = (medication, referenceDate = getPacificNow()
     return true;
 };
 
+/** Match server mark-administered payload for optimistic MAR cache updates. */
+function applyOptimisticMarkAdministeredRow(row) {
+    if (!row) return row;
+    const med = row.medication;
+    const fromMed = med ? [med.quantity, med.form].filter(Boolean).join(' ').trim() : '';
+    const hasDosage = row.dosage_given != null && String(row.dosage_given).trim() !== '';
+
+    return {
+        ...row,
+        status: 'completed',
+        notes: 'Administered',
+        dosage_given: hasDosage ? row.dosage_given : (fromMed || 'Administered'),
+    };
+}
+
 export default function ResidentMedicationsPage({ embedded = false, variant = 'list', marDate = null }) {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
@@ -585,7 +600,7 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
                 ...old,
                 data: old.data.map((row) =>
                     (row.id === adminId || String(row.id) === String(adminId))
-                        ? { ...row, status: 'completed' }
+                        ? applyOptimisticMarkAdministeredRow(row)
                         : row
                 ),
             };
