@@ -83,7 +83,7 @@ class MedicationController extends BaseApiController
             if ($request->get('hide_administered') === 'true') {
                 $medications = $medications->filter(function ($med) {
                     return ! $med->is_fully_administered_today;
-                });
+                })->values();
             }
 
             // Custom Sorting:
@@ -92,7 +92,7 @@ class MedicationController extends BaseApiController
             // Simple pagination for the collection
             $perPage = min(100, max(1, (int) $request->get('per_page', 20)));
             $page = (int) $request->get('page', 1);
-            $paginatedItems = $medications->forPage($page, $perPage);
+            $paginatedItems = $medications->forPage($page, $perPage)->values();
 
             $result = new \Illuminate\Pagination\LengthAwarePaginator(
                 $paginatedItems,
