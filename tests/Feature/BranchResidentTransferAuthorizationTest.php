@@ -69,6 +69,51 @@ class BranchResidentTransferAuthorizationTest extends TestCase
         $this->assertSame($targetBranch->id, Resident::withoutGlobalScopes()->findOrFail($resident->id)->branch_id);
     }
 
+    public function test_branch_admin_cannot_list_residents_for_another_branch(): void
+    {
+        [$facility, $assignedBranch, $otherBranch] = $this->createFacilityWithBranches();
+        Resident::factory()->create(['branch_id' => $otherBranch->id]);
+        $branchAdmin = $this->createUserForBranch('admin', $facility, $assignedBranch);
+
+        Sanctum::actingAs($branchAdmin, ['*']);
+        app()->instance('facility', $facility);
+
+        $this->getJson("/api/v1/branches/{$otherBranch->id}/residents")
+            ->assertNotFound();
+    }
+
+    public function test_caregiver_cannot_list_residents_for_another_branch(): void
+    {
+        [$facility, $assignedBranch, $otherBranch] = $this->createFacilityWithBranches();
+        $ownResident = Resident::factory()->create(['branch_id' => $assignedBranch->id]);
+        Resident::factory()->create(['branch_id' => $otherBranch->id]);
+        $caregiver = $this->createUserForBranch('caregiver', $facility, $assignedBranch);
+
+        Sanctum::actingAs($caregiver, ['*']);
+        app()->instance('facility', $facility);
+
+        $this->getJson("/api/v1/branches/{$otherBranch->id}/residents")
+            ->assertNotFound();
+
+        $response = $this->getJson("/api/v1/branches/{$assignedBranch->id}/residents");
+        $response->assertOk();
+        $this->assertContains($ownResident->id, collect($response->json('data'))->pluck('id')->all());
+    }
+
+    public function test_facility_administrator_can_list_residents_for_any_branch_in_facility(): void
+    {
+        [$facility, $firstBranch, $secondBranch] = $this->createFacilityWithBranches();
+        $resident = Resident::factory()->create(['branch_id' => $secondBranch->id]);
+        $administrator = $this->createUserForBranch('administrator', $facility, $firstBranch);
+
+        Sanctum::actingAs($administrator, ['*']);
+        app()->instance('facility', $facility);
+
+        $response = $this->getJson("/api/v1/branches/{$secondBranch->id}/residents");
+        $response->assertOk();
+        $this->assertContains($resident->id, collect($response->json('data'))->pluck('id')->all());
+    }
+
     /**
      * @return array{Facility, Branch, Branch}
      */

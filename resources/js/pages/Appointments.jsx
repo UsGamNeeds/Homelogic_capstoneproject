@@ -408,7 +408,7 @@ export default function Appointments() {
             refetch();
         } catch (error) {
             logger.error('Failed to update appointment status:', error);
-            alert(error.response?.data?.message || 'Failed to complete appointment');
+            toast.error(error.response?.data?.message || 'Failed to complete appointment');
         }
     };
 
@@ -1279,7 +1279,7 @@ export default function Appointments() {
                                         doc.document_name && doc.document_type && doc.file
                                     );
                                     if (completionDocuments.length > 0 && validDocuments.length !== completionDocuments.length) {
-                                        alert('Please fill in all required fields for documents');
+                                        toast.warning('Please fill in all required fields for documents');
                                         return;
                                     }
                                     handleStatusUpdate(completingAppointment, 'completed', completionNotes || null, validDocuments);
@@ -1372,7 +1372,7 @@ export default function Appointments() {
                                 type="button"
                                 onClick={() => {
                                     if (!cancellationStatus) {
-                                        alert('Please select an appointment status');
+                                        toast.warning('Please select an appointment status');
                                         return;
                                     }
                                     handleStatusUpdate(cancellingAppointment.id, cancellationStatus, cancellationNotes || null);

@@ -157,21 +157,12 @@ export default function AppointmentsDashboard() {
                 description: '',
                 status: 'scheduled',
             });
-            // Show success message
-            if (toast) {
-                toast.success('Appointment created successfully!', '', { isFormSubmission: true });
-            } else {
-                alert('Appointment created successfully!');
-            }
+            toast.success('Appointment created successfully!', '', { isFormSubmission: true });
         },
         onError: (error) => {
             logger.error('Error creating appointment:', error);
             const errorMessage = error.response?.data?.message || 'Failed to create appointment';
-            if (toast) {
-                toast.error('Error', errorMessage);
-            } else {
-                alert(errorMessage);
-            }
+            toast.error('Error', errorMessage);
         },
     });
 
@@ -299,20 +290,12 @@ export default function AppointmentsDashboard() {
                 delete updated[variables.id];
                 return updated;
             });
-            if (toast) {
-                toast.success('Appointment marked as completed!', '', { isFormSubmission: true });
-            } else {
-                alert('Appointment marked as completed!');
-            }
+            toast.success('Appointment marked as completed!', '', { isFormSubmission: true });
         },
         onError: (error) => {
             logger.error('Complete error:', error);
             const errorMessage = error.response?.data?.message || 'Failed to complete appointment. Please try again.';
-            if (toast) {
-                toast.error('Error', errorMessage);
-            } else {
-                alert(errorMessage);
-            }
+            toast.error('Error', errorMessage);
         },
     });
 
@@ -339,7 +322,7 @@ export default function AppointmentsDashboard() {
         );
         
         if (documents.length > 0 && validDocuments.length !== documents.length) {
-            alert('Please fill in all required fields for documents');
+            toast.warning('Validation', 'Please fill in all required fields for documents');
             return;
         }
         
@@ -389,20 +372,12 @@ export default function AppointmentsDashboard() {
             setCancellationNotes('');
             setUpdateAppointmentDate('');
             setUpdateAppointmentTime('');
-            if (toast) {
-                toast.success('Appointment updated successfully!', '', { isFormSubmission: true });
-            } else {
-                alert('Appointment updated successfully!');
-            }
+            toast.success('Appointment updated successfully!', '', { isFormSubmission: true });
         },
         onError: (error) => {
             logger.error('Update error:', error);
             const errorMessage = error.response?.data?.message || 'Failed to update appointment. Please try again.';
-            if (toast) {
-                toast.error('Error', errorMessage);
-            } else {
-                alert(errorMessage);
-            }
+            toast.error('Error', errorMessage);
         },
     });
 
@@ -421,20 +396,12 @@ export default function AppointmentsDashboard() {
             queryClient.invalidateQueries(['appointments-statistics']);
             setReschedulingAppointment(null);
             setRescheduleFormData({ appointment_date: '', appointment_time: '', reschedule_reason: '' });
-            if (toast) {
-                toast.success('Appointment rescheduled successfully!', '', { isFormSubmission: true });
-            } else {
-                alert('Appointment rescheduled successfully!');
-            }
+            toast.success('Appointment rescheduled successfully!', '', { isFormSubmission: true });
         },
         onError: (error) => {
             logger.error('Reschedule error:', error);
             const errorMessage = error.response?.data?.message || 'Failed to reschedule appointment. Please try again.';
-            if (toast) {
-                toast.error('Error', errorMessage);
-            } else {
-                alert(errorMessage);
-            }
+            toast.error('Error', errorMessage);
         },
     });
 
@@ -492,7 +459,7 @@ export default function AppointmentsDashboard() {
     const handleRescheduleSubmit = async (e) => {
         e.preventDefault();
         if (!rescheduleFormData.appointment_date || !rescheduleFormData.appointment_time) {
-            alert('Please select both date and time');
+            toast.warning('Validation', 'Please select both date and time');
             return;
         }
         
@@ -1108,15 +1075,15 @@ export default function AppointmentsDashboard() {
                     onSubmit={async (e) => {
                         e.preventDefault();
                         if (!formData.resident_id) {
-                            alert('Please select a resident');
+                            toast.warning('Validation', 'Please select a resident');
                             return;
                         }
                         if (!formData.appointment_date) {
-                            alert('Please select a date');
+                            toast.warning('Validation', 'Please select a date');
                             return;
                         }
                         if (!formData.appointment_time) {
-                            alert('Please select a time');
+                            toast.warning('Validation', 'Please select a time');
                             return;
                         }
                         await createMutation.mutateAsync(formData);
@@ -1441,13 +1408,13 @@ export default function AppointmentsDashboard() {
                                     
                                     // Validate that at least one change is being made
                                     if (!hasDateChange && !hasTimeChange && !hasStatusChange && !cancellationNotes) {
-                                        alert('Please make at least one change (status, date, time, or add comments)');
+                                        toast.warning('Validation', 'Please make at least one change (status, date, time, or add comments)');
                                         return;
                                     }
-                                    
+
                                     // Status is required only if no other changes are being made
                                     if (!cancellationStatus && !hasDateChange && !hasTimeChange) {
-                                        alert('Please select an appointment status or change the date/time');
+                                        toast.warning('Validation', 'Please select an appointment status or change the date/time');
                                         return;
                                     }
                                     

@@ -392,6 +392,7 @@ class MedicationLogReportService
         $form = $drug?->dosage_form;
 
         $rows = [];
+        $usedAdminIdsByDate = [];
         foreach ($slots as $slot) {
             $cells = [];
             foreach ($days as $day) {
@@ -410,12 +411,18 @@ class MedicationLogReportService
                     continue;
                 }
 
-                $cells[$dateKey] = $this->resolveCellContent(
+                $usedIds = $usedAdminIdsByDate[$dateKey] ?? [];
+                [$cell, $matchedAdminId] = $this->resolveCellContent(
                     $medication,
                     $medAdmins,
                     $slotTime,
-                    $dayCarbon
+                    $dayCarbon,
+                    $usedIds
                 );
+                $cells[$dateKey] = $cell;
+                if ($matchedAdminId !== null) {
+                    $usedAdminIdsByDate[$dateKey] = array_merge($usedIds, [$matchedAdminId]);
+                }
             }
 
             $rows[] = [
@@ -474,18 +481,23 @@ class MedicationLogReportService
     }
 
     /**
-     * @return array{text: string, tone: 'taken'|'not_taken'|'inactive'}
+     * @param  list<int>  $usedAdminIds  Administration IDs already matched to another slot this day
+     * @return array{0: array{text: string, tone: string}, 1: int|null}
      */
     private function resolveCellContent(
         Medication $medication,
         Collection $medAdmins,
         Carbon $slotTime,
-        Carbon $dayStart
+        Carbon $dayStart,
+        array $usedAdminIds = []
     ): array {
         $dayEnd = $dayStart->copy()->endOfDay();
 
-        $candidates = $medAdmins->filter(function (MedicationAdministration $a) use ($medication, $dayStart, $dayEnd) {
+        $candidates = $medAdmins->filter(function (MedicationAdministration $a) use ($medication, $dayStart, $dayEnd, $usedAdminIds) {
             if ((int) $a->medication_id !== (int) $medication->id) {
+                return false;
+            }
+            if (in_array((int) $a->id, $usedAdminIds, true)) {
                 return false;
             }
             $at = $a->administered_at->copy()->timezone(config('app.timezone'));
@@ -494,7 +506,7 @@ class MedicationLogReportService
         });
 
         if ($candidates->isEmpty()) {
-            return ['text' => '—', 'tone' => 'not_taken'];
+            return [['text' => '—', 'tone' => 'not_taken'], null];
         }
 
         $best = null;
@@ -510,14 +522,10 @@ class MedicationLogReportService
         }
 
         if ($best === null) {
-            $best = $candidates->sortBy(function (MedicationAdministration $a) use ($slotTime) {
-                $at = $a->administered_at->copy()->timezone(config('app.timezone'));
-
-                return abs($at->diffInSeconds($slotTime));
-            })->first();
+            return [['text' => '—', 'tone' => 'not_taken'], null];
         }
 
-        return $this->cellDisplayWithTone($best);
+        return [$this->cellDisplayWithTone($best), (int) $best->id];
     }
 
     /**

@@ -90,7 +90,7 @@ class MedicationController extends BaseApiController
             $medications = $this->medicationService->sortMedicationsByPriority($medications);
 
             // Simple pagination for the collection
-            $perPage = (int) $request->get('per_page', 20);
+            $perPage = min(100, max(1, (int) $request->get('per_page', 20)));
             $page = (int) $request->get('page', 1);
             $paginatedItems = $medications->forPage($page, $perPage);
 
@@ -105,8 +105,7 @@ class MedicationController extends BaseApiController
             return response()->json($result);
         }
 
-        $perPage = (int) $request->get('per_page', 20);
-        $perPage = max(1, min(100, $perPage));
+        $perPage = min(100, max(1, (int) $request->get('per_page', 20)));
 
         $medications = $query->orderBy('start_date', 'desc')
             ->paginate($perPage);
@@ -318,8 +317,9 @@ class MedicationController extends BaseApiController
             $query->where('resident_id', $request->get('resident_id'));
         }
 
+        $perPage = min(100, max(1, (int) $request->get('per_page', 15)));
         $administrations = $query->orderBy('administered_at', 'desc')
-            ->paginate($request->get('per_page', 15));
+            ->paginate($perPage);
 
         return response()->json($administrations);
     }

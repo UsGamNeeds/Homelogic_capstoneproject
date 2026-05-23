@@ -36,7 +36,7 @@ const tabs = [
     { id: 'medications', label: 'Medications', icon: Pill },
     { id: 'vitals', label: 'Vitals', icon: Heart },
     { id: 'appointments', label: 'Appointments', icon: Calendar },
-    { id: 'notes', label: 'Progress Notes', icon: FileText },
+    { id: 'notes', label: 'T-Logs', icon: FileText },
     { id: 'documents', label: 'Documents', icon: FileText },
     { id: 'sleep', label: 'Sleep', icon: Moon },
 ];
@@ -952,7 +952,7 @@ function ResidentProgressNotes({ residentId }) {
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Progress Notes</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">T-Logs</h2>
                     <p className="text-sm text-gray-500">Recent caregiver observations and follow-ups.</p>
                 </div>
                 <Link
@@ -960,7 +960,7 @@ function ResidentProgressNotes({ residentId }) {
                     className="inline-flex items-center gap-2 rounded-lg border-2 border-[var(--theme-primary)] bg-[var(--theme-primary)] px-4 py-2 text-sm font-semibold text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-hover)] transition-colors shadow-sm"
                 >
                     <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                    View All Notes
+                    View All T-Logs
                 </Link>
             </div>
 
@@ -979,7 +979,7 @@ function ResidentProgressNotes({ residentId }) {
             ) : notes.length === 0 ? (
                 <EmptyState
                     icon={FileText}
-                    title="No progress notes yet"
+                    title="No T-Logs yet"
                     description="Caregiver observations and notes logged for this resident will appear here."
                 />
             ) : (

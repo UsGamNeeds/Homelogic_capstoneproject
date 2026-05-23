@@ -246,4 +246,78 @@ class DocumentLibraryAuthorizationTest extends TestCase
         $this->assertNotContains('Foreign Facility Folder', $names);
         $this->assertNotNull($branch->id);
     }
+
+    public function test_branch_admin_tree_root_excludes_other_branch_resident_and_facility_folders(): void
+    {
+        [$facility, $assignedBranch] = $this->createFacilityAndBranch();
+        $otherBranch = Branch::factory()->create(['facility_id' => $facility->id]);
+
+        DocumentFolder::query()->withoutGlobalScopes()->create([
+            'facility_id' => $facility->id,
+            'parent_id' => null,
+            'resident_id' => null,
+            'name' => 'Facility-licenses',
+            'sort_order' => 0,
+        ]);
+
+        $ownResident = $this->createResident($assignedBranch);
+        $otherResident = $this->createResident($otherBranch);
+
+        $branchAdmin = User::factory()->create([
+            'facility_id' => $facility->id,
+            'assigned_branch_id' => $assignedBranch->id,
+            'role' => 'admin',
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($branchAdmin, ['*']);
+        app()->instance('facility', $facility);
+
+        $response = $this->getJson('/api/v1/document-library/tree');
+        $response->assertOk();
+
+        $names = collect($response->json('data.folders'))->pluck('name')->all();
+        $this->assertNotContains('Facility-licenses', $names);
+        $this->assertTrue(collect($names)->contains(fn ($n) => str_contains((string) $n, $ownResident->name)));
+        $this->assertFalse(collect($names)->contains(fn ($n) => str_contains((string) $n, $otherResident->name)));
+    }
+
+    public function test_branch_admin_cannot_download_file_for_other_branch_resident(): void
+    {
+        [$facility, $assignedBranch] = $this->createFacilityAndBranch();
+        $otherBranch = Branch::factory()->create(['facility_id' => $facility->id]);
+        $otherResident = $this->createResident($otherBranch);
+
+        $folder = DocumentFolder::query()->withoutGlobalScopes()->create([
+            'facility_id' => $facility->id,
+            'parent_id' => null,
+            'resident_id' => $otherResident->id,
+            'name' => 'Other Branch Docs',
+            'sort_order' => 0,
+        ]);
+
+        $branchAdmin = User::factory()->create([
+            'facility_id' => $facility->id,
+            'assigned_branch_id' => $assignedBranch->id,
+            'role' => 'admin',
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($branchAdmin, ['*']);
+        app()->instance('facility', $facility);
+
+        $file = DocumentFile::query()->withoutGlobalScopes()->create([
+            'facility_id' => $facility->id,
+            'folder_id' => $folder->id,
+            'display_name' => 'secret.pdf',
+            'storage_path' => 'never',
+            'original_filename' => 'secret.pdf',
+            'mime_type' => 'application/pdf',
+            'size_bytes' => 1,
+            'uploaded_by' => $branchAdmin->id,
+        ]);
+
+        $this->get('/api/v1/document-library/files/'.$file->id.'/download')
+            ->assertStatus(403);
+    }
 }

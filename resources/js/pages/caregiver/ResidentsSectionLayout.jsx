@@ -10,7 +10,7 @@ import SectionLayout from '../../components/SectionLayout';
 const TABS = [
     { id: 'overview',     label: 'Overview',      icon: LayoutDashboard, path: '/residents' },
     { id: 'my-residents', label: 'Residents',     icon: Users,           path: '/my-residents' },
-    { id: 'notes',        label: 'Progress notes', icon: FileText,       path: '/t-logs' },
+    { id: 'notes',        label: 'T-Logs', icon: FileText,       path: '/t-logs' },
 ];
 
 export default function ResidentsSectionLayout() {

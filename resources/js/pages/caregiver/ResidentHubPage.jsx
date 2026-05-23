@@ -32,6 +32,7 @@ import {
     Plus,
 } from 'lucide-react';
 import api from '../../services/api';
+import { toast } from 'sonner';
 import Assessments from '../Assessments';
 import TLogForm from '../TLogForm';
 import CaregiverResidentChart from './CaregiverResidentChart';
@@ -57,7 +58,7 @@ const RESIDENT_TAB_BASE = [
     { id: 'assessments', label: 'Assessments', icon: ClipboardList, kind: 'tab', requiresAssessmentsModule: true },
     { id: 'appointments', label: 'Appointments', icon: Calendar, kind: 'tab' },
     { id: 'charts', label: 'Charts', icon: BarChart3, kind: 'tab' },
-    { id: 'notes', label: 'Progress notes', icon: FileText, kind: 'tab' },
+    { id: 'notes', label: 'T-Logs', icon: FileText, kind: 'tab' },
     { id: 'care', label: 'Care Plan', icon: BookOpen, kind: 'tab' },
     { id: 'documents', label: 'Documents', icon: FolderOpen, kind: 'tab' },
     { id: 'profile', label: 'Profile', icon: User, kind: 'tab' },
@@ -622,7 +623,7 @@ function NotesTab({ residentId, canAddProgressNotes = false }) {
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-gray-100">
                     <div className="flex items-center gap-2">
                         <FileText className="w-4 h-4 text-[var(--theme-primary)]" aria-hidden="true" />
-                        <h3 className="text-sm font-bold text-gray-900">Progress Notes / T-Logs</h3>
+                        <h3 className="text-sm font-bold text-gray-900">T-Logs</h3>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                         {canAddProgressNotes && (
@@ -648,7 +649,7 @@ function NotesTab({ residentId, canAddProgressNotes = false }) {
                     <div className="flex flex-col items-center justify-center py-16 text-center">
                         <FileText className="w-10 h-10 text-gray-200 mb-3" aria-hidden="true" />
                         <p className="text-sm font-semibold text-gray-900">No notes recorded</p>
-                        <p className="text-xs text-gray-400 mt-1">Progress notes for this resident will appear here.</p>
+                        <p className="text-xs text-gray-400 mt-1">T-Logs for this resident will appear here.</p>
                         {canAddProgressNotes && (
                             <button
                                 type="button"
@@ -730,7 +731,7 @@ function CarePlanTab({ resident, residentId, currentUser }) {
             setEditing(false);
         },
         onError: (err) => {
-            alert(err?.response?.data?.message || 'Failed to save care plan.');
+            toast.error(err?.response?.data?.message || 'Failed to save care plan.');
         },
     });
 

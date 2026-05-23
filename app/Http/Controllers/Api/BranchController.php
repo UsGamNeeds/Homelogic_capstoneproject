@@ -167,6 +167,9 @@ class BranchController extends BaseApiController
     public function residents(Request $request, $id): JsonResponse
     {
         $branch = Branch::findOrFail($id);
+        if (! $this->canAccessBranch($branch, $request->user())) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
 
         $query = $branch->residents()->with(['branch']);
 
@@ -264,8 +267,11 @@ class BranchController extends BaseApiController
             return false;
         }
 
-        return ! $user->isBranchAdmin()
-            || ! $user->assigned_branch_id
-            || (int) $branch->id === (int) $user->assigned_branch_id;
+        if ($this->isCaregiver($user) || $user->isBranchAdmin()) {
+            return $user->assigned_branch_id
+                && (int) $branch->id === (int) $user->assigned_branch_id;
+        }
+
+        return true;
     }
 }

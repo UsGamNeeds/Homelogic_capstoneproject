@@ -42,7 +42,7 @@ const CAREGIVER_COMMANDS = [
     { id: 'medication-history', label: 'Medication History', path: '/medication-history', icon: History, category: 'Clinical' },
     { id: 'vitals', label: 'Vitals', path: '/vitals', icon: Heart, category: 'Clinical' },
     { id: 'sleep', label: 'Sleep Records', path: '/sleep', icon: Moon, category: 'Clinical' },
-    { id: 'progress-notes', label: 'Progress Notes', path: '/t-logs', icon: FileText, category: 'Care' },
+    { id: 'progress-notes', label: 'T-Logs', path: '/t-logs', icon: FileText, category: 'Care' },
     { id: 'appointments', label: 'Appointments', path: '/appointments', icon: Calendar, category: 'Care' },
     { id: 'incidents', label: 'Incidents', path: '/incidents', icon: AlertTriangle, category: 'Operations' },
     { id: 'housekeeping', label: 'Housekeeping', path: '/housekeeping', icon: Sparkles, category: 'Operations' },

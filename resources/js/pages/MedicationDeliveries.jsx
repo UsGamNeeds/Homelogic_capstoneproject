@@ -1188,10 +1188,10 @@ function BulkMedicationDeliveryForm({ defaultResidentId = '', branches, resident
             const response = await api.post('/medication-deliveries/bulk', { deliveries: payload });
             
             if (response.data.error_count > 0) {
-                alert(`${response.data.success_count} deliveries created, ${response.data.error_count} failed. Check console for details.`);
+                toast.warning(`${response.data.success_count} deliveries created, ${response.data.error_count} failed. Check console for details.`);
                 logger.error('Bulk creation errors:', response.data.errors);
             } else {
-                alert(`Successfully created ${response.data.success_count} delivery(ies)!`);
+                toast.success(`Successfully created ${response.data.success_count} delivery(ies)!`, { isFormSubmission: true });
             }
             
             onSuccess();
@@ -1200,7 +1200,7 @@ function BulkMedicationDeliveryForm({ defaultResidentId = '', branches, resident
             if (error.response?.data?.errors) {
                 setErrors(error.response.data.errors);
             } else {
-                alert('Failed to create deliveries: ' + (error.response?.data?.message || error.message));
+                toast.error('Failed to create deliveries: ' + (error.response?.data?.message || error.message));
             }
         } finally {
             setIsSubmitting(false);

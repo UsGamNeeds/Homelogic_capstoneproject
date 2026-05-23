@@ -13,6 +13,9 @@ import {
 import api from './api';
 import logger from '../utils/logger';
 
+/** @type {Promise<{ success: boolean; synced?: number; errors?: number; details?: unknown; error?: string }> | null} */
+let syncInFlight = null;
+
 /**
  * Sync all pending items
  */
@@ -22,36 +25,47 @@ export async function syncAll() {
     return { success: false, error: 'Offline' };
   }
 
-  try {
-    const results = {
-      medications: await syncQueue(STORES.MEDICATION_ADMINISTRATIONS, 'medication'),
-      vitals: await syncQueue(STORES.VITALS, 'vital'),
-      incidents: await syncQueue(STORES.INCIDENTS, 'incident'),
-      syncQueue: await syncSyncQueue(),
-    };
-
-    const totalSynced =
-      results.medications.synced +
-      results.vitals.synced +
-      results.incidents.synced +
-      results.syncQueue.synced;
-
-    const totalErrors =
-      results.medications.errors +
-      results.vitals.errors +
-      results.incidents.errors +
-      results.syncQueue.errors;
-
-    return {
-      success: totalErrors === 0,
-      synced: totalSynced,
-      errors: totalErrors,
-      details: results,
-    };
-  } catch (error) {
-    logger.error('[BackgroundSync] Sync failed:', error);
-    return { success: false, error: error.message };
+  if (syncInFlight) {
+    logger.debug('[BackgroundSync] Sync already in progress, reusing');
+    return syncInFlight;
   }
+
+  syncInFlight = (async () => {
+    try {
+      const results = {
+        medications: await syncQueue(STORES.MEDICATION_ADMINISTRATIONS, 'medication'),
+        vitals: await syncQueue(STORES.VITALS, 'vital'),
+        incidents: await syncQueue(STORES.INCIDENTS, 'incident'),
+        syncQueue: await syncSyncQueue(),
+      };
+
+      const totalSynced =
+        results.medications.synced +
+        results.vitals.synced +
+        results.incidents.synced +
+        results.syncQueue.synced;
+
+      const totalErrors =
+        results.medications.errors +
+        results.vitals.errors +
+        results.incidents.errors +
+        results.syncQueue.errors;
+
+      return {
+        success: totalErrors === 0,
+        synced: totalSynced,
+        errors: totalErrors,
+        details: results,
+      };
+    } catch (error) {
+      logger.error('[BackgroundSync] Sync failed:', error);
+      return { success: false, error: error.message };
+    } finally {
+      syncInFlight = null;
+    }
+  })();
+
+  return syncInFlight;
 }
 
 /**

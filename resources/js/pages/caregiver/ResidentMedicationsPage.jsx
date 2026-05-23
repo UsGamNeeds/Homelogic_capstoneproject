@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearchParams, Link, useLocation } from 'react-router-dom';
 import api from '../../services/api';
+import { toast } from 'sonner';
 import { offlinePost } from '../../services/offlineApi';
 import { useResidentUpdates } from '../../hooks/useRealtimeUpdates';
 import {
@@ -615,7 +616,7 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
         } catch (err) {
             queryClient.setQueryData(queryKey, previous);
             const msg = err?.response?.data?.message || err?.message || 'Failed to mark dose as administered.';
-            alert(msg);
+            toast.error(msg);
         }
     }, [queryClient, todayResidentAdminsQueryKey, residentId]);
 
@@ -638,7 +639,7 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
                 } catch (err) {
                     logger.error('Failed to complete PRN follow-up:', err);
                     const msg = err?.response?.data?.message || 'Could not mark follow-up complete.';
-                    alert(msg);
+                    toast.error(msg);
                 } finally {
                     setPrnFollowupCompletingId(null);
                 }
@@ -992,13 +993,13 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
                 canRecordCompletedAdministrationNow(m, { todayAdministrations: byMedId.get(m.id) || [] }).ok,
             );
             if (allowed.length === 0) {
-                alert(
+                toast.warning(
                     'None of the selected medications can be administered right now. Completed doses can only be recorded during an open administration window (±60 minutes of a scheduled time).',
                 );
                 return;
             }
             if (allowed.length < medsToAdmin.length) {
-                alert(
+                toast.warning(
                     `Only ${allowed.length} of ${medsToAdmin.length} selected medications are within an open administration window. Those doses will be recorded.`,
                 );
             }
@@ -1022,10 +1023,10 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
                 queryClient.invalidateQueries({ queryKey: todayResidentAdminsQueryKey }),
             ]);
 
-            alert(`Successfully administered ${allowed.length} records.`);
+            toast.success(`Successfully administered ${allowed.length} records.`);
         } catch (err) {
             logger.error('Bulk administration failed:', err);
-            alert('Some medications could not be administered.');
+            toast.error('Some medications could not be administered.');
         } finally {
             setIsBulkAdministering(false);
         }
@@ -2389,7 +2390,7 @@ function ResidentProfilePanel({ resident, isLoading, residentId, carePlanPath, d
           || null;
 
     const quickLinks = [
-        { label: 'Progress Notes', path: `/t-logs?resident_id=${residentId}`, icon: FileText },
+        { label: 'T-Logs', path: `/t-logs?resident_id=${residentId}`, icon: FileText },
         { label: 'Vitals', path: `/vitals?resident_id=${residentId}`, icon: Heart },
         { label: 'Care Plans', path: carePlanPath, icon: ClipboardList },
         { label: 'Documents', path: documentsPath, icon: FileText },

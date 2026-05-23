@@ -32,6 +32,7 @@ import EmptyState from '../components/ui/EmptyState';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { getUserLocation } from '../utils/location';
 import logger from '../utils/logger';
+import { useToastContext } from '../contexts/ToastContext';
 
 // Helper function to calculate time difference in minutes
 const getTimeDifference = (startTime) => {
@@ -77,6 +78,7 @@ const ProgressBar = ({ value, max, color = 'var(--theme-primary)', label }) => {
 };
 
 export default function CheckInDashboard() {
+    const toast = useToastContext();
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     useQuery(currentUserQueryOptions);
@@ -264,10 +266,10 @@ export default function CheckInDashboard() {
                 }
                 return;
             }
-            alert('Successfully clocked out');
+            toast.success('Success', 'Successfully clocked out', { isFormSubmission: true });
         },
         onError: (err) => {
-            alert(err.response?.data?.message || 'Failed to clock out');
+            toast.error('Error', err.response?.data?.message || 'Failed to clock out');
         },
     });
 
@@ -279,10 +281,10 @@ export default function CheckInDashboard() {
         onSuccess: () => {
             queryClient.invalidateQueries(['residents-sign-outs-active']);
             queryClient.invalidateQueries(['residents-sign-outs']);
-            alert('Resident signed in successfully');
+            toast.success('Success', 'Resident signed in successfully', { isFormSubmission: true });
         },
         onError: (err) => {
-            alert(err.response?.data?.message || 'Failed to sign in resident');
+            toast.error('Error', err.response?.data?.message || 'Failed to sign in resident');
         },
     });
 
@@ -294,10 +296,10 @@ export default function CheckInDashboard() {
         onSuccess: () => {
             queryClient.invalidateQueries(['visitors-active']);
             queryClient.invalidateQueries(['visitors']);
-            alert('Visitor checked out successfully');
+            toast.success('Success', 'Visitor checked out successfully', { isFormSubmission: true });
         },
         onError: (err) => {
-            alert(err.response?.data?.message || 'Failed to check out visitor');
+            toast.error('Error', err.response?.data?.message || 'Failed to check out visitor');
         },
     });
 
@@ -350,7 +352,7 @@ export default function CheckInDashboard() {
 
     const handleExportHistory = () => {
         if (!historyData?.data || historyData.data.length === 0) {
-            alert('No data to export');
+            toast.warning('No data', 'No data to export');
             return;
         }
 

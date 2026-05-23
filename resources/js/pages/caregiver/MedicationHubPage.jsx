@@ -34,7 +34,9 @@ export default function MedicationHubPage() {
         queryFn: async () => {
             const res = await api.get('/medications/dashboard');
             return res.data;
-        }
+        },
+        refetchInterval: 120000,
+        refetchIntervalInBackground: false,
     });
 
     if (isLoading) {

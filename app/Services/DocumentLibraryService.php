@@ -20,7 +20,7 @@ class DocumentLibraryService
     }
 
     /**
-     * Facility + branch-level admins may access facility-only document trees (no resident_id).
+     * Facility administrators may access facility-only document trees (no resident_id).
      */
     public function canAccessFacilityDocuments(User $user): bool
     {
@@ -28,7 +28,23 @@ class DocumentLibraryService
             return true;
         }
 
-        return $user->isFacilityAdministrator() || $user->isBranchAdmin();
+        return $user->isFacilityAdministrator();
+    }
+
+    /**
+     * Caregivers and branch admins are limited to residents in their assigned branch.
+     */
+    private function shouldScopeToAssignedBranch(User $user): bool
+    {
+        if ($user->isSuperAdmin() || $user->isFacilityAdministrator()) {
+            return false;
+        }
+
+        if (self::isCaregiverLike($user) || $user->isBranchAdmin()) {
+            return (int) ($user->assigned_branch_id ?? 0) > 0;
+        }
+
+        return false;
     }
 
     /**
@@ -56,7 +72,17 @@ class DocumentLibraryService
      */
     public function adminMayAccessResident(User $user, int $residentId): bool
     {
-        return Resident::query()->whereKey($residentId)->exists();
+        /** @var Resident|null $resident */
+        $resident = Resident::query()->whereKey($residentId)->first();
+        if ($resident === null) {
+            return false;
+        }
+
+        if ($user->isBranchAdmin() && $user->assigned_branch_id) {
+            return (int) $resident->branch_id === (int) $user->assigned_branch_id;
+        }
+
+        return true;
     }
 
     public function ensureResidentRootFolder(int $facilityId, int $residentId): DocumentFolder
@@ -95,7 +121,7 @@ class DocumentLibraryService
      */
     public function listRootFolders(User $user, int $facilityId): array
     {
-        if (self::isCaregiverLike($user) && ! $this->canAccessFacilityDocuments($user)) {
+        if ($this->shouldScopeToAssignedBranch($user)) {
             $branchId = (int) ($user->assigned_branch_id ?? 0);
             if ($branchId === 0) {
                 return [collect(), false];
