@@ -297,6 +297,8 @@ export default function Medications() {
         }
     }, [isCaregiver, currentUser, navigate, clinicalScopedResidentId]);
 
+    const isResidentScoped = Boolean(residentFilter);
+
     const { data, isLoading } = useQuery({
         queryKey: ['medications', activeOnly, search, residentFilter, branchFilter, currentPage],
         queryFn: async () => {
@@ -306,7 +308,8 @@ export default function Medications() {
                     search: search || undefined,
                     resident_id: residentFilter || undefined,
                     branch_id: branchFilter || undefined,
-                    per_page: 20,
+                    // Single-resident views need the full med list (caregiver hub uses 100)
+                    per_page: isResidentScoped ? 100 : 20,
                     page: currentPage,
                     for_administration: 'true',
                     hide_administered: activeOnly ? 'true' : 'false',
@@ -316,6 +319,22 @@ export default function Medications() {
         },
         enabled: !isCaregiver, // Skip query for caregivers (they'll be redirected)
     });
+
+    const paginationMeta = React.useMemo(() => {
+        const meta = data?.meta ?? data;
+        if (!meta) {
+            return null;
+        }
+        return {
+            from: meta.from ?? 0,
+            to: meta.to ?? 0,
+            total: meta.total ?? 0,
+            current_page: meta.current_page ?? 1,
+            last_page: meta.last_page ?? 1,
+            prev_page_url: meta.prev_page_url ?? null,
+            next_page_url: meta.next_page_url ?? null,
+        };
+    }, [data]);
 
     const medicationsList = React.useMemo(() => data?.data ?? [], [data?.data]);
     const { activePeriodMedications, endedPeriodMedications } = React.useMemo(() => {
@@ -1402,25 +1421,25 @@ export default function Medications() {
                     )}
 
                     {/* Pagination */}
-                    {data?.data?.length > 0 && data?.meta && (
+                    {data?.data?.length > 0 && paginationMeta && paginationMeta.last_page > 1 && (
                         <div className="bg-white rounded-lg shadow p-4 flex items-center justify-between">
                             <div className="text-sm text-gray-600">
-                                Showing {formatNumberUS(data.meta.from ?? 0)} to {formatNumberUS(data.meta.to ?? 0)} of {formatNumberUS(data.meta.total ?? 0)} medications
+                                Showing {formatNumberUS(paginationMeta.from)} to {formatNumberUS(paginationMeta.to)} of {formatNumberUS(paginationMeta.total)} medications
                             </div>
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                    disabled={currentPage === 1 || !data.meta.prev_page_url}
+                                    disabled={currentPage === 1 || !paginationMeta.prev_page_url}
                                     className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                                 >
                                     Previous
                                 </button>
                                 <span className="px-3 py-1 text-sm">
-                                    Page {formatNumberUS(data.meta.current_page ?? 1)} of {formatNumberUS(data.meta.last_page ?? 1)}
+                                    Page {formatNumberUS(paginationMeta.current_page)} of {formatNumberUS(paginationMeta.last_page)}
                                 </span>
                                 <button
                                     onClick={() => setCurrentPage(p => p + 1)}
-                                    disabled={currentPage >= (data.meta.last_page || 1) || !data.meta.next_page_url}
+                                    disabled={currentPage >= paginationMeta.last_page || !paginationMeta.next_page_url}
                                     className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                                 >
                                     Next
