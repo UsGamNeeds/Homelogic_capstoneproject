@@ -42,6 +42,7 @@ import UpcomingEventsWidget from '../components/dashboard/UpcomingEventsWidget';
 import CaregiverDashboard from '../components/dashboard/CaregiverDashboard';
 import DashboardLoadingSplash from '../components/dashboard/DashboardLoadingSplash';
 import { useUserNotifications, useFacilityUpdates, useStaffClockUpdates } from '../hooks/useRealtimeUpdates';
+import { getPacificNow } from '../utils/pacificTime';
 
 // Register Chart.js components
 ChartJS.register(
@@ -383,7 +384,7 @@ export default function Dashboard() {
         }
     };
 
-    const currentHour = new Date().getHours();
+    const currentHour = getPacificNow().getUTCHours();
     const greeting = currentHour < 12 ? 'Good Morning' : currentHour < 18 ? 'Good Afternoon' : 'Good Evening';
 
     // Define stat cards based on user type with gradients and modern styling
