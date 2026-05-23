@@ -151,7 +151,8 @@ export default function MedicationDashboard() {
             const response = await api.get('/medications/dashboard');
             return response.data;
         },
-        refetchInterval: 60000,
+        refetchInterval: 120000,
+        refetchIntervalInBackground: false,
         retry: 2,
     });
 

@@ -399,4 +399,57 @@ class MedicationLogReportTest extends TestCase
         $response->assertOk();
         $this->assertStringStartsWith('%PDF', $response->getContent());
     }
+
+    public function test_mar_scheduled_slot_does_not_reuse_same_administration_for_later_slot(): void
+    {
+        $user = $this->createAndActAs('administrator');
+
+        $resident = Resident::withoutGlobalScopes()->create([
+            'name' => 'Slot Test',
+            'first_name' => 'Slot',
+            'last_name' => 'Test',
+            'branch_id' => $this->branch->id,
+            'date_of_birth' => '1950-01-15',
+            'gender' => 'female',
+            'admission_date' => '2024-01-01',
+            'is_active' => true,
+            'status' => 'active',
+        ]);
+
+        $medication = Medication::create([
+            'resident_id' => $resident->id,
+            'branch_id' => $this->branch->id,
+            'name' => 'BID Med',
+            'instructions' => 'b.i.d',
+            'time_1' => '08:00:00',
+            'time_2' => '20:00:00',
+            'created_by' => $user->id,
+            'is_active' => true,
+            'start_date' => '2020-01-01',
+        ]);
+
+        MedicationAdministration::create([
+            'medication_id' => $medication->id,
+            'resident_id' => $resident->id,
+            'branch_id' => $this->branch->id,
+            'administered_by' => $user->id,
+            'administered_at' => Carbon::parse('2026-04-15 08:05:00', config('app.timezone')),
+            'status' => 'completed',
+        ]);
+
+        $from = Carbon::parse('2026-04-15', config('app.timezone'))->startOfDay();
+        $to = Carbon::parse('2026-04-15', config('app.timezone'))->endOfDay();
+        $data = app(MedicationLogReportService::class)->buildViewData($resident->fresh(), $from, $to, []);
+
+        $rows = $data['scheduledSections'][0]['rows'];
+        $this->assertCount(2, $rows);
+
+        $morningCell = $rows[0]['cells']['2026-04-15'];
+        $eveningCell = $rows[1]['cells']['2026-04-15'];
+
+        $this->assertSame('taken', $morningCell['tone']);
+        $this->assertNotSame('—', $morningCell['text']);
+        $this->assertSame('—', $eveningCell['text']);
+        $this->assertSame('not_taken', $eveningCell['tone']);
+    }
 }

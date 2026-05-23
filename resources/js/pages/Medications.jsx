@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { useBranchUpdates } from '../hooks/useRealtimeUpdates';
 import logger from '../utils/logger';
+import { useToastContext } from '../contexts/ToastContext';
 import {
     setPacificServerTime,
     getPacificDate,
@@ -158,6 +159,7 @@ const isMedicationPeriodActiveNow = (medication, referenceDate = getPacificNow()
 };
 
 export default function Medications() {
+    const toast = useToastContext();
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -974,13 +976,15 @@ export default function Medications() {
                 canRecordCompletedAdministrationNow(m, { todayAdministrations: byMedId.get(m.id) || [] }).ok,
             );
             if (allowed.length === 0) {
-                alert(
+                toast.warning(
+                    'Cannot administer',
                     'None of the selected medications can be administered right now. Completed doses can only be recorded during an open administration window (±60 minutes of a scheduled time).',
                 );
                 return;
             }
             if (allowed.length < medsToAdmin.length) {
-                alert(
+                toast.warning(
+                    'Partial administration',
                     `Only ${allowed.length} of ${medsToAdmin.length} selected medications are within an open administration window. Those doses will be recorded.`,
                 );
             }
@@ -1009,10 +1013,10 @@ export default function Medications() {
                 ]),
             );
             
-            alert(`Successfully administered ${allowed.length} records.`);
+            toast.success('Success', `Successfully administered ${allowed.length} records.`, { isFormSubmission: true });
         } catch (err) {
             logger.error('Bulk administration failed:', err);
-            alert('Bulk administration failed.');
+            toast.error('Error', 'Bulk administration failed.');
         } finally {
             setIsBulkAdministering(false);
         }

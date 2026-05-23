@@ -2,10 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Models\BehaviorChart;
-use App\Models\BehaviorChartItem;
-use App\Models\BehaviorChartLog;
 use App\Models\BehaviorDefinition;
 use App\Models\Resident;
 use Carbon\Carbon;
@@ -21,10 +18,10 @@ class ResidentChartController extends BaseApiController
     public function index(Request $request): JsonResponse
     {
         $query = BehaviorChart::with([
-            'resident.branch', 
-            'caregiver', 
+            'resident.branch',
+            'caregiver',
             'items.definition.category',
-            'logs'
+            'logs',
         ])
             ->whereIn('status', ['submitted', 'approved', 'declined', 'pending'])
             ->orderBy('chart_date', 'desc')
@@ -60,7 +57,7 @@ class ResidentChartController extends BaseApiController
             $query->whereYear('chart_date', $request->year);
         }
 
-        $perPage = $request->get('per_page', 15);
+        $perPage = min(100, max(1, (int) $request->get('per_page', 15)));
         $charts = $query->paginate($perPage);
 
         return response()->json($charts);
@@ -129,7 +126,7 @@ class ResidentChartController extends BaseApiController
 
         $user = $request->user();
         $chartDate = Carbon::parse($request->chart_date)->toDateString();
-        
+
         if ($request->status === 'submitted') {
             $now = Carbon::now();
             $hour = $now->hour;
@@ -137,7 +134,7 @@ class ResidentChartController extends BaseApiController
             if ($hour < 19 || $hour > 21) {
                 return response()->json([
                     'message' => 'Charts can only be submitted between 7:00 PM and 9:59 PM.',
-                    'errors' => ['time' => ['Charts can only be submitted between 7:00 PM and 9:59 PM.']]
+                    'errors' => ['time' => ['Charts can only be submitted between 7:00 PM and 9:59 PM.']],
                 ], 422);
             }
         }
@@ -195,7 +192,7 @@ class ResidentChartController extends BaseApiController
             'resident.branch',
             'caregiver',
             'items.definition.category',
-            'logs'
+            'logs',
         ])->findOrFail($id);
 
         return response()->json($chart);

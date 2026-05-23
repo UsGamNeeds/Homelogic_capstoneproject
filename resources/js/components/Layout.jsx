@@ -665,11 +665,11 @@ export default function Layout() {
                                 </Tooltip>
                                 <NotificationDropdown />
                                 <ReminderPanel />
-                                <Tooltip content="Progress notes" position="bottom">
+                                <Tooltip content="T-Logs" position="bottom">
                                     <Link
                                         to={tLogsPath}
                                         className="p-1.5 rounded-full hover:bg-gray-100 transition-colors relative inline-flex"
-                                        aria-label="Progress notes"
+                                        aria-label="T-Logs"
                                     >
                                         <FileText className="w-4 h-4 text-gray-700" strokeWidth={2.25} />
                                     </Link>

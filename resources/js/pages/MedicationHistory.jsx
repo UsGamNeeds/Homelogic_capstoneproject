@@ -6,6 +6,7 @@ import { useSearchParams, useLocation } from 'react-router-dom';
 import { formatPacificDate as formatDate, formatPacificTime as formatTime } from '../utils/pacificTime';
 import { RESIDENT_CONTEXT_QUERY_KEY, urlSearchParamsShallowEqual, parseResidentContextId } from '../utils/headerResidentSwitcher';
 import EmptyState from '../components/ui/EmptyState';
+import { useToastContext } from '../contexts/ToastContext';
 
 const statusOptions = [
     { value: '', label: 'All statuses' },
@@ -55,6 +56,7 @@ function applyOptimisticMarkAdministeredRow(row) {
 }
 
 export default function MedicationHistory({ embedded = false, embeddedResidentId = '' } = {}) {
+    const toast = useToastContext();
     const queryClient = useQueryClient();
     const [searchParams, setSearchParams] = useSearchParams();
     const location = useLocation();
@@ -280,7 +282,7 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
                 queryClient.setQueryData(medicationHistoryQueryKey, previous);
                 const msg =
                     err?.response?.data?.message || err?.message || 'Failed to mark dose as administered.';
-                alert(msg);
+                toast.error('Error', msg);
             } finally {
                 setMarkingAdministrationId(null);
             }

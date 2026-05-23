@@ -308,7 +308,7 @@ export default function TLogs() {
             </Modal>
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-gray-900">Progress notes</h1>
+                <h1 className="text-2xl font-bold text-gray-900">T-Logs</h1>
                 <button
                     onClick={() => handleOpenForm()}
                     className="flex items-center gap-2 px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-primary-dark)] transition-colors"
@@ -329,7 +329,7 @@ export default function TLogs() {
                                 type="text"
                                 value={filters.search}
                                 onChange={(e) => handleFilterChange('search', e.target.value)}
-                                placeholder="Search progress notes..."
+                                placeholder="Search T-Logs..."
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                             />
                         </div>
@@ -412,11 +412,11 @@ export default function TLogs() {
                 </Card>
             ) : error ? (
                 <Card>
-                    <div className="text-center py-8 text-red-600">Error loading progress notes</div>
+                    <div className="text-center py-8 text-red-600">Error loading T-Logs</div>
                 </Card>
             ) : tLogs.length === 0 ? (
                 <Card>
-                    <div className="text-center py-8 text-gray-500">No progress notes found</div>
+                    <div className="text-center py-8 text-gray-500">No T-Logs found</div>
                 </Card>
             ) : (
                 <div className="space-y-4">

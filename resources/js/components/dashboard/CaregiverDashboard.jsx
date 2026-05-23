@@ -422,7 +422,7 @@ export default function CaregiverDashboard({
                             <QuickAction label="Record Vitals" icon={Heart} onClick={() => navigate('/vitals')} />
                             <QuickAction label="New Incident" icon={AlertCircle} onClick={() => navigate('/incidents')} />
                             <QuickAction label="Administer Meds" icon={Pill} onClick={() => navigate('/medications/residents')} />
-                            <QuickAction label="Progress Notes" icon={FileText} onClick={() => navigate('/t-logs')} />
+                            <QuickAction label="T-Logs" icon={FileText} onClick={() => navigate('/t-logs')} />
                         </div>
                     </SectionCard>
                 </div>

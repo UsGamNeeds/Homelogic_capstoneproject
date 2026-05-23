@@ -111,6 +111,8 @@ class MedicationAdministrationController extends BaseApiController
             } else {
                 $query->whereRaw('1 = 0');
             }
+        } elseif ($user && $user->isBranchAdmin() && $user->assigned_branch_id) {
+            $query->where('branch_id', $user->assigned_branch_id);
         }
 
         // Filter by medication
@@ -174,6 +176,10 @@ class MedicationAdministrationController extends BaseApiController
         $administration = MedicationAdministration::with(['medication', 'resident', 'branch', 'administeredBy'])
             ->findOrFail($id);
 
+        if (! $this->checkBranchAccess($administration, auth()->user())) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+
         return response()->json($administration);
     }
 
@@ -208,6 +214,12 @@ class MedicationAdministrationController extends BaseApiController
             'notes',
         ]);
 
+        $user = auth()->user();
+        $branchAccess = (object) ['branch_id' => (int) $validated['branch_id']];
+        if (! $this->checkBranchAccess($branchAccess, $user)) {
+            return response()->json(['message' => 'You do not have access to this branch.'], 403);
+        }
+
         // Handle document upload for hospital admissions
         if ($request->hasFile('document')) {
             $file = $request->file('document');
@@ -224,7 +236,20 @@ class MedicationAdministrationController extends BaseApiController
             ], 422);
         }
 
-        $validated['administered_by'] = auth()->id();
+        if ((int) $medication->branch_id !== (int) $validated['branch_id']) {
+            return response()->json([
+                'message' => 'Branch does not match medication branch',
+            ], 422);
+        }
+
+        $resident = \App\Models\Resident::findOrFail($validated['resident_id']);
+        if ((int) $resident->branch_id !== (int) $validated['branch_id']) {
+            return response()->json([
+                'message' => 'Branch does not match resident branch',
+            ], 422);
+        }
+
+        $validated['administered_by'] = $user->id;
 
         // Parse administered_at — frontend sends a real UTC ISO-8601 string (new Date().toISOString()).
         // Parse as UTC then convert to app timezone for all date comparisons.

@@ -16,6 +16,7 @@ import {
 } from 'chart.js';
 import { Download, Plus, MoreVertical, Calendar, User, Building2, ChevronLeft, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
 import logger from '../utils/logger';
+import { useToastContext } from '../contexts/ToastContext';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Tooltip from '../components/ui/Tooltip';
 import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
@@ -36,6 +37,7 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
 
 export default function ViewVitals() {
+    const toast = useToastContext();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const queryClient = useQueryClient();
@@ -279,7 +281,7 @@ export default function ViewVitals() {
         },
         onError: (error) => {
             logger.error('Failed to update vital status:', error);
-            alert('Failed to update vital status. Please try again.');
+            toast.error('Error', 'Failed to update vital status. Please try again.');
         },
     });
 
@@ -497,7 +499,7 @@ export default function ViewVitals() {
     // Handle download vitals
     const handleDownload = () => {
         if (!vitalsData?.data || vitalsData.data.length === 0) {
-            alert('No vitals data available to download');
+            toast.warning('No data', 'No vitals data available to download');
             return;
         }
 
