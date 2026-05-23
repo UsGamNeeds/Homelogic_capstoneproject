@@ -99,7 +99,7 @@ export default function CaregiverDashboard({
 }) {
     const navigate = useNavigate();
     const now = useLiveClock();
-    const currentHour = now.getHours();
+    const currentHour = now.getUTCHours();
     const greeting = currentHour < 12 ? 'Good Morning' : currentHour < 18 ? 'Good Afternoon' : 'Good Evening';
     const firstName = deriveFirstName(user);
 
