@@ -119,4 +119,36 @@ class ApiPerPageCapTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('per_page', 100);
     }
+
+    public function test_medication_for_administration_returns_json_array_data(): void
+    {
+        $user = $this->createAndActAs('administrator');
+        $resident = $this->createResident();
+
+        for ($i = 0; $i < 5; $i++) {
+            Medication::create([
+                'resident_id' => $resident->id,
+                'branch_id' => $this->branch->id,
+                'name' => "Med {$i}",
+                'instructions' => $i % 2 === 0 ? 'daily' : 'prn',
+                'time_1' => '08:00:00',
+                'created_by' => $user->id,
+                'is_active' => true,
+                'start_date' => '2020-01-01',
+            ]);
+        }
+
+        $response = $this->getJson('/api/v1/medications?'.http_build_query([
+            'resident_id' => $resident->id,
+            'for_administration' => 'true',
+            'active_only' => 'true',
+            'hide_administered' => 'true',
+            'per_page' => 100,
+        ]));
+
+        $response->assertOk();
+        $payload = json_decode($response->getContent(), true);
+        $this->assertIsArray($payload['data']);
+        $this->assertSame(array_keys($payload['data']), range(0, count($payload['data']) - 1));
+    }
 }

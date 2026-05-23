@@ -58,6 +58,18 @@ import {
     getMedicationAdministrations,
 } from '../utils/medicationSchedule';
 import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
+
+/** Laravel paginator + filtered collections must return JSON arrays; normalize if keys are sparse. */
+function normalizePaginatedList(payload) {
+    const rows = payload?.data ?? payload;
+    if (Array.isArray(rows)) {
+        return rows;
+    }
+    if (rows && typeof rows === 'object') {
+        return Object.values(rows);
+    }
+    return [];
+}
 import ResidentMedicationsPage from './caregiver/ResidentMedicationsPage';
 
 const INSTRUCTION_DISPLAY_MAP = {
@@ -336,7 +348,7 @@ export default function Medications() {
         };
     }, [data]);
 
-    const medicationsList = React.useMemo(() => data?.data ?? [], [data?.data]);
+    const medicationsList = React.useMemo(() => normalizePaginatedList(data), [data]);
     const { activePeriodMedications, endedPeriodMedications } = React.useMemo(() => {
         const now = getPacificNow();
         const active = [];
@@ -2102,8 +2114,9 @@ function MedicationTimeBadges({ medication, activeTab }) {
         let matchingAdmin = null;
         let closestTimeDiff = Infinity;
 
-        if (todayAdminData?.data && scheduledTimeToday) {
-            todayAdminData.data.forEach((admin) => {
+        const todayAdmins = normalizePaginatedList(todayAdminData);
+        if (todayAdmins.length && scheduledTimeToday) {
+            todayAdmins.forEach((admin) => {
                 // Parse the administered_at time - Laravel returns it as UTC ISO string
                 // The backend stores it in Pacific timezone, but Laravel serializes as UTC
                 // We need to convert the UTC time back to Pacific for comparison
@@ -2364,7 +2377,7 @@ function QuickAdminister({ medication, onSuccess }) {
             return;
         }
 
-        const admins = todayAdminData?.data?.filter(a => a.status !== 'missed') || [];
+        const admins = normalizePaginatedList(todayAdminData).filter(a => a.status !== 'missed');
         if (admins.length === 0) {
             setIsDailyLimitReached(false);
             return;
@@ -2425,9 +2438,10 @@ function QuickAdminister({ medication, onSuccess }) {
     );
 
     const hasAdminForWindow = React.useCallback((scheduledDate) => {
-        if (!todayAdminData?.data?.length) return false;
+        const todayAdmins = normalizePaginatedList(todayAdminData);
+        if (!todayAdmins.length) return false;
         const toleranceMs = 60 * 60 * 1000;
-        return todayAdminData.data.some((admin) => {
+        return todayAdmins.some((admin) => {
             if (admin.status === 'missed') return false;
             const adminTime = parseAdminTimeToPacific(admin.administered_at);
             if (!adminTime) return false;
@@ -2647,7 +2661,7 @@ function QuickAdminister({ medication, onSuccess }) {
                                     const windowStart = scheduledTime.getTime() - (60 * 60 * 1000); // 1 hour before
                                     const windowEnd = scheduledTime.getTime() + windowAfterMs;
                                     
-                                    const hasAdministration = todayAdminData?.data?.some(admin => {
+                                    const hasAdministration = normalizePaginatedList(todayAdminData).some(admin => {
                                         const adminTime = new Date(admin.administered_at);
                                         const adminTimeMs = adminTime.getTime();
                                         return adminTimeMs >= windowStart && adminTimeMs <= windowEnd;
@@ -2666,7 +2680,7 @@ function QuickAdminister({ medication, onSuccess }) {
                                         const windowStart = scheduledTime.getTime() - (60 * 60 * 1000);
                                         const windowEnd = scheduledTime.getTime() + windowAfterMs;
                                         
-                                        const hasAdministration = todayAdminData?.data?.some(admin => {
+                                        const hasAdministration = normalizePaginatedList(todayAdminData).some(admin => {
                                             const adminTime = new Date(admin.administered_at);
                                             const adminTimeMs = adminTime.getTime();
                                             return adminTimeMs >= windowStart && adminTimeMs <= windowEnd;
