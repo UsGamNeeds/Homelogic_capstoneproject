@@ -1217,12 +1217,7 @@ class DashboardService
             return $metrics;
         }
 
-        // 1. Occupancy Rate: Calculate average residents per branch
-        $branches = \App\Models\Branch::withoutGlobalScopes()
-            ->where('facility_id', $facilityId)
-            ->where('is_active', true)
-            ->get();
-
+        // 1. Occupancy Rate: active residents / sum of branch resident capacities
         $totalResidents = Resident::withoutGlobalScopes()
             ->where('is_active', true)
             ->whereHas('branch', function ($q) use ($facilityId) {
@@ -1230,12 +1225,13 @@ class DashboardService
             })
             ->count();
 
-        $activeBranches = $branches->count();
-        if ($activeBranches > 0) {
-            // Calculate average residents per branch (as a simple occupancy metric)
-            $avgResidentsPerBranch = $totalResidents / $activeBranches;
-            // Normalize to percentage (assuming ~10-15 residents per branch is typical)
-            $metrics['occupancy_rate'] = min(100, round(($avgResidentsPerBranch / 12) * 100, 1));
+        $totalCapacity = (int) \App\Models\Branch::withoutGlobalScopes()
+            ->where('facility_id', $facilityId)
+            ->where('is_active', true)
+            ->sum('resident_capacity');
+
+        if ($totalCapacity > 0) {
+            $metrics['occupancy_rate'] = min(100, round(($totalResidents / $totalCapacity) * 100, 1));
         }
 
         // 2. Compliance Score: Completed assessments / Total assessments (last 30 days)

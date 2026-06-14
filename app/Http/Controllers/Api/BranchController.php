@@ -67,6 +67,7 @@ class BranchController extends BaseApiController
             'phone' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
             'is_active' => 'boolean',
+            'resident_capacity' => 'nullable|integer|min:0|max:9999',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
         ]);
@@ -111,7 +112,7 @@ class BranchController extends BaseApiController
         }
 
         // Ensure explicit clears from frontend are persisted as null values.
-        foreach (['address', 'phone', 'email', 'latitude', 'longitude'] as $nullableField) {
+        foreach (['address', 'phone', 'email', 'latitude', 'longitude', 'resident_capacity'] as $nullableField) {
             if ($request->exists($nullableField) && $request->input($nullableField) === '') {
                 $request->merge([$nullableField => null]);
             }
@@ -124,6 +125,7 @@ class BranchController extends BaseApiController
             'phone' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
             'is_active' => 'boolean',
+            'resident_capacity' => 'nullable|integer|min:0|max:9999',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
         ]);
