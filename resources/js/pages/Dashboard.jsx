@@ -19,6 +19,7 @@ import { currentUserQueryOptions } from '../queries/currentUser';
 import { dashboardStatsQueryOptions } from '../queries/dashboardStats';
 import { useTheme } from '../contexts/ThemeContext';
 import { hexToRgb, addOpacity } from '../utils/colorUtils';
+import { formatInsightHours, formatInsightPercent } from '../utils/formatInsightMetric';
 import {
     Users, Calendar, Activity, UserCheck, ClipboardList, AlertCircle,
     TrendingUp, Clock, CheckCircle, FileText, Heart, Pill, Moon,
@@ -1072,7 +1073,7 @@ export default function Dashboard() {
                                                 <div className="min-w-0">
                                                     <p className="text-[10px] sm:text-xs text-gray-600 leading-tight">Compliance Score</p>
                                                     <p className="text-base sm:text-lg font-semibold text-gray-900 tabular-nums">
-                                                        {(stats.compliance_score ?? 0).toFixed(1)}%
+                                                        {formatInsightPercent(stats.compliance_score)}
                                                     </p>
                                                 </div>
                                             </div>
@@ -1083,7 +1084,7 @@ export default function Dashboard() {
                                                 <div className="min-w-0">
                                                     <p className="text-[10px] sm:text-xs text-gray-600 leading-tight">Medication Adherence</p>
                                                     <p className="text-base sm:text-lg font-semibold text-gray-900 tabular-nums">
-                                                        {(stats.medication_adherence_rate ?? 0).toFixed(1)}%
+                                                        {formatInsightPercent(stats.medication_adherence_rate)}
                                                     </p>
                                                 </div>
                                             </div>
@@ -1094,7 +1095,7 @@ export default function Dashboard() {
                                                 <div className="min-w-0">
                                                     <p className="text-[10px] sm:text-xs text-gray-600 leading-tight">Avg Response Time</p>
                                                     <p className="text-base sm:text-lg font-semibold text-gray-900 tabular-nums">
-                                                        {(stats.average_incident_response_time ?? 0).toFixed(1)} hrs
+                                                        {formatInsightHours(stats.average_incident_response_time)}
                                                     </p>
                                                 </div>
                                             </div>
