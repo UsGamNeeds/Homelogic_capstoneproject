@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\BranchResource\Pages;
-use App\Filament\Resources\BranchResource\RelationManagers;
 use App\Models\Branch;
 use App\Services\LocationService;
 use Filament\Forms;
@@ -11,8 +10,6 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Log;
 
 class BranchResource extends Resource
@@ -20,33 +17,38 @@ class BranchResource extends Resource
     protected static ?string $model = Branch::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
+
     protected static ?string $navigationLabel = 'Branches';
+
     protected static ?string $modelLabel = 'Branch';
+
     protected static ?string $pluralModelLabel = 'Branches';
+
     protected static ?string $navigationGroup = 'Administration';
+
     protected static bool $shouldRegisterNavigation = false; // Handled by CustomNavigationProvider
 
     public static function shouldRegisterNavigation(): bool
     {
         // Only register if user has permission AND is not a caregiver
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             return false;
         }
-        
+
         $user = auth()->user();
-        
+
         // Caregivers should NEVER see this in navigation
         $roleValue = strtolower(trim($user->role ?? ''));
         $roleValueNormalized = str_replace([' ', '_'], '', $roleValue);
-        $isCaregiver = $user->hasRole('caregiver') || 
-                       $user->hasRole('care_giver') || 
+        $isCaregiver = $user->hasRole('caregiver') ||
+                       $user->hasRole('care_giver') ||
                        $roleValueNormalized === 'caregiver' ||
                        (stripos($roleValue, 'care') !== false && stripos($roleValue, 'giver') !== false);
-        
+
         if ($isCaregiver) {
             return false;
         }
-        
+
         return $user->hasPermission('view_branches');
     }
 
@@ -84,6 +86,13 @@ class BranchResource extends Resource
                             ->required()
                             ->rows(3)
                             ->placeholder('Enter full address'),
+                        Forms\Components\TextInput::make('resident_capacity')
+                            ->label('Resident capacity')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(9999)
+                            ->placeholder('e.g., 8')
+                            ->helperText('Licensed resident slots for this branch (used for dashboard occupancy).'),
                         Forms\Components\Select::make('facility_id')
                             ->label('Facility')
                             ->relationship('facility', 'name')
@@ -92,7 +101,7 @@ class BranchResource extends Resource
                             ->required(),
                     ])
                     ->columns(2),
-                
+
                 Forms\Components\Section::make('Contact Information')
                     ->schema([
                         Forms\Components\TextInput::make('phone')
@@ -107,7 +116,7 @@ class BranchResource extends Resource
                             ->helperText('Enable this branch for use'),
                     ])
                     ->columns(2),
-                
+
                 Forms\Components\Section::make('Location Coordinates')
                     ->description('Coordinates are used for location-based login restrictions. Click "Geocode from Address" to automatically populate coordinates.')
                     ->schema([
@@ -140,13 +149,14 @@ class BranchResource extends Resource
                                             ->body('Please enter an address before geocoding.')
                                             ->warning()
                                             ->send();
+
                                         return;
                                     }
 
                                     try {
                                         $locationService = app(LocationService::class);
                                         $coordinates = $locationService->geocodeAddress($address);
-                                        
+
                                         if ($coordinates) {
                                             $set('latitude', $coordinates['latitude']);
                                             $set('longitude', $coordinates['longitude']);
@@ -197,6 +207,7 @@ class BranchResource extends Resource
                     ->limit(50)
                     ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
                         $state = $column->getState();
+
                         return strlen($state) > 50 ? $state : null;
                     }),
                 Tables\Columns\TextColumn::make('phone')
@@ -214,6 +225,10 @@ class BranchResource extends Resource
                     ->label('Caregivers')
                     ->counts('caregivers')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('resident_capacity')
+                    ->label('Capacity')
+                    ->sortable()
+                    ->placeholder('—'),
                 Tables\Columns\TextColumn::make('residents_count')
                     ->label('Residents')
                     ->counts('residents')

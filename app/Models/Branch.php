@@ -2,19 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\FacilityScope;
+use App\Traits\FormatsPhoneNumbers;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Traits\Loggable;
-use App\Traits\FormatsPhoneNumbers;
-use App\Models\Scopes\FacilityScope;
 use Illuminate\Support\Facades\Cache;
 
 class Branch extends Model
 {
-    use HasFactory, SoftDeletes, Loggable;
     use FormatsPhoneNumbers;
+    use HasFactory, Loggable, SoftDeletes;
 
     protected static function booted()
     {
@@ -41,12 +41,14 @@ class Branch extends Model
         'phone',
         'email',
         'is_active',
+        'resident_capacity',
         'latitude',
         'longitude',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'resident_capacity' => 'integer',
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
     ];
@@ -101,12 +103,10 @@ class Branch extends Model
 
     /**
      * Check if branch has valid coordinates
-     * 
-     * @return bool
      */
     public function hasCoordinates(): bool
     {
-        return $this->latitude !== null 
+        return $this->latitude !== null
             && $this->longitude !== null
             && $this->latitude >= -90 && $this->latitude <= 90
             && $this->longitude >= -180 && $this->longitude <= 180;

@@ -224,7 +224,10 @@ export default function Branches() {
                   )}
                   <DataPill icon={Building2} className="!inline-flex w-auto max-w-full shrink-0 py-1.5 text-xs">
                     <span className="font-normal">
-                      <span className="font-semibold text-slate-800">{Number(b.residents_count) || 0}</span>
+                      <span className="font-semibold text-slate-800">
+                        {Number(b.residents_count) || 0}
+                        {b.resident_capacity != null && b.resident_capacity > 0 ? ` / ${b.resident_capacity}` : ''}
+                      </span>
                       {' '}residents
                     </span>
                   </DataPill>
@@ -301,6 +304,7 @@ function BranchForm({ record, facilities, currentUser, isSuperAdmin, isFacilityA
     is_active: record?.is_active ?? true,
     latitude: normalizeCoordinateInput(record?.latitude),
     longitude: normalizeCoordinateInput(record?.longitude),
+    resident_capacity: record?.resident_capacity ?? '',
   });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -366,6 +370,13 @@ function BranchForm({ record, facilities, currentUser, isSuperAdmin, isFacilityA
         submitData.longitude = null;
       } else if (!Number.isNaN(Number(longitudeRaw))) {
         submitData.longitude = parseFloat(longitudeRaw);
+      }
+
+      const capacityRaw = String(form.resident_capacity ?? '').trim();
+      if (capacityRaw === '') {
+        submitData.resident_capacity = null;
+      } else if (!Number.isNaN(Number(capacityRaw))) {
+        submitData.resident_capacity = parseInt(capacityRaw, 10);
       }
 
       if (record) {
@@ -439,6 +450,23 @@ function BranchForm({ record, facilities, currentUser, isSuperAdmin, isFacilityA
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
               />
               {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name[0]}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Resident capacity
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="9999"
+                step="1"
+                value={form.resident_capacity}
+                onChange={(e) => setForm({ ...form, resident_capacity: e.target.value })}
+                placeholder="e.g., 8"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">Licensed resident slots for this branch (used for occupancy on the dashboard).</p>
+              {errors.resident_capacity && <p className="text-xs text-red-600 mt-1">{errors.resident_capacity[0]}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
