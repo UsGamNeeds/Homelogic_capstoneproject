@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback, Fragment } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
-import { Calendar, ClipboardList, Pill, User, ChevronLeft, ChevronRight, FileText, Download, AlertTriangle, CheckCircle2, XCircle, Ban } from 'lucide-react';
+import { Calendar, ClipboardList, Pill, User, ChevronLeft, ChevronRight, FileText, Download, AlertTriangle, CheckCircle2, XCircle, Ban, Building2 } from 'lucide-react';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import { formatPacificDate as formatDate, formatPacificTime as formatTime } from '../utils/pacificTime';
 import { RESIDENT_CONTEXT_QUERY_KEY, urlSearchParamsShallowEqual, parseResidentContextId } from '../utils/headerResidentSwitcher';
@@ -40,19 +40,118 @@ const StatusIcon = ({ status, className = 'w-3.5 h-3.5' }) => {
     return null;
 };
 
-/** Match server mark-administered payload for optimistic history cache updates. */
-function applyOptimisticMarkAdministeredRow(row) {
+/** Match server resolve-missed payload for optimistic history cache updates. */
+function applyOptimisticResolveMissedRow(row, status) {
     if (!row) return row;
     const med = row.medication;
     const fromMed = med ? [med.quantity, med.form].filter(Boolean).join(' ').trim() : '';
     const hasDosage = row.dosage_given != null && String(row.dosage_given).trim() !== '';
 
+    if (status === 'completed') {
+        return {
+            ...row,
+            status: 'completed',
+            notes: 'Administered',
+            dosage_given: hasDosage ? row.dosage_given : (fromMed || 'Administered'),
+        };
+    }
+
+    if (status === 'refused') {
+        return {
+            ...row,
+            status: 'refused',
+            notes: 'Refused',
+            dosage_given: 'N/A - Refused',
+        };
+    }
+
     return {
         ...row,
-        status: 'completed',
-        notes: 'Administered',
-        dosage_given: hasDosage ? row.dosage_given : (fromMed || 'Administered'),
+        status: 'hospital_admission',
+        notes: 'Hospital Admission',
+        dosage_given: 'N/A - Hospital Admission',
     };
+}
+
+const missedResolveActions = [
+    {
+        status: 'completed',
+        label: 'Mark as administered',
+        shortLabel: 'Administered',
+        icon: CheckCircle2,
+        className: 'border-emerald-700 bg-emerald-600 hover:bg-emerald-700',
+    },
+    {
+        status: 'refused',
+        label: 'Mark as refused',
+        shortLabel: 'Refused',
+        icon: Ban,
+        className: 'border-amber-700 bg-amber-600 hover:bg-amber-700',
+    },
+    {
+        status: 'hospital_admission',
+        label: 'Mark as hospital admission',
+        shortLabel: 'Hospital',
+        icon: Building2,
+        className: 'border-blue-700 bg-blue-600 hover:bg-blue-700',
+    },
+];
+
+function MissedDoseActionBar({
+    administration = null,
+    selectedCount = 0,
+    isResolving = false,
+    onResolve,
+    compact = false,
+}) {
+    const scheduledLabel = administration
+        ? `${formatDate(administration.administered_at)} ${formatTime(administration.administered_at)}`
+        : null;
+
+    return (
+        <div
+            className={`rounded-lg border border-emerald-200 bg-emerald-50/80 ${compact ? 'px-3 py-3' : 'px-4 py-3'} flex flex-col gap-3`}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="presentation"
+        >
+            <p className={`${compact ? 'text-xs' : 'text-sm'} text-emerald-950`}>
+                {selectedCount > 1 ? (
+                    <>
+                        Resolve <span className="font-semibold">{selectedCount}</span> selected missed doses as:
+                    </>
+                ) : (
+                    <>
+                        Resolve this missed dose at the scheduled time
+                        {scheduledLabel ? (
+                            <>
+                                {' '}
+                                (<span className="font-semibold">{scheduledLabel}</span>)
+                            </>
+                        ) : null}
+                        :
+                    </>
+                )}
+            </p>
+            <div className="flex flex-wrap gap-2">
+                {missedResolveActions.map(({ status, label, shortLabel, icon: Icon, className }) => (
+                    <button
+                        key={status}
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            void onResolve(status);
+                        }}
+                        disabled={isResolving}
+                        className={`inline-flex items-center justify-center gap-1.5 shrink-0 rounded-lg border px-3 py-2 text-xs font-bold !text-white shadow-sm disabled:opacity-50 [&_svg]:!text-white ${className} ${compact ? '' : 'sm:text-sm'}`}
+                    >
+                        <Icon className="w-4 h-4" aria-hidden="true" />
+                        {compact ? shortLabel : label}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
 }
 
 export default function MedicationHistory({ embedded = false, embeddedResidentId = '' } = {}) {
@@ -74,9 +173,10 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
     });
     const [exportingPdf, setExportingPdf] = useState(false);
     const [exportPdfError, setExportPdfError] = useState('');
-    /** Missed-dose row expanded to show admin "mark as administered" (adm id). */
+    /** Missed-dose row expanded to show admin resolve actions (admin id). */
     const [historyActionRowId, setHistoryActionRowId] = useState(null);
-    const [markingAdministrationId, setMarkingAdministrationId] = useState(null);
+    const [selectedMissedIds, setSelectedMissedIds] = useState(() => new Set());
+    const [resolvingMissed, setResolvingMissed] = useState(false);
     const perPage = 25;
 
     /** When the URL changes (header switcher, back/forward), we hydrate state in the first effect. The second effect must not run in the same tick with stale state or it overwrites the new URL. */
@@ -247,6 +347,46 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
         [isAdminUser],
     );
 
+    const missedOnPage = useMemo(
+        () => history.filter((row) => canShowMarkMissedAction(row)),
+        [history, canShowMarkMissedAction],
+    );
+
+    const allMissedOnPageSelected = missedOnPage.length > 0
+        && missedOnPage.every((row) => selectedMissedIds.has(row.id));
+
+    const toggleMissedSelection = useCallback((administrationId, checked) => {
+        setSelectedMissedIds((prev) => {
+            const next = new Set(prev);
+            if (checked) {
+                next.add(administrationId);
+            } else {
+                next.delete(administrationId);
+            }
+            return next;
+        });
+    }, []);
+
+    const toggleSelectAllMissedOnPage = useCallback(() => {
+        setSelectedMissedIds((prev) => {
+            const next = new Set(prev);
+            if (allMissedOnPageSelected) {
+                missedOnPage.forEach((row) => next.delete(row.id));
+            } else {
+                missedOnPage.forEach((row) => next.add(row.id));
+            }
+            return next;
+        });
+    }, [allMissedOnPageSelected, missedOnPage]);
+
+    useEffect(() => {
+        setSelectedMissedIds((prev) => {
+            const visibleIds = new Set(history.map((row) => row.id));
+            const next = new Set([...prev].filter((id) => visibleIds.has(id)));
+            return next.size === prev.size ? prev : next;
+        });
+    }, [history]);
+
     const toggleHistoryActionRow = useCallback(
         (administration) => {
             if (!canShowMarkMissedAction(administration)) return;
@@ -256,38 +396,66 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
         [canShowMarkMissedAction],
     );
 
-    const markMissedAsAdministeredFromHistory = useCallback(
-        async (administration) => {
-            const adminId = administration?.id;
-            if (!adminId) return;
+    const resolveMissedFromHistory = useCallback(
+        async (targetStatus, administration = null) => {
+            const ids = administration
+                ? [administration.id]
+                : [...selectedMissedIds];
+
+            if (!ids.length || !targetStatus) return;
 
             const previous = queryClient.getQueryData(medicationHistoryQueryKey);
+            const idSet = new Set(ids.map(String));
 
             queryClient.setQueryData(medicationHistoryQueryKey, (old) => {
                 if (!old || !Array.isArray(old.data)) return old;
                 return {
                     ...old,
                     data: old.data.map((row) =>
-                        String(row.id) === String(adminId) ? applyOptimisticMarkAdministeredRow(row) : row
+                        idSet.has(String(row.id)) ? applyOptimisticResolveMissedRow(row, targetStatus) : row
                     ),
                 };
             });
 
-            setMarkingAdministrationId(adminId);
+            setResolvingMissed(true);
             try {
-                await api.patch(`/medication-administrations/${adminId}/mark-administered`);
+                if (ids.length === 1) {
+                    await api.patch(`/medication-administrations/${ids[0]}/mark-administered`, {
+                        status: targetStatus,
+                    });
+                } else {
+                    const response = await api.post('/medication-administrations/bulk-resolve-missed', {
+                        ids,
+                        status: targetStatus,
+                    });
+                    const errors = response.data?.errors || [];
+                    if (errors.length > 0) {
+                        const failedCount = errors.length;
+                        const successCount = (response.data?.count || 0);
+                        toast.error(
+                            'Partial update',
+                            `${successCount} updated, ${failedCount} could not be resolved.`,
+                        );
+                    }
+                }
+
                 setHistoryActionRowId(null);
+                setSelectedMissedIds(new Set());
                 await queryClient.invalidateQueries({ queryKey: ['medication-history'] });
+
+                const actionLabel = missedResolveActions.find((action) => action.status === targetStatus)?.shortLabel
+                    || targetStatus;
+                toast.success('Updated', `${ids.length} missed dose${ids.length === 1 ? '' : 's'} marked as ${actionLabel.toLowerCase()}.`);
             } catch (err) {
                 queryClient.setQueryData(medicationHistoryQueryKey, previous);
                 const msg =
-                    err?.response?.data?.message || err?.message || 'Failed to mark dose as administered.';
+                    err?.response?.data?.message || err?.message || 'Failed to resolve missed dose.';
                 toast.error('Error', msg);
             } finally {
-                setMarkingAdministrationId(null);
+                setResolvingMissed(false);
             }
         },
-        [queryClient, medicationHistoryQueryKey],
+        [queryClient, medicationHistoryQueryKey, selectedMissedIds, toast],
     );
 
     const canExportMedicationLogPdf = Boolean(residentId && dateFrom && dateTo);
@@ -467,6 +635,16 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
                     />
                 ) : (
                     <>
+                        {isAdminUser && selectedMissedIds.size > 0 ? (
+                            <div className="border-b border-emerald-100 bg-emerald-50/60 px-4 py-3">
+                                <MissedDoseActionBar
+                                    selectedCount={selectedMissedIds.size}
+                                    isResolving={resolvingMissed}
+                                    onResolve={(status) => resolveMissedFromHistory(status)}
+                                />
+                            </div>
+                        ) : null}
+
                         <div className="md:hidden p-3 space-y-3">
                             {history.map((administration) => {
                                 const resident = administration.resident;
@@ -487,13 +665,14 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
                                     : administration.notes;
 
                                 const canMarkMissed = canShowMarkMissedAction(administration);
+                                const isSelected = selectedMissedIds.has(administration.id);
 
                                 return (
                                     <div
                                         key={administration.id}
                                         role={canMarkMissed ? 'button' : undefined}
                                         tabIndex={canMarkMissed ? 0 : undefined}
-                                        className={`bg-white border border-gray-200 rounded-xl shadow-sm p-4 ${canMarkMissed ? 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500' : ''}`}
+                                        className={`bg-white border rounded-xl shadow-sm p-4 ${isSelected ? 'border-emerald-400 ring-1 ring-emerald-200' : 'border-gray-200'} ${canMarkMissed ? 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500' : ''}`}
                                         onClick={canMarkMissed ? () => toggleHistoryActionRow(administration) : undefined}
                                         onKeyDown={
                                             canMarkMissed
@@ -507,11 +686,23 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
                                         }
                                     >
                                         <div className="flex items-start justify-between gap-3 mb-3">
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">
-                                                    {resident?.first_name} {resident?.last_name}
-                                                </p>
-                                                <p className="text-xs text-gray-500">{resident?.branch?.name || 'Branch N/A'}</p>
+                                            <div className="flex items-start gap-3 min-w-0">
+                                                {canMarkMissed ? (
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={(e) => toggleMissedSelection(administration.id, e.target.checked)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                                        aria-label={`Select missed dose for ${medication?.name || 'medication'}`}
+                                                    />
+                                                ) : null}
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900">
+                                                        {resident?.first_name} {resident?.last_name}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">{resident?.branch?.name || 'Branch N/A'}</p>
+                                                </div>
                                             </div>
                                             <div className="flex flex-wrap items-center justify-end gap-2">
                                                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClass}`}>
@@ -589,33 +780,20 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
                                         {canMarkMissed ? (
                                             <p className="text-[11px] text-emerald-800 font-medium mt-3 pt-2 border-t border-gray-100">
                                                 {historyActionRowId === administration.id
-                                                    ? 'Use the action below.'
-                                                    : 'Tap to open administrator actions.'}
+                                                    ? 'Choose how to resolve this missed dose below.'
+                                                    : 'Select or tap to open administrator actions.'}
                                             </p>
                                         ) : null}
 
                                         {historyActionRowId === administration.id && canMarkMissed ? (
-                                            <div
-                                                className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
-                                                onClick={(e) => e.stopPropagation()}
-                                                onKeyDown={(e) => e.stopPropagation()}
-                                                role="presentation"
-                                            >
-                                                <p className="text-xs text-emerald-950">
-                                                    Mark this missed dose as <span className="font-semibold">completed</span> at the scheduled time?
-                                                </p>
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        void markMissedAsAdministeredFromHistory(administration);
-                                                    }}
-                                                    disabled={markingAdministrationId === administration.id}
-                                                    className="inline-flex items-center justify-center gap-1.5 shrink-0 rounded-lg border border-emerald-700 bg-emerald-600 px-3 py-2 text-xs font-bold !text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 [&_svg]:!text-white"
-                                                >
-                                                    <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
-                                                    {markingAdministrationId === administration.id ? 'Saving…' : 'Mark as administered'}
-                                                </button>
+                                            <div className="mt-3" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} role="presentation">
+                                                <MissedDoseActionBar
+                                                    administration={administration}
+                                                    selectedCount={1}
+                                                    isResolving={resolvingMissed}
+                                                    onResolve={(status) => resolveMissedFromHistory(status, administration)}
+                                                    compact
+                                                />
                                             </div>
                                         ) : null}
                                     </div>
@@ -627,6 +805,18 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
+                                        {isAdminUser ? (
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={allMissedOnPageSelected}
+                                                    onChange={toggleSelectAllMissedOnPage}
+                                                    disabled={missedOnPage.length === 0}
+                                                    className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 disabled:opacity-40"
+                                                    aria-label="Select all missed doses on this page"
+                                                />
+                                            </th>
+                                        ) : null}
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Resident
                                         </th>
@@ -669,14 +859,29 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
                                         const rowBorder = statusRowBorder[administration.status] || '';
                                         const isAutoMissed = administration.status === 'missed' && administeredBy === 'System';
                                         const canMarkMissed = canShowMarkMissedAction(administration);
+                                        const isSelected = selectedMissedIds.has(administration.id);
 
                                         return (
                                             <Fragment key={administration.id}>
                                                 <tr
-                                                    className={`hover:bg-gray-50 transition-colors ${rowBorder} ${canMarkMissed ? 'cursor-pointer' : ''}`}
+                                                    className={`hover:bg-gray-50 transition-colors ${rowBorder} ${canMarkMissed ? 'cursor-pointer' : ''} ${isSelected ? 'bg-emerald-50/40' : ''}`}
                                                     onClick={canMarkMissed ? () => toggleHistoryActionRow(administration) : undefined}
                                                     title={canMarkMissed ? 'Click to show administrator actions' : undefined}
                                                 >
+                                                {isAdminUser ? (
+                                                    <td className="px-4 py-4 whitespace-nowrap">
+                                                        {canMarkMissed ? (
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isSelected}
+                                                                onChange={(e) => toggleMissedSelection(administration.id, e.target.checked)}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                                                aria-label={`Select missed dose for ${medication?.name || 'medication'}`}
+                                                            />
+                                                        ) : null}
+                                                    </td>
+                                                ) : null}
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                     <div className="font-medium">
                                                         {resident?.first_name} {resident?.last_name}
@@ -719,7 +924,7 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
                                                         <p className="text-[11px] text-emerald-800 font-medium mt-1.5">
                                                             {historyActionRowId === administration.id
                                                                 ? 'Action bar below.'
-                                                                : 'Click row to correct.'}
+                                                                : 'Select or click row to correct.'}
                                                         </p>
                                                     ) : null}
                                                 </td>
@@ -775,26 +980,13 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
                                                 </tr>
                                                 {historyActionRowId === administration.id && canMarkMissed ? (
                                                 <tr className="bg-emerald-50/70 border-l-4 border-l-emerald-500">
-                                                    <td colSpan={6} className="px-6 py-3">
-                                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                                            <p className="text-sm text-emerald-950">
-                                                                Mark this missed dose as <span className="font-semibold">completed</span> at the
-                                                                scheduled time ({formatDate(administration.administered_at)}{' '}
-                                                                {formatTime(administration.administered_at)})?
-                                                            </p>
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    void markMissedAsAdministeredFromHistory(administration);
-                                                                }}
-                                                                disabled={markingAdministrationId === administration.id}
-                                                                className="inline-flex items-center justify-center gap-2 shrink-0 rounded-lg border border-emerald-700 bg-emerald-600 px-4 py-2 text-sm font-bold !text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 [&_svg]:!text-white"
-                                                            >
-                                                                <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
-                                                                {markingAdministrationId === administration.id ? 'Saving…' : 'Mark as administered'}
-                                                            </button>
-                                                        </div>
+                                                    <td colSpan={isAdminUser ? 7 : 6} className="px-6 py-3">
+                                                        <MissedDoseActionBar
+                                                            administration={administration}
+                                                            selectedCount={1}
+                                                            isResolving={resolvingMissed}
+                                                            onResolve={(status) => resolveMissedFromHistory(status, administration)}
+                                                        />
                                                     </td>
                                                 </tr>
                                                 ) : null}

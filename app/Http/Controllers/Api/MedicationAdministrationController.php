@@ -603,7 +603,7 @@ class MedicationAdministrationController extends BaseApiController
     }
 
     /**
-     * Administrator-only: flip a "missed" administration to "completed" for a past slot.
+     * Administrator-only: resolve a "missed" administration to completed, refused, or hospital admission.
      *
      * Rules (agreed with product):
      * - Only `administrator` and `super_admin` roles may call this. Caregivers/branch-admins cannot.
@@ -617,7 +617,73 @@ class MedicationAdministrationController extends BaseApiController
      */
     public function markAdministered(Request $request, $id): JsonResponse
     {
+        $validated = $request->validate([
+            'status' => 'sometimes|in:completed,refused,hospital_admission',
+            'notes' => 'nullable|string|max:2000',
+        ]);
+
+        $status = $validated['status'] ?? 'completed';
+        $notes = $validated['notes'] ?? null;
+
+        return $this->resolveMissedAdministrationResponse($request, (int) $id, $status, $notes);
+    }
+
+    /**
+     * Administrator-only: resolve multiple missed administrations in one request.
+     */
+    public function bulkResolveMissed(Request $request): JsonResponse
+    {
         $user = $request->user();
+        if ($authError = $this->requireAdministratorForMissedResolution($user)) {
+            return $authError;
+        }
+
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1|max:50',
+            'ids.*' => 'integer',
+            'status' => 'required|in:completed,refused,hospital_admission',
+            'notes' => 'nullable|string|max:2000',
+        ]);
+
+        $resolved = [];
+        $errors = [];
+
+        foreach (array_values(array_unique(array_map('intval', $validated['ids']))) as $id) {
+            try {
+                $resolved[] = DB::transaction(function () use ($id, $user, $validated) {
+                    return $this->resolveMissedAdministrationRecord(
+                        $id,
+                        $user,
+                        $validated['status'],
+                        $validated['notes'] ?? null
+                    );
+                });
+            } catch (\RuntimeException $e) {
+                $errors[] = [
+                    'id' => $id,
+                    'message' => $this->missedResolutionErrorMessage($e->getMessage()),
+                ];
+            }
+        }
+
+        if ($resolved === [] && $errors !== []) {
+            return response()->json([
+                'message' => 'Unable to resolve any missed medications.',
+                'errors' => $errors,
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => collect($resolved)->map(
+                fn ($administration) => $administration->load(['medication', 'resident', 'branch', 'administeredBy'])
+            )->values(),
+            'count' => count($resolved),
+            'errors' => $errors,
+        ], 200);
+    }
+
+    private function requireAdministratorForMissedResolution(?\App\Models\User $user): ?JsonResponse
+    {
         if (! $user) {
             return $this->error('Unauthorized.', 401);
         }
@@ -625,100 +691,145 @@ class MedicationAdministrationController extends BaseApiController
         $isAdministrator = $user->role === 'administrator' || $user->hasRole('administrator');
         $isSuperAdmin = $user->role === 'super_admin' || $user->hasRole('super_admin');
         if (! $isAdministrator && ! $isSuperAdmin) {
-            return $this->error('Only facility administrators can mark a missed medication as administered.', 403);
+            return $this->error('Only facility administrators can resolve missed medications.', 403);
+        }
+
+        return null;
+    }
+
+    private function resolveMissedAdministrationResponse(
+        Request $request,
+        int $id,
+        string $status,
+        ?string $notes
+    ): JsonResponse {
+        $user = $request->user();
+        if ($authError = $this->requireAdministratorForMissedResolution($user)) {
+            return $authError;
         }
 
         try {
-            $administration = DB::transaction(function () use ($id, $user) {
-                $administration = MedicationAdministration::lockForUpdate()->find($id);
-                if (! $administration) {
-                    throw new \RuntimeException('not_found');
-                }
-
-                // Facility/branch scoping: administrators may only act inside their own facility.
-                if (! $this->checkBranchAccess($administration, $user)) {
-                    throw new \RuntimeException('forbidden_facility');
-                }
-
-                if ($administration->status !== 'missed') {
-                    throw new \RuntimeException('not_missed');
-                }
-
-                $medication = Medication::find($administration->medication_id);
-                if (! $medication) {
-                    throw new \RuntimeException('medication_missing');
-                }
-
-                $tz = config('app.timezone');
-                $scheduledTime = Carbon::parse($administration->administered_at)->setTimezone($tz);
-
-                // The administration window must already have closed. A 'missed' record should
-                // only ever exist after its window closed, but we re-check to be defensive.
-                $windowEnd = $scheduledTime->copy()->addMinutes(60);
-                if ($windowEnd->isFuture()) {
-                    throw new \RuntimeException('window_not_closed');
-                }
-
-                $scheduledDateStr = $scheduledTime->toDateString();
-                if ($medication->start_date) {
-                    $startDateStr = $medication->start_date instanceof Carbon
-                        ? $medication->start_date->toDateString()
-                        : (string) $medication->start_date;
-                    if ($scheduledDateStr < $startDateStr) {
-                        throw new \RuntimeException('before_start_date');
-                    }
-                }
-                if ($medication->end_date) {
-                    $endDateStr = $medication->end_date instanceof Carbon
-                        ? $medication->end_date->toDateString()
-                        : (string) $medication->end_date;
-                    if ($scheduledDateStr > $endDateStr) {
-                        throw new \RuntimeException('after_end_date');
-                    }
-                }
-
-                $resolvedAdministeredBy = $this->resolveAdministeredByForLateMark(
-                    (int) $administration->resident_id,
-                    $scheduledTime,
-                    (int) $user->id
-                );
-
-                // Flip the dose. administered_at intentionally untouched.
-                $administration->status = 'completed';
-                $administration->administered_by = $resolvedAdministeredBy;
-                $administration->notes = 'Administered';
-
-                $dosageFromMedication = trim(implode(' ', array_filter([
-                    $medication->quantity ? (string) $medication->quantity : null,
-                    $medication->form ? (string) $medication->form : null,
-                ])));
-
-                $currentDosage = $administration->dosage_given;
-                if ($currentDosage === null || $currentDosage === '') {
-                    $administration->dosage_given = $dosageFromMedication !== '' ? $dosageFromMedication : 'Administered';
-                }
-
-                $administration->save();
-
-                return $administration;
+            $administration = DB::transaction(function () use ($id, $user, $status, $notes) {
+                return $this->resolveMissedAdministrationRecord($id, $user, $status, $notes);
             });
         } catch (\RuntimeException $e) {
-            return match ($e->getMessage()) {
-                'not_found' => $this->error('Medication administration not found.', 404),
-                'forbidden_facility' => $this->error('You do not have access to this medication administration.', 403),
-                'not_missed' => $this->error('Only missed medications can be marked as administered.', 422),
-                'window_not_closed' => $this->error('This medication slot is still within its administration window.', 422),
-                'before_start_date' => $this->error('Medication was not active on the scheduled date (before start date).', 422),
-                'after_end_date' => $this->error('Medication was not active on the scheduled date (after end date).', 422),
-                'medication_missing' => $this->error('Associated medication record not found.', 404),
-                default => $this->error('Unable to mark administration: '.$e->getMessage(), 422),
-            };
+            return $this->error($this->missedResolutionErrorMessage($e->getMessage()), $this->missedResolutionHttpStatus($e->getMessage()));
         }
 
         return response()->json(
             $administration->load(['medication', 'resident', 'branch', 'administeredBy']),
             200
         );
+    }
+
+    private function missedResolutionErrorMessage(string $code): string
+    {
+        return match ($code) {
+            'not_found' => 'Medication administration not found.',
+            'forbidden_facility' => 'You do not have access to this medication administration.',
+            'not_missed' => 'Only missed medications can be updated.',
+            'window_not_closed' => 'This medication slot is still within its administration window.',
+            'before_start_date' => 'Medication was not active on the scheduled date (before start date).',
+            'after_end_date' => 'Medication was not active on the scheduled date (after end date).',
+            'medication_missing' => 'Associated medication record not found.',
+            default => 'Unable to resolve missed administration: '.$code,
+        };
+    }
+
+    private function missedResolutionHttpStatus(string $code): int
+    {
+        return match ($code) {
+            'not_found', 'medication_missing' => 404,
+            'forbidden_facility' => 403,
+            default => 422,
+        };
+    }
+
+    /**
+     * @throws \RuntimeException
+     */
+    private function resolveMissedAdministrationRecord(
+        int $id,
+        \App\Models\User $user,
+        string $targetStatus,
+        ?string $notes
+    ): MedicationAdministration {
+        $administration = MedicationAdministration::lockForUpdate()->find($id);
+        if (! $administration) {
+            throw new \RuntimeException('not_found');
+        }
+
+        if (! $this->checkBranchAccess($administration, $user)) {
+            throw new \RuntimeException('forbidden_facility');
+        }
+
+        if ($administration->status !== 'missed') {
+            throw new \RuntimeException('not_missed');
+        }
+
+        $medication = Medication::find($administration->medication_id);
+        if (! $medication) {
+            throw new \RuntimeException('medication_missing');
+        }
+
+        $tz = config('app.timezone');
+        $scheduledTime = Carbon::parse($administration->administered_at)->setTimezone($tz);
+
+        $windowEnd = $scheduledTime->copy()->addMinutes(60);
+        if ($windowEnd->isFuture()) {
+            throw new \RuntimeException('window_not_closed');
+        }
+
+        $scheduledDateStr = $scheduledTime->toDateString();
+        if ($medication->start_date) {
+            $startDateStr = $medication->start_date instanceof Carbon
+                ? $medication->start_date->toDateString()
+                : (string) $medication->start_date;
+            if ($scheduledDateStr < $startDateStr) {
+                throw new \RuntimeException('before_start_date');
+            }
+        }
+        if ($medication->end_date) {
+            $endDateStr = $medication->end_date instanceof Carbon
+                ? $medication->end_date->toDateString()
+                : (string) $medication->end_date;
+            if ($scheduledDateStr > $endDateStr) {
+                throw new \RuntimeException('after_end_date');
+            }
+        }
+
+        $resolvedAdministeredBy = $this->resolveAdministeredByForLateMark(
+            (int) $administration->resident_id,
+            $scheduledTime,
+            (int) $user->id
+        );
+
+        $administration->status = $targetStatus;
+        $administration->administered_by = $resolvedAdministeredBy;
+
+        if ($targetStatus === 'completed') {
+            $administration->notes = 'Administered';
+
+            $dosageFromMedication = trim(implode(' ', array_filter([
+                $medication->quantity ? (string) $medication->quantity : null,
+                $medication->form ? (string) $medication->form : null,
+            ])));
+
+            $currentDosage = $administration->dosage_given;
+            if ($currentDosage === null || $currentDosage === '') {
+                $administration->dosage_given = $dosageFromMedication !== '' ? $dosageFromMedication : 'Administered';
+            }
+        } elseif ($targetStatus === 'refused') {
+            $administration->notes = $notes !== null && trim($notes) !== '' ? trim($notes) : 'Refused';
+            $administration->dosage_given = 'N/A - Refused';
+        } else {
+            $administration->notes = $notes !== null && trim($notes) !== '' ? trim($notes) : 'Hospital Admission';
+            $administration->dosage_given = 'N/A - Hospital Admission';
+        }
+
+        $administration->save();
+
+        return $administration;
     }
 
     /**
