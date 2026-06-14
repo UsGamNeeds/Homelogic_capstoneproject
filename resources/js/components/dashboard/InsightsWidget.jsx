@@ -1,6 +1,23 @@
 import React from 'react';
 import { SidebarWidget } from './DashboardSidebar';
 import { TrendingUp, Users, ClipboardCheck, Pill, Clock, UserCheck } from 'lucide-react';
+import { formatInsightHours, formatInsightPercent } from '../../utils/formatInsightMetric';
+
+function formatInsightValue(insight) {
+    if (insight.format === 'percent') {
+        return formatInsightPercent(insight.value);
+    }
+
+    if (insight.format === 'hours') {
+        return formatInsightHours(insight.value);
+    }
+
+    if (typeof insight.value === 'number') {
+        return insight.value.toFixed(1);
+    }
+
+    return insight.value ?? '—';
+}
 
 /**
  * InsightsWidget - Displays key performance metrics
@@ -10,31 +27,31 @@ export default function InsightsWidget({ metrics = {} }) {
         {
             label: 'Occupancy Rate',
             value: metrics.occupancy_rate ?? 0,
-            unit: '%',
+            format: 'percent',
             icon: Users,
             color: 'text-blue-600',
             bgColor: 'bg-blue-50',
         },
         {
             label: 'Compliance Score',
-            value: metrics.compliance_score ?? 0,
-            unit: '%',
+            value: metrics.compliance_score,
+            format: 'percent',
             icon: ClipboardCheck,
             color: 'text-green-600',
             bgColor: 'bg-green-50',
         },
         {
             label: 'Medication Adherence',
-            value: metrics.medication_adherence_rate ?? 0,
-            unit: '%',
+            value: metrics.medication_adherence_rate,
+            format: 'percent',
             icon: Pill,
             color: 'text-purple-600',
             bgColor: 'bg-purple-50',
         },
         {
             label: 'Avg Response Time',
-            value: metrics.average_incident_response_time ?? 0,
-            unit: ' hrs',
+            value: metrics.average_incident_response_time,
+            format: 'hours',
             icon: Clock,
             color: 'text-orange-600',
             bgColor: 'bg-orange-50',
@@ -42,7 +59,6 @@ export default function InsightsWidget({ metrics = {} }) {
         {
             label: 'Staff Count',
             value: metrics.staff_utilization ?? 0,
-            unit: '',
             icon: UserCheck,
             color: 'text-indigo-600',
             bgColor: 'bg-indigo-50',
@@ -70,10 +86,7 @@ export default function InsightsWidget({ metrics = {} }) {
                                 <div>
                                     <p className="text-xs text-gray-600">{insight.label}</p>
                                     <p className="text-lg font-semibold text-gray-900">
-                                        {typeof insight.value === 'number' 
-                                            ? insight.value.toFixed(1) 
-                                            : insight.value}
-                                        {insight.unit}
+                                        {formatInsightValue(insight)}
                                     </p>
                                 </div>
                             </div>

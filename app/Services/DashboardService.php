@@ -141,9 +141,9 @@ class DashboardService
             'resident_list' => [],
             'medication_reminders' => [],
             'occupancy_rate' => 0,
-            'compliance_score' => 0,
-            'medication_adherence_rate' => 0,
-            'average_incident_response_time' => 0,
+            'compliance_score' => null,
+            'medication_adherence_rate' => null,
+            'average_incident_response_time' => null,
             'staff_utilization' => 0,
             'module_resource_counts' => [
                 'assessments' => 0,
@@ -1207,9 +1207,9 @@ class DashboardService
     {
         $metrics = [
             'occupancy_rate' => 0,
-            'compliance_score' => 0,
-            'medication_adherence_rate' => 0,
-            'average_incident_response_time' => 0,
+            'compliance_score' => null,
+            'medication_adherence_rate' => null,
+            'average_incident_response_time' => null,
             'staff_utilization' => 0,
         ];
 
@@ -1234,24 +1234,25 @@ class DashboardService
             $metrics['occupancy_rate'] = min(100, round(($totalResidents / $totalCapacity) * 100, 1));
         }
 
-        // 2. Compliance Score: Completed assessments / Total assessments (last 30 days)
+        // 2. Compliance Score: completed assessments / assessments due in last 30 days (by assessment_date)
         $rangeStart = now()->subDays(30)->startOfDay();
-        $totalAssessments = Assessment::withoutGlobalScopes()
+        $rangeEnd = now()->endOfDay();
+        $assessmentBaseQuery = Assessment::withoutGlobalScopes()
             ->whereHas('resident', function ($q) use ($facilityId) {
                 $q->whereHas('branch', function ($b) use ($facilityId) {
                     $b->where('facility_id', $facilityId);
                 })->where('is_active', true);
             })
-            ->whereBetween('created_at', [$rangeStart, now()])
-            ->count();
+            ->where(function ($q) use ($rangeStart, $rangeEnd) {
+                $q->whereBetween('assessment_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()])
+                    ->orWhere(function ($fallback) use ($rangeStart, $rangeEnd) {
+                        $fallback->whereNull('assessment_date')
+                            ->whereBetween('created_at', [$rangeStart, $rangeEnd]);
+                    });
+            });
 
-        $completedAssessments = Assessment::withoutGlobalScopes()
-            ->whereHas('resident', function ($q) use ($facilityId) {
-                $q->whereHas('branch', function ($b) use ($facilityId) {
-                    $b->where('facility_id', $facilityId);
-                })->where('is_active', true);
-            })
-            ->whereBetween('created_at', [$rangeStart, now()])
+        $totalAssessments = (clone $assessmentBaseQuery)->count();
+        $completedAssessments = (clone $assessmentBaseQuery)
             ->whereIn('status', ['approved', 'completed'])
             ->count();
 
@@ -1259,35 +1260,14 @@ class DashboardService
             $metrics['compliance_score'] = round(($completedAssessments / $totalAssessments) * 100, 1);
         }
 
-        // 3. Medication Adherence Rate: Completed administrations / Total due (last 7 days)
-        $weekStart = now()->subDays(7)->startOfDay();
-        $totalMedicationsDue = Medication::withoutGlobalScopes()
-            ->where('is_active', true)
-            ->whereHas('resident', function ($q) use ($facilityId) {
-                $q->whereHas('branch', function ($b) use ($facilityId) {
-                    $b->where('facility_id', $facilityId);
-                })->where('is_active', true);
-            })
-            ->count();
-
-        $completedAdministrations = \App\Models\MedicationAdministration::withoutGlobalScopes()
-            ->whereBetween('administered_at', [$weekStart, now()])
-            ->where('status', 'completed')
-            ->whereHas('resident', function ($q) use ($facilityId) {
-                $q->whereHas('branch', function ($b) use ($facilityId) {
-                    $b->where('facility_id', $facilityId);
-                })->where('is_active', true);
-            })
-            ->count();
-
-        // Estimate total due based on active medications and frequency
-        // For simplicity, assume each medication needs administration daily
-        $estimatedTotalDue = $totalMedicationsDue * 7; // 7 days
-        if ($estimatedTotalDue > 0) {
-            $metrics['medication_adherence_rate'] = round(($completedAdministrations / $estimatedTotalDue) * 100, 1);
+        // 3. Medication Adherence: completed doses / scheduled slots (last 7 days, real time slots)
+        $weekStart = now()->subDays(6)->startOfDay();
+        $adherence = $this->calculateFacilityMedicationAdherence($facilityId, $weekStart, now());
+        if ($adherence !== null) {
+            $metrics['medication_adherence_rate'] = $adherence;
         }
 
-        // 4. Average Incident Response Time: Average time from creation to resolution (last 30 days)
+        // 4. Average Incident Response Time: average hours from creation to resolution (last 30 days)
         $resolvedIncidents = \App\Models\Incident::withoutGlobalScopes()
             ->whereHas('branch', function ($q) use ($facilityId) {
                 $q->where('facility_id', $facilityId);
@@ -1298,12 +1278,12 @@ class DashboardService
 
         if ($resolvedIncidents->count() > 0) {
             $totalResponseTime = $resolvedIncidents->sum(function ($incident) {
-                return $incident->created_at->diffInHours($incident->resolved_at);
+                return abs($incident->created_at->diffInHours($incident->resolved_at));
             });
             $metrics['average_incident_response_time'] = round($totalResponseTime / $resolvedIncidents->count(), 1);
         }
 
-        // 5. Staff Utilization: Active staff / Total staff (as percentage)
+        // 5. Staff Utilization: active staff count for the facility
         $totalStaff = User::withoutGlobalScopes()
             ->where('facility_id', $facilityId)
             ->where('is_active', true)
@@ -1314,6 +1294,68 @@ class DashboardService
         $metrics['staff_utilization'] = $totalStaff;
 
         return $metrics;
+    }
+
+    /**
+     * Scheduled-slot adherence for a facility over a date range (excludes PRN medications).
+     */
+    private function calculateFacilityMedicationAdherence(int $facilityId, Carbon $rangeStart, Carbon $rangeEnd): ?float
+    {
+        $totalScheduled = 0;
+        $totalCompleted = 0;
+        $current = $rangeStart->copy()->startOfDay();
+        $end = $rangeEnd->copy()->endOfDay();
+
+        while ($current <= $end) {
+            $dateStr = $current->toDateString();
+
+            $activeMeds = Medication::withoutGlobalScopes()
+                ->where('is_active', true)
+                ->where('start_date', '<=', $dateStr)
+                ->where(function ($q) use ($dateStr) {
+                    $q->whereNull('end_date')
+                        ->orWhere('end_date', '>=', $dateStr);
+                })
+                ->whereHas('resident', function ($q) use ($facilityId) {
+                    $q->where('is_active', true)
+                        ->whereHas('branch', function ($b) use ($facilityId) {
+                            $b->where('facility_id', $facilityId);
+                        });
+                })
+                ->get(['id', 'instructions', 'time_1', 'time_2', 'time_3', 'time_4']);
+
+            foreach ($activeMeds as $medication) {
+                $instructions = strtolower((string) $medication->instructions);
+                if (str_contains($instructions, 'prn') || str_contains($instructions, 'as needed')) {
+                    continue;
+                }
+
+                for ($slot = 1; $slot <= 4; $slot++) {
+                    if ($medication->{"time_{$slot}"}) {
+                        $totalScheduled++;
+                    }
+                }
+            }
+
+            $totalCompleted += MedicationAdministration::withoutGlobalScopes()
+                ->where('status', 'completed')
+                ->whereBetween('administered_at', [$current->copy()->startOfDay(), $current->copy()->endOfDay()])
+                ->whereHas('resident', function ($q) use ($facilityId) {
+                    $q->where('is_active', true)
+                        ->whereHas('branch', function ($b) use ($facilityId) {
+                            $b->where('facility_id', $facilityId);
+                        });
+                })
+                ->count();
+
+            $current->addDay();
+        }
+
+        if ($totalScheduled === 0) {
+            return null;
+        }
+
+        return min(100, round(($totalCompleted / $totalScheduled) * 100, 1));
     }
 
     /**
