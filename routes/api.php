@@ -63,6 +63,7 @@ use App\Http\Controllers\Api\VitalSignController;
 use App\Http\Controllers\Api\VitalsLogReportController;
 use App\Http\Controllers\Webhook\DocumoFaxWebhookController;
 use App\Http\Controllers\Webhook\FakeFaxWebhookController;
+use App\Http\Controllers\Webhook\IFaxFaxWebhookController;
 use App\Http\Controllers\Webhook\TelnyxFaxWebhookController;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -211,7 +212,8 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
     Route::post('/medication-administrations/mark-missed', [MedicationAdministrationController::class, 'markMissed'])->middleware('auth:sanctum');
     Route::post('/medication-administrations/bulk', [MedicationAdministrationController::class, 'bulkStore'])->middleware('auth:sanctum');
     Route::post('/medication-administrations/bulk-delete', [MedicationAdministrationController::class, 'bulkDestroy'])->middleware('auth:sanctum');
-    // Administrator-only: flip a missed dose to administered, preserving the originally scheduled time
+    // Administrator-only: resolve missed doses (completed, refused, hospital admission)
+    Route::post('/medication-administrations/bulk-resolve-missed', [MedicationAdministrationController::class, 'bulkResolveMissed'])->middleware('auth:sanctum');
     Route::patch('/medication-administrations/{id}/mark-administered', [MedicationAdministrationController::class, 'markAdministered'])->middleware('auth:sanctum');
     Route::apiResource('medication-administrations', MedicationAdministrationController::class)->middleware('auth:sanctum');
 
@@ -537,4 +539,5 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
 // before doing anything else.
 Route::post('/webhooks/fax/telnyx/{secret}', TelnyxFaxWebhookController::class);
 Route::post('/webhooks/fax/documo/{secret}', DocumoFaxWebhookController::class);
+Route::post('/webhooks/fax/ifax/{secret}', IFaxFaxWebhookController::class);
 Route::post('/webhooks/fax/fake/{secret}', FakeFaxWebhookController::class);

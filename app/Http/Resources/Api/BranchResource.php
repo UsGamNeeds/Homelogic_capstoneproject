@@ -21,45 +21,10 @@ class BranchResource extends JsonResource
             'phone' => $this->phone,
             'email' => $this->email,
             'is_active' => $this->is_active,
+            'resident_capacity' => $this->resident_capacity,
             'facility' => new FacilityResource($this->whenLoaded('facility')),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
