@@ -190,7 +190,7 @@ class AdminMarkAdministeredTest extends TestCase
         $response = $this->patchJson("/api/v1/medication-administrations/{$missed->id}/mark-administered");
 
         $response->assertStatus(422);
-        $response->assertJsonFragment(['message' => 'Only missed medications can be marked as administered.']);
+        $response->assertJsonFragment(['message' => 'Only missed medications can be updated.']);
     }
 
     public function test_cannot_flip_a_record_whose_window_has_not_closed_yet(): void
@@ -399,5 +399,58 @@ class AdminMarkAdministeredTest extends TestCase
         $response = $this->patchJson('/api/v1/medication-administrations/9999999/mark-administered');
 
         $response->assertStatus(404);
+    }
+
+    public function test_administrator_can_flip_missed_to_refused(): void
+    {
+        $this->createAndActAs('administrator');
+
+        [, , $missed] = $this->makeMissedAdministration();
+
+        $response = $this->patchJson("/api/v1/medication-administrations/{$missed->id}/mark-administered", [
+            'status' => 'refused',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('status', 'refused');
+        $response->assertJsonPath('notes', 'Refused');
+        $response->assertJsonPath('dosage_given', 'N/A - Refused');
+    }
+
+    public function test_administrator_can_flip_missed_to_hospital_admission(): void
+    {
+        $this->createAndActAs('administrator');
+
+        [, , $missed] = $this->makeMissedAdministration();
+
+        $response = $this->patchJson("/api/v1/medication-administrations/{$missed->id}/mark-administered", [
+            'status' => 'hospital_admission',
+            'notes' => 'Admitted to ER',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('status', 'hospital_admission');
+        $response->assertJsonPath('notes', 'Admitted to ER');
+        $response->assertJsonPath('dosage_given', 'N/A - Hospital Admission');
+    }
+
+    public function test_administrator_can_bulk_resolve_missed_doses(): void
+    {
+        $this->createAndActAs('administrator');
+
+        [, , $missedOne] = $this->makeMissedAdministration(time: '08:00:00');
+        [, , $missedTwo] = $this->makeMissedAdministration(time: '20:00:00');
+
+        $response = $this->postJson('/api/v1/medication-administrations/bulk-resolve-missed', [
+            'ids' => [$missedOne->id, $missedTwo->id],
+            'status' => 'refused',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('count', 2);
+        $response->assertJsonCount(2, 'data');
+
+        $this->assertSame('refused', MedicationAdministration::find($missedOne->id)->status);
+        $this->assertSame('refused', MedicationAdministration::find($missedTwo->id)->status);
     }
 }
