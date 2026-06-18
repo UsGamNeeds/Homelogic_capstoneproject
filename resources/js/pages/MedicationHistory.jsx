@@ -953,7 +953,8 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
                                                             Automatically recorded as missed — dose window closed without administration.
                                                         </div>
                                                     )}
-                                                    {(cleanedNotes || isLateAdministration) && (
+                                                    {/* For auto-missed the red line above already states this — skip the duplicate system note. */}
+                                                    {!isAutoMissed && (cleanedNotes || isLateAdministration) && (
                                                         <div className="text-xs text-gray-500 mt-1 whitespace-pre-line">
                                                             {cleanedNotes || 'Late administration recorded outside scheduled window.'}
                                                         </div>
