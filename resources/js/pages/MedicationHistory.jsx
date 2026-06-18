@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { Calendar, ClipboardList, Pill, User, ChevronLeft, ChevronRight, FileText, Download, AlertTriangle, CheckCircle2, XCircle, Ban, Building2 } from 'lucide-react';
 import { useSearchParams, useLocation } from 'react-router-dom';
-import { formatPacificDate as formatDate, formatPacificTime as formatTime } from '../utils/pacificTime';
+import { formatPacificInstantDate as formatAdministeredDate, formatPacificInstantTime as formatAdministeredTime } from '../utils/pacificTime';
 import { RESIDENT_CONTEXT_QUERY_KEY, urlSearchParamsShallowEqual, parseResidentContextId } from '../utils/headerResidentSwitcher';
 import EmptyState from '../components/ui/EmptyState';
 import { useToastContext } from '../contexts/ToastContext';
@@ -105,7 +105,7 @@ function MissedDoseActionBar({
     compact = false,
 }) {
     const scheduledLabel = administration
-        ? `${formatDate(administration.administered_at)} ${formatTime(administration.administered_at)}`
+        ? `${formatAdministeredDate(administration.administered_at)} ${formatAdministeredTime(administration.administered_at)}`
         : null;
 
     return (
@@ -529,7 +529,7 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
                     )}
                 </div>
 
-                <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 ${embedded ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Resident</label>
                         {embedded ? (
@@ -727,8 +727,8 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div>
                                                     <p className="text-xs uppercase tracking-wide text-gray-500">Administered</p>
-                                                    <p className="font-medium text-gray-900">{formatDate(administration.administered_at)}</p>
-                                                    <p className="text-xs text-gray-500">{formatTime(administration.administered_at)}</p>
+                                                    <p className="font-medium text-gray-900">{formatAdministeredDate(administration.administered_at)}</p>
+                                                    <p className="text-xs text-gray-500">{formatAdministeredTime(administration.administered_at)}</p>
                                                 </div>
                                                 <div>
                                                     <p className="text-xs uppercase tracking-wide text-gray-500">Administered By</p>
@@ -898,8 +898,8 @@ export default function MedicationHistory({ embedded = false, embeddedResidentId
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    <div className="font-medium">{formatDate(administration.administered_at)}</div>
-                                                    <div className="text-xs text-gray-500">{formatTime(administration.administered_at)}</div>
+                                                    <div className="font-medium">{formatAdministeredDate(administration.administered_at)}</div>
+                                                    <div className="text-xs text-gray-500">{formatAdministeredTime(administration.administered_at)}</div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                                                     <div className="flex items-center gap-1.5">
