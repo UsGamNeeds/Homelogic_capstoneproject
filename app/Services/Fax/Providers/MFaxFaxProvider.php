@@ -102,7 +102,12 @@ class MFaxFaxProvider implements FaxProvider
     public function testConnection(): TestResult
     {
         try {
-            $response = $this->http()->get('/faxes', ['limit' => 1]);
+            // Short, explicit timeouts so a blocked/slow egress fails fast with a
+            // clear message instead of hanging until the web server returns 503.
+            $response = $this->http()
+                ->connectTimeout(8)
+                ->timeout(12)
+                ->get('/faxes', ['limit' => 1]);
 
             if ($response->successful()) {
                 return TestResult::ok('mfax API reachable.');
