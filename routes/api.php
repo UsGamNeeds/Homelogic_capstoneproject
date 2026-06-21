@@ -64,6 +64,7 @@ use App\Http\Controllers\Api\VitalsLogReportController;
 use App\Http\Controllers\Webhook\DocumoFaxWebhookController;
 use App\Http\Controllers\Webhook\FakeFaxWebhookController;
 use App\Http\Controllers\Webhook\IFaxFaxWebhookController;
+use App\Http\Controllers\Webhook\MFaxFaxWebhookController;
 use App\Http\Controllers\Webhook\TelnyxFaxWebhookController;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -540,4 +541,5 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
 Route::post('/webhooks/fax/telnyx/{secret}', TelnyxFaxWebhookController::class);
 Route::post('/webhooks/fax/documo/{secret}', DocumoFaxWebhookController::class);
 Route::post('/webhooks/fax/ifax/{secret}', IFaxFaxWebhookController::class);
+Route::post('/webhooks/fax/mfax/{secret}', MFaxFaxWebhookController::class);
 Route::post('/webhooks/fax/fake/{secret}', FakeFaxWebhookController::class);

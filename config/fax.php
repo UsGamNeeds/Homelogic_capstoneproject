@@ -16,6 +16,7 @@ return [
     */
     'providers' => [
         \App\Services\Fax\Providers\IFaxFaxProvider::class,
+        \App\Services\Fax\Providers\MFaxFaxProvider::class,
         \App\Services\Fax\Providers\TelnyxFaxProvider::class,
         \App\Services\Fax\Providers\DocumoFaxProvider::class,
         \App\Services\Fax\Providers\FakeFaxProvider::class,
@@ -77,6 +78,23 @@ return [
     */
     'ifax' => [
         'webhook_secret' => env('FAX_IFAX_WEBHOOK_SECRET'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | mfax.to (account-wide webhook)
+    |--------------------------------------------------------------------------
+    |
+    | mfax.to allows a single callback URL for the whole organization. Set
+    | FAX_MFAX_WEBHOOK_SECRET and paste the resulting URL
+    | (/api/webhooks/fax/mfax/{secret}) into the mfax dashboard webhook config.
+    | FAX_MFAX_SIGNING_SECRET is the signing secret configured alongside that
+    | webhook; it verifies the X-Zelda-Signature HMAC on every delivery.
+    |
+    */
+    'mfax' => [
+        'webhook_secret' => env('FAX_MFAX_WEBHOOK_SECRET'),
+        'signing_secret' => env('FAX_MFAX_SIGNING_SECRET'),
     ],
 
     /*
