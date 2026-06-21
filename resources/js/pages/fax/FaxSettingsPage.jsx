@@ -258,7 +258,9 @@ export default function FaxSettingsPage() {
     const testMutation = useMutation({
         mutationFn: async () => {
             const res = await api.post('/fax/settings/test-connection', currentTestPayload);
-            return res.data;
+            // API wraps payloads as { data: {...} }; unwrap so { ok, message } is
+            // read at the top level (otherwise data.ok is always undefined).
+            return res.data?.data ?? res.data;
         },
         onSuccess: (data) => {
             setTestResult(data);
