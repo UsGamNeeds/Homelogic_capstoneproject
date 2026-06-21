@@ -45,6 +45,10 @@ export default defineConfig({
     build: {
         // Clear cache before build to ensure fresh builds
         emptyOutDir: true,
+        // Skip computing gzip/brotli sizes for the build report. This step
+        // re-compresses every chunk in memory and is a frequent OOM cause on
+        // low-RAM deploy servers (the build was killed at "computing gzip size").
+        reportCompressedSize: false,
         commonjsOptions: {
             include: [/node_modules/],
             transformMixedEsModules: true,
