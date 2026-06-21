@@ -77,6 +77,15 @@ class MFaxFaxProvider implements FaxProvider
         return true;
     }
 
+    /**
+     * mfax does not expose number provisioning via its API; numbers are bought
+     * in the mfax dashboard and registered into Evergreen by their E.164 value.
+     */
+    public static function supportsNumberProvisioning(): bool
+    {
+        return false;
+    }
+
     private function http(): PendingRequest
     {
         $apiKey = $this->credentials['api_key'] ?? '';

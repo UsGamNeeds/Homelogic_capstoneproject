@@ -510,6 +510,7 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
 
         Route::get('/numbers', [FaxNumberController::class, 'index']);
         Route::post('/numbers/search', [FaxNumberController::class, 'search']);
+        Route::post('/numbers/register', [FaxNumberController::class, 'register']);
         Route::post('/numbers', [FaxNumberController::class, 'store']);
         Route::patch('/numbers/{id}', [FaxNumberController::class, 'update']);
         Route::delete('/numbers/{id}', [FaxNumberController::class, 'destroy']);

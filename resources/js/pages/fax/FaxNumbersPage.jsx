@@ -10,12 +10,15 @@ import {
     Loader2,
     Edit2,
     Check,
+    Plus,
     X as XIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../services/api';
 import {
     faxNumbersQueryOptions,
+    faxSettingsQueryOptions,
+    faxProvidersQueryOptions,
     FAX_NAMESPACE,
 } from '../../queries/fax';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
@@ -106,9 +109,21 @@ export default function FaxNumbersPage() {
     const [buyConfirm, setBuyConfirm] = useState(null);
     const [searchForm, setSearchForm] = useState({ area_code: '', country: 'US', limit: 10 });
     const [searchResults, setSearchResults] = useState([]);
+    const [registerForm, setRegisterForm] = useState({ e164_number: '', friendly_name: '' });
 
     const { data: numbers, isLoading } = useQuery(faxNumbersQueryOptions);
+    const { data: settings } = useQuery(faxSettingsQueryOptions);
+    const { data: providers } = useQuery(faxProvidersQueryOptions);
     const list = Array.isArray(numbers) ? numbers : [];
+
+    // Whether the active provider can buy numbers through its API. Providers
+    // that can't (e.g. mfax) require manually registering a number you own.
+    const currentProvider = Array.isArray(providers)
+        ? providers.find((p) => p.key === settings?.provider)
+        : null;
+    const supportsProvisioning = currentProvider
+        ? currentProvider.supports_number_provisioning !== false
+        : true;
 
     const invalidate = () => queryClient.invalidateQueries({ queryKey: [...FAX_NAMESPACE, 'numbers'] });
 
@@ -170,6 +185,22 @@ export default function FaxNumbersPage() {
         onError: (err) => {
             toast.error(err?.response?.data?.message || 'Failed to provision number');
             setBuyConfirm(null);
+        },
+    });
+
+    const registerMutation = useMutation({
+        mutationFn: async ({ e164_number, friendly_name }) => {
+            const payload = { e164_number };
+            if (friendly_name) payload.friendly_name = friendly_name;
+            return (await api.post('/fax/numbers/register', payload)).data;
+        },
+        onSuccess: () => {
+            toast.success('Number registered');
+            invalidate();
+            setRegisterForm({ e164_number: '', friendly_name: '' });
+        },
+        onError: (err) => {
+            toast.error(err?.response?.data?.message || 'Failed to register number');
         },
     });
 
@@ -287,7 +318,61 @@ export default function FaxNumbersPage() {
                 </div>
             </section>
 
+            {/* Register an owned number (providers without an API marketplace, e.g. mfax) */}
+            {!supportsProvisioning && (
+                <section className="bg-white border border-gray-200 rounded-2xl shadow-sm">
+                    <div className="px-5 py-3 border-b border-gray-100">
+                        <h2 className="text-sm font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
+                            <Plus className="w-4 h-4" /> Register an existing number
+                        </h2>
+                        <p className="text-xs text-gray-500 mt-1">
+                            {currentProvider?.display_name || 'This provider'} provisions numbers in its own
+                            dashboard. Enter a fax number you already own to receive faxes on it here.
+                        </p>
+                    </div>
+                    <form
+                        onSubmit={(e) => { e.preventDefault(); registerMutation.mutate(registerForm); }}
+                        className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-3"
+                    >
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Fax number (E.164)</label>
+                            <input
+                                type="text"
+                                value={registerForm.e164_number}
+                                onChange={(e) => setRegisterForm((s) => ({ ...s, e164_number: e.target.value }))}
+                                placeholder="+12534491960"
+                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Friendly name (optional)</label>
+                            <input
+                                type="text"
+                                value={registerForm.friendly_name}
+                                onChange={(e) => setRegisterForm((s) => ({ ...s, friendly_name: e.target.value }))}
+                                placeholder="Main line"
+                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                            />
+                        </div>
+                        <div className="flex items-end">
+                            <button
+                                type="submit"
+                                disabled={registerMutation.isPending || !registerForm.e164_number.trim()}
+                                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[var(--theme-primary)] text-[var(--theme-text-on-primary,white)] text-sm font-semibold hover:bg-[var(--theme-primary-hover,var(--theme-primary))] disabled:opacity-60"
+                            >
+                                {registerMutation.isPending ? (
+                                    <><Loader2 className="w-4 h-4 animate-spin" /> Registering…</>
+                                ) : (
+                                    <><Plus className="w-4 h-4" /> Register</>
+                                )}
+                            </button>
+                        </div>
+                    </form>
+                </section>
+            )}
+
             {/* Search & buy */}
+            {supportsProvisioning && (
             <section className="bg-white border border-gray-200 rounded-2xl shadow-sm">
                 <div className="px-5 py-3 border-b border-gray-100">
                     <h2 className="text-sm font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
@@ -381,6 +466,7 @@ export default function FaxNumbersPage() {
                     </div>
                 )}
             </section>
+            )}
 
             <ConfirmDialog
                 isOpen={Boolean(releaseConfirm)}
