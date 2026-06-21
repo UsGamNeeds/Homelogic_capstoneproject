@@ -92,7 +92,15 @@ class FaxController extends BaseApiController
             return $this->error('Fax not found.', 404);
         }
 
-        return $this->success($fax);
+        // The fromNumber BelongsTo relation serializes to the snake_case key
+        // "from_number", which would clobber the string from_number column and
+        // break the client (it renders the value as text). Keep the column a
+        // string and expose the related number object under a distinct key.
+        $data = $fax->toArray();
+        $data['from_number'] = $fax->getAttributeValue('from_number');
+        $data['from_number_detail'] = $fax->fromNumber?->toArray();
+
+        return $this->success($data);
     }
 
     /**

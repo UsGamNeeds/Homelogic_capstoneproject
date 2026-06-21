@@ -291,8 +291,8 @@ export default function FaxDetailDrawer({ faxId, open, onClose }) {
                                         Details
                                     </h3>
                                     <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-xl border border-gray-200 p-4">
-                                        <MetaCell label="From">{fax.from_number}</MetaCell>
-                                        <MetaCell label="To">{fax.to_number}</MetaCell>
+                                        <MetaCell label="From">{fax.from_number?.e164_number ?? fax.from_number}</MetaCell>
+                                        <MetaCell label="To">{fax.to_number?.e164_number ?? fax.to_number}</MetaCell>
                                         <MetaCell label="Contact">
                                             {fax.contact ? (
                                                 <span>
