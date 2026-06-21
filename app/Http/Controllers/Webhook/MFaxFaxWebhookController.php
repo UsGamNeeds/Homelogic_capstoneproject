@@ -112,6 +112,7 @@ class MFaxFaxWebhookController extends Controller
             $result->statusReason,
             $result->providerEventId,
             $result->raw,
+            $result->pageCount,
         );
 
         broadcast(new FaxStatusUpdated($fax->refresh()));

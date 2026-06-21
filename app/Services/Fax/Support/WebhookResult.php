@@ -26,11 +26,12 @@ class WebhookResult
         public readonly ?InboundFax $inbound = null,
         public readonly ?string $providerEventId = null,
         public readonly array $raw = [],
+        public readonly ?int $pageCount = null,
     ) {}
 
-    public static function status(string $providerFaxId, string $newStatus, ?string $reason = null, ?string $eventId = null, array $raw = []): self
+    public static function status(string $providerFaxId, string $newStatus, ?string $reason = null, ?string $eventId = null, array $raw = [], ?int $pageCount = null): self
     {
-        return new self(self::KIND_STATUS, $providerFaxId, $newStatus, $reason, null, $eventId, $raw);
+        return new self(self::KIND_STATUS, $providerFaxId, $newStatus, $reason, null, $eventId, $raw, $pageCount);
     }
 
     public static function inbound(InboundFax $inbound, ?string $eventId = null, array $raw = []): self

@@ -180,7 +180,9 @@ class MFaxFaxProviderTest extends TestCase
         ]);
 
         $response->assertOk();
-        $this->assertSame(Fax::STATUS_DELIVERED, $fax->refresh()->status);
+        $fax->refresh();
+        $this->assertSame(Fax::STATUS_DELIVERED, $fax->status);
+        $this->assertSame(2, $fax->page_count);
     }
 
     public function test_inbound_webhook_routes_to_facility_by_destination_number(): void

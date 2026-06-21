@@ -240,6 +240,7 @@ class MFaxFaxProvider implements FaxProvider
                 reason: $data['failure_reason'] ?? null,
                 eventId: $eventId,
                 raw: $payload,
+                pageCount: isset($data['page_count']) ? (int) $data['page_count'] : null,
             );
         }
 
