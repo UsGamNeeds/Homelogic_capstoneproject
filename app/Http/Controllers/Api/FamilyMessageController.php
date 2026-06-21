@@ -61,7 +61,11 @@ class FamilyMessageController extends BaseApiController
                 ->unique('resident_id')
                 ->take(20);
         } else {
-            $messages = FamilyMessage::orderByDesc('created_at')
+            // Staff: bound to residents in the caller's own facility. Resident
+            // carries FacilityScope, so this list never crosses tenants.
+            $facilityResidentIds = Resident::query()->pluck('id');
+            $messages = FamilyMessage::whereIn('resident_id', $facilityResidentIds)
+                ->orderByDesc('created_at')
                 ->limit(50)
                 ->get()
                 ->unique('resident_id')

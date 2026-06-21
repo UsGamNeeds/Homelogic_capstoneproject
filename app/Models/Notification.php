@@ -2,11 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\FacilityScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Notification extends Model
 {
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new FacilityScope);
+    }
+
     protected $fillable = [
         'user_id',
         'facility_id',
@@ -69,7 +75,7 @@ class Notification extends Model
     public static function createForResident(array $data, $resident): ?self
     {
         if (isset($data['user_id'], $data['type'])) {
-            if (!NotificationPreference::isEnabled($data['user_id'], self::categoryForType($data['type']), 'in_app')) {
+            if (! NotificationPreference::isEnabled($data['user_id'], self::categoryForType($data['type']), 'in_app')) {
                 return null;
             }
         }
@@ -87,7 +93,7 @@ class Notification extends Model
     public static function createForUser(array $data, $sourceUser = null): ?self
     {
         if (isset($data['user_id'], $data['type'])) {
-            if (!NotificationPreference::isEnabled($data['user_id'], self::categoryForType($data['type']), 'in_app')) {
+            if (! NotificationPreference::isEnabled($data['user_id'], self::categoryForType($data['type']), 'in_app')) {
                 return null;
             }
         }
@@ -111,6 +117,7 @@ class Notification extends Model
                 return $key;
             }
         }
+
         return $type; // fallback: use type directly
     }
 

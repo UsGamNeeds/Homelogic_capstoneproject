@@ -2,15 +2,20 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\FacilityScope;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Carbon\Carbon;
-use App\Traits\Loggable;
 
 class VitalSign extends Model
 {
-    use HasFactory, SoftDeletes, Loggable;
+    use HasFactory, Loggable, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new FacilityScope);
+    }
 
     protected $fillable = [
         'resident_id',
@@ -90,38 +95,42 @@ class VitalSign extends Model
     public function getBloodPressureAttribute()
     {
         if ($this->systolic && $this->diastolic) {
-            return $this->systolic . '/' . $this->diastolic;
+            return $this->systolic.'/'.$this->diastolic;
         }
+
         return null;
     }
 
     public function getFormattedTemperatureAttribute()
     {
         if ($this->temperature) {
-            return $this->temperature . '°F';
+            return $this->temperature.'°F';
         }
+
         return null;
     }
 
     public function getFormattedPulseAttribute()
     {
         if ($this->pulse) {
-            return $this->pulse . ' BPM';
+            return $this->pulse.' BPM';
         }
+
         return null;
     }
 
     public function getFormattedOxygenSaturationAttribute()
     {
         if ($this->oxygen_saturation) {
-            return $this->oxygen_saturation . '%';
+            return $this->oxygen_saturation.'%';
         }
+
         return null;
     }
 
     public function getStatusColorAttribute()
     {
-        return match($this->status) {
+        return match ($this->status) {
             'approved' => 'success',
             'pending_review' => 'warning',
             'declined' => 'gray',
@@ -140,8 +149,8 @@ class VitalSign extends Model
     {
         $systolicRange = VitalRange::getRangeForParameter('systolic');
         $diastolicRange = VitalRange::getRangeForParameter('diastolic');
-        
-        if (!$systolicRange || !$diastolicRange || !$this->systolic || !$this->diastolic) {
+
+        if (! $systolicRange || ! $diastolicRange || ! $this->systolic || ! $this->diastolic) {
             return 'unknown';
         }
 
@@ -169,8 +178,8 @@ class VitalSign extends Model
     public function checkTemperatureRange()
     {
         $range = VitalRange::getRangeForParameter('temperature');
-        
-        if (!$range || !$this->temperature) {
+
+        if (! $range || ! $this->temperature) {
             return 'unknown';
         }
 
@@ -192,8 +201,8 @@ class VitalSign extends Model
     public function checkPulseRange()
     {
         $range = VitalRange::getRangeForParameter('pulse');
-        
-        if (!$range || !$this->pulse) {
+
+        if (! $range || ! $this->pulse) {
             return 'unknown';
         }
 
@@ -215,8 +224,8 @@ class VitalSign extends Model
     public function checkOxygenSaturationRange()
     {
         $range = VitalRange::getRangeForParameter('oxygen_saturation');
-        
-        if (!$range || !$this->oxygen_saturation) {
+
+        if (! $range || ! $this->oxygen_saturation) {
             return 'unknown';
         }
 
@@ -254,9 +263,9 @@ class VitalSign extends Model
         }
 
         // If all parameters are normal, status is approved
-        if (!in_array('unknown', [$bloodPressureStatus, $temperatureStatus, $pulseStatus, $oxygenStatus]) &&
-            !in_array('critical', [$bloodPressureStatus, $temperatureStatus, $pulseStatus, $oxygenStatus]) &&
-            !in_array('warning', [$bloodPressureStatus, $temperatureStatus, $pulseStatus, $oxygenStatus])) {
+        if (! in_array('unknown', [$bloodPressureStatus, $temperatureStatus, $pulseStatus, $oxygenStatus]) &&
+            ! in_array('critical', [$bloodPressureStatus, $temperatureStatus, $pulseStatus, $oxygenStatus]) &&
+            ! in_array('warning', [$bloodPressureStatus, $temperatureStatus, $pulseStatus, $oxygenStatus])) {
             return 'approved';
         }
 

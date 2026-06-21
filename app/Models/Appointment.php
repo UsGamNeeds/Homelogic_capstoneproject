@@ -2,15 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\FacilityScope;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Appointment extends Model
 {
-    use HasFactory, SoftDeletes, Loggable;
+    use HasFactory, Loggable, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new FacilityScope);
+    }
 
     protected $fillable = [
         'title',
@@ -103,7 +109,7 @@ class Appointment extends Model
     {
         $date = $this->appointment_date->format('M j, Y');
         $time = $this->appointment_time ? $this->appointment_time->format('g:i A') : '';
-        
+
         return $time ? "{$date} at {$time}" : $date;
     }
 

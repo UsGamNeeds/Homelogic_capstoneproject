@@ -2,13 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\FacilityScope;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Traits\Loggable;
 
 class SleepRecord extends Model
 {
     use HasFactory, Loggable;
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new FacilityScope);
+    }
 
     protected $fillable = [
         'resident_id',
@@ -68,15 +74,15 @@ class SleepRecord extends Model
     // Accessors
     public function getSleepDurationAttribute()
     {
-        return $this->total_sleep_hours . ' hours';
+        return $this->total_sleep_hours.' hours';
     }
 
     public function getSleepQualityTextAttribute()
     {
-        if (!$this->sleep_quality) {
+        if (! $this->sleep_quality) {
             return 'Not rated';
         }
-        
+
         $qualityText = [
             1 => 'Very Poor',
             2 => 'Poor',

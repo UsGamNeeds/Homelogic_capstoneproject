@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\FacilityScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Reminder extends Model
 {
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new FacilityScope);
+    }
+
     protected $fillable = [
         'user_id',
         'facility_id',
@@ -65,4 +71,3 @@ class Reminder extends Model
         return $query->where('user_id', $userId);
     }
 }
-
