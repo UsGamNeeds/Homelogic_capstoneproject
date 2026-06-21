@@ -308,6 +308,12 @@ class FacilityController extends BaseApiController
 
     public function approveRegistration(Request $request, $registrationId): JsonResponse
     {
+        // Approving a registration provisions a brand-new facility plus a
+        // privileged owner account — a platform-owner action. Only super admins.
+        if (! $this->isSuperAdmin($request->user())) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $registration = \App\Models\FacilityRegistration::findOrFail($registrationId);
 
         if ($registration->status !== 'pending') {

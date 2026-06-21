@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Visitor;
 use App\Models\Notification;
 use App\Models\User;
+use App\Models\Visitor;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class VisitorController extends Controller
 {
@@ -18,8 +18,8 @@ class VisitorController extends Controller
     public function checkIn(Request $request): JsonResponse
     {
         $user = $request->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
@@ -73,14 +73,20 @@ class VisitorController extends Controller
     public function checkOut(Request $request, $id): JsonResponse
     {
         $user = $request->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
         $visitor = Visitor::findOrFail($id);
 
-        if (!$visitor->is_active) {
+        // Visitor has no tenant global scope, so guard cross-facility access
+        // explicitly: a user may only act on visitors in their own facility.
+        if (! $this->canAccessVisitor($user, $visitor)) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+
+        if (! $visitor->is_active) {
             return response()->json([
                 'message' => 'Visitor is already checked out',
             ], 422);
@@ -104,34 +110,48 @@ class VisitorController extends Controller
     }
 
     /**
+     * Whether the user may act on this visitor. Super admins (no facility)
+     * may act on any; everyone else is restricted to their own facility.
+     */
+    private function canAccessVisitor(User $user, Visitor $visitor): bool
+    {
+        if ($user->role === 'super_admin' || $user->isSuperAdmin()) {
+            return true;
+        }
+
+        return $user->facility_id
+            && (int) $visitor->facility_id === (int) $user->facility_id;
+    }
+
+    /**
      * Notify admins about visitor check-in
      */
     private function notifyVisitorCheckIn(Visitor $visitor): void
     {
         $visitor->load(['branch', 'visitingResident', 'visitingStaff', 'checkedInBy']);
-        
+
         // Get admins and facility admins
-        $users = User::where(function($query) use ($visitor) {
+        $users = User::where(function ($query) use ($visitor) {
             $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
-            
+
             // Filter by facility if applicable
             if ($visitor->facility_id) {
-                $query->where(function($q) use ($visitor) {
+                $query->where(function ($q) use ($visitor) {
                     $q->where('facility_id', $visitor->facility_id)
-                      ->orWhereNull('facility_id'); // Super admins
+                        ->orWhereNull('facility_id'); // Super admins
                 });
             }
         })
-        ->where('is_active', true)
-        ->get();
+            ->where('is_active', true)
+            ->get();
 
-        $visitorName = trim(($visitor->first_name ?? '') . ' ' . ($visitor->last_name ?? ''));
+        $visitorName = trim(($visitor->first_name ?? '').' '.($visitor->last_name ?? ''));
         $branchName = $visitor->branch?->name ?? 'Unknown Branch';
         $visiting = $visitor->visiting_resident?->name ?? $visitor->visiting_staff?->name ?? 'N/A';
         $purpose = $visitor->visit_purpose ?? 'N/A';
         $time = Carbon::parse($visitor->check_in_at)->format('g:i A');
-        $expectedDuration = $visitor->expected_duration_minutes 
-            ? round($visitor->expected_duration_minutes / 60, 1) . ' hours'
+        $expectedDuration = $visitor->expected_duration_minutes
+            ? round($visitor->expected_duration_minutes / 60, 1).' hours'
             : 'Not specified';
 
         foreach ($users as $admin) {
@@ -162,26 +182,26 @@ class VisitorController extends Controller
     private function notifyVisitorCheckOut(Visitor $visitor): void
     {
         $visitor->load(['branch', 'visitingResident', 'visitingStaff', 'checkedInBy', 'checkedOutBy']);
-        
+
         // Get admins and facility admins
-        $users = User::where(function($query) use ($visitor) {
+        $users = User::where(function ($query) use ($visitor) {
             $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
-            
+
             // Filter by facility if applicable
             if ($visitor->facility_id) {
-                $query->where(function($q) use ($visitor) {
+                $query->where(function ($q) use ($visitor) {
                     $q->where('facility_id', $visitor->facility_id)
-                      ->orWhereNull('facility_id'); // Super admins
+                        ->orWhereNull('facility_id'); // Super admins
                 });
             }
         })
-        ->where('is_active', true)
-        ->get();
+            ->where('is_active', true)
+            ->get();
 
-        $visitorName = trim(($visitor->first_name ?? '') . ' ' . ($visitor->last_name ?? ''));
+        $visitorName = trim(($visitor->first_name ?? '').' '.($visitor->last_name ?? ''));
         $branchName = $visitor->branch?->name ?? 'Unknown Branch';
         $time = Carbon::parse($visitor->check_out_at)->format('g:i A');
-        
+
         // Calculate duration
         $duration = 'N/A';
         if ($visitor->check_in_at && $visitor->check_out_at) {
@@ -218,8 +238,8 @@ class VisitorController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
@@ -259,11 +279,11 @@ class VisitorController extends Controller
         // Search
         if ($request->filled('search')) {
             $search = $request->get('search');
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
@@ -279,8 +299,8 @@ class VisitorController extends Controller
     public function active(Request $request): JsonResponse
     {
         $user = $request->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
@@ -311,8 +331,8 @@ class VisitorController extends Controller
     public function show(Request $request, $id): JsonResponse
     {
         $user = $request->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
@@ -322,10 +342,9 @@ class VisitorController extends Controller
             'visitingResident',
             'visitingStaff',
             'checkedInBy',
-            'checkedOutBy'
+            'checkedOutBy',
         ])->findOrFail($id);
 
         return response()->json($visitor);
     }
 }
-
