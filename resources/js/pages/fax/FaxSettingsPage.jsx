@@ -582,9 +582,9 @@ export default function FaxSettingsPage() {
                 <div className="p-5 space-y-4">
                     <div>
                         <FieldLabel help={settings?.webhook_shared_across_facilities
-                            ? 'iFax uses one webhook URL for your entire account. Paste this same URL in the iFax Developer API dashboard for all facilities.'
+                            ? 'This provider uses one account-wide webhook URL for every facility. Paste this same URL in the provider dashboard; its signing secret is configured in the server environment.'
                             : 'Point your provider\u2019s inbound and status webhooks at this URL.'}>
-                            {settings?.webhook_shared_across_facilities ? 'Shared iFax webhook URL' : 'Per-facility webhook URL'}
+                            {settings?.webhook_shared_across_facilities ? 'Shared account-wide webhook URL' : 'Per-facility webhook URL'}
                         </FieldLabel>
                         <div className="flex gap-2">
                             <input
@@ -612,20 +612,24 @@ export default function FaxSettingsPage() {
                             ) : (
                                 <>
                                     <AlertCircle className="w-3 h-3 text-amber-600" />
-                                    No signing secret on file — rotate to generate one.
+                                    {settings?.webhook_shared_across_facilities
+                                        ? 'No signing secret on file — set this provider’s secret in the server environment.'
+                                        : 'No signing secret on file — rotate to generate one.'}
                                 </>
                             )}
                         </div>
                     </div>
-                    <div className="pt-2 border-t border-gray-100">
-                        <button
-                            type="button"
-                            onClick={() => setConfirmRotate(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-sm font-semibold hover:bg-amber-100"
-                        >
-                            <RotateCw className="w-4 h-4" /> Rotate secret
-                        </button>
-                    </div>
+                    {!settings?.webhook_shared_across_facilities && (
+                        <div className="pt-2 border-t border-gray-100">
+                            <button
+                                type="button"
+                                onClick={() => setConfirmRotate(true)}
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-sm font-semibold hover:bg-amber-100"
+                            >
+                                <RotateCw className="w-4 h-4" /> Rotate secret
+                            </button>
+                        </div>
+                    )}
                 </div>
             </section>
 
