@@ -31,7 +31,7 @@ class NotificationCreated implements ShouldBroadcast
     {
         // Broadcast to user's private channel
         return [
-            new PrivateChannel('App.Models.User.' . $this->notification->user_id),
+            new PrivateChannel('App.Models.User.'.$this->notification->user_id),
         ];
     }
 
@@ -59,7 +59,7 @@ class NotificationCreated implements ShouldBroadcast
             'action_url' => $this->notification->action_url,
             'is_read' => $this->notification->is_read,
             'metadata' => $this->notification->metadata,
-            'created_at' => $this->notification->created_at->toIso8601String(),
+            'created_at' => $this->notification->created_at?->toIso8601String(),
         ];
     }
 }
