@@ -502,14 +502,14 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
         Route::get('/providers', [FaxSettingsController::class, 'providers']);
         Route::get('/settings', [FaxSettingsController::class, 'show']);
         Route::put('/settings', [FaxSettingsController::class, 'update']);
-        Route::post('/settings/test-connection', [FaxSettingsController::class, 'testConnection']);
+        Route::post('/settings/test-connection', [FaxSettingsController::class, 'testConnection'])->middleware('throttle:10,1');
         Route::get('/settings/webhook-url', [FaxSettingsController::class, 'webhookUrl']);
         Route::post('/settings/rotate-webhook', [FaxSettingsController::class, 'rotateWebhook']);
 
         Route::apiResource('contacts', FaxContactController::class);
 
         Route::get('/numbers', [FaxNumberController::class, 'index']);
-        Route::post('/numbers/search', [FaxNumberController::class, 'search']);
+        Route::post('/numbers/search', [FaxNumberController::class, 'search'])->middleware('throttle:15,1');
         Route::post('/numbers/register', [FaxNumberController::class, 'register']);
         Route::post('/numbers', [FaxNumberController::class, 'store']);
         Route::patch('/numbers/{id}', [FaxNumberController::class, 'update']);
@@ -518,7 +518,7 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
         // Specific routes BEFORE the catch-all "/{id}" so they don't get
         // swallowed by the wildcard.
         Route::get('/cost-summary', [FaxController::class, 'costSummary']);
-        Route::post('/send', [FaxController::class, 'send']);
+        Route::post('/send', [FaxController::class, 'send'])->middleware('throttle:20,1');
         Route::get('/', [FaxController::class, 'index']);
         Route::get('/{id}', [FaxController::class, 'show'])->whereNumber('id');
         Route::get('/{id}/download', [FaxController::class, 'download'])->whereNumber('id');

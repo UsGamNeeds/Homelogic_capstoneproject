@@ -168,10 +168,10 @@ class DatabaseBackupService
         $parts[] = '-u';
         $parts[] = $config['username'] ?? 'root';
 
+        // Password is passed via the MYSQL_PWD env var (below), NOT as a
+        // `-p<pass>` CLI arg, so it never appears in the process list (ps /
+        // /proc/<pid>/cmdline are world-readable).
         $password = $config['password'] ?? '';
-        if ($password !== '') {
-            $parts[] = '-p'.$password;
-        }
 
         // InnoDB snapshot without global locks; often avoids requiring PROCESS (see mysqldump privilege errors).
         $parts[] = '--single-transaction';
@@ -190,7 +190,14 @@ class DatabaseBackupService
             2 => ['pipe', 'w'],
         ];
 
-        $process = proc_open($parts, $descriptorSpec, $pipes, null, null);
+        // Inject MYSQL_PWD into a COPY of the current environment (preserving
+        // PATH so the binary resolves). Passing null inherits the parent env.
+        $env = null;
+        if ($password !== '') {
+            $env = array_merge(getenv(), ['MYSQL_PWD' => $password]);
+        }
+
+        $process = proc_open($parts, $descriptorSpec, $pipes, null, $env);
 
         if (! is_resource($process)) {
             return ['ok' => false, 'message' => 'Could not start mysqldump. Install the client tools or set MYSQLDUMP_CLI_PATH in .env.'];
