@@ -35,3 +35,7 @@ Schedule::command('database:backup --scheduled')
 
 // Fax: delete PDFs + rows past each facility's retention window.
 Schedule::command('fax:purge')->dailyAt('03:30')->withoutOverlapping();
+
+// Backups: keep only the newest N (config backup.scheduled_keep) auto backups
+// per facility as a storage safety net. Manual snapshots are preserved.
+Schedule::command('backups:prune')->dailyAt('03:45')->withoutOverlapping();
