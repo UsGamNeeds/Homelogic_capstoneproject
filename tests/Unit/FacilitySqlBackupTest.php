@@ -54,12 +54,11 @@ class FacilitySqlBackupTest extends TestCase
         $path = $result['path'];
         $this->assertFileExists($path);
 
-        $fh = fopen($path, 'rb');
-        $this->assertNotFalse($fh);
-        $firstLine = fgets($fh);
-        fclose($fh);
+        // Backups are encrypted at rest; decrypt to assert the header line.
+        $plain = app(\App\Services\BackupCipher::class)->readDecrypted($path);
         @unlink($path);
 
+        $firstLine = strtok($plain, "\n");
         $this->assertIsString($firstLine);
         $this->assertMatchesRegularExpression(
             '/^--\s*HL360_FACILITY_BACKUP\s+facility_id='.(int) $facility->id.'/i',

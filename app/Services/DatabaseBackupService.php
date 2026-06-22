@@ -61,6 +61,11 @@ class DatabaseBackupService
 
                 return ['success' => false, 'message' => 'Backup file was empty (check mysqldump errors).'];
             }
+
+            // Encrypt the PHI dump at rest (no-op when backup.encrypt is false).
+            app(BackupCipher::class)->encryptFileInPlace($backupPath);
+            $fileSize = filesize($backupPath);
+
             $this->saveBackupMetadata($filename, $fileSize);
 
             if ($scheduled) {

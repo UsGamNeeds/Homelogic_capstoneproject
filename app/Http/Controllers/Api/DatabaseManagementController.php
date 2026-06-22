@@ -303,9 +303,14 @@ class DatabaseManagementController extends Controller
                 return response()->json(['message' => 'Backup file not found'], 404);
             }
 
-            return response()->download($backupPath, $filename, [
+            // Encrypted backups are decrypted to a temp file so the download is
+            // usable .sql; legacy plaintext backups download as-is.
+            $decryptedTemp = app(BackupCipher::class)->decryptToTemp($backupPath);
+            $pathToSend = $decryptedTemp ?? $backupPath;
+
+            return response()->download($pathToSend, $filename, [
                 'Content-Type' => 'application/sql',
-            ]);
+            ])->deleteFileAfterSend($decryptedTemp !== null);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to download backup: '.$e->getMessage(),
@@ -494,8 +499,8 @@ class DatabaseManagementController extends Controller
      */
     private function prepareSqlDumpForRestore(string $backupPath): array
     {
-        $raw = file_get_contents($backupPath);
-        if ($raw === false || $raw === '') {
+        $raw = app(BackupCipher::class)->readDecrypted($backupPath);
+        if ($raw === '') {
             return ['path' => $backupPath, 'temp' => false];
         }
 
