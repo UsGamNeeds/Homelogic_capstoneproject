@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { X, Upload, Trash2, FileText, ArrowLeft } from 'lucide-react';
 import api from '../services/api';
 import logger from '../utils/logger';
+import { safeHref } from '../utils/safeUrl';
 import FormInput from '../components/forms/FormInput';
 import FormTextarea from '../components/forms/FormTextarea';
 import FormSelect from '../components/forms/FormSelect';
@@ -469,7 +470,7 @@ export default function TLogForm({ tLog, onClose, onSuccess, inModal = false, in
                                             <FileText className="w-5 h-5 text-gray-400" />
                                             <div>
                                                 <a
-                                                    href={attachment.file_url}
+                                                    href={safeHref(attachment.file_url)}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="text-sm text-[var(--theme-primary)] hover:underline"

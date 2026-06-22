@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api, { setupProactiveRefresh, clearStoredAuth, getStoredAuthToken } from '../services/api';
+import { safeHref } from '../utils/safeUrl';
 import { 
     LayoutDashboard, 
     Building2, 
@@ -686,7 +687,7 @@ export default function Layout() {
                                     >
                                         {currentUser?.profile_image_url ? (
                                             <img
-                                                src={currentUser.profile_image_url}
+                                                src={safeHref(currentUser.profile_image_url)}
                                                 alt={currentUser.name}
                                                 className="w-full h-full object-cover"
                                             />

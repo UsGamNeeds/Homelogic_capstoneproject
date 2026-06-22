@@ -24,6 +24,7 @@ import {
     X
 } from 'lucide-react';
 import EmptyState from '../components/ui/EmptyState';
+import { safeHref } from '../utils/safeUrl';
 
 export default function ViewUser() {
     const { id } = useParams();
@@ -115,7 +116,7 @@ export default function ViewUser() {
                             <div className="flex items-center gap-6">
                                 {user.profile_image_url ? (
                                     <img
-                                        src={user.profile_image_url}
+                                        src={safeHref(user.profile_image_url)}
                                         alt={user.name}
                                         className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
                                         onError={(e) => {

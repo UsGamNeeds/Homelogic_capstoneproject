@@ -1,6 +1,7 @@
 import React from 'react';
 import { Printer } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { safeHref } from '../../utils/safeUrl';
 
 /**
  * Print button to place beside Export/Refresh on report pages.
@@ -58,7 +59,7 @@ export default function PrintableReportLayout(props) {
     }, [logoSrc]);
 
     const residentName = resident ? residentDisplayName(resident) : '';
-    const residentPhoto = resident?.profile_image_url || null;
+    const residentPhoto = safeHref(resident?.profile_image_url) || null;
 
     return (
         <div className="print-report min-h-screen bg-slate-50/50">

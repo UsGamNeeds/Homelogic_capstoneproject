@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearchParams, Link, useLocation } from 'react-router-dom';
 import api from '../../services/api';
+import { safeHref } from '../../utils/safeUrl';
 import { toast } from 'sonner';
 import { offlinePost } from '../../services/offlineApi';
 import { useResidentUpdates } from '../../hooks/useRealtimeUpdates';
@@ -2406,7 +2407,7 @@ function ResidentProfilePanel({ resident, isLoading, residentId, carePlanPath, d
                 <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-md bg-[var(--theme-primary)]/10">
                     {resident.profile_image_url || resident.profile_image ? (
                         <img
-                            src={resident.profile_image_url || `/storage/${resident.profile_image}`}
+                            src={safeHref(resident.profile_image_url) || `/storage/${resident.profile_image}`}
                             alt={fullName}
                             className="w-full h-full object-cover"
                             onError={e => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}

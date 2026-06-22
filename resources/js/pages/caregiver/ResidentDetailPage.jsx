@@ -21,6 +21,7 @@ import {
     ExternalLink,
 } from 'lucide-react';
 import api from '../../services/api';
+import { safeHref } from '../../utils/safeUrl';
 import Breadcrumbs from '../../components/ui/Breadcrumbs';
 import ResidentDocuments from '../../components/ResidentDocuments';
 import ResidentSafetyStrip from '../../components/residents/ResidentSafetyStrip';
@@ -368,7 +369,7 @@ export default function ResidentDetailPage() {
                         <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-full border-4 border-[var(--theme-primary)]/20 bg-[var(--theme-primary)] text-white">
                             {resident.profile_image_url || resident.profile_image ? (
                                 <img
-                                    src={resident.profile_image_url || `/storage/${resident.profile_image}`}
+                                    src={safeHref(resident.profile_image_url) || `/storage/${resident.profile_image}`}
                                     alt={fullName}
                                     className="h-full w-full object-cover"
                                     onError={(event) => {

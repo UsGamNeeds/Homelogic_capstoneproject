@@ -15,6 +15,7 @@ import {
     UserCircle,
 } from 'lucide-react';
 import api from '../../../services/api';
+import { safeHref } from '../../../utils/safeUrl';
 import {
     formatPacificCalendarMedium,
     calculateAgeFromPacificBirthDate,
@@ -76,7 +77,7 @@ export default function ResidentMedicationHubLayout() {
                         <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-[var(--theme-primary)]/20 bg-[var(--theme-primary)]/10 shrink-0">
                             {resident?.profile_image_url || resident?.profile_image ? (
                                 <img
-                                    src={resident.profile_image_url || `/storage/${resident.profile_image}`}
+                                    src={safeHref(resident.profile_image_url) || `/storage/${resident.profile_image}`}
                                     alt=""
                                     className="w-full h-full object-cover"
                                 />

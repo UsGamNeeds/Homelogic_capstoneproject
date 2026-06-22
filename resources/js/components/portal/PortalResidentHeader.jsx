@@ -1,5 +1,6 @@
 import React from 'react';
 import { MapPin } from 'lucide-react';
+import { safeHref } from '../../utils/safeUrl';
 
 /**
  * Avatar + name + meta for family portal top bar (uses resident objects from /family/care-updates).
@@ -22,7 +23,7 @@ export default function PortalResidentHeader({ residents = [] }) {
         <>
           <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-white shadow-md ring-1 ring-gray-200 bg-gray-100">
             {single.profile_image_url ? (
-              <img src={single.profile_image_url} alt="" className="h-full w-full object-cover" />
+              <img src={safeHref(single.profile_image_url)} alt="" className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-gray-500">
                 {initials(single.name)}
@@ -55,7 +56,7 @@ export default function PortalResidentHeader({ residents = [] }) {
                 title={r.name}
               >
                 {r.profile_image_url ? (
-                  <img src={r.profile_image_url} alt="" className="h-full w-full object-cover" />
+                  <img src={safeHref(r.profile_image_url)} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-gray-500">
                     {initials(r.name)}

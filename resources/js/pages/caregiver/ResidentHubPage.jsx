@@ -32,6 +32,7 @@ import {
     Plus,
 } from 'lucide-react';
 import api from '../../services/api';
+import { safeHref } from '../../utils/safeUrl';
 import { toast } from 'sonner';
 import Assessments from '../Assessments';
 import TLogForm from '../TLogForm';
@@ -247,7 +248,7 @@ export default function ResidentHubPage() {
                     <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-[var(--theme-primary)]/20 bg-[var(--theme-primary)]/10 shrink-0">
                         {resident.profile_image_url || resident.profile_image ? (
                             <img
-                                src={resident.profile_image_url || `/storage/${resident.profile_image}`}
+                                src={safeHref(resident.profile_image_url) || `/storage/${resident.profile_image}`}
                                 alt={fullName}
                                 className="w-full h-full object-cover"
                                 onError={e => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}
