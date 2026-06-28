@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Models\Resident;
 use App\Models\ResidentSignOut;
-use App\Models\Notification;
 use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ResidentSignOutController extends Controller
 {
@@ -19,8 +19,8 @@ class ResidentSignOutController extends Controller
     public function signOut(Request $request, $residentId): JsonResponse
     {
         $user = $request->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
@@ -96,8 +96,8 @@ class ResidentSignOutController extends Controller
     public function signIn(Request $request, $residentId): JsonResponse
     {
         $user = $request->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
@@ -107,7 +107,7 @@ class ResidentSignOutController extends Controller
             ->where('is_active', true)
             ->first();
 
-        if (!$activeSignOut) {
+        if (! $activeSignOut) {
             return response()->json([
                 'message' => 'Resident is not currently signed out',
             ], 422);
@@ -136,31 +136,34 @@ class ResidentSignOutController extends Controller
     private function notifyResidentSignOut(ResidentSignOut $signOut): void
     {
         $signOut->load(['resident', 'branch', 'createdBy']);
-        
+
         // Get admins and facility admins
-        $users = User::where(function($query) use ($signOut) {
+        $users = User::where(function ($query) use ($signOut) {
             $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
-            
+
             // Filter by facility if applicable
             if ($signOut->facility_id) {
-                $query->where(function($q) use ($signOut) {
+                $query->where(function ($q) use ($signOut) {
                     $q->where('facility_id', $signOut->facility_id)
-                      ->orWhereNull('facility_id'); // Super admins
+                        ->orWhereNull('facility_id'); // Super admins
                 });
             }
         })
-        ->where('is_active', true)
-        ->get();
+            ->where('is_active', true)
+            ->get();
 
         $residentName = $signOut->resident?->name ?? 'Unknown Resident';
         $branchName = $signOut->branch?->name ?? 'Unknown Branch';
         $destination = $signOut->destination ?? 'Unknown destination';
         $time = Carbon::parse($signOut->sign_out_at)->format('g:i A');
-        $expectedReturn = $signOut->expected_return_at 
+        $expectedReturn = $signOut->expected_return_at
             ? Carbon::parse($signOut->expected_return_at)->format('M d, Y g:i A')
             : 'Not specified';
 
-        foreach ($users as $admin) {
+        $allowInApp = app(\App\Services\NotificationPreferenceService::class)
+            ->shouldSendInApp($signOut->facility_id, 'resident_sign_out');
+
+        foreach (($allowInApp ? $users : []) as $admin) {
             Notification::create([
                 'user_id' => $admin->id,
                 'type' => 'resident_sign_out',
@@ -189,26 +192,26 @@ class ResidentSignOutController extends Controller
     private function notifyResidentSignIn(ResidentSignOut $signOut): void
     {
         $signOut->load(['resident', 'branch', 'createdBy', 'signedInBy']);
-        
+
         // Get admins and facility admins
-        $users = User::where(function($query) use ($signOut) {
+        $users = User::where(function ($query) use ($signOut) {
             $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
-            
+
             // Filter by facility if applicable
             if ($signOut->facility_id) {
-                $query->where(function($q) use ($signOut) {
+                $query->where(function ($q) use ($signOut) {
                     $q->where('facility_id', $signOut->facility_id)
-                      ->orWhereNull('facility_id'); // Super admins
+                        ->orWhereNull('facility_id'); // Super admins
                 });
             }
         })
-        ->where('is_active', true)
-        ->get();
+            ->where('is_active', true)
+            ->get();
 
         $residentName = $signOut->resident?->name ?? 'Unknown Resident';
         $branchName = $signOut->branch?->name ?? 'Unknown Branch';
         $time = Carbon::parse($signOut->sign_in_at)->format('g:i A');
-        
+
         // Calculate duration
         $duration = 'N/A';
         if ($signOut->sign_out_at && $signOut->sign_in_at) {
@@ -217,7 +220,10 @@ class ResidentSignOutController extends Controller
             $duration = $hours > 0 ? "{$hours}h {$minutes}m" : "{$minutes}m";
         }
 
-        foreach ($users as $admin) {
+        $allowInApp = app(\App\Services\NotificationPreferenceService::class)
+            ->shouldSendInApp($signOut->facility_id, 'resident_sign_out');
+
+        foreach (($allowInApp ? $users : []) as $admin) {
             Notification::create([
                 'user_id' => $admin->id,
                 'type' => 'resident_sign_in',
@@ -246,8 +252,8 @@ class ResidentSignOutController extends Controller
     public function index(Request $request, $residentId): JsonResponse
     {
         $user = $request->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
@@ -282,8 +288,8 @@ class ResidentSignOutController extends Controller
     public function active(Request $request): JsonResponse
     {
         $user = $request->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
@@ -314,8 +320,8 @@ class ResidentSignOutController extends Controller
     public function overdue(Request $request): JsonResponse
     {
         $user = $request->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
@@ -346,8 +352,8 @@ class ResidentSignOutController extends Controller
     public function history(Request $request): JsonResponse
     {
         $user = $request->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
@@ -355,11 +361,11 @@ class ResidentSignOutController extends Controller
 
         // Apply access level filtering
         $isAdmin = $user->role === 'super_admin' || $user->isAnyAdmin();
-        
+
         if ($user->isCaregiver() && $user->assigned_branch_id) {
             // Caregivers can only see sign-outs from their assigned branch
             $query->where('branch_id', $user->assigned_branch_id);
-        } elseif (!$isAdmin && $user->facility_id) {
+        } elseif (! $isAdmin && $user->facility_id) {
             // Non-admin users see only their facility's sign-outs
             $query->where('facility_id', $user->facility_id);
         } elseif ($isAdmin && $user->role !== 'super_admin' && $user->facility_id) {
@@ -395,7 +401,7 @@ class ResidentSignOutController extends Controller
         // Search by resident name
         if ($request->filled('search')) {
             $search = $request->get('search');
-            $query->whereHas('resident', function($q) use ($search) {
+            $query->whereHas('resident', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%");
             });
         }

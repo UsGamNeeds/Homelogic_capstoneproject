@@ -40,7 +40,6 @@ export default function NotificationSettings() {
       notify_on_incident: !!settings?.notify_on_incident?.value,
       notify_on_check_in_out: !!settings?.notify_on_check_in_out?.value,
       notify_on_resident_sign_out: !!settings?.notify_on_resident_sign_out?.value,
-      daily_summary_time: settings?.daily_summary_time?.value || '07:00',
     }),
     [settings]
   );
@@ -60,7 +59,6 @@ export default function NotificationSettings() {
             value: values.notify_on_resident_sign_out,
             type: 'boolean',
           },
-          daily_summary_time: { value: values.daily_summary_time, type: 'string' },
         },
       };
 
@@ -91,7 +89,6 @@ export default function NotificationSettings() {
       notify_on_incident: !!formData.get('notify_on_incident'),
       notify_on_check_in_out: !!formData.get('notify_on_check_in_out'),
       notify_on_resident_sign_out: !!formData.get('notify_on_resident_sign_out'),
-      daily_summary_time: formData.get('daily_summary_time') || '',
     };
     saveMutation.mutate(values);
   };
@@ -184,31 +181,14 @@ export default function NotificationSettings() {
           </div>
         </div>
 
-        <div className="border-t border-gray-200 pt-4 mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Daily Summary Time
-            </label>
-            <input
-              type="time"
-              name="daily_summary_time"
-              defaultValue={defaultValues.daily_summary_time}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
-            />
-            <p className="mt-1 text-xs text-gray-400">
-              Time of day to send daily summary notifications (if enabled).
-            </p>
-          </div>
-
-          <div className="flex justify-end items-end">
-            <button
-              type="submit"
-              disabled={saveMutation.isPending}
-              className="inline-flex items-center justify-center px-3 py-2 text-xs sm:px-5 sm:py-2.5 sm:text-sm font-semibold rounded-lg bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
+        <div className="border-t border-gray-200 pt-4 mt-4 flex justify-end">
+          <button
+            type="submit"
+            disabled={saveMutation.isPending}
+            className="inline-flex items-center justify-center px-3 py-2 text-xs sm:px-5 sm:py-2.5 sm:text-sm font-semibold rounded-lg bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
+          </button>
         </div>
       </form>
     </div>

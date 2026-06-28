@@ -3,14 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Models\StaffClockIn;
 use App\Models\User;
-use App\Models\Notification;
 use App\Services\LocationService;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Request;
 
 class StaffClockInController extends Controller
 {
@@ -27,8 +26,8 @@ class StaffClockInController extends Controller
     public function clockIn(Request $request): JsonResponse
     {
         $user = $request->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
@@ -87,14 +86,14 @@ class StaffClockInController extends Controller
     public function clockOut(Request $request): JsonResponse
     {
         $user = $request->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
         $activeClockIn = $user->activeClockIn;
 
-        if (!$activeClockIn) {
+        if (! $activeClockIn) {
             return response()->json([
                 'message' => 'You are not currently clocked in',
             ], 422);
@@ -113,7 +112,7 @@ class StaffClockInController extends Controller
         );
 
         if (isset($validated['notes'])) {
-            $activeClockIn->notes = ($activeClockIn->notes ? $activeClockIn->notes . "\n" : '') . $validated['notes'];
+            $activeClockIn->notes = ($activeClockIn->notes ? $activeClockIn->notes."\n" : '').$validated['notes'];
             $activeClockIn->save();
         }
 
@@ -134,21 +133,21 @@ class StaffClockInController extends Controller
     public function clockOutStaff(Request $request, $clockInId): JsonResponse
     {
         $user = $request->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
         // Check if user is admin
         $isAdmin = $user->role === 'super_admin' || $user->isAnyAdmin();
-        
-        if (!$isAdmin) {
+
+        if (! $isAdmin) {
             return response()->json(['message' => 'Unauthorized. Admin access required.'], 403);
         }
 
         $clockIn = StaffClockIn::findOrFail($clockInId);
 
-        if (!$clockIn->is_active) {
+        if (! $clockIn->is_active) {
             return response()->json([
                 'message' => 'Staff member is not currently clocked in',
             ], 422);
@@ -167,7 +166,7 @@ class StaffClockInController extends Controller
         );
 
         if (isset($validated['notes'])) {
-            $clockIn->notes = ($clockIn->notes ? $clockIn->notes . "\n" : '') . '[Admin clock-out] ' . $validated['notes'];
+            $clockIn->notes = ($clockIn->notes ? $clockIn->notes."\n" : '').'[Admin clock-out] '.$validated['notes'];
             $clockIn->save();
         }
 
@@ -188,28 +187,31 @@ class StaffClockInController extends Controller
     private function notifyStaffClockIn(StaffClockIn $clockIn): void
     {
         $clockIn->load(['staff', 'branch', 'facility']);
-        
+
         // Get admins and facility admins
-        $users = User::where(function($query) use ($clockIn) {
+        $users = User::where(function ($query) use ($clockIn) {
             $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
-            
+
             // Filter by facility if applicable
             if ($clockIn->facility_id) {
-                $query->where(function($q) use ($clockIn) {
+                $query->where(function ($q) use ($clockIn) {
                     $q->where('facility_id', $clockIn->facility_id)
-                      ->orWhereNull('facility_id'); // Super admins
+                        ->orWhereNull('facility_id'); // Super admins
                 });
             }
         })
-        ->where('is_active', true)
-        ->where('id', '!=', $clockIn->staff_id) // Don't notify the staff member themselves
-        ->get();
+            ->where('is_active', true)
+            ->where('id', '!=', $clockIn->staff_id) // Don't notify the staff member themselves
+            ->get();
 
         $branchName = $clockIn->branch?->name ?? 'Unknown Branch';
         $staffName = $clockIn->staff?->name ?? 'Unknown Staff';
         $time = Carbon::parse($clockIn->clock_in_at)->format('g:i A');
 
-        foreach ($users as $admin) {
+        $allowInApp = app(\App\Services\NotificationPreferenceService::class)
+            ->shouldSendInApp($clockIn->facility_id, 'check_in_out');
+
+        foreach (($allowInApp ? $users : []) as $admin) {
             Notification::create([
                 'user_id' => $admin->id,
                 'type' => 'staff_clock_in',
@@ -238,33 +240,36 @@ class StaffClockInController extends Controller
     private function notifyStaffClockOut(StaffClockIn $clockIn, ?User $actionBy = null): void
     {
         $clockIn->load(['staff', 'branch', 'facility']);
-        
+
         // Get admins and facility admins
-        $users = User::where(function($query) use ($clockIn) {
+        $users = User::where(function ($query) use ($clockIn) {
             $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
-            
+
             // Filter by facility if applicable
             if ($clockIn->facility_id) {
-                $query->where(function($q) use ($clockIn) {
+                $query->where(function ($q) use ($clockIn) {
                     $q->where('facility_id', $clockIn->facility_id)
-                      ->orWhereNull('facility_id'); // Super admins
+                        ->orWhereNull('facility_id'); // Super admins
                 });
             }
         })
-        ->where('is_active', true)
-        ->where('id', '!=', $clockIn->staff_id) // Don't notify the staff member themselves
-        ->get();
+            ->where('is_active', true)
+            ->where('id', '!=', $clockIn->staff_id) // Don't notify the staff member themselves
+            ->get();
 
         $branchName = $clockIn->branch?->name ?? 'Unknown Branch';
         $staffName = $clockIn->staff?->name ?? 'Unknown Staff';
         $time = Carbon::parse($clockIn->clock_out_at)->format('g:i A');
-        $duration = $clockIn->total_hours ? round($clockIn->total_hours, 2) . ' hours' : 'N/A';
-        
-        $actionByText = $actionBy && $actionBy->id !== $clockIn->staff_id 
-            ? " by {$actionBy->name}" 
+        $duration = $clockIn->total_hours ? round($clockIn->total_hours, 2).' hours' : 'N/A';
+
+        $actionByText = $actionBy && $actionBy->id !== $clockIn->staff_id
+            ? " by {$actionBy->name}"
             : '';
 
-        foreach ($users as $admin) {
+        $allowInApp = app(\App\Services\NotificationPreferenceService::class)
+            ->shouldSendInApp($clockIn->facility_id, 'check_in_out');
+
+        foreach (($allowInApp ? $users : []) as $admin) {
             Notification::create([
                 'user_id' => $admin->id,
                 'type' => 'staff_clock_out',
@@ -293,14 +298,14 @@ class StaffClockInController extends Controller
     public function current(Request $request): JsonResponse
     {
         $user = $request->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
         $activeClockIn = $user->activeClockIn;
 
-        if (!$activeClockIn) {
+        if (! $activeClockIn) {
             return response()->json([
                 'clocked_in' => false,
             ]);
@@ -318,8 +323,8 @@ class StaffClockInController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
@@ -383,8 +388,8 @@ class StaffClockInController extends Controller
     public function stats(Request $request): JsonResponse
     {
         $user = $request->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
@@ -405,6 +410,7 @@ class StaffClockInController extends Controller
             if ($clockIn->clock_out_at) {
                 return $clockIn->total_hours ?? 0;
             }
+
             // If still clocked in, calculate from clock_in_at to now
             return round($clockIn->clock_in_at->diffInMinutes(now()) / 60, 2);
         });
@@ -433,4 +439,3 @@ class StaffClockInController extends Controller
         ]);
     }
 }
-

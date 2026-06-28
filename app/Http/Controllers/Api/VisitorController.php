@@ -154,7 +154,10 @@ class VisitorController extends Controller
             ? round($visitor->expected_duration_minutes / 60, 1).' hours'
             : 'Not specified';
 
-        foreach ($users as $admin) {
+        $allowInApp = app(\App\Services\NotificationPreferenceService::class)
+            ->shouldSendInApp($visitor->facility_id, 'check_in_out');
+
+        foreach (($allowInApp ? $users : []) as $admin) {
             Notification::create([
                 'user_id' => $admin->id,
                 'type' => 'visitor_check_in',
@@ -210,7 +213,10 @@ class VisitorController extends Controller
             $duration = $hours > 0 ? "{$hours}h {$minutes}m" : "{$minutes}m";
         }
 
-        foreach ($users as $admin) {
+        $allowInApp = app(\App\Services\NotificationPreferenceService::class)
+            ->shouldSendInApp($visitor->facility_id, 'check_in_out');
+
+        foreach (($allowInApp ? $users : []) as $admin) {
             Notification::create([
                 'user_id' => $admin->id,
                 'type' => 'visitor_check_out',
