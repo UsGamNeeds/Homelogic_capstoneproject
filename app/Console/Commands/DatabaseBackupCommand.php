@@ -51,7 +51,13 @@ class DatabaseBackupCommand extends Command
         }
 
         if ($scheduled && config('backup.scheduled_facility_backups', true)) {
-            $facilities = Facility::withoutGlobalScopes()->where('is_active', true)->get();
+            // withoutGlobalScopes() escapes the tenant scope so this unauthenticated
+            // scheduled run sees every tenant — but it ALSO strips the SoftDeletingScope,
+            // so we must re-exclude trashed facilities or deleted tenants get backed up nightly.
+            $facilities = Facility::withoutGlobalScopes()
+                ->where('is_active', true)
+                ->whereNull('deleted_at')
+                ->get();
             if ($facilities->isEmpty()) {
                 $this->warn('No active facilities found; nothing to back up.');
 
@@ -100,4 +106,3 @@ class DatabaseBackupCommand extends Command
         return self::SUCCESS;
     }
 }
-
