@@ -2,14 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\TLog;
 use App\Models\Incident;
-use App\Models\Resident;
 use App\Models\Medication;
-use App\Models\MedicationAdministration;
+use App\Models\Resident;
+use App\Models\TLog;
 use App\Models\VitalSign;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use ZipArchive;
 
@@ -21,6 +19,10 @@ class ComplianceReportController extends BaseApiController
      */
     public function inspectionPackage(Request $request): StreamedResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::REPORTS)) {
+            return $error;
+        }
+
         $request->validate([
             'date_from' => 'required|date',
             'date_to' => 'required|date|after_or_equal:date_from',
@@ -32,8 +34,8 @@ class ComplianceReportController extends BaseApiController
         $branchId = $request->get('branch_id');
         $user = $request->user();
 
-        $tmpDir = storage_path('app/tmp/compliance_' . uniqid());
-        if (!is_dir($tmpDir)) {
+        $tmpDir = storage_path('app/tmp/compliance_'.uniqid());
+        if (! is_dir($tmpDir)) {
             mkdir($tmpDir, 0755, true);
         }
 
@@ -47,7 +49,7 @@ class ComplianceReportController extends BaseApiController
                 $tLogsQuery->where('branch_id', $branchId);
             }
             $tLogs = $tLogsQuery->orderBy('reported_on', 'desc')->get();
-            $this->writeCareLogsCsv($tmpDir . '/resident_care_logs.csv', $tLogs);
+            $this->writeCareLogsCsv($tmpDir.'/resident_care_logs.csv', $tLogs);
 
             // 2. Incident reports
             $incidentsQuery = Incident::with(['resident', 'branch', 'reportedBy', 'assignedTo', 'resolvedBy'])
@@ -58,7 +60,7 @@ class ComplianceReportController extends BaseApiController
                 $incidentsQuery->where('branch_id', $branchId);
             }
             $incidents = $incidentsQuery->orderBy('incident_date', 'desc')->get();
-            $this->writeIncidentsCsv($tmpDir . '/incident_reports.csv', $incidents);
+            $this->writeIncidentsCsv($tmpDir.'/incident_reports.csv', $incidents);
 
             // 3. Resident list
             $residentsQuery = Resident::with(['branch', 'vitalSigns' => fn ($q) => $q->latest('measurement_date')->limit(1)]);
@@ -66,7 +68,7 @@ class ComplianceReportController extends BaseApiController
                 $residentsQuery->where('branch_id', $branchId);
             }
             $residents = $residentsQuery->get();
-            $this->writeResidentsCsv($tmpDir . '/resident_list.csv', $residents);
+            $this->writeResidentsCsv($tmpDir.'/resident_list.csv', $residents);
 
             // 4. Medication report (active medications with last administration)
             $medsQuery = Medication::with(['resident', 'branch', 'administrations' => fn ($q) => $q->where('status', 'completed')->latest('administered_at')->limit(1)->with('administeredBy')])
@@ -75,7 +77,7 @@ class ComplianceReportController extends BaseApiController
                 $medsQuery->where('branch_id', $branchId);
             }
             $medications = $medsQuery->orderBy('resident_id')->get();
-            $this->writeMedicationsCsv($tmpDir . '/medication_report.csv', $medications);
+            $this->writeMedicationsCsv($tmpDir.'/medication_report.csv', $medications);
 
             // 5. Vitals summary (date range) - scope by facility via branch
             $vitalsQuery = VitalSign::with(['resident', 'branch'])
@@ -87,37 +89,37 @@ class ComplianceReportController extends BaseApiController
                 $vitalsQuery->whereHas('branch', fn ($q) => $q->where('facility_id', $user->facility_id));
             }
             $vitals = $vitalsQuery->orderBy('measurement_date', 'desc')->get();
-            $this->writeVitalsCsv($tmpDir . '/vitals_summary.csv', $vitals);
+            $this->writeVitalsCsv($tmpDir.'/vitals_summary.csv', $vitals);
 
             // Build ZIP
-            $zipPath = storage_path('app/tmp/inspection_package_' . uniqid() . '.zip');
-            $zip = new ZipArchive();
+            $zipPath = storage_path('app/tmp/inspection_package_'.uniqid().'.zip');
+            $zip = new ZipArchive;
             if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
                 throw new \RuntimeException('Could not create ZIP file.');
             }
-            foreach (glob($tmpDir . '/*.csv') as $file) {
+            foreach (glob($tmpDir.'/*.csv') as $file) {
                 $zip->addFile($file, basename($file));
             }
             $zip->close();
 
             // Cleanup CSV files
-            foreach (glob($tmpDir . '/*.csv') as $file) {
+            foreach (glob($tmpDir.'/*.csv') as $file) {
                 @unlink($file);
             }
             @rmdir($tmpDir);
 
-            $downloadName = 'inspection_package_' . $dateFrom . '_to_' . $dateTo . '.zip';
+            $downloadName = 'inspection_package_'.$dateFrom.'_to_'.$dateTo.'.zip';
 
             return response()->streamDownload(function () use ($zipPath) {
                 echo file_get_contents($zipPath);
                 @unlink($zipPath);
             }, $downloadName, [
                 'Content-Type' => 'application/zip',
-                'Content-Disposition' => 'attachment; filename="' . $downloadName . '"',
+                'Content-Disposition' => 'attachment; filename="'.$downloadName.'"',
             ]);
         } catch (\Throwable $e) {
             if (is_dir($tmpDir)) {
-                foreach (glob($tmpDir . '/*') as $f) {
+                foreach (glob($tmpDir.'/*') as $f) {
                     @unlink($f);
                 }
                 @rmdir($tmpDir);
@@ -153,7 +155,7 @@ class ComplianceReportController extends BaseApiController
         foreach ($incidents as $inc) {
             fputcsv($f, [
                 $inc->incident_number ?? '',
-                $inc->resident ? trim($inc->resident->first_name . ' ' . $inc->resident->last_name) : '',
+                $inc->resident ? trim($inc->resident->first_name.' '.$inc->resident->last_name) : '',
                 $inc->branch?->name ?? '',
                 $inc->incident_type ?? '',
                 $inc->severity ?? '',
@@ -176,7 +178,7 @@ class ComplianceReportController extends BaseApiController
         foreach ($residents as $r) {
             $latestVitals = $r->vitalSigns->first();
             fputcsv($f, [
-                $r->name ?? trim(($r->first_name ?? '') . ' ' . ($r->last_name ?? '')),
+                $r->name ?? trim(($r->first_name ?? '').' '.($r->last_name ?? '')),
                 $r->room ?? $r->room_number ?? '',
                 $r->branch?->name ?? '',
                 $r->admission_date?->format('Y-m-d') ?? '',
@@ -194,7 +196,7 @@ class ComplianceReportController extends BaseApiController
         foreach ($medications as $m) {
             $lastAdmin = $m->administrations->first();
             fputcsv($f, [
-                $m->resident ? trim($m->resident->first_name . ' ' . $m->resident->last_name) : '',
+                $m->resident ? trim($m->resident->first_name.' '.$m->resident->last_name) : '',
                 $m->branch?->name ?? '',
                 $m->name ?? '',
                 $m->instructions ?? '',
@@ -214,7 +216,7 @@ class ComplianceReportController extends BaseApiController
         foreach ($vitals as $v) {
             fputcsv($f, [
                 $v->measurement_date?->format('Y-m-d H:i') ?? '',
-                $v->resident ? trim($v->resident->first_name . ' ' . $v->resident->last_name) : '',
+                $v->resident ? trim($v->resident->first_name.' '.$v->resident->last_name) : '',
                 $v->branch?->name ?? '',
                 $v->systolic ?? '',
                 $v->diastolic ?? '',

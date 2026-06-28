@@ -95,4 +95,22 @@ class PermissionEnforcementTest extends TestCase
         $this->postJson('/api/v1/employee-documents', [])
             ->assertForbidden();
     }
+
+    public function test_report_blocked_when_reports_module_disabled(): void
+    {
+        $resident = $this->createResident();
+        $this->facility->disableModule(\App\Constants\Modules::REPORTS);
+
+        $caregiver = User::factory()->create([
+            'facility_id' => $this->facility->id,
+            'assigned_branch_id' => $this->branch->id,
+            'role' => 'caregiver',
+            'is_active' => true,
+        ]);
+        Sanctum::actingAs($caregiver, ['*']);
+        app()->instance('facility', $this->facility);
+
+        $this->getJson('/api/v1/residents/'.$resident->id.'/reports/incidents')
+            ->assertForbidden();
+    }
 }

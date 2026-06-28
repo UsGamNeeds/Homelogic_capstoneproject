@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Models\Facility;
 use App\Models\Incident;
 use App\Models\Resident;
@@ -15,7 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 
-class IncidentHistoryReportController extends Controller
+class IncidentHistoryReportController extends BaseApiController
 {
     private const DEFAULT_LOOKBACK_DAYS = 365;
 
@@ -27,6 +26,10 @@ class IncidentHistoryReportController extends Controller
 
     public function __invoke(Request $request, Resident $resident): JsonResponse|Response
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::REPORTS)) {
+            return $error;
+        }
+
         $user = $request->user();
         if ($this->isCaregiver($user)) {
             $branchId = (int) ($user->assigned_branch_id ?? 0);
@@ -164,7 +167,7 @@ class IncidentHistoryReportController extends Controller
         return $name !== '' ? $name : '—';
     }
 
-    private function isCaregiver(?User $user): bool
+    protected function isCaregiver(?object $user = null): bool
     {
         return $user && in_array($user->role, ['caregiver', 'care_giver', 'nurse', 'registered_nurse', 'licensed_nurse'], true);
     }

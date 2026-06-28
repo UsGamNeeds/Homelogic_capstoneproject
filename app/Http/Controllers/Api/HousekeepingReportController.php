@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Models\CleaningArea;
 use App\Models\CleaningTaskLog;
 use Carbon\Carbon;
@@ -13,17 +12,21 @@ class HousekeepingReportController extends BaseApiController
 {
     public function index(Request $request)
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::REPORTS)) {
+            return $error;
+        }
+
         $user = $request->user();
 
         $isAdmin = $user->role === 'super_admin' || $user->isAnyAdmin();
 
-        if (!$user || (!$isAdmin && !$user->hasPermission('view_cleaning_areas'))) {
+        if (! $user || (! $isAdmin && ! $user->hasPermission('view_cleaning_areas'))) {
             abort(403, 'You do not have permission to view housekeeping reports.');
         }
 
         $branchId = (int) ($request->input('branch_id') ?? $user->assigned_branch_id);
 
-        if (!$branchId) {
+        if (! $branchId) {
             throw ValidationException::withMessages([
                 'branch_id' => 'Select a branch or assign one to your profile.',
             ]);
@@ -35,7 +38,7 @@ class HousekeepingReportController extends BaseApiController
             ->where('branch_id', $branchId)
             ->where('is_active', true)
             ->with([
-                'tasks' => function ($query) use ($request) {
+                'tasks' => function ($query) {
                     $query->where('is_active', true)
                         ->orderBy('display_order')
                         ->orderBy('title');
@@ -73,7 +76,7 @@ class HousekeepingReportController extends BaseApiController
 
         foreach ($areas as $area) {
             foreach ($area->tasks as $task) {
-                if (!$task->isScheduledForDate($date)) {
+                if (! $task->isScheduledForDate($date)) {
                     continue;
                 }
 
@@ -130,26 +133,30 @@ class HousekeepingReportController extends BaseApiController
 
     public function completionReport(Request $request)
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::REPORTS)) {
+            return $error;
+        }
+
         $user = $request->user();
 
         $isAdmin = $user->role === 'super_admin' || $user->isAnyAdmin();
 
-        if (!$user || (!$isAdmin && !$user->hasPermission('view_cleaning_areas'))) {
+        if (! $user || (! $isAdmin && ! $user->hasPermission('view_cleaning_areas'))) {
             abort(403, 'You do not have permission to view housekeeping reports.');
         }
 
         $branchId = (int) ($request->input('branch_id') ?? $user->assigned_branch_id);
 
-        if (!$branchId) {
+        if (! $branchId) {
             throw ValidationException::withMessages([
                 'branch_id' => 'Select a branch or assign one to your profile.',
             ]);
         }
 
-        $dateFrom = $request->input('date_from') 
+        $dateFrom = $request->input('date_from')
             ? Carbon::parse($request->input('date_from'))->startOfDay()
             : Carbon::now()->subDays(7)->startOfDay();
-        
+
         $dateTo = $request->input('date_to')
             ? Carbon::parse($request->input('date_to'))->endOfDay()
             : Carbon::now()->endOfDay();

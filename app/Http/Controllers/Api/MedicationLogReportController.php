@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Models\Medication;
 use App\Models\Resident;
 use App\Models\User;
@@ -14,7 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 
-class MedicationLogReportController extends Controller
+class MedicationLogReportController extends BaseApiController
 {
     public function __construct(
         private MedicationLogReportService $medicationLogReportService,
@@ -23,6 +22,10 @@ class MedicationLogReportController extends Controller
 
     public function __invoke(Request $request, Resident $resident): JsonResponse|Response
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::REPORTS)) {
+            return $error;
+        }
+
         $user = $request->user();
         if ($this->isCaregiver($user)) {
             $branchId = (int) ($user->assigned_branch_id ?? 0);
@@ -120,7 +123,7 @@ class MedicationLogReportController extends Controller
         }
     }
 
-    private function isCaregiver(?User $user): bool
+    protected function isCaregiver(?object $user = null): bool
     {
         return $user && in_array($user->role, ['caregiver', 'care_giver', 'nurse', 'registered_nurse', 'licensed_nurse'], true);
     }
