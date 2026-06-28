@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Constants\Modules;
 use App\Models\EmployeeDocument;
 use App\Services\ActivityLogService;
 use Illuminate\Http\JsonResponse;
@@ -107,6 +108,13 @@ class EmployeeDocumentController extends BaseApiController
 
     public function store(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(Modules::EMPLOYEE_DOCUMENTS)) {
+            return $error;
+        }
+        if ($error = $this->requirePermission('create_employee_documents')) {
+            return $error;
+        }
+
         $user = auth()->user();
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
@@ -244,6 +252,13 @@ class EmployeeDocumentController extends BaseApiController
 
     public function update(Request $request, $id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(Modules::EMPLOYEE_DOCUMENTS)) {
+            return $error;
+        }
+        if ($error = $this->requirePermission('edit_employee_documents')) {
+            return $error;
+        }
+
         $user = auth()->user();
         $document = EmployeeDocument::with('user')->findOrFail($id);
 
@@ -325,6 +340,13 @@ class EmployeeDocumentController extends BaseApiController
 
     public function destroy($id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(Modules::EMPLOYEE_DOCUMENTS)) {
+            return $error;
+        }
+        if ($error = $this->requirePermission('delete_employee_documents')) {
+            return $error;
+        }
+
         $user = auth()->user();
         $document = EmployeeDocument::with('user')->findOrFail($id);
 

@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Models\Resident;
 use App\Models\SleepRecord;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 
@@ -14,6 +13,10 @@ class SleepRecordController extends BaseApiController
 {
     public function index(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::SLEEP)) {
+            return $error;
+        }
+
         $query = SleepRecord::with(['resident', 'branch', 'createdBy']);
         $currentUser = Auth::user();
 
@@ -21,7 +24,7 @@ class SleepRecordController extends BaseApiController
         if ($currentUser && $currentUser->role !== 'super_admin') {
             // Filter sleep records by branches that belong to the user's facility
             if ($currentUser->facility_id) {
-                $query->whereHas('branch', function($q) use ($currentUser) {
+                $query->whereHas('branch', function ($q) use ($currentUser) {
                     $q->where('facility_id', $currentUser->facility_id);
                 });
             } else {
@@ -31,7 +34,7 @@ class SleepRecordController extends BaseApiController
                     'current_page' => 1,
                     'last_page' => 1,
                     'per_page' => $request->get('per_page', 25),
-                    'total' => 0
+                    'total' => 0,
                 ]);
             }
         }
@@ -64,9 +67,9 @@ class SleepRecordController extends BaseApiController
         // Search
         if ($request->has('search')) {
             $search = $request->get('search');
-            $query->whereHas('resident', function($q) use ($search) {
+            $query->whereHas('resident', function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%");
+                    ->orWhere('last_name', 'like', "%{$search}%");
             });
         }
 
@@ -82,6 +85,10 @@ class SleepRecordController extends BaseApiController
 
     public function show($id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::SLEEP)) {
+            return $error;
+        }
+
         $sleepRecord = SleepRecord::with(['resident', 'branch', 'createdBy'])
             ->findOrFail($id);
 
@@ -90,7 +97,7 @@ class SleepRecordController extends BaseApiController
         if ($currentUser && $currentUser->role !== 'super_admin') {
             if ($currentUser->facility_id) {
                 // Verify the sleep record's branch belongs to the user's facility
-                if (!$sleepRecord->branch || $sleepRecord->branch->facility_id !== $currentUser->facility_id) {
+                if (! $sleepRecord->branch || $sleepRecord->branch->facility_id !== $currentUser->facility_id) {
                     return response()->json(['message' => 'Sleep record not found'], 404);
                 }
             } else {
@@ -104,14 +111,18 @@ class SleepRecordController extends BaseApiController
 
     public function store(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::SLEEP)) {
+            return $error;
+        }
+
         $user = auth()->user();
-        
+
         // Allow administrators, super admins, and caregivers to create sleep records without granular permission
         $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
         $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
         $isCaregiver = $this->isCaregiver($user);
 
-        if (!$isSuperAdmin && !$isAdmin && !$isCaregiver) {
+        if (! $isSuperAdmin && ! $isAdmin && ! $isCaregiver) {
             if ($error = $this->requirePermission('create_sleep_records')) {
                 return $error;
             }
@@ -131,7 +142,7 @@ class SleepRecordController extends BaseApiController
 
         if ($isCaregiver && $user->assigned_branch_id) {
             $resident = Resident::find($validated['resident_id']);
-            if (!$resident || (int) $resident->branch_id !== (int) $user->assigned_branch_id) {
+            if (! $resident || (int) $resident->branch_id !== (int) $user->assigned_branch_id) {
                 return response()->json([
                     'message' => 'You do not have permission to create sleep records for residents outside your assigned branch.',
                 ], 403);
@@ -146,14 +157,14 @@ class SleepRecordController extends BaseApiController
         $validated['created_by'] = auth()->id();
 
         // Calculate total sleep hours if not provided
-        if (!isset($validated['total_sleep_hours'])) {
+        if (! isset($validated['total_sleep_hours'])) {
             $sleepTime = \Carbon\Carbon::createFromFormat('H:i', $request->sleep_time);
             $wakeTime = \Carbon\Carbon::createFromFormat('H:i', $request->wake_time);
-            
+
             if ($wakeTime->lessThan($sleepTime)) {
                 $wakeTime->addDay();
             }
-            
+
             $totalHours = $sleepTime->diffInHours($wakeTime) + ($sleepTime->diffInMinutes($wakeTime) % 60) / 60;
             $validated['total_sleep_hours'] = round($totalHours, 2);
         }
@@ -170,13 +181,17 @@ class SleepRecordController extends BaseApiController
 
     public function update(Request $request, $id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::SLEEP)) {
+            return $error;
+        }
+
         $user = auth()->user();
-        
+
         $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
         $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
         $isCaregiver = $this->isCaregiver($user);
 
-        if (!$isSuperAdmin && !$isAdmin && !$isCaregiver) {
+        if (! $isSuperAdmin && ! $isAdmin && ! $isCaregiver) {
             if ($error = $this->requirePermission('edit_sleep_records')) {
                 return $error;
             }
@@ -185,7 +200,7 @@ class SleepRecordController extends BaseApiController
         $sleepRecord = SleepRecord::findOrFail($id);
 
         if ($isCaregiver && $user->assigned_branch_id) {
-            if (!$sleepRecord->branch_id || (int) $sleepRecord->branch_id !== (int) $user->assigned_branch_id) {
+            if (! $sleepRecord->branch_id || (int) $sleepRecord->branch_id !== (int) $user->assigned_branch_id) {
                 return response()->json([
                     'message' => 'You do not have permission to edit sleep records outside your assigned branch.',
                 ], 403);
@@ -208,11 +223,11 @@ class SleepRecordController extends BaseApiController
         if ($request->has('sleep_time') || $request->has('wake_time')) {
             $sleepTime = \Carbon\Carbon::createFromFormat('H:i', $request->sleep_time ?? $sleepRecord->sleep_time);
             $wakeTime = \Carbon\Carbon::createFromFormat('H:i', $request->wake_time ?? $sleepRecord->wake_time);
-            
+
             if ($wakeTime->lessThan($sleepTime)) {
                 $wakeTime->addDay();
             }
-            
+
             $totalHours = $sleepTime->diffInHours($wakeTime) + ($sleepTime->diffInMinutes($wakeTime) % 60) / 60;
             $validated['total_sleep_hours'] = round($totalHours, 2);
         }
@@ -226,7 +241,7 @@ class SleepRecordController extends BaseApiController
             $finalResidentId = $validated['resident_id'] ?? $sleepRecord->resident_id;
             $finalBranchId = $validated['branch_id'] ?? $sleepRecord->branch_id;
             $resident = Resident::find($finalResidentId);
-            if (!$resident || (int) $resident->branch_id !== (int) $user->assigned_branch_id) {
+            if (! $resident || (int) $resident->branch_id !== (int) $user->assigned_branch_id) {
                 return response()->json([
                     'message' => 'You do not have permission to assign sleep records to residents outside your assigned branch.',
                 ], 403);
@@ -237,7 +252,7 @@ class SleepRecordController extends BaseApiController
                 ], 403);
             }
         }
-        
+
         $sleepRecord->update($validated);
 
         return response()->json($sleepRecord->load(['resident', 'branch', 'createdBy']));
@@ -245,13 +260,17 @@ class SleepRecordController extends BaseApiController
 
     public function destroy($id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::SLEEP)) {
+            return $error;
+        }
+
         $user = auth()->user();
-        
+
         $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
         $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
         $isCaregiver = $this->isCaregiver($user);
 
-        if (!$isSuperAdmin && !$isAdmin && !$isCaregiver) {
+        if (! $isSuperAdmin && ! $isAdmin && ! $isCaregiver) {
             if ($error = $this->requirePermission('delete_sleep_records')) {
                 return $error;
             }
@@ -260,7 +279,7 @@ class SleepRecordController extends BaseApiController
         $sleepRecord = SleepRecord::findOrFail($id);
 
         if ($isCaregiver && $user->assigned_branch_id) {
-            if (!$sleepRecord->branch_id || (int) $sleepRecord->branch_id !== (int) $user->assigned_branch_id) {
+            if (! $sleepRecord->branch_id || (int) $sleepRecord->branch_id !== (int) $user->assigned_branch_id) {
                 return response()->json([
                     'message' => 'You do not have permission to delete sleep records outside your assigned branch.',
                 ], 403);
@@ -272,4 +291,3 @@ class SleepRecordController extends BaseApiController
         return response()->json(['message' => 'Sleep record deleted successfully']);
     }
 }
-

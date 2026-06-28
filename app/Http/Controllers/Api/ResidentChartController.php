@@ -17,6 +17,10 @@ class ResidentChartController extends BaseApiController
      */
     public function index(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::BEHAVIORS)) {
+            return $error;
+        }
+
         $query = BehaviorChart::with([
             'resident.branch',
             'caregiver',
@@ -104,6 +108,13 @@ class ResidentChartController extends BaseApiController
      */
     public function store(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::BEHAVIORS)) {
+            return $error;
+        }
+        if ($error = $this->requirePermission('create_behaviors')) {
+            return $error;
+        }
+
         $isDraft = $request->input('status') === 'draft';
 
         $rules = [
@@ -237,6 +248,13 @@ class ResidentChartController extends BaseApiController
      */
     public function updateStatus(Request $request, $id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::BEHAVIORS)) {
+            return $error;
+        }
+        if ($error = $this->requirePermission('edit_behaviors')) {
+            return $error;
+        }
+
         $request->validate([
             'status' => 'required|in:approved,declined,pending',
         ]);

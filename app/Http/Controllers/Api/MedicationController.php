@@ -19,6 +19,10 @@ class MedicationController extends BaseApiController
 
     public function index(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::MEDICATIONS)) {
+            return $error;
+        }
+
         $query = Medication::with(['resident', 'drug', 'branch', 'createdBy']);
 
         // Filter by active status
@@ -115,6 +119,10 @@ class MedicationController extends BaseApiController
 
     public function show($id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::MEDICATIONS)) {
+            return $error;
+        }
+
         $medication = Medication::with(['resident', 'drug', 'branch', 'createdBy', 'administrations'])
             ->findOrFail($id);
 
@@ -123,6 +131,10 @@ class MedicationController extends BaseApiController
 
     public function store(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::MEDICATIONS)) {
+            return $error;
+        }
+
         $user = auth()->user();
 
         // Allow administrators and super admins to create medications even without specific permission
@@ -196,6 +208,10 @@ class MedicationController extends BaseApiController
 
     public function update(Request $request, $id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::MEDICATIONS)) {
+            return $error;
+        }
+
         $user = auth()->user();
 
         // Allow administrators and super admins to edit medications even without specific permission
@@ -275,6 +291,10 @@ class MedicationController extends BaseApiController
 
     public function destroy($id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::MEDICATIONS)) {
+            return $error;
+        }
+
         $user = auth()->user();
 
         // Allow administrators and super admins to delete medications even without specific permission
@@ -296,6 +316,10 @@ class MedicationController extends BaseApiController
 
     public function administrations(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::MEDICATIONS)) {
+            return $error;
+        }
+
         $query = MedicationAdministration::with(['medication', 'resident', 'administeredBy']);
 
         // Filter by date

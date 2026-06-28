@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\CleaningArea;
 use Illuminate\Http\Request;
@@ -12,10 +11,14 @@ class CleaningAreaController extends BaseApiController
 {
     public function index(Request $request)
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::HOUSEKEEPING)) {
+            return $error;
+        }
+
         $user = $request->user();
         $branchId = (int) ($request->input('branch_id') ?? $user->assigned_branch_id);
 
-        if (!$branchId) {
+        if (! $branchId) {
             throw ValidationException::withMessages([
                 'branch_id' => 'A branch must be specified or assigned to your profile.',
             ]);
@@ -49,6 +52,10 @@ class CleaningAreaController extends BaseApiController
 
     public function store(Request $request)
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::HOUSEKEEPING)) {
+            return $error;
+        }
+
         try {
             $this->ensureCanManage($request, 'create_cleaning_areas');
         } catch (\Exception $e) {
@@ -72,7 +79,7 @@ class CleaningAreaController extends BaseApiController
             // Validate branch access for facility admins
             if ($user && $user->facility_id && $user->role !== 'super_admin') {
                 $branch = Branch::find($data['branch_id']);
-                if (!$branch || $branch->facility_id !== $user->facility_id) {
+                if (! $branch || $branch->facility_id !== $user->facility_id) {
                     return response()->json([
                         'message' => 'You can only create cleaning areas for branches in your facility.',
                     ], 403);
@@ -91,17 +98,22 @@ class CleaningAreaController extends BaseApiController
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('Error creating cleaning area: ' . $e->getMessage(), [
+            \Log::error('Error creating cleaning area: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
-                'message' => 'An error occurred while creating the cleaning area: ' . $e->getMessage(),
+                'message' => 'An error occurred while creating the cleaning area: '.$e->getMessage(),
             ], 500);
         }
     }
 
     public function update(Request $request, CleaningArea $cleaningArea)
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::HOUSEKEEPING)) {
+            return $error;
+        }
+
         $this->ensureCanManage($request, 'edit_cleaning_areas');
 
         $user = $request->user();
@@ -118,7 +130,7 @@ class CleaningAreaController extends BaseApiController
         // Validate branch access for facility admins if branch_id is being updated
         if (isset($data['branch_id']) && $user && $user->facility_id && $user->role !== 'super_admin') {
             $branch = \App\Models\Branch::find($data['branch_id']);
-            if (!$branch || $branch->facility_id !== $user->facility_id) {
+            if (! $branch || $branch->facility_id !== $user->facility_id) {
                 return response()->json([
                     'message' => 'You can only assign cleaning areas to branches in your facility.',
                 ], 403);
@@ -135,6 +147,10 @@ class CleaningAreaController extends BaseApiController
 
     public function destroy(Request $request, CleaningArea $cleaningArea)
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::HOUSEKEEPING)) {
+            return $error;
+        }
+
         $this->ensureCanManage($request, 'delete_cleaning_areas');
 
         if ($cleaningArea->tasks()->exists()) {
@@ -156,7 +172,7 @@ class CleaningAreaController extends BaseApiController
 
         $isAdmin = in_array(strtolower($user->role ?? ''), ['super_admin', 'administrator', 'admin'], true);
 
-        if (!$user || (!$isAdmin && !$user->hasPermission($permission))) {
+        if (! $user || (! $isAdmin && ! $user->hasPermission($permission))) {
             abort(403, 'You do not have permission to manage cleaning schedules.');
         }
     }

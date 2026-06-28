@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Models\CleaningArea;
 use App\Models\CleaningTask;
 use Illuminate\Http\Request;
@@ -12,10 +11,14 @@ class CleaningTaskController extends BaseApiController
 {
     public function index(Request $request)
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::HOUSEKEEPING)) {
+            return $error;
+        }
+
         $user = $request->user();
         $branchId = (int) ($request->input('branch_id') ?? $user->assigned_branch_id);
 
-        if (!$branchId) {
+        if (! $branchId) {
             throw ValidationException::withMessages([
                 'branch_id' => 'A branch must be specified or assigned to your profile.',
             ]);
@@ -58,10 +61,14 @@ class CleaningTaskController extends BaseApiController
 
     public function store(Request $request)
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::HOUSEKEEPING)) {
+            return $error;
+        }
+
         $user = $request->user();
         $isAdmin = in_array(strtolower($user->role ?? ''), ['super_admin', 'administrator', 'admin'], true);
-        
-        if (!$isAdmin) {
+
+        if (! $isAdmin) {
             $this->ensureCanManage($request, 'create_cleaning_areas');
         }
 
@@ -77,10 +84,14 @@ class CleaningTaskController extends BaseApiController
 
     public function update(Request $request, CleaningTask $cleaningTask)
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::HOUSEKEEPING)) {
+            return $error;
+        }
+
         $user = $request->user();
         $isAdmin = in_array(strtolower($user->role ?? ''), ['super_admin', 'administrator', 'admin'], true);
-        
-        if (!$isAdmin) {
+
+        if (! $isAdmin) {
             $this->ensureCanManage($request, 'edit_cleaning_areas');
         }
 
@@ -96,10 +107,14 @@ class CleaningTaskController extends BaseApiController
 
     public function destroy(Request $request, CleaningTask $cleaningTask)
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::HOUSEKEEPING)) {
+            return $error;
+        }
+
         $user = $request->user();
         $isAdmin = in_array(strtolower($user->role ?? ''), ['super_admin', 'administrator', 'admin'], true);
-        
-        if (!$isAdmin) {
+
+        if (! $isAdmin) {
             $this->ensureCanManage($request, 'delete_cleaning_areas');
         }
 
@@ -139,9 +154,9 @@ class CleaningTaskController extends BaseApiController
         $user = $request->user();
 
         $isAdmin = in_array(strtolower($user->role ?? ''), ['super_admin', 'administrator', 'admin'], true);
-        
+
         // Only enforce branch restrictions for non-admin users
-        if (!$isAdmin && $user->assigned_branch_id && $user->assigned_branch_id !== $area->branch_id) {
+        if (! $isAdmin && $user->assigned_branch_id && $user->assigned_branch_id !== $area->branch_id) {
             abort(403, 'You cannot manage tasks for another branch.');
         }
 
@@ -152,7 +167,7 @@ class CleaningTaskController extends BaseApiController
     {
         $user = $request->user();
 
-        if (!$user || !$user->hasPermission($permission)) {
+        if (! $user || ! $user->hasPermission($permission)) {
             abort(403, 'You do not have permission to manage cleaning schedules.');
         }
     }

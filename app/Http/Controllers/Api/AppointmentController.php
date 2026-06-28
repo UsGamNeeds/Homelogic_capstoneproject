@@ -4,14 +4,18 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Appointment;
 use App\Models\ResidentDocument;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AppointmentController extends BaseApiController
 {
     public function index(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::APPOINTMENTS)) {
+            return $error;
+        }
+
         $query = Appointment::with(['resident', 'healthcareProvider', 'appointmentType', 'documents']);
         $user = $request->user();
 
@@ -20,14 +24,14 @@ class AppointmentController extends BaseApiController
             if ($user->facility_id) {
                 // Use optimized whereIn pattern instead of whereHas for better performance
                 $branchIds = $this->getFacilityBranchIds($user->facility_id);
-                if (!empty($branchIds)) {
+                if (! empty($branchIds)) {
                     // Include appointments with branch_id in facility branches
                     // OR appointments where resident's branch is in facility branches (for NULL branch_id cases)
-                    $query->where(function($q) use ($branchIds) {
+                    $query->where(function ($q) use ($branchIds) {
                         $q->whereIn('branch_id', $branchIds)
-                          ->orWhereHas('resident', function($residentQuery) use ($branchIds) {
-                              $residentQuery->whereIn('branch_id', $branchIds);
-                          });
+                            ->orWhereHas('resident', function ($residentQuery) use ($branchIds) {
+                                $residentQuery->whereIn('branch_id', $branchIds);
+                            });
                     });
                 } else {
                     // No branches for facility, return empty results
@@ -36,7 +40,7 @@ class AppointmentController extends BaseApiController
                         'current_page' => 1,
                         'last_page' => 1,
                         'per_page' => $request->get('per_page', 15),
-                        'total' => 0
+                        'total' => 0,
                     ]);
                 }
             } else {
@@ -46,7 +50,7 @@ class AppointmentController extends BaseApiController
                     'current_page' => 1,
                     'last_page' => 1,
                     'per_page' => $request->get('per_page', 15),
-                    'total' => 0
+                    'total' => 0,
                 ]);
             }
         }
@@ -99,13 +103,17 @@ class AppointmentController extends BaseApiController
 
     public function show($id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::APPOINTMENTS)) {
+            return $error;
+        }
+
         $appointment = Appointment::with([
             'resident',
             'healthcareProvider',
             'appointmentType',
             'branch',
             'createdBy',
-            'documents.uploadedBy'
+            'documents.uploadedBy',
         ])
             ->findOrFail($id);
 
@@ -114,14 +122,18 @@ class AppointmentController extends BaseApiController
 
     public function store(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::APPOINTMENTS)) {
+            return $error;
+        }
+
         $user = auth()->user();
-        
+
         // Super admins and facility/branch admins can create without explicit permission check
         $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
         $isAdmin = $user && $user->isAnyAdmin();
 
         // Caregivers and all other non-admins must have create_appointments (respects facility role overrides)
-        if (!$isSuperAdmin && !$isAdmin) {
+        if (! $isSuperAdmin && ! $isAdmin) {
             if ($error = $this->requirePermission('create_appointments')) {
                 return $error;
             }
@@ -147,12 +159,12 @@ class AppointmentController extends BaseApiController
         ]);
 
         // Default status
-        if (!isset($validated['status'])) {
+        if (! isset($validated['status'])) {
             $validated['status'] = 'scheduled';
         }
 
         // If branch_id not provided, try to infer from resident
-        if (!isset($validated['branch_id'])) {
+        if (! isset($validated['branch_id'])) {
             $resident = \App\Models\Resident::find($validated['resident_id']);
             if ($resident) {
                 $validated['branch_id'] = $resident->branch_id;
@@ -162,10 +174,10 @@ class AppointmentController extends BaseApiController
         // If user is a caregiver, ensure they can only create appointments for residents in their assigned branch
         if ($isCaregiver) {
             $resident = \App\Models\Resident::find($validated['resident_id']);
-            if (!$resident || $resident->branch_id !== $user->assigned_branch_id) {
+            if (! $resident || $resident->branch_id !== $user->assigned_branch_id) {
                 return response()->json([
                     'message' => 'Unauthorized: You can only create appointments for residents in your assigned branch.',
-                    'errors' => ['resident_id' => ['You can only create appointments for residents in your assigned branch.']]
+                    'errors' => ['resident_id' => ['You can only create appointments for residents in your assigned branch.']],
                 ], 403);
             }
             // Force branch_id to caregiver's assigned branch
@@ -173,14 +185,14 @@ class AppointmentController extends BaseApiController
         }
 
         // Format appointment_time properly - ensure it's in HH:mm format
-        if (isset($validated['appointment_time']) && !empty($validated['appointment_time'])) {
+        if (isset($validated['appointment_time']) && ! empty($validated['appointment_time'])) {
             // If it's already in HH:mm format, add :00 for seconds
             if (preg_match('/^\d{2}:\d{2}$/', $validated['appointment_time'])) {
-                $validated['appointment_time'] = $validated['appointment_time'] . ':00';
+                $validated['appointment_time'] = $validated['appointment_time'].':00';
             }
             // If it's in HH:mm:ss format, keep it as is
             // If it's in other formats, try to parse it
-            elseif (!preg_match('/^\d{2}:\d{2}:\d{2}$/', $validated['appointment_time'])) {
+            elseif (! preg_match('/^\d{2}:\d{2}:\d{2}$/', $validated['appointment_time'])) {
                 try {
                     $time = \Carbon\Carbon::parse($validated['appointment_time'])->format('H:i:s');
                     $validated['appointment_time'] = $time;
@@ -192,14 +204,14 @@ class AppointmentController extends BaseApiController
         }
 
         // Auto-generate a title if missing, to satisfy NOT NULL schema in some setups
-        if (!isset($validated['title']) || empty($validated['title'])) {
+        if (! isset($validated['title']) || empty($validated['title'])) {
             $residentName = isset($resident)
-                ? trim(($resident->first_name ?? '') . ' ' . ($resident->last_name ?? ''))
+                ? trim(($resident->first_name ?? '').' '.($resident->last_name ?? ''))
                 : 'Resident';
             $dateLabel = is_string($validated['appointment_date'])
                 ? date('M j, Y', strtotime($validated['appointment_date']))
                 : now()->toDateString();
-            $timeLabel = isset($validated['appointment_time']) && !empty($validated['appointment_time'])
+            $timeLabel = isset($validated['appointment_time']) && ! empty($validated['appointment_time'])
                 ? date('g:i A', strtotime($validated['appointment_time']))
                 : '';
             $withTime = $timeLabel ? " at {$timeLabel}" : '';
@@ -217,6 +229,10 @@ class AppointmentController extends BaseApiController
 
     public function update(Request $request, $id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::APPOINTMENTS)) {
+            return $error;
+        }
+
         $appointment = Appointment::findOrFail($id);
         $user = auth()->user();
 
@@ -225,7 +241,7 @@ class AppointmentController extends BaseApiController
         $isAdmin = $user && $user->isAnyAdmin();
         $isCaregiver = $this->isCaregiver($user);
 
-        if (!$isSuperAdmin && !$isAdmin && !$isCaregiver) {
+        if (! $isSuperAdmin && ! $isAdmin && ! $isCaregiver) {
             if ($error = $this->requirePermission('update_appointments')) {
                 return $error;
             }
@@ -252,29 +268,29 @@ class AppointmentController extends BaseApiController
         if (isset($validated['appointment_date']) || isset($validated['appointment_time'])) {
             $newDate = $validated['appointment_date'] ?? $appointment->appointment_date;
             $newTime = $validated['appointment_time'] ?? $appointment->appointment_time;
-            
+
             // Compare dates (normalize to strings for comparison)
-            $oldDateStr = $appointment->appointment_date instanceof \Carbon\Carbon 
-                ? $appointment->appointment_date->toDateString() 
+            $oldDateStr = $appointment->appointment_date instanceof \Carbon\Carbon
+                ? $appointment->appointment_date->toDateString()
                 : $appointment->appointment_date;
-            $newDateStr = $newDate instanceof \Carbon\Carbon 
-                ? $newDate->toDateString() 
+            $newDateStr = $newDate instanceof \Carbon\Carbon
+                ? $newDate->toDateString()
                 : $newDate;
-            
+
             $oldTimeStr = $appointment->appointment_time ? substr($appointment->appointment_time, 0, 5) : '';
             $newTimeStr = $newTime ? substr($newTime, 0, 5) : '';
-            
+
             if ($oldDateStr !== $newDateStr || $oldTimeStr !== $newTimeStr) {
                 $isReschedule = true;
-                
+
                 // Save original date and time if not already saved
-                if (!$appointment->original_appointment_date) {
+                if (! $appointment->original_appointment_date) {
                     $validated['original_appointment_date'] = $appointment->appointment_date;
                     $validated['original_appointment_time'] = $appointment->appointment_time;
                 }
-                
+
                 // Set status to rescheduled if not explicitly set
-                if (!isset($validated['status'])) {
+                if (! isset($validated['status'])) {
                     $validated['status'] = 'rescheduled';
                 }
             }
@@ -286,8 +302,8 @@ class AppointmentController extends BaseApiController
             if ($resident) {
                 $appointmentDate = $validated['appointment_date'] ?? $appointment->appointment_date;
                 $appointmentTime = $validated['appointment_time'] ?? $appointment->appointment_time;
-                
-                $residentName = trim(($resident->first_name ?? '') . ' ' . ($resident->last_name ?? ''));
+
+                $residentName = trim(($resident->first_name ?? '').' '.($resident->last_name ?? ''));
                 $dateLabel = is_string($appointmentDate) ? date('M j, Y', strtotime($appointmentDate)) : now()->toDateString();
                 $timeLabel = $appointmentTime ? date('g:i A', strtotime($appointmentTime)) : '';
                 $withTime = $timeLabel ? " at {$timeLabel}" : '';
@@ -304,6 +320,10 @@ class AppointmentController extends BaseApiController
 
     public function updateStatus(Request $request, $id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::APPOINTMENTS)) {
+            return $error;
+        }
+
         $request->validate([
             'status' => 'required|in:scheduled,completed,cancelled,confirmed,in_progress,no_show,rescheduled',
             'notes' => 'nullable|string',
@@ -316,16 +336,16 @@ class AppointmentController extends BaseApiController
 
         $appointment = Appointment::findOrFail($id);
         $appointment->status = $request->get('status');
-        
+
         // Update notes if provided (especially for completed appointments)
         if ($request->has('notes')) {
-            $existingNotes = $appointment->notes ? $appointment->notes . "\n\n" : '';
+            $existingNotes = $appointment->notes ? $appointment->notes."\n\n" : '';
             $statusNote = $request->get('status') === 'completed' && $request->get('notes')
-                ? "Completed on " . now()->format('Y-m-d H:i:s') . ": " . $request->get('notes')
+                ? 'Completed on '.now()->format('Y-m-d H:i:s').': '.$request->get('notes')
                 : '';
-            $appointment->notes = $existingNotes . $statusNote;
+            $appointment->notes = $existingNotes.$statusNote;
         }
-        
+
         $appointment->save();
 
         // Handle document uploads if provided
@@ -333,15 +353,15 @@ class AppointmentController extends BaseApiController
         $documentCount = 0;
         while ($request->hasFile("documents.{$documentCount}.file")) {
             $file = $request->file("documents.{$documentCount}.file");
-            
+
             if ($file && $file->isValid()) {
                 $documentName = $request->get("documents.{$documentCount}.document_name", 'Document');
                 $documentType = $request->get("documents.{$documentCount}.document_type", 'appointment');
                 $documentNotes = $request->get("documents.{$documentCount}.notes");
-                
-                $fileName = time() . '_' . $file->getClientOriginalName();
+
+                $fileName = time().'_'.$file->getClientOriginalName();
                 $filePath = $file->storeAs('resident-documents', $fileName, 'public');
-                
+
                 ResidentDocument::create([
                     'resident_id' => $appointment->resident_id,
                     'appointment_id' => $appointment->id,
@@ -363,16 +383,25 @@ class AppointmentController extends BaseApiController
 
     public function types(): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::APPOINTMENTS)) {
+            return $error;
+        }
+
         $types = \App\Models\AppointmentType::all();
+
         return response()->json($types);
     }
 
     public function statistics(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::APPOINTMENTS)) {
+            return $error;
+        }
+
         try {
-            \Log::info('Fetching appointment statistics for user: ' . ($request->user()->id ?? 'none'));
+            \Log::info('Fetching appointment statistics for user: '.($request->user()->id ?? 'none'));
             $user = $request->user();
-            
+
             // Initialize with zeros
             $stats = [
                 'today' => 0,
@@ -383,23 +412,24 @@ class AppointmentController extends BaseApiController
                 'this_week' => 0,
                 'this_month' => 0,
             ];
-            
+
             // Get requested branch_id from query parameter
             $requestedBranchId = $request->get('branch_id');
-            
+
             // Get branch IDs for facility filtering
             $branchIds = [];
             if ($requestedBranchId) {
                 // If a specific branch is requested, use only that branch
-                $branchIds = [(int)$requestedBranchId];
+                $branchIds = [(int) $requestedBranchId];
             } elseif ($user && $user->role !== 'super_admin' && $user->facility_id) {
                 try {
                     $branchIds = $this->getFacilityBranchIds($user->facility_id);
                 } catch (\Throwable $e) {
                     \Log::error('Error getting facility branch IDs for stats', ['error' => $e->getMessage()]);
+
                     return response()->json($stats);
                 }
-                
+
                 if (empty($branchIds)) {
                     return response()->json($stats);
                 }
@@ -413,7 +443,7 @@ class AppointmentController extends BaseApiController
 
             // Get resident IDs for this facility
             $residentIds = [];
-            if (!empty($branchIds)) {
+            if (! empty($branchIds)) {
                 try {
                     $residentIds = DB::table('residents')
                         ->whereIn('branch_id', $branchIds)
@@ -425,12 +455,12 @@ class AppointmentController extends BaseApiController
             }
 
             // Build base query
-            if (!empty($branchIds)) {
+            if (! empty($branchIds)) {
                 // Today
                 $stats['today'] = DB::table('appointments')
-                    ->where(function($q) use ($branchIds, $residentIds) {
+                    ->where(function ($q) use ($branchIds, $residentIds) {
                         $q->whereIn('branch_id', $branchIds);
-                        if (!empty($residentIds)) {
+                        if (! empty($residentIds)) {
                             $q->orWhereIn('resident_id', $residentIds);
                         }
                     })
@@ -440,9 +470,9 @@ class AppointmentController extends BaseApiController
 
                 // Upcoming
                 $stats['upcoming'] = DB::table('appointments')
-                    ->where(function($q) use ($branchIds, $residentIds) {
+                    ->where(function ($q) use ($branchIds, $residentIds) {
                         $q->whereIn('branch_id', $branchIds);
-                        if (!empty($residentIds)) {
+                        if (! empty($residentIds)) {
                             $q->orWhereIn('resident_id', $residentIds);
                         }
                     })
@@ -453,9 +483,9 @@ class AppointmentController extends BaseApiController
 
                 // Completed
                 $stats['completed'] = DB::table('appointments')
-                    ->where(function($q) use ($branchIds, $residentIds) {
+                    ->where(function ($q) use ($branchIds, $residentIds) {
                         $q->whereIn('branch_id', $branchIds);
-                        if (!empty($residentIds)) {
+                        if (! empty($residentIds)) {
                             $q->orWhereIn('resident_id', $residentIds);
                         }
                     })
@@ -465,9 +495,9 @@ class AppointmentController extends BaseApiController
 
                 // Total
                 $stats['total'] = DB::table('appointments')
-                    ->where(function($q) use ($branchIds, $residentIds) {
+                    ->where(function ($q) use ($branchIds, $residentIds) {
                         $q->whereIn('branch_id', $branchIds);
-                        if (!empty($residentIds)) {
+                        if (! empty($residentIds)) {
                             $q->orWhereIn('resident_id', $residentIds);
                         }
                     })
@@ -476,9 +506,9 @@ class AppointmentController extends BaseApiController
 
                 // This month
                 $stats['this_month'] = DB::table('appointments')
-                    ->where(function($q) use ($branchIds, $residentIds) {
+                    ->where(function ($q) use ($branchIds, $residentIds) {
                         $q->whereIn('branch_id', $branchIds);
-                        if (!empty($residentIds)) {
+                        if (! empty($residentIds)) {
                             $q->orWhereIn('resident_id', $residentIds);
                         }
                     })
@@ -495,12 +525,12 @@ class AppointmentController extends BaseApiController
             }
 
             return response()->json($stats);
-            
+
         } catch (\Throwable $e) {
             \Log::error('CRITICAL ERROR in Appointment statistics', [
                 'error' => $e->getMessage(),
                 'line' => $e->getLine(),
-                'file' => $e->getFile()
+                'file' => $e->getFile(),
             ]);
 
             return response()->json([
@@ -511,9 +541,8 @@ class AppointmentController extends BaseApiController
                 'total' => 0,
                 'this_week' => 0,
                 'this_month' => 0,
-                'diagnostic_error' => $e->getMessage()
+                'diagnostic_error' => $e->getMessage(),
             ], 200);
         }
     }
 }
-

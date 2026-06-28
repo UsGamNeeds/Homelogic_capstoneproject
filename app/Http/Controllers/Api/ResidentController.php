@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Constants\UserRoles;
 use App\Http\Requests\Api\Resident\StoreResidentRequest;
 use App\Http\Requests\Api\Resident\UpdateResidentRequest;
 use App\Http\Requests\Api\Resident\UpdateResidentStatusRequest;
@@ -19,13 +18,17 @@ class ResidentController extends BaseApiController
 {
     public function index(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::RESIDENTS)) {
+            return $error;
+        }
+
         $query = Resident::with(['branch']);
         $user = $request->user();
         $caregiverBranchId = null;
 
         // Check if user is a caregiver
         $isCaregiver = $this->isCaregiver($user);
-        
+
         if ($isCaregiver) {
             $caregiverBranchId = (int) ($user->assigned_branch_id ?? 0);
 
@@ -42,20 +45,20 @@ class ResidentController extends BaseApiController
         }
 
         // Search
-        if ($request->has('search') && !empty($request->get('search'))) {
+        if ($request->has('search') && ! empty($request->get('search'))) {
             $search = $request->get('search');
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('middle_names', 'like', "%{$search}%")
-                  ->orWhere('name', 'like', "%{$search}%")
-                  ->orWhere('room_number', 'like', "%{$search}%")
-                  ->orWhere('room', 'like', "%{$search}%");
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('middle_names', 'like', "%{$search}%")
+                    ->orWhere('name', 'like', "%{$search}%")
+                    ->orWhere('room_number', 'like', "%{$search}%")
+                    ->orWhere('room', 'like', "%{$search}%");
             });
         }
 
         // Filter by branch (only for non-caregivers - caregivers are already filtered above)
-        if (!$isCaregiver && $request->has('branch_id') && !empty($request->get('branch_id'))) {
+        if (! $isCaregiver && $request->has('branch_id') && ! empty($request->get('branch_id'))) {
             $query->where('branch_id', $request->get('branch_id'));
         }
 
@@ -78,13 +81,13 @@ class ResidentController extends BaseApiController
         }
 
         // Only filter by active if explicitly requested and show_all is not set
-        if (!$request->has('show_all') && !$request->has('status')) {
+        if (! $request->has('show_all') && ! $request->has('status')) {
             // Default: show active residents, but allow all if show_all is set
             $query->active();
         }
 
         $query->orderBy('created_at', 'desc');
-        
+
         $perPage = (int) $request->get('per_page', 50);
         $perPage = max(1, min(100, $perPage));
         $residents = $query->paginate($perPage);
@@ -102,20 +105,24 @@ class ResidentController extends BaseApiController
 
     public function show($id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::RESIDENTS)) {
+            return $error;
+        }
+
         $resident = Resident::with([
-                'branch',
-                'appointments',
-                'vitalSigns',
-                'sleepRecords',
-                'sleepPatterns',
-                'medicationOrders' => function($query) {
-                    // Remove global scope to ensure all medications for this resident are loaded
-                    // We've already verified access to the resident, so we can show all their medications
-                    $query->withoutGlobalScopes()
-                        ->orderBy('start_date', 'desc');
-                },
-                'medicationOrders.drug',
-            ])
+            'branch',
+            'appointments',
+            'vitalSigns',
+            'sleepRecords',
+            'sleepPatterns',
+            'medicationOrders' => function ($query) {
+                // Remove global scope to ensure all medications for this resident are loaded
+                // We've already verified access to the resident, so we can show all their medications
+                $query->withoutGlobalScopes()
+                    ->orderBy('start_date', 'desc');
+            },
+            'medicationOrders.drug',
+        ])
             ->findOrFail($id);
 
         $user = request()->user();
@@ -131,6 +138,10 @@ class ResidentController extends BaseApiController
 
     public function appointments($id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::RESIDENTS)) {
+            return $error;
+        }
+
         $resident = Resident::findOrFail($id);
         $user = request()->user();
         $isCaregiver = $user && in_array($user->role, ['caregiver', 'care_giver', 'nurse', 'registered_nurse', 'licensed_nurse']);
@@ -153,6 +164,10 @@ class ResidentController extends BaseApiController
 
     public function vitals($id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::RESIDENTS)) {
+            return $error;
+        }
+
         $resident = Resident::findOrFail($id);
         $user = request()->user();
         $isCaregiver = $user && in_array($user->role, ['caregiver', 'care_giver', 'nurse', 'registered_nurse', 'licensed_nurse']);
@@ -174,6 +189,10 @@ class ResidentController extends BaseApiController
 
     public function store(StoreResidentRequest $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::RESIDENTS)) {
+            return $error;
+        }
+
         $user = auth()->user();
 
         if ($this->isCaregiver($user)) {
@@ -183,11 +202,11 @@ class ResidentController extends BaseApiController
         // Allow administrators and super admins to create residents even without specific permission
         $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
         $isAdmin = $user && $user->isAnyAdmin();
-        
+
         // Check permission only if user is not an admin or super admin
-        if (!$isSuperAdmin && !$isAdmin) {
-        if ($error = $this->requirePermission('create_residents')) {
-            return $error;
+        if (! $isSuperAdmin && ! $isAdmin) {
+            if ($error = $this->requirePermission('create_residents')) {
+                return $error;
             }
         }
 
@@ -199,27 +218,27 @@ class ResidentController extends BaseApiController
         $nameParts = array_filter([
             $validated['first_name'] ?? '',
             $validated['middle_names'] ?? '',
-            $validated['last_name'] ?? ''
+            $validated['last_name'] ?? '',
         ]);
         $validated['name'] = implode(' ', $nameParts);
 
         // Handle allergies and medical_conditions - convert strings to arrays for storage
         if (isset($validated['allergies']) && is_string($validated['allergies'])) {
-            $validated['allergies'] = !empty(trim($validated['allergies'])) 
-                ? [$validated['allergies']] 
+            $validated['allergies'] = ! empty(trim($validated['allergies']))
+                ? [$validated['allergies']]
                 : null;
         }
-        
+
         if (isset($validated['medical_conditions']) && is_string($validated['medical_conditions'])) {
-            $validated['medical_conditions'] = !empty(trim($validated['medical_conditions'])) 
-                ? [$validated['medical_conditions']] 
+            $validated['medical_conditions'] = ! empty(trim($validated['medical_conditions']))
+                ? [$validated['medical_conditions']]
                 : null;
         }
 
         // Handle profile image upload
         if ($request->hasFile('profile_image')) {
             $image = $request->file('profile_image');
-            $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+            $imageName = time().'_'.uniqid().'.'.$image->getClientOriginalExtension();
             $imagePath = $image->storeAs('residents/profile_images', $imageName, 'public');
             $validated['profile_image'] = $imagePath;
         }
@@ -235,6 +254,10 @@ class ResidentController extends BaseApiController
 
     public function update(UpdateResidentRequest $request, $id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::RESIDENTS)) {
+            return $error;
+        }
+
         $user = auth()->user();
 
         if ($this->isCaregiver($user)) {
@@ -246,7 +269,7 @@ class ResidentController extends BaseApiController
         $isAdmin = $user && $user->isAnyAdmin();
 
         // Check permission only if user is not an admin or super admin
-        if (!$isSuperAdmin && !$isAdmin) {
+        if (! $isSuperAdmin && ! $isAdmin) {
             if ($error = $this->requirePermission('edit_residents')) {
                 return $error;
             }
@@ -261,7 +284,7 @@ class ResidentController extends BaseApiController
             $resident->load('branch');
             if ($currentUser->facility_id) {
                 // Verify the resident's branch belongs to the user's facility
-                if (!$resident->branch || $resident->branch->facility_id !== $currentUser->facility_id) {
+                if (! $resident->branch || $resident->branch->facility_id !== $currentUser->facility_id) {
                     return $this->error('You do not have permission to update this resident.', 403);
                 }
             } else {
@@ -280,9 +303,9 @@ class ResidentController extends BaseApiController
             if ($resident->profile_image && Storage::disk('public')->exists($resident->profile_image)) {
                 Storage::disk('public')->delete($resident->profile_image);
             }
-            
+
             $image = $request->file('profile_image');
-            $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+            $imageName = time().'_'.uniqid().'.'.$image->getClientOriginalExtension();
             $imagePath = $image->storeAs('residents/profile_images', $imageName, 'public');
             $validated['profile_image'] = $imagePath;
         }
@@ -290,30 +313,30 @@ class ResidentController extends BaseApiController
         // Handle array fields - convert to arrays if they come as strings or ensure they're arrays
         if (isset($validated['medical_conditions'])) {
             if (is_string($validated['medical_conditions'])) {
-                $validated['medical_conditions'] = !empty(trim($validated['medical_conditions'])) 
-                    ? [$validated['medical_conditions']] 
+                $validated['medical_conditions'] = ! empty(trim($validated['medical_conditions']))
+                    ? [$validated['medical_conditions']]
                     : null;
             } elseif (is_array($validated['medical_conditions'])) {
-                $validated['medical_conditions'] = array_filter($validated['medical_conditions'], function($item) {
-                    return !empty(trim($item));
+                $validated['medical_conditions'] = array_filter($validated['medical_conditions'], function ($item) {
+                    return ! empty(trim($item));
                 });
-                $validated['medical_conditions'] = !empty($validated['medical_conditions']) 
-                    ? array_values($validated['medical_conditions']) 
+                $validated['medical_conditions'] = ! empty($validated['medical_conditions'])
+                    ? array_values($validated['medical_conditions'])
                     : null;
             }
         }
-        
+
         if (isset($validated['allergies'])) {
             if (is_string($validated['allergies'])) {
-                $validated['allergies'] = !empty(trim($validated['allergies'])) 
-                    ? [$validated['allergies']] 
+                $validated['allergies'] = ! empty(trim($validated['allergies']))
+                    ? [$validated['allergies']]
                     : null;
             } elseif (is_array($validated['allergies'])) {
-                $validated['allergies'] = array_filter($validated['allergies'], function($item) {
-                    return !empty(trim($item));
+                $validated['allergies'] = array_filter($validated['allergies'], function ($item) {
+                    return ! empty(trim($item));
                 });
-                $validated['allergies'] = !empty($validated['allergies']) 
-                    ? array_values($validated['allergies']) 
+                $validated['allergies'] = ! empty($validated['allergies'])
+                    ? array_values($validated['allergies'])
                     : null;
             }
         }
@@ -344,7 +367,8 @@ class ResidentController extends BaseApiController
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            return $this->error('Failed to update resident: ' . $e->getMessage(), 500);
+
+            return $this->error('Failed to update resident: '.$e->getMessage(), 500);
         }
 
         return $this->success(
@@ -355,10 +379,14 @@ class ResidentController extends BaseApiController
 
     public function updateStatus(UpdateResidentStatusRequest $request, $resident): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::RESIDENTS)) {
+            return $error;
+        }
+
         $user = $request->user();
 
         $resident = Resident::withoutGlobalScope(\App\Models\Scopes\FacilityScope::class)->find($resident);
-        if (!$resident) {
+        if (! $resident) {
             return $this->error('Resident not found.', 404);
         }
 
@@ -368,9 +396,9 @@ class ResidentController extends BaseApiController
 
         if ($this->isCaregiver($user)) {
             if (
-                !$user?->assigned_branch_id
-                || !$this->checkBranchAccess($resident, $user)
-                || !$this->checkFacilityAccess($resident, $user)
+                ! $user?->assigned_branch_id
+                || ! $this->checkBranchAccess($resident, $user)
+                || ! $this->checkFacilityAccess($resident, $user)
             ) {
                 return $this->error('You may only update residents in your assigned branch.', 403);
             }
@@ -382,13 +410,13 @@ class ResidentController extends BaseApiController
             $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
             $isAdmin = $user && $user->isAnyAdmin();
 
-            if (!$isSuperAdmin && !$isAdmin) {
+            if (! $isSuperAdmin && ! $isAdmin) {
                 if ($error = $this->requirePermission('edit_residents', $user)) {
                     return $error;
                 }
             }
 
-            if (!$this->checkFacilityAccess($resident, $user)) {
+            if (! $this->checkFacilityAccess($resident, $user)) {
                 return $this->error('You do not have permission to update this resident.', 403);
             }
         }
@@ -472,6 +500,10 @@ class ResidentController extends BaseApiController
 
     public function destroy($id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::RESIDENTS)) {
+            return $error;
+        }
+
         $user = auth()->user();
 
         if ($this->isCaregiver($user)) {
@@ -481,11 +513,11 @@ class ResidentController extends BaseApiController
         // Allow administrators and super admins to delete residents even without specific permission
         $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
         $isAdmin = $user && $user->isAnyAdmin();
-        
+
         // Check permission only if user is not an admin or super admin
-        if (!$isSuperAdmin && !$isAdmin) {
-        if ($error = $this->requirePermission('delete_residents')) {
-            return $error;
+        if (! $isSuperAdmin && ! $isAdmin) {
+            if ($error = $this->requirePermission('delete_residents')) {
+                return $error;
             }
         }
 
@@ -524,4 +556,3 @@ class ResidentController extends BaseApiController
         }
     }
 }
-
