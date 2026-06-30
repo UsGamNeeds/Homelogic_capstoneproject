@@ -88,7 +88,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Log unexpected errors for API requests
         $exceptions->report(function (\Throwable $e) {
-            if (! request()->is('api/*')) {
+            if (app()->runningInConsole() || ! app()->bound('request')) {
+                return;
+            }
+
+            $request = app('request');
+
+            if (! $request->is('api/*')) {
                 return;
             }
             if ($e instanceof \Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
@@ -98,8 +104,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 'exception' => get_class($e),
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'url' => request()->fullUrl(),
-                'method' => request()->method(),
+                'url' => $request->fullUrl(),
+                'method' => $request->method(),
             ]);
         });
 
