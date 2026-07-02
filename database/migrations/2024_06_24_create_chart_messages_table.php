@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('chart_messages')) {
+            return;
+        }
+
         Schema::create('chart_messages', function (Blueprint $table) {
             $table->id();
             $table->foreignId('resident_id')->constrained()->onDelete('cascade');
