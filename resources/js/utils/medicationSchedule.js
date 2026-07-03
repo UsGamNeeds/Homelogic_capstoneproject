@@ -121,6 +121,10 @@ export function canRecordCompletedAdministrationNow(medication, options = {}) {
         return { ok: false, reason: 'Invalid medication' };
     }
 
+    if (medication.is_active === false) {
+        return { ok: false, reason: 'Medication is inactive.' };
+    }
+
     if (!isMedicationPeriodActiveNow(medication, now)) {
         return { ok: false, reason: 'Medication administration period has ended.' };
     }
