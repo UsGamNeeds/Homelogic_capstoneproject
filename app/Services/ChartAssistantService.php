@@ -12,14 +12,7 @@ class ChartAssistantService
         $resolvedPrompt = $prompt ?? 'Summarize the chart trends and recommend next actions.';
         $heuristicResult = $this->buildHeuristicResult($payload, $prompt);
 
-        $apiKey = env('ANTHROPIC_API_KEY');
-        if (empty($apiKey)) {
-            try {
-                $apiKey = config('services.anthropic.api_key');
-            } catch (\Throwable) {
-                $apiKey = null;
-            }
-        }
+        $apiKey = config('services.anthropic.api_key') ?: env('ANTHROPIC_API_KEY');
         if (empty($apiKey)) {
             return array_merge($heuristicResult, [
                 'prompt' => $resolvedPrompt,
@@ -57,10 +50,6 @@ class ChartAssistantService
             $decoded = json_decode($content, true);
             if (is_array($decoded)) {
                 $decodedSummary = (string) ($decoded['summary'] ?? $heuristicResult['summary']);
-                if ($this->isFollowUpMonitorPrompt($resolvedPrompt) || $this->isFollowUpListPrompt($resolvedPrompt)) {
-                    // Keep prompt-aligned response structure for follow-up vs monitor prompts.
-                    $decodedSummary = (string) ($heuristicResult['summary'] ?? $decodedSummary);
-                }
 
                 return array_merge($heuristicResult, [
                     'prompt' => $resolvedPrompt,
@@ -111,7 +100,7 @@ class ChartAssistantService
             'appointments' => $payload['appointments'] ?? [],
             'medications' => $payload['medications'] ?? [],
             'faxes' => $payload['faxes'] ?? [],
-            'instructions' => 'Return compact JSON with summary, insights, and recommendations arrays only.',
+            'instructions' => 'Directly answer the "prompt" question first, using the chart data as evidence — do not just restate the raw statistics. If the prompt asks a yes/no or risk-assessment question (e.g. "is the resident in danger"), lead the summary with a clear answer before any supporting detail. Return compact JSON with summary, insights, and recommendations arrays only.',
         ]);
     }
 
