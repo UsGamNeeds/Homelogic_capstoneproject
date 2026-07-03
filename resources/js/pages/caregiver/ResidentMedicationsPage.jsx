@@ -422,7 +422,8 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
                 prn.push({ ...medication, slotTime: null, uniqueId: `prn-${medication.id}` });
             } else {
                 times.forEach((time, index) => {
-                    if (isMedicationSlotCoveredToday(medication, time)) {
+                    // Default view hides slots already administered today; "All medications" reveals them.
+                    if (activeOnly && isMedicationSlotCoveredToday(medication, time)) {
                         return;
                     }
                     const [h] = time.split(':').map(Number);
@@ -439,7 +440,7 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
                     else pm.push(entry);
                 });
 
-                if (times.length === 0 && !isNoScheduledTimeRowCoveredToday(medication)) {
+                if (times.length === 0 && (!activeOnly || !isNoScheduledTimeRowCoveredToday(medication))) {
                     scheduled.push({ ...medication, slotTime: null, uniqueId: `sc-${medication.id}` });
                 }
             }
