@@ -1220,7 +1220,7 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
                                                 : 'bg-[var(--theme-primary)]/10 text-[var(--theme-primary)] border-[var(--theme-primary)]/40'
                                         }`}
                                     >
-                                        {activeOnly ? 'Active only' : 'All medications'}
+                                        {activeOnly ? 'Show all medications' : 'Show active only'}
                                     </button>
                                 )}
                               </div>

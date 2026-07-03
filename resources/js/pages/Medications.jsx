@@ -1237,7 +1237,7 @@ export default function Medications() {
                                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                                 }`}
                         >
-                            {activeOnly ? 'Active Only' : 'All Medications'}
+                            {activeOnly ? 'Show all medications' : 'Show active only'}
                         </button>
                     </div>
                     <div>
