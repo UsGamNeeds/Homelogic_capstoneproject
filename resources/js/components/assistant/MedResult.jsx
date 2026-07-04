@@ -54,7 +54,7 @@ function MedRow({ med }) {
                 <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
                     {slots.map((s, i) => (
                         <span
-                            key={i}
+                            key={s.at ?? i}
                             className={
                                 s.given
                                     ? 'text-gray-400 dark:text-gray-500'
@@ -63,6 +63,7 @@ function MedRow({ med }) {
                         >
                             {formatTime(s.at)}
                             {s.given ? ' ✓' : ''}
+                            <span className="sr-only">{s.given ? ' given' : ' pending'}</span>
                         </span>
                     ))}
                 </div>
