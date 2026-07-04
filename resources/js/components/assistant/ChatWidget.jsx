@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Bot, X, Send, MessageCircle } from 'lucide-react';
 import { useAssistant, useStarterSuggestions } from '../../hooks/useAssistant';
 import { useAssistantResident } from '../../contexts/AssistantResidentContext';
@@ -40,16 +40,23 @@ export default function ChatWidget() {
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState([]);
     const [activeResident, setActiveResident] = useState(null); // { id, name } | null
+    const seededRef = useRef(false);
     const assistant = useAssistant();
     const starter = useStarterSuggestions(open && messages.length === 0);
     const { pageResident } = useAssistantResident();
 
-    // Seed the active resident from the page when opening a fresh chat.
+    // Seed the active resident from the page once per open. A ref guard (not
+    // activeResident) so clearing (✕) doesn't immediately re-seed.
     useEffect(() => {
-        if (open && messages.length === 0 && pageResident && !activeResident) {
+        if (!open) {
+            seededRef.current = false;
+            return;
+        }
+        if (!seededRef.current && messages.length === 0 && pageResident) {
+            seededRef.current = true;
             setActiveResident(pageResident);
         }
-    }, [open, pageResident, messages.length, activeResident]);
+    }, [open, pageResident, messages.length]);
 
     const sendMessage = (text) => {
         const t = (text || '').trim();
