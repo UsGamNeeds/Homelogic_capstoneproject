@@ -43,6 +43,7 @@ import DropdownMenu, { DropdownMenuItem, DropdownMenuSeparator } from './ui/radi
 import Tooltip from './ui/Tooltip';
 import PageBackButton from './ui/PageBackButton';
 import HeaderResidentSwitcher from './HeaderResidentSwitcher';
+import ChatWidget from './ChatWidget';
 import {
     RESIDENT_HUB_PREFIXES,
     RESIDENT_LEGACY_DETAIL,
@@ -730,6 +731,7 @@ export default function Layout() {
                     <main className="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-6">
                         <PageTransition>
                             <Outlet />
+                            <ChatWidget />
                         </PageTransition>
                     </main>
             </div>
