@@ -41,10 +41,32 @@ function MedRow({ med }) {
         tone = 'due';
         label = `Due ${formatTime(med.next_dose_at)}`;
     }
+
+    const slots = Array.isArray(med.slots) ? med.slots : [];
+
     return (
-        <div className="flex items-center justify-between gap-2 py-1">
-            <span className="truncate text-sm text-gray-800 dark:text-gray-100">{med.name}</span>
-            <StatusPill tone={tone} label={label} />
+        <div className="py-1">
+            <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-sm text-gray-800 dark:text-gray-100">{med.name}</span>
+                <StatusPill tone={tone} label={label} />
+            </div>
+            {slots.length > 0 && (
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+                    {slots.map((s, i) => (
+                        <span
+                            key={i}
+                            className={
+                                s.given
+                                    ? 'text-gray-400 dark:text-gray-500'
+                                    : 'font-medium text-gray-700 dark:text-gray-200'
+                            }
+                        >
+                            {formatTime(s.at)}
+                            {s.given ? ' ✓' : ''}
+                        </span>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
