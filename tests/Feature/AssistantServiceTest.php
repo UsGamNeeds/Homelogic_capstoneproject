@@ -92,6 +92,7 @@ class AssistantServiceTest extends TestCase
         $this->assertSame('prn_status', $result['intent']);
         $this->assertStringContainsString('Diazepam', $result['answer']);
         $this->assertStringContainsString('last given', $result['answer']);
+        $this->assertStringContainsString("can't advise", $result['answer']);
     }
 
     public function test_unknown_resident_prompts_for_name_without_calling_llm(): void

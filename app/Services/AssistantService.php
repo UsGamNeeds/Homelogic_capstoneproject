@@ -107,8 +107,9 @@ class AssistantService
             return $this->reply('prn_status', "No PRN (as-needed) medications on record for {$this->label($resident)}.");
         }
 
-        $data = $prn->map(function ($m) {
+        $data = $prn->map(function ($m) use ($resident) {
             $last = MedicationAdministration::where('medication_id', $m->id)
+                ->where('resident_id', $resident->id)
                 ->orderByDesc('administered_at')
                 ->first();
 
