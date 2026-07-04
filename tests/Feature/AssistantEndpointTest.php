@@ -91,4 +91,34 @@ class AssistantEndpointTest extends TestCase
         $this->postJson('/api/v1/assistant/query', ['message' => 'meds for Mary Smith today'])
             ->assertStatus(403);
     }
+
+    public function test_forwards_context_resident_id(): void
+    {
+        \Illuminate\Support\Facades\Http::fake();
+        $facility = \App\Models\Facility::factory()->create();
+        $branch = \App\Models\Branch::factory()->create(['facility_id' => $facility->id]);
+        $user = \App\Models\User::factory()->create(['facility_id' => $facility->id, 'role' => 'admin']);
+        $resident = \App\Models\Resident::factory()->create([
+            'branch_id' => $branch->id, 'first_name' => 'Mary', 'last_name' => 'Smith',
+        ]);
+        \Laravel\Sanctum\Sanctum::actingAs($user);
+
+        // message names nobody; context id resolves the resident
+        $this->postJson('/api/v1/assistant/query', [
+            'message' => 'all his meds',
+            'context_resident_id' => $resident->id,
+        ])->assertOk()->assertJsonPath('data.resident.id', $resident->id);
+    }
+
+    public function test_rejects_non_integer_context_id(): void
+    {
+        $facility = \App\Models\Facility::factory()->create();
+        $user = \App\Models\User::factory()->create(['facility_id' => $facility->id, 'role' => 'admin']);
+        \Laravel\Sanctum\Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/assistant/query', [
+            'message' => 'hi',
+            'context_resident_id' => 'not-an-int',
+        ])->assertStatus(422);
+    }
 }

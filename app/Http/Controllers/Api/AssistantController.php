@@ -23,9 +23,14 @@ class AssistantController extends BaseApiController
 
         $validated = $request->validate([
             'message' => 'required|string|max:500',
+            'context_resident_id' => 'nullable|integer',
         ]);
 
-        $result = $assistant->handle($validated['message'], $request->user());
+        $result = $assistant->handle(
+            $validated['message'],
+            $request->user(),
+            $validated['context_resident_id'] ?? null,
+        );
 
         return $this->success($result);
     }
