@@ -105,6 +105,7 @@ class AssistantService
                 'is_fully_administered_today' => (bool) $m->is_fully_administered_today,
                 'is_overdue' => (bool) $m->is_overdue,
                 'next_dose_at' => $m->next_dose_at,
+                'slots' => $m->slots ?? [],
             ])->values()->all(),
             'suggestions' => [],
             'resident' => $this->residentPayload($resident),

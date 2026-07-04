@@ -2,8 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Medication;
-use App\Models\MedicationAdministration;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -11,10 +9,8 @@ class MedicationService
 {
     /**
      * Get administration status for a collection of medications for a specific day.
-     * 
-     * @param Collection $medications
-     * @param string|Carbon|null $date
-     * @return Collection
+     *
+     * @param  string|Carbon|null  $date
      */
     public function getMedicationsWithStatus(Collection $medications, $date = null): Collection
     {
@@ -25,11 +21,12 @@ class MedicationService
 
         // Load administrations if not already loaded (eager loading is preferred before calling this)
         // Optimization: better if caller does with(['administrations' => function($q) { ... }])
-        
+
         return $medications->map(function ($med) use ($now, $targetDateStr, $timezone) {
             $nextDoseTime = null;
             $completedCount = 0;
             $totalSlots = 0;
+            $slots = [];
             $isPrn = stripos($med->instructions, 'PRN') !== false || stripos($med->instructions, 'as needed') !== false;
 
             for ($i = 1; $i <= 4; $i++) {
@@ -38,20 +35,26 @@ class MedicationService
                     $totalSlots++;
                     try {
                         // TIME columns may be "08:00" or "08:00:00" — parse handles both (createFromFormat H:i fails on seconds).
-                        $scheduledTime = Carbon::parse(trim($targetDateStr . ' ' . $timeStr), $timezone);
-                        
+                        $scheduledTime = Carbon::parse(trim($targetDateStr.' '.$timeStr), $timezone);
+
                         // Check if administered within ±60 mins window
                         // Important: check only those with matching status
                         $hasAdmin = $med->administrations->contains(function ($admin) use ($scheduledTime, $timezone) {
                             $adminAt = Carbon::parse($admin->administered_at)->setTimezone($timezone);
+
                             return abs($adminAt->diffInMinutes($scheduledTime)) <= 60 &&
                                    in_array($admin->status, ['completed', 'refused', 'hospital_admission', 'pharmacy_administration_confirm']);
                         });
 
+                        $slots[] = [
+                            'at' => $scheduledTime->toIso8601String(),
+                            'given' => $hasAdmin,
+                        ];
+
                         if ($hasAdmin) {
                             $completedCount++;
                         } else {
-                            if (!$nextDoseTime || $scheduledTime->lt($nextDoseTime)) {
+                            if (! $nextDoseTime || $scheduledTime->lt($nextDoseTime)) {
                                 $nextDoseTime = $scheduledTime;
                             }
                         }
@@ -64,7 +67,8 @@ class MedicationService
             $med->is_fully_administered_today = ($totalSlots > 0 && $completedCount >= $totalSlots);
             $med->next_dose_at = $nextDoseTime ? $nextDoseTime->toIso8601String() : null;
             $med->is_overdue = $nextDoseTime && $nextDoseTime->lt($now->copy()->subMinutes(60));
-            
+            $med->slots = $slots;
+
             // Priority minutes for sorting
             if ($isPrn) {
                 $med->minutes_until_next = 999998; // After all scheduled doses
@@ -73,16 +77,13 @@ class MedicationService
             } else {
                 $med->minutes_until_next = 999999; // Completed or no times
             }
-            
+
             return $med;
         });
     }
 
     /**
      * Sort medications by administration priority.
-     * 
-     * @param Collection $medications
-     * @return Collection
      */
     public function sortMedicationsByPriority(Collection $medications): Collection
     {
@@ -93,7 +94,7 @@ class MedicationService
             }
 
             // Both have same completion status (both pending or both completed)
-            if (!$a->is_fully_administered_today) {
+            if (! $a->is_fully_administered_today) {
                 // Determine if PRN
                 $aIsPrn = stripos($a->instructions, 'PRN') !== false || stripos($a->instructions, 'as needed') !== false;
                 $bIsPrn = stripos($b->instructions, 'PRN') !== false || stripos($b->instructions, 'as needed') !== false;

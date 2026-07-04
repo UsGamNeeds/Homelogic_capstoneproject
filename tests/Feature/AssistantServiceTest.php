@@ -254,4 +254,37 @@ class AssistantServiceTest extends TestCase
         $this->assertArrayHasKey('resident', $result);
         $this->assertNull($result['resident']);
     }
+
+    public function test_todays_meds_include_scheduled_slots_with_given_flags(): void
+    {
+        Http::fake();
+        [, $branch, $user, $resident] = $this->seedFixtures();
+        $med = $this->makeMedication($resident, $branch, $user, [
+            'name' => 'Ferrous sulfate 325mg',
+            'instructions' => 'b.d',
+            'time_1' => '08:00',
+            'time_2' => '14:00',
+        ]);
+        // one administration near the 08:00 slot -> first slot given, second pending
+        \App\Models\MedicationAdministration::create([
+            'medication_id' => $med->id,
+            'resident_id' => $resident->id,
+            'branch_id' => $branch->id,
+            'administered_by' => $user->id,
+            'administered_at' => today()->setTime(8, 5),
+            'status' => 'completed',
+        ]);
+
+        $result = app(AssistantService::class)->handle('today\'s meds for Mary Smith', $user);
+
+        $this->assertSame('todays_meds', $result['intent']);
+        $item = collect($result['data'])->firstWhere('name', 'Ferrous sulfate 325mg');
+        $this->assertNotNull($item);
+        $this->assertCount(2, $item['slots']);
+        $this->assertTrue($item['slots'][0]['given']);
+        $this->assertFalse($item['slots'][1]['given']);
+        // times reflect the scheduled slots
+        $this->assertStringContainsString('08:00', \Carbon\Carbon::parse($item['slots'][0]['at'])->format('H:i'));
+        $this->assertStringContainsString('14:00', \Carbon\Carbon::parse($item['slots'][1]['at'])->format('H:i'));
+    }
 }
