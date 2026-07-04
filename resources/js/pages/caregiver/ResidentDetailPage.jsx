@@ -30,6 +30,7 @@ import logger from '../../utils/logger';
 import { canEditResidentCarePlan } from '../../utils/userRoles';
 import { formatPacificCalendarMedium, calculateAgeFromPacificBirthDate } from '../../utils/pacificTime';
 import { getResidentStatusSummary } from '../../utils/residentStatus';
+import { useAssistantPageResident } from '../../contexts/AssistantResidentContext';
 
 const tabs = [
     { id: 'profile', label: 'Profile Overview', icon: Users },
@@ -163,6 +164,11 @@ export default function ResidentDetailPage() {
     });
 
     const resident = data ?? null;
+    useAssistantPageResident(
+        resident
+            ? { id: resident.id, name: `${resident.first_name ?? ''} ${resident.last_name ?? ''}`.trim() }
+            : null,
+    );
     const fullName = React.useMemo(() => {
         if (!resident) return '';
         return [resident.first_name, resident.middle_names, resident.last_name].filter(Boolean).join(' ');

@@ -6,6 +6,7 @@ import { ArrowLeft, ClipboardList, Calendar, User, CheckCircle, AlertCircle } fr
 import logger from '../utils/logger';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { isCaregiverRole } from '../utils/userRoles';
+import { useAssistantPageResident } from '../contexts/AssistantResidentContext';
 
 export default function AssessmentDetail() {
     const { id } = useParams();
@@ -25,6 +26,13 @@ export default function AssessmentDetail() {
         queryKey: ['assessment-detail', id],
         queryFn: async () => (await api.get(`/assessments/${id}`)).data,
     });
+
+    const assessmentResident = data?.resident ?? null;
+    useAssistantPageResident(
+        assessmentResident
+            ? { id: assessmentResident.id, name: `${assessmentResident.first_name ?? ''} ${assessmentResident.last_name ?? ''}`.trim() }
+            : null,
+    );
 
     const saveMutation = useMutation({
         mutationFn: async ({ questionId, value }) => {
