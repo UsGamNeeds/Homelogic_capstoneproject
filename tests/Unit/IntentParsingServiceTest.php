@@ -8,6 +8,12 @@ use Tests\TestCase;
 
 class IntentParsingServiceTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['services.anthropic.api_key' => 'test-key']);
+    }
+
     private function service(): IntentParsingService
     {
         return new IntentParsingService;
@@ -62,5 +68,13 @@ class IntentParsingServiceTest extends TestCase
             ], 200),
         ]);
         $this->assertSame('unknown', $this->service()->parse('mumble {RESIDENT}'));
+    }
+
+    public function test_parse_fails_closed_when_api_key_missing(): void
+    {
+        config(['services.anthropic.api_key' => null]);
+        Http::fake();
+        $this->assertSame('unknown', $this->service()->parse('mumble mumble {RESIDENT}'));
+        Http::assertNothingSent();
     }
 }
