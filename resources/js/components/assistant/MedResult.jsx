@@ -101,6 +101,7 @@ export default function MedResult({ answer, meds }) {
                     <button
                         type="button"
                         onClick={() => setDoneOpen((o) => !o)}
+                        aria-expanded={doneOpen}
                         className="flex items-center gap-1 py-1 text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                     >
                         {doneOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
