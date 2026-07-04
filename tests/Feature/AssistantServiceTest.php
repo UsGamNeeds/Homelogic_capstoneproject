@@ -116,4 +116,72 @@ class AssistantServiceTest extends TestCase
 
         $this->assertStringContainsStringIgnoringCase('which', $result['answer']);
     }
+
+    public function test_unclear_intent_returns_meds_and_prn_chips(): void
+    {
+        Http::fake(); // faked LLM returns empty -> parse() => 'unknown' -> chips
+        [, $branch, $user, $resident] = $this->seedFixtures();
+
+        $result = app(AssistantService::class)->handle('mary smith', $user);
+
+        $this->assertSame('unknown', $result['intent']);
+        $this->assertCount(2, $result['suggestions']);
+        $labels = array_column($result['suggestions'], 'label');
+        $this->assertContains("Today's meds", $labels);
+        $this->assertContains('PRN', $labels);
+
+        // Each chip message must round-trip to the right intent via the pipeline.
+        $byLabel = collect($result['suggestions'])->keyBy('label');
+        $meds = app(AssistantService::class)->handle($byLabel["Today's meds"]['message'], $user);
+        $this->assertSame('todays_meds', $meds['intent']);
+        $prn = app(AssistantService::class)->handle($byLabel['PRN']['message'], $user);
+        $this->assertSame('prn_status', $prn['intent']);
+    }
+
+    public function test_ambiguous_returns_one_chip_per_resident(): void
+    {
+        Http::fake();
+        [, $branch, $user] = $this->seedFixtures();
+        \App\Models\Resident::factory()->create([
+            'branch_id' => $branch->id, 'first_name' => 'Mary', 'last_name' => 'Taylor',
+        ]);
+
+        $result = app(AssistantService::class)->handle('meds for Mary', $user);
+
+        // Two residents named Mary -> ambiguous -> one chip each.
+        $this->assertCount(2, $result['suggestions']);
+        foreach ($result['suggestions'] as $s) {
+            $this->assertStringContainsString("today's meds for", strtolower($s['message']));
+        }
+    }
+
+    public function test_normal_answer_has_empty_suggestions(): void
+    {
+        Http::fake();
+        [, $branch, $user, $resident] = $this->seedFixtures();
+        $this->makeMedication($resident, $branch, $user);
+
+        $result = app(AssistantService::class)->handle('what meds is Mary Smith on today', $user);
+
+        $this->assertSame('todays_meds', $result['intent']);
+        $this->assertSame([], $result['suggestions']);
+    }
+
+    public function test_starter_suggestions_builds_resident_prompts(): void
+    {
+        [, $branch, $user] = $this->seedFixtures(); // seedFixtures creates resident "Mary Smith"
+        \App\Models\Resident::factory()->create([
+            'branch_id' => $branch->id, 'first_name' => 'Anna', 'last_name' => 'Bell',
+        ]);
+
+        $chips = app(AssistantService::class)->starterSuggestions($user, 3);
+
+        $this->assertNotEmpty($chips);
+        $this->assertLessThanOrEqual(3, count($chips));
+        foreach ($chips as $c) {
+            $this->assertArrayHasKey('label', $c);
+            $this->assertArrayHasKey('message', $c);
+            $this->assertMatchesRegularExpression("/^(today's meds for|PRN for) /i", $c['message']);
+        }
+    }
 }

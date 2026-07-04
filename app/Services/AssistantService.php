@@ -18,7 +18,7 @@ class AssistantService
     ) {}
 
     /**
-     * @return array{intent: string, answer: string, data: array}
+     * @return array{intent: string, answer: string, data: array, suggestions: array}
      */
     public function handle(string $message, User $user): array
     {
@@ -37,8 +37,12 @@ class AssistantService
 
         if ($resolution->status === 'ambiguous') {
             $names = collect($resolution->matches)->map(fn ($r) => $this->label($r))->implode(', ');
+            $suggestions = collect($resolution->matches)->map(fn ($r) => [
+                'label' => $this->label($r),
+                'message' => "today's meds for {$this->label($r)}",
+            ])->all();
 
-            return $this->reply('unknown', "More than one resident matches that name. Which one did you mean: {$names}?");
+            return $this->reply('unknown', "More than one resident matches that name. Which one did you mean: {$names}?", [], $suggestions);
         }
 
         /** @var Resident $resident */
@@ -48,7 +52,12 @@ class AssistantService
         return match ($intent) {
             'todays_meds' => $this->answerTodaysMeds($resident),
             'prn_status' => $this->answerPrn($resident),
-            default => $this->reply('unknown', "I can help with {$this->label($resident)}'s meds for today, or their PRN meds. Which would you like?"),
+            default => $this->reply(
+                'unknown',
+                "I can help with {$this->label($resident)}'s meds for today, or their PRN meds. Which would you like?",
+                [],
+                $this->choiceSuggestions($resident),
+            ),
         };
     }
 
@@ -91,6 +100,7 @@ class AssistantService
                 'is_overdue' => (bool) $m->is_overdue,
                 'next_dose_at' => $m->next_dose_at,
             ])->values()->all(),
+            'suggestions' => [],
         ];
     }
 
@@ -135,19 +145,56 @@ class AssistantService
             'intent' => 'prn_status',
             'answer' => $answer,
             'data' => $data->all(),
+            'suggestions' => [],
         ];
     }
 
     /**
-     * @return array{intent: string, answer: string, data: array}
+     * @param  array<int, array{label: string, message: string}>  $suggestions
+     * @return array{intent: string, answer: string, data: array, suggestions: array}
      */
-    private function reply(string $intent, string $answer, array $data = []): array
+    private function reply(string $intent, string $answer, array $data = [], array $suggestions = []): array
     {
-        return ['intent' => $intent, 'answer' => $answer, 'data' => $data];
+        return ['intent' => $intent, 'answer' => $answer, 'data' => $data, 'suggestions' => $suggestions];
     }
 
     private function label(Resident $resident): string
     {
         return trim(($resident->first_name ?? '').' '.($resident->last_name ?? ''));
+    }
+
+    /**
+     * @return array<int, array{label: string, message: string}>
+     */
+    private function choiceSuggestions(Resident $resident): array
+    {
+        $name = $this->label($resident);
+
+        return [
+            ['label' => "Today's meds", 'message' => "today's meds for {$name}"],
+            ['label' => 'PRN', 'message' => "PRN for {$name}"],
+        ];
+    }
+
+    /**
+     * Starter chips built from residents the user can see (FacilityScope active).
+     *
+     * @return array<int, array{label: string, message: string}>
+     */
+    public function starterSuggestions(User $user, int $limit = 3): array
+    {
+        $residents = Resident::query()->orderBy('first_name')->limit($limit)->get();
+
+        $chips = [];
+        foreach ($residents->values() as $i => $resident) {
+            $name = $this->label($resident);
+            if ($i % 2 === 0) {
+                $chips[] = ['label' => "Today's meds for {$name}", 'message' => "today's meds for {$name}"];
+            } else {
+                $chips[] = ['label' => "PRN for {$name}", 'message' => "PRN for {$name}"];
+            }
+        }
+
+        return $chips;
     }
 }
