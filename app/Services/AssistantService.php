@@ -18,22 +18,11 @@ class AssistantService
     ) {}
 
     /**
-     * @return array{intent: string, answer: string, data: array, suggestions: array}
+     * @return array{intent: string, answer: string, data: array, suggestions: array, resident: ?array}
      */
-    public function handle(string $message, User $user): array
+    public function handle(string $message, User $user, ?int $contextResidentId = null): array
     {
         $resolution = $this->resolver->resolve($message, $user);
-
-        if ($resolution->status === 'none') {
-            // No resident matched: never send the raw name to the LLM. Classify
-            // locally only, and ask for a resident if this looks med-related.
-            $intent = $this->intents->fastPath($message);
-            if ($intent === 'todays_meds' || $intent === 'prn_status') {
-                return $this->reply($intent, "Which resident? I couldn't find that name in your facility.");
-            }
-
-            return $this->reply('unknown', "I can tell you a resident's medications for today, or their PRN (as-needed) meds. Try: \"today's meds for Jane Doe\".");
-        }
 
         if ($resolution->status === 'ambiguous') {
             $names = collect($resolution->matches)->map(fn ($r) => $this->label($r))->implode(', ');
@@ -42,21 +31,38 @@ class AssistantService
                 'message' => "today's meds for {$this->label($r)}",
             ])->all();
 
-            return $this->reply('unknown', "More than one resident matches that name. Which one did you mean: {$names}?", [], $suggestions);
+            return $this->reply('unknown', "More than one resident matches that name. Which one did you mean: {$names}?", [], $suggestions, null);
         }
 
-        /** @var Resident $resident */
-        $resident = $resolution->matches[0];
+        $resident = null;
+        if ($resolution->status === 'one') {
+            $resident = $resolution->matches[0];
+        } elseif ($contextResidentId !== null) {
+            // FacilityScope active: a foreign/stale id resolves to null and is ignored.
+            $resident = Resident::query()->find($contextResidentId);
+        }
+
+        if ($resident === null) {
+            $intent = $this->intents->fastPath($message);
+            if (in_array($intent, ['todays_meds', 'prn_status', 'all_medications'], true)) {
+                return $this->reply($intent, "Which resident? I couldn't find that name in your facility.", [], [], null);
+            }
+
+            return $this->reply('unknown', "I can tell you a resident's medications for today, all their medications, or their PRN (as-needed) meds. Try: \"today's meds for Jane Doe\".", [], [], null);
+        }
+
         $intent = $this->intents->parse($resolution->redacted);
 
         return match ($intent) {
             'todays_meds' => $this->answerTodaysMeds($resident),
             'prn_status' => $this->answerPrn($resident),
+            'all_medications' => $this->answerAllMedications($resident),
             default => $this->reply(
                 'unknown',
-                "I can help with {$this->label($resident)}'s meds for today, or their PRN meds. Which would you like?",
+                "I can help with {$this->label($resident)}'s meds for today, all their meds, or their PRN meds. Which would you like?",
                 [],
                 $this->choiceSuggestions($resident),
+                $resident,
             ),
         };
     }
@@ -69,7 +75,7 @@ class AssistantService
             ->get();
 
         if ($meds->isEmpty()) {
-            return $this->reply('todays_meds', "No active medications on record for {$this->label($resident)}.");
+            return $this->reply('todays_meds', "No active medications on record for {$this->label($resident)}.", [], [], $resident);
         }
 
         $withStatus = $this->medications->getMedicationsWithStatus($meds, today());
@@ -101,6 +107,7 @@ class AssistantService
                 'next_dose_at' => $m->next_dose_at,
             ])->values()->all(),
             'suggestions' => [],
+            'resident' => $this->residentPayload($resident),
         ];
     }
 
@@ -114,7 +121,7 @@ class AssistantService
             ->values();
 
         if ($prn->isEmpty()) {
-            return $this->reply('prn_status', "No PRN (as-needed) medications on record for {$this->label($resident)}.");
+            return $this->reply('prn_status', "No PRN (as-needed) medications on record for {$this->label($resident)}.", [], [], $resident);
         }
 
         $data = $prn->map(function ($m) use ($resident) {
@@ -146,16 +153,60 @@ class AssistantService
             'answer' => $answer,
             'data' => $data->all(),
             'suggestions' => [],
+            'resident' => $this->residentPayload($resident),
+        ];
+    }
+
+    private function answerAllMedications(Resident $resident): array
+    {
+        $meds = $resident->medicationOrders()->where('is_active', true)->get();
+
+        if ($meds->isEmpty()) {
+            return $this->reply('all_medications', "No active medications on record for {$this->label($resident)}.", [], [], $resident);
+        }
+
+        $data = $meds->map(fn ($m) => [
+            'id' => $m->id,
+            'name' => $m->name,
+            'instructions' => (string) $m->instructions,
+        ])->values();
+
+        $lines = $data->map(function ($row) {
+            return $row['instructions'] !== ''
+                ? "- {$row['name']} ({$row['instructions']})"
+                : "- {$row['name']}";
+        })->implode("\n");
+
+        return [
+            'intent' => 'all_medications',
+            'answer' => "All medications for {$this->label($resident)}:\n".$lines,
+            'data' => $data->all(),
+            'suggestions' => [],
+            'resident' => $this->residentPayload($resident),
         ];
     }
 
     /**
      * @param  array<int, array{label: string, message: string}>  $suggestions
-     * @return array{intent: string, answer: string, data: array, suggestions: array}
+     * @return array{intent: string, answer: string, data: array, suggestions: array, resident: ?array}
      */
-    private function reply(string $intent, string $answer, array $data = [], array $suggestions = []): array
+    private function reply(string $intent, string $answer, array $data = [], array $suggestions = [], ?Resident $resident = null): array
     {
-        return ['intent' => $intent, 'answer' => $answer, 'data' => $data, 'suggestions' => $suggestions];
+        return [
+            'intent' => $intent,
+            'answer' => $answer,
+            'data' => $data,
+            'suggestions' => $suggestions,
+            'resident' => $this->residentPayload($resident),
+        ];
+    }
+
+    /**
+     * @return array{id: int, name: string}|null
+     */
+    private function residentPayload(?Resident $resident): ?array
+    {
+        return $resident ? ['id' => $resident->id, 'name' => $this->label($resident)] : null;
     }
 
     private function label(Resident $resident): string
@@ -172,6 +223,7 @@ class AssistantService
 
         return [
             ['label' => "Today's meds", 'message' => "today's meds for {$name}"],
+            ['label' => 'All meds', 'message' => "all medications for {$name}"],
             ['label' => 'PRN', 'message' => "PRN for {$name}"],
         ];
     }

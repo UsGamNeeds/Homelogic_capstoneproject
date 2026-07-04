@@ -125,15 +125,18 @@ class AssistantServiceTest extends TestCase
         $result = app(AssistantService::class)->handle('mary smith', $user);
 
         $this->assertSame('unknown', $result['intent']);
-        $this->assertCount(2, $result['suggestions']);
+        $this->assertCount(3, $result['suggestions']);
         $labels = array_column($result['suggestions'], 'label');
         $this->assertContains("Today's meds", $labels);
+        $this->assertContains('All meds', $labels);
         $this->assertContains('PRN', $labels);
 
         // Each chip message must round-trip to the right intent via the pipeline.
         $byLabel = collect($result['suggestions'])->keyBy('label');
         $meds = app(AssistantService::class)->handle($byLabel["Today's meds"]['message'], $user);
         $this->assertSame('todays_meds', $meds['intent']);
+        $all = app(AssistantService::class)->handle($byLabel['All meds']['message'], $user);
+        $this->assertSame('all_medications', $all['intent']);
         $prn = app(AssistantService::class)->handle($byLabel['PRN']['message'], $user);
         $this->assertSame('prn_status', $prn['intent']);
     }
@@ -183,5 +186,72 @@ class AssistantServiceTest extends TestCase
             $this->assertArrayHasKey('message', $c);
             $this->assertMatchesRegularExpression("/^(today's meds for|PRN for) /i", $c['message']);
         }
+    }
+
+    public function test_uses_context_resident_when_message_has_no_name(): void
+    {
+        Http::fake();
+        [, $branch, $user, $resident] = $this->seedFixtures();
+        $this->makeMedication($resident, $branch, $user, ['name' => 'Aspirin 75mg', 'instructions' => 'o.d']);
+
+        // message names nobody; context id supplies the resident
+        $result = app(AssistantService::class)->handle('show all his meds', $user, $resident->id);
+
+        $this->assertSame('all_medications', $result['intent']);
+        $this->assertSame($resident->id, $result['resident']['id']);
+        $this->assertStringContainsString('Aspirin', $result['answer']);
+        Http::assertNothingSent();
+    }
+
+    public function test_named_resident_overrides_context(): void
+    {
+        Http::fake();
+        [, $branch, $user, $resident] = $this->seedFixtures(); // Mary Smith
+        $other = Resident::factory()->create([
+            'branch_id' => $branch->id, 'first_name' => 'Nora', 'last_name' => 'Quinn',
+        ]);
+
+        // context says $other, but message names Mary Smith -> Mary wins
+        $result = app(AssistantService::class)->handle("today's meds for Mary Smith", $user, $other->id);
+
+        $this->assertSame($resident->id, $result['resident']['id']);
+    }
+
+    public function test_foreign_context_id_is_ignored(): void
+    {
+        Http::fake();
+        [, , $user] = $this->seedFixtures();
+        $otherFacility = Facility::factory()->create();
+        $otherBranch = Branch::factory()->create(['facility_id' => $otherFacility->id]);
+        $foreign = Resident::factory()->create([
+            'branch_id' => $otherBranch->id, 'first_name' => 'Zed', 'last_name' => 'Cross',
+        ]);
+
+        $result = app(AssistantService::class)->handle('all his meds', $user, $foreign->id);
+
+        $this->assertNull($result['resident']);
+        $this->assertStringContainsStringIgnoringCase('which resident', $result['answer']);
+    }
+
+    public function test_all_medications_lists_active_meds(): void
+    {
+        Http::fake();
+        [, $branch, $user, $resident] = $this->seedFixtures();
+        $this->makeMedication($resident, $branch, $user, ['name' => 'Metformin 500mg', 'instructions' => 'b.d']);
+
+        $result = app(AssistantService::class)->handle('all medications for Mary Smith', $user);
+
+        $this->assertSame('all_medications', $result['intent']);
+        $this->assertStringContainsString('Metformin', $result['answer']);
+        $this->assertSame($resident->id, $result['resident']['id']);
+    }
+
+    public function test_reply_always_has_resident_key(): void
+    {
+        Http::fake();
+        [, , $user] = $this->seedFixtures();
+        $result = app(AssistantService::class)->handle('what meds are due', $user);
+        $this->assertArrayHasKey('resident', $result);
+        $this->assertNull($result['resident']);
     }
 }
