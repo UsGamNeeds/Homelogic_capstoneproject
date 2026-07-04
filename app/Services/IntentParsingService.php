@@ -9,11 +9,12 @@ use Illuminate\Support\Facades\Log;
 
 class IntentParsingService
 {
-    private const INTENTS = ['todays_meds', 'prn_status', 'unknown'];
+    private const INTENTS = ['todays_meds', 'prn_status', 'all_medications', 'unknown'];
 
     private const SYSTEM_PROMPT =
         'You classify a care-home staff request into exactly one label: '
         ."todays_meds (they want a resident's medications scheduled for today), "
+        ."all_medications (they want the resident's full/complete list of all medications), "
         ."prn_status (they want a resident's as-needed/PRN medications), or "
         ."unknown (anything else). The resident's name is redacted as {RESIDENT}. "
         .'Reply with ONLY the label, nothing else.';
@@ -29,7 +30,13 @@ class IntentParsingService
             return 'prn_status';
         }
 
-        if (preg_match('/\b(med|meds|medication|medications|tablet|tablets|drug|drugs|dose|doses)\b/', $t) === 1) {
+        $hasMedWord = preg_match('/\b(med|meds|medication|medications|tablet|tablets|drug|drugs|dose|doses)\b/', $t) === 1;
+
+        if ($hasMedWord && preg_match('/\ball\b/', $t) === 1) {
+            return 'all_medications';
+        }
+
+        if ($hasMedWord) {
             return 'todays_meds';
         }
 

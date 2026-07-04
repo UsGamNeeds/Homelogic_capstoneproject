@@ -77,4 +77,26 @@ class IntentParsingServiceTest extends TestCase
         $this->assertSame('unknown', $this->service()->parse('mumble mumble {RESIDENT}'));
         Http::assertNothingSent();
     }
+
+    public function test_fastpath_detects_all_medications(): void
+    {
+        $this->assertSame('all_medications', $this->service()->fastPath('all medications for {RESIDENT}'));
+        $this->assertSame('all_medications', $this->service()->fastPath('show all his meds'));
+    }
+
+    public function test_fastpath_all_meds_takes_priority_over_todays(): void
+    {
+        // "all ... medications" must NOT collapse to todays_meds
+        $this->assertSame('all_medications', $this->service()->fastPath('list all medications'));
+    }
+
+    public function test_parse_accepts_all_medications_from_llm(): void
+    {
+        \Illuminate\Support\Facades\Http::fake([
+            'api.anthropic.com/*' => \Illuminate\Support\Facades\Http::response([
+                'content' => [['type' => 'text', 'text' => 'all_medications']],
+            ], 200),
+        ]);
+        $this->assertSame('all_medications', $this->service()->parse('give me the full rundown for {RESIDENT}'));
+    }
 }
