@@ -29,4 +29,19 @@ class AssistantController extends BaseApiController
 
         return $this->success($result);
     }
+
+    public function suggestions(Request $request, AssistantService $assistant): JsonResponse
+    {
+        if ($error = $this->requireModuleAccess(Modules::MEDICATIONS)) {
+            return $error;
+        }
+
+        if ($error = $this->requirePermission('view_medications')) {
+            return $error;
+        }
+
+        return $this->success([
+            'suggestions' => $assistant->starterSuggestions($request->user()),
+        ]);
+    }
 }

@@ -150,6 +150,8 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
     // Assistant
     Route::post('/assistant/query', [\App\Http\Controllers\Api\AssistantController::class, 'query'])
         ->middleware(['auth:sanctum', 'throttle:30,1']);
+    Route::get('/assistant/suggestions', [\App\Http\Controllers\Api\AssistantController::class, 'suggestions'])
+        ->middleware(['auth:sanctum', 'throttle:60,1']);
 
     // Resident contacts (family portal invites) - staff only
     Route::get('/resident-contacts', [\App\Http\Controllers\Api\ResidentContactController::class, 'index'])->middleware('auth:sanctum');
