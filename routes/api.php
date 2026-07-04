@@ -147,6 +147,10 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
     Route::get('/residents/{id}/appointments', [ResidentController::class, 'appointments'])->middleware('auth:sanctum');
     Route::get('/residents/{id}/vitals', [ResidentController::class, 'vitals'])->middleware('auth:sanctum');
 
+    // Assistant
+    Route::post('/assistant/query', [\App\Http\Controllers\Api\AssistantController::class, 'query'])
+        ->middleware(['auth:sanctum', 'throttle:30,1']);
+
     // Resident contacts (family portal invites) - staff only
     Route::get('/resident-contacts', [\App\Http\Controllers\Api\ResidentContactController::class, 'index'])->middleware('auth:sanctum');
     Route::post('/resident-contacts', [\App\Http\Controllers\Api\ResidentContactController::class, 'store'])->middleware('auth:sanctum');
