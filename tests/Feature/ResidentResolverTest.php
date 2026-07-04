@@ -83,4 +83,22 @@ class ResidentResolverTest extends TestCase
 
         $this->assertSame('none', $resolution->status);
     }
+
+    public function test_redacts_all_occurrences_and_forms_of_same_resident_name(): void
+    {
+        [, $branch, $user] = $this->seedFacilityUser();
+        \App\Models\Resident::factory()->create([
+            'branch_id' => $branch->id,
+            'first_name' => 'Mary',
+            'last_name' => 'Smith',
+        ]);
+        \Laravel\Sanctum\Sanctum::actingAs($user);
+
+        $resolution = app(\App\Services\ResidentResolver::class)
+            ->resolve('Mary Smith needs meds. What time should Mary take them?', $user);
+
+        $this->assertSame('one', $resolution->status);
+        $this->assertStringNotContainsStringIgnoringCase('Mary', $resolution->redacted);
+        $this->assertStringNotContainsStringIgnoringCase('Smith', $resolution->redacted);
+    }
 }

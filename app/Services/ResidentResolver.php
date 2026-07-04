@@ -10,8 +10,14 @@ use App\Models\User;
 class ResidentResolver
 {
     /**
-     * Match resident names in the message against residents the user may see
-     * (FacilityScope applies automatically), and redact matched names.
+     * Match resident names in the message against residents the user may see,
+     * and redact matched names.
+     *
+     * Facility isolation is derived entirely from the active FacilityScope,
+     * which reads the authenticated user's facility context. The caller MUST
+     * invoke this method within that user's auth context (e.g. after
+     * Sanctum::actingAs($user) or an authenticated request) so the scope
+     * applies; the $user parameter itself is not used to re-derive scoping.
      */
     public function resolve(string $message, User $user): ResidentResolution
     {
@@ -21,7 +27,10 @@ class ResidentResolver
         $matched = [];
         $namesToReplace = [];
 
-        // Collect all matches against the original message.
+        // Phase 1 (detection, no mutation): test every candidate form against
+        // the ORIGINAL message and collect ALL matching forms for ALL matched
+        // residents. Do not stop at the first hit per resident, or other
+        // occurrences/forms of that resident's name would survive redaction.
         foreach ($residents as $resident) {
             $full = trim(($resident->first_name ?? '').' '.($resident->last_name ?? ''));
             $candidates = array_filter([
@@ -30,20 +39,19 @@ class ResidentResolver
                 $resident->last_name,
             ]);
 
-            // Longest candidate first so "Mary Smith" matches before "Mary".
-            usort($candidates, fn ($a, $b) => strlen((string) $b) <=> strlen((string) $a));
-
             foreach ($candidates as $candidate) {
                 $pattern = '/\b'.preg_quote((string) $candidate, '/').'\b/i';
                 if (preg_match($pattern, $message) === 1) {
                     $matched[$resident->id] = $resident;
                     $namesToReplace[] = $candidate;
-                    break; // one hit per resident is enough
                 }
             }
         }
 
-        // Replace all matched names, longest first to avoid partial replacements.
+        // Phase 2 (replacement): replace ALL collected candidate strings,
+        // longest first, so full names redact before bare first/last names.
+        // A doubled "{RESIDENT} {RESIDENT}" is acceptable; residual PII is not.
+        $namesToReplace = array_values(array_unique($namesToReplace));
         usort($namesToReplace, fn ($a, $b) => strlen((string) $b) <=> strlen((string) $a));
 
         $redacted = $message;
