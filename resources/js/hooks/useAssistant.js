@@ -1,11 +1,14 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import api from '../services/api';
 
-// POSTs a message to the assistant endpoint and returns { intent, answer, data, suggestions }.
+// POSTs a message to the assistant endpoint and returns { intent, answer, data, suggestions, resident }.
 export function useAssistant() {
     return useMutation({
-        mutationFn: async (message) => {
-            const res = await api.post('/assistant/query', { message });
+        mutationFn: async ({ message, contextResidentId }) => {
+            const res = await api.post('/assistant/query', {
+                message,
+                context_resident_id: contextResidentId ?? null,
+            });
             // BaseApiController::success() wraps the payload as { data: ... }
             return res.data.data;
         },

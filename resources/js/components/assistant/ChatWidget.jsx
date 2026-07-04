@@ -1,14 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Bot, X, Send, MessageCircle } from 'lucide-react';
 import { useAssistant, useStarterSuggestions } from '../../hooks/useAssistant';
+import { useAssistantResident } from '../../contexts/AssistantResidentContext';
 import Chip from './Chip';
 import MedResult from './MedResult';
 import PrnResult from './PrnResult';
+import AllMedsResult from './AllMedsResult';
 
 function BotContent({ msg }) {
     const hasData = Array.isArray(msg.data) && msg.data.length > 0;
     if (msg.intent === 'todays_meds' && hasData) {
         return <MedResult answer={msg.answer} meds={msg.data} />;
+    }
+    if (msg.intent === 'all_medications' && hasData) {
+        return <AllMedsResult answer={msg.answer} meds={msg.data} />;
     }
     if (msg.intent === 'prn_status' && hasData) {
         return <PrnResult answer={msg.answer} meds={msg.data} />;
@@ -33,9 +38,18 @@ function TypingDots() {
 export default function ChatWidget() {
     const [open, setOpen] = useState(false);
     const [input, setInput] = useState('');
-    const [messages, setMessages] = useState([]); // user: {role,text}; bot: {role,intent,answer,data,suggestions}
+    const [messages, setMessages] = useState([]);
+    const [activeResident, setActiveResident] = useState(null); // { id, name } | null
     const assistant = useAssistant();
     const starter = useStarterSuggestions(open && messages.length === 0);
+    const { pageResident } = useAssistantResident();
+
+    // Seed the active resident from the page when opening a fresh chat.
+    useEffect(() => {
+        if (open && messages.length === 0 && pageResident && !activeResident) {
+            setActiveResident(pageResident);
+        }
+    }, [open, pageResident, messages.length, activeResident]);
 
     const sendMessage = (text) => {
         const t = (text || '').trim();
@@ -44,32 +58,38 @@ export default function ChatWidget() {
         setMessages((m) => [...m, { role: 'user', text: t }]);
         setInput('');
 
-        assistant.mutate(t, {
-            onSuccess: (result) => {
-                setMessages((m) => [
-                    ...m,
-                    {
-                        role: 'bot',
-                        intent: result.intent,
-                        answer: result.answer,
-                        data: result.data ?? [],
-                        suggestions: result.suggestions ?? [],
-                    },
-                ]);
+        assistant.mutate(
+            { message: t, contextResidentId: activeResident?.id ?? null },
+            {
+                onSuccess: (result) => {
+                    if (result.resident) {
+                        setActiveResident(result.resident);
+                    }
+                    setMessages((m) => [
+                        ...m,
+                        {
+                            role: 'bot',
+                            intent: result.intent,
+                            answer: result.answer,
+                            data: result.data ?? [],
+                            suggestions: result.suggestions ?? [],
+                        },
+                    ]);
+                },
+                onError: () => {
+                    setMessages((m) => [
+                        ...m,
+                        {
+                            role: 'bot',
+                            intent: 'unknown',
+                            answer: "Sorry, I couldn't answer that right now.",
+                            data: [],
+                            suggestions: [],
+                        },
+                    ]);
+                },
             },
-            onError: () => {
-                setMessages((m) => [
-                    ...m,
-                    {
-                        role: 'bot',
-                        intent: 'unknown',
-                        answer: "Sorry, I couldn't answer that right now.",
-                        data: [],
-                        suggestions: [],
-                    },
-                ]);
-            },
-        });
+        );
     };
 
     const handleSubmit = (e) => {
@@ -90,7 +110,21 @@ export default function ChatWidget() {
                             </span>
                             <div className="leading-tight">
                                 <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">Assistant</div>
-                                <div className="text-xs text-gray-400">Meds &amp; PRN helper</div>
+                                {activeResident ? (
+                                    <div className="flex items-center gap-1 text-xs text-gray-400">
+                                        <span>About: {activeResident.name}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveResident(null)}
+                                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                            aria-label="Clear active resident"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="text-xs text-gray-400">Meds &amp; PRN helper</div>
+                                )}
                             </div>
                         </div>
                         <button onClick={() => setOpen(false)} aria-label="Close assistant">
@@ -102,7 +136,7 @@ export default function ChatWidget() {
                         {messages.length === 0 && (
                             <div className="space-y-3">
                                 <p className="text-sm text-gray-400">
-                                    Ask me a resident's meds for today, or their PRN meds.
+                                    Ask me a resident's meds for today, all their meds, or their PRN meds.
                                 </p>
                                 {starterChips.length > 0 && (
                                     <div className="flex flex-wrap gap-2">
