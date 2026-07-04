@@ -43,7 +43,7 @@ import DropdownMenu, { DropdownMenuItem, DropdownMenuSeparator } from './ui/radi
 import Tooltip from './ui/Tooltip';
 import PageBackButton from './ui/PageBackButton';
 import HeaderResidentSwitcher from './HeaderResidentSwitcher';
-import ChatWidget from './ChatWidget';
+import ChatWidget from './assistant/ChatWidget';
 import {
     RESIDENT_HUB_PREFIXES,
     RESIDENT_LEGACY_DETAIL,
