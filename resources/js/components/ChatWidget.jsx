@@ -66,6 +66,7 @@ export default function ChatWidget() {
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             placeholder="Ask about a resident…"
+                            aria-label="Message"
                             className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                         />
                         <button type="submit" disabled={assistant.isPending} aria-label="Send">
