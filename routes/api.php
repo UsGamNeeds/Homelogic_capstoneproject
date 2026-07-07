@@ -219,6 +219,7 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
     Route::post('/medication-administrations/bulk-delete', [MedicationAdministrationController::class, 'bulkDestroy'])->middleware('auth:sanctum');
     // Administrator-only: resolve missed doses (completed, refused, hospital admission)
     Route::post('/medication-administrations/bulk-resolve-missed', [MedicationAdministrationController::class, 'bulkResolveMissed'])->middleware('auth:sanctum');
+    // Administrator-only: flip a missed dose to administered, preserving the originally scheduled time
     Route::patch('/medication-administrations/{id}/mark-administered', [MedicationAdministrationController::class, 'markAdministered'])->middleware('auth:sanctum');
     Route::apiResource('medication-administrations', MedicationAdministrationController::class)->middleware('auth:sanctum');
 
