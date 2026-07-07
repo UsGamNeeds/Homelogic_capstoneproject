@@ -2,16 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Models\Resident;
-use App\Models\Facility;
 use App\Models\Appointment;
+use App\Models\Facility;
+use App\Models\Resident;
 use App\Services\PremiumReportService;
 use App\Support\ReportBranding;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
-class AppointmentReportController extends Controller
+class AppointmentReportController extends BaseApiController
 {
     protected $premiumReportService;
 
@@ -22,8 +21,12 @@ class AppointmentReportController extends Controller
 
     public function __invoke(Request $request, $residentId)
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::REPORTS)) {
+            return $error;
+        }
+
         $resident = Resident::findOrFail($residentId);
-        
+
         try {
             $appointments = Appointment::where('resident_id', $resident->id)
                 ->with(['appointmentType', 'healthcareProvider'])
@@ -49,7 +52,7 @@ class AppointmentReportController extends Controller
             }
 
             $viewData = [
-                'reportTitle' => 'Appointment History: ' . $resident->name,
+                'reportTitle' => 'Appointment History: '.$resident->name,
                 'facilityName' => $facility?->name ?? 'Evergreen Care',
                 'facilityAddress' => $facility?->address,
                 'facilityLogoDataUri' => ReportBranding::imageToDataUri($facility?->logo),
@@ -59,7 +62,7 @@ class AppointmentReportController extends Controller
                 'dateOfBirth' => $resident->date_of_birth?->format('M d, Y') ?? 'N/A',
                 'roomNumber' => $resident->room ?? 'N/A',
                 'exportedAt' => now()->format('M d, Y g:i A'),
-                ...$branding
+                ...$branding,
             ];
 
             $filename = sprintf(
@@ -77,13 +80,13 @@ class AppointmentReportController extends Controller
 
             return response($pdfBinary, 200, [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             ]);
         } catch (\Throwable $e) {
             Log::error('Appointment History PDF generation failed', [
                 'resident_id' => $resident->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([

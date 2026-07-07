@@ -2,14 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\FacilityScope;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Traits\Loggable;
 
 class Assessment extends Model
 {
     use Loggable;
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new FacilityScope);
+    }
+
     protected $fillable = [
         'resident_id',
         'branch_id',
@@ -78,21 +85,21 @@ class Assessment extends Model
         $totalQuestions = $this->sections()
             ->with('questions')
             ->get()
-            ->flatMap(fn($section) => $section->questions)
+            ->flatMap(fn ($section) => $section->questions)
             ->count();
-            
+
         if ($totalQuestions === 0) {
             return 0;
         }
-        
+
         $answeredQuestions = $this->sections()
             ->with('questions')
             ->get()
-            ->flatMap(fn($section) => $section->questions)
+            ->flatMap(fn ($section) => $section->questions)
             ->whereNotNull('response_value')
             ->where('response_value', '!=', '')
             ->count();
-        
+
         return round(($answeredQuestions / $totalQuestions) * 100, 2);
     }
 
@@ -133,10 +140,10 @@ class Assessment extends Model
 
         foreach ($this->sections as $section) {
             $sectionType = $section->section_type;
-            
+
             foreach ($section->questions as $question) {
                 $responseValue = $question->response_value;
-                
+
                 if ($responseValue === null || $responseValue === '') {
                     continue; // Skip unanswered questions
                 }
@@ -185,7 +192,7 @@ class Assessment extends Model
     {
         $questionText = strtolower($question->question_text);
         $responseType = $question->response_type;
-        
+
         // Normalize response value
         $normalizedValue = $this->normalizeResponseValue($responseValue, $responseType);
 
@@ -202,7 +209,7 @@ class Assessment extends Model
                     } elseif ($normalizedValue === 'no') {
                         $score = 60;
                     } elseif (is_numeric($normalizedValue)) {
-                        $score = (float)$normalizedValue;
+                        $score = (float) $normalizedValue;
                     }
                     $this->addToScore('social_wellbeing', $score, $scores, $counts, 100);
                 }
@@ -311,7 +318,7 @@ class Assessment extends Model
             }
         }
 
-        return strtolower(trim((string)$value));
+        return strtolower(trim((string) $value));
     }
 
     /**

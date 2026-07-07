@@ -2,16 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\FacilityScope;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Traits\Loggable;
-use Carbon\Carbon;
 
 class StaffClockIn extends Model
 {
-    use HasFactory, SoftDeletes, Loggable;
+    use HasFactory, Loggable, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new FacilityScope);
+    }
 
     protected $fillable = [
         'staff_id',
@@ -86,7 +91,7 @@ class StaffClockIn extends Model
     // Accessors
     public function getDurationAttribute(): ?float
     {
-        if (!$this->clock_out_at) {
+        if (! $this->clock_out_at) {
             return null;
         }
 
@@ -109,4 +114,3 @@ class StaffClockIn extends Model
         $this->save();
     }
 }
-

@@ -12,6 +12,7 @@ import EntityCardShell, { EntityCardHeader } from '../components/ui/EntityCardSh
 import CardIconButton from '../components/ui/CardIconButton';
 import DataPill from '../components/ui/DataPill';
 import { formatPhoneNumber } from '../utils/phoneFormatter';
+import { safeHref } from '../utils/safeUrl';
 
 export default function UsersPage() {
     const queryClient = useQueryClient();
@@ -216,7 +217,7 @@ export default function UsersPage() {
                             <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-[var(--theme-primary)] shadow-sm">
                                 {user.profile_image_url ? (
                                     <img
-                                        src={user.profile_image_url}
+                                        src={safeHref(user.profile_image_url)}
                                         alt={user.name || ''}
                                         className="h-full w-full object-cover"
                                         onError={(e) => {
@@ -1357,7 +1358,7 @@ function UserProfileViewer({ user, onClose, onEdit, onToggleActive }) {
                         {/* Profile Picture */}
                         {user.profile_image_url ? (
                             <img
-                                src={user.profile_image_url}
+                                src={safeHref(user.profile_image_url)}
                                 alt={user.name}
                                 className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-white shadow-lg mx-auto md:mx-0"
                                 onError={(e) => {

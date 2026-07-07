@@ -126,7 +126,7 @@ export default function SuperAdminSettings() {
                   className={`absolute inset-0 rounded-xl bg-gradient-to-br ${card.accent} opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity`}
                 />
                 <div className="relative flex items-start space-x-4">
-                  <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-[var(--theme-primary)]/10 text-[var(--theme-primary)]">
+                  <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)]">
                     <Icon className="w-5 h-5" strokeWidth={2.5} />
                   </div>
                   <div className="flex-1">

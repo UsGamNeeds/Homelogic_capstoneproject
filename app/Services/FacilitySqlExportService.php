@@ -77,6 +77,10 @@ class FacilitySqlExportService
             return ['success' => false, 'message' => 'Facility backup produced an empty file.'];
         }
 
+        // Encrypt the PHI dump at rest (no-op when backup.encrypt is false).
+        app(BackupCipher::class)->encryptFileInPlace($path);
+        $size = filesize($path);
+
         if ($scheduled) {
             $this->pruneScheduledFacilityBackups($facilityId);
         }

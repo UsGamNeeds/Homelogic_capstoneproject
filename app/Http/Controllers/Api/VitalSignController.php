@@ -3,14 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\VitalSign;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class VitalSignController extends BaseApiController
 {
     public function index(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::VITALS)) {
+            return $error;
+        }
+
         $query = VitalSign::with(['resident', 'takenBy']);
         $user = $request->user();
         $currentUser = Auth::user();
@@ -21,7 +25,7 @@ class VitalSignController extends BaseApiController
             if ($currentUser->facility_id) {
                 // Use optimized whereIn pattern instead of whereHas for better performance
                 $branchIds = $this->getFacilityBranchIds($currentUser->facility_id);
-                if (!empty($branchIds)) {
+                if (! empty($branchIds)) {
                     $query->whereIn('branch_id', $branchIds);
                 } else {
                     // No branches for facility, return empty results
@@ -30,7 +34,7 @@ class VitalSignController extends BaseApiController
                         'current_page' => 1,
                         'last_page' => 1,
                         'per_page' => $request->get('per_page', 25),
-                        'total' => 0
+                        'total' => 0,
                     ]);
                 }
             } else {
@@ -40,7 +44,7 @@ class VitalSignController extends BaseApiController
                     'current_page' => 1,
                     'last_page' => 1,
                     'per_page' => $request->get('per_page', 25),
-                    'total' => 0
+                    'total' => 0,
                 ]);
             }
         }
@@ -96,6 +100,10 @@ class VitalSignController extends BaseApiController
 
     public function show($id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::VITALS)) {
+            return $error;
+        }
+
         $vital = VitalSign::with(['resident', 'takenBy', 'branch'])
             ->findOrFail($id);
 
@@ -104,7 +112,7 @@ class VitalSignController extends BaseApiController
         if ($currentUser && $currentUser->role !== 'super_admin') {
             if ($currentUser->facility_id) {
                 // Verify the vital sign's branch belongs to the user's facility
-                if (!$vital->branch || $vital->branch->facility_id !== $currentUser->facility_id) {
+                if (! $vital->branch || $vital->branch->facility_id !== $currentUser->facility_id) {
                     return response()->json(['message' => 'Vital sign not found'], 404);
                 }
             } else {
@@ -118,17 +126,21 @@ class VitalSignController extends BaseApiController
 
     public function store(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::VITALS)) {
+            return $error;
+        }
+
         $user = auth()->user();
-        
+
         // Allow administrators, super admins, and caregivers to create vitals even without specific permission
         $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
         $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
         $isCaregiver = $this->isCaregiver($user);
-        
+
         // Check permission only if user is not an admin, super admin, or caregiver
-        if (!$isSuperAdmin && !$isAdmin && !$isCaregiver) {
-        if ($error = $this->requirePermission('create_vitals')) {
-            return $error;
+        if (! $isSuperAdmin && ! $isAdmin && ! $isCaregiver) {
+            if ($error = $this->requirePermission('create_vitals')) {
+                return $error;
             }
         }
 
@@ -149,7 +161,7 @@ class VitalSignController extends BaseApiController
         ]);
 
         // If branch_id not provided, infer from resident
-        if (!isset($validated['branch_id'])) {
+        if (! isset($validated['branch_id'])) {
             $resident = \App\Models\Resident::find($validated['resident_id']);
             if ($resident) {
                 $validated['branch_id'] = $resident->branch_id;
@@ -160,7 +172,7 @@ class VitalSignController extends BaseApiController
         if ($isCaregiver && $user->assigned_branch_id) {
             // Verify the resident belongs to the caregiver's branch
             $resident = \App\Models\Resident::find($validated['resident_id']);
-            if (!$resident || (int) $resident->branch_id !== (int) $user->assigned_branch_id) {
+            if (! $resident || (int) $resident->branch_id !== (int) $user->assigned_branch_id) {
                 return response()->json([
                     'message' => 'You do not have permission to create vital signs for residents outside your assigned branch.',
                 ], 403);
@@ -177,7 +189,7 @@ class VitalSignController extends BaseApiController
         $validated['taken_by'] = auth()->id();
 
         // Auto-determine status if not provided
-        if (!isset($validated['status'])) {
+        if (! isset($validated['status'])) {
             $vital = new \App\Models\VitalSign($validated);
             $validated['status'] = $vital->determineStatus();
         }
@@ -186,14 +198,14 @@ class VitalSignController extends BaseApiController
 
         // Notify admins
         try {
-            $admins = \App\Models\User::where(function($query) {
-                    $query->whereIn('role', ['admin', 'administrator', 'super_admin']);
-                })
-                ->orWhereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'administrator', 'super_admin']))
+            $admins = \App\Models\User::where(function ($query) {
+                $query->whereIn('role', ['admin', 'administrator', 'super_admin']);
+            })
+                ->orWhereHas('roles', fn ($q) => $q->whereIn('name', ['admin', 'administrator', 'super_admin']))
                 ->get();
-                
+
             app(\App\Services\NotificationService::class)->sendVitalSignEmail(
-                $vital, 
+                $vital,
                 $admins,
                 $vital->status === 'critical'
             );
@@ -206,17 +218,21 @@ class VitalSignController extends BaseApiController
 
     public function update(Request $request, $id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::VITALS)) {
+            return $error;
+        }
+
         $user = auth()->user();
-        
+
         // Allow administrators, super admins, and caregivers to edit vitals even without specific permission
         $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
         $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
         $isCaregiver = $this->isCaregiver($user);
-        
+
         // Check permission only if user is not an admin, super admin, or caregiver
-        if (!$isSuperAdmin && !$isAdmin && !$isCaregiver) {
-        if ($error = $this->requirePermission('edit_vitals')) {
-            return $error;
+        if (! $isSuperAdmin && ! $isAdmin && ! $isCaregiver) {
+            if ($error = $this->requirePermission('edit_vitals')) {
+                return $error;
             }
         }
 
@@ -224,7 +240,7 @@ class VitalSignController extends BaseApiController
 
         // Check branch access for caregivers
         if ($isCaregiver && $user->assigned_branch_id) {
-            if (!$vital->branch_id || (int) $vital->branch_id !== (int) $user->assigned_branch_id) {
+            if (! $vital->branch_id || (int) $vital->branch_id !== (int) $user->assigned_branch_id) {
                 return response()->json([
                     'message' => 'You do not have permission to edit vital signs outside your assigned branch.',
                 ], 403);
@@ -248,8 +264,8 @@ class VitalSignController extends BaseApiController
         ]);
 
         // Re-determine status if vital signs changed
-        if (isset($validated['systolic']) || isset($validated['diastolic']) || 
-            isset($validated['temperature']) || isset($validated['pulse']) || 
+        if (isset($validated['systolic']) || isset($validated['diastolic']) ||
+            isset($validated['temperature']) || isset($validated['pulse']) ||
             isset($validated['oxygen_saturation'])) {
             $vital->fill($validated);
             $validated['status'] = $vital->determineStatus();
@@ -262,16 +278,20 @@ class VitalSignController extends BaseApiController
 
     public function destroy($id): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::VITALS)) {
+            return $error;
+        }
+
         $user = auth()->user();
-        
+
         // Allow administrators and super admins to delete vitals even without specific permission
         $isSuperAdmin = $user && ($user->role === 'super_admin' || $user->hasRole('super_admin'));
         $isAdmin = $user && ($user->role === 'administrator' || $user->role === 'admin');
-        
+
         // Check permission only if user is not an admin or super admin
-        if (!$isSuperAdmin && !$isAdmin) {
-        if ($error = $this->requirePermission('delete_vitals')) {
-            return $error;
+        if (! $isSuperAdmin && ! $isAdmin) {
+            if ($error = $this->requirePermission('delete_vitals')) {
+                return $error;
             }
         }
 
@@ -281,4 +301,3 @@ class VitalSignController extends BaseApiController
         return response()->json(['message' => 'Vital sign deleted successfully']);
     }
 }
-

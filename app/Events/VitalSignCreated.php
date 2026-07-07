@@ -36,17 +36,17 @@ class VitalSignCreated implements ShouldBroadcast
 
         // Broadcast to facility
         if ($this->vitalSign->branch?->facility_id) {
-            $channels[] = new Channel('facility.' . $this->vitalSign->branch->facility_id);
+            $channels[] = new Channel('facility.'.$this->vitalSign->branch->facility_id);
         }
 
         // Broadcast to branch
         if ($this->vitalSign->branch_id) {
-            $channels[] = new Channel('branch.' . $this->vitalSign->branch_id);
+            $channels[] = new Channel('branch.'.$this->vitalSign->branch_id);
         }
 
         // Broadcast to resident-specific channel
         if ($this->vitalSign->resident_id) {
-            $channels[] = new Channel('resident.' . $this->vitalSign->resident_id);
+            $channels[] = new Channel('resident.'.$this->vitalSign->resident_id);
         }
 
         return $channels;
@@ -65,6 +65,12 @@ class VitalSignCreated implements ShouldBroadcast
      */
     public function broadcastWith(): array
     {
+        // Relations can be null (e.g. a soft-deleted resident excluded by its
+        // global scope). Resolve them defensively so broadcastWith never throws
+        // and floods the queue with failed BroadcastEvent jobs.
+        $resident = $this->vitalSign->resident;
+        $takenBy = $this->vitalSign->takenBy;
+
         return [
             'id' => $this->vitalSign->id,
             'resident_id' => $this->vitalSign->resident_id,
@@ -78,15 +84,15 @@ class VitalSignCreated implements ShouldBroadcast
             'pulse' => $this->vitalSign->pulse,
             'oxygen_saturation' => $this->vitalSign->oxygen_saturation,
             'pain_level' => $this->vitalSign->pain_level,
-            'resident' => [
-                'id' => $this->vitalSign->resident->id,
-                'name' => trim(($this->vitalSign->resident->first_name ?? '') . ' ' . ($this->vitalSign->resident->last_name ?? '')),
-            ],
-            'taken_by_user' => $this->vitalSign->takenBy ? [
-                'id' => $this->vitalSign->takenBy->id,
-                'name' => trim(($this->vitalSign->takenBy->first_name ?? '') . ' ' . ($this->vitalSign->takenBy->last_name ?? '')),
+            'resident' => $resident ? [
+                'id' => $resident->id,
+                'name' => trim(($resident->first_name ?? '').' '.($resident->last_name ?? '')),
             ] : null,
-            'created_at' => $this->vitalSign->created_at->toIso8601String(),
+            'taken_by_user' => $takenBy ? [
+                'id' => $takenBy->id,
+                'name' => trim(($takenBy->first_name ?? '').' '.($takenBy->last_name ?? '')),
+            ] : null,
+            'created_at' => $this->vitalSign->created_at?->toIso8601String(),
         ];
     }
 }

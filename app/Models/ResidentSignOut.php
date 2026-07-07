@@ -2,16 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\FacilityScope;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Traits\Loggable;
-use Carbon\Carbon;
 
 class ResidentSignOut extends Model
 {
-    use HasFactory, SoftDeletes, Loggable;
+    use HasFactory, Loggable, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new FacilityScope);
+    }
 
     protected $fillable = [
         'resident_id',
@@ -97,7 +102,7 @@ class ResidentSignOut extends Model
 
     public function getDurationAttribute(): ?int
     {
-        if (!$this->sign_in_at) {
+        if (! $this->sign_in_at) {
             return null;
         }
 
@@ -110,12 +115,11 @@ class ResidentSignOut extends Model
         $this->sign_in_at = now();
         $this->signed_in_by = $user->id;
         $this->is_active = false;
-        
+
         if ($notes) {
-            $this->notes = ($this->notes ? $this->notes . "\n" : '') . $notes;
+            $this->notes = ($this->notes ? $this->notes."\n" : '').$notes;
         }
-        
+
         $this->save();
     }
 }
-

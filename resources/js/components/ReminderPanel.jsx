@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useFacilityUpdates } from '../hooks/useRealtimeUpdates';
 import logger from '../utils/logger';
+import { safeRedirect } from '../utils/safeUrl';
 import Tooltip from './ui/Tooltip';
 
 const PACIFIC_FORMATTER = new Intl.DateTimeFormat('en-US', {
@@ -78,7 +79,7 @@ export default function ReminderPanel() {
     const handleEventClick = (event) => {
         if ((event.type === 'fire_drill' || event.type === 'medication_window') && event.action_url) {
             setIsOpen(false);
-            navigate(event.action_url);
+            navigate(safeRedirect(event.action_url));
         }
     };
 

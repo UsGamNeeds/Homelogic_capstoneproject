@@ -171,7 +171,7 @@ class FaxManager
      * No-op (and just records an event) if the fax row is already in a
      * terminal state.
      */
-    public function applyStatus(Fax $fax, string $newStatus, ?string $reason = null, ?string $providerEventId = null, array $rawPayload = []): void
+    public function applyStatus(Fax $fax, string $newStatus, ?string $reason = null, ?string $providerEventId = null, array $rawPayload = [], ?int $pageCount = null): void
     {
         if ($fax->isTerminal() && $fax->status === $newStatus) {
             return;
@@ -180,6 +180,9 @@ class FaxManager
         $fax->status = $newStatus;
         if ($reason) {
             $fax->status_reason = $reason;
+        }
+        if ($pageCount !== null && $pageCount > 0) {
+            $fax->page_count = $pageCount;
         }
         $fax->last_provider_event_at = now();
         $fax->save();

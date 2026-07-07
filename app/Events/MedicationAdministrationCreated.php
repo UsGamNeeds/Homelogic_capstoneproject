@@ -5,8 +5,6 @@ namespace App\Events;
 use App\Models\MedicationAdministration;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
-use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -39,17 +37,17 @@ class MedicationAdministrationCreated implements ShouldBroadcast
 
         // Broadcast to facility
         if ($this->administration->branch?->facility_id) {
-            $channels[] = new Channel('facility.' . $this->administration->branch->facility_id);
+            $channels[] = new Channel('facility.'.$this->administration->branch->facility_id);
         }
 
         // Broadcast to branch
         if ($this->administration->branch_id) {
-            $channels[] = new Channel('branch.' . $this->administration->branch_id);
+            $channels[] = new Channel('branch.'.$this->administration->branch_id);
         }
 
         // Broadcast to resident-specific channel
         if ($this->administration->resident_id) {
-            $channels[] = new Channel('resident.' . $this->administration->resident_id);
+            $channels[] = new Channel('resident.'.$this->administration->resident_id);
         }
 
         return $channels;
@@ -68,6 +66,13 @@ class MedicationAdministrationCreated implements ShouldBroadcast
      */
     public function broadcastWith(): array
     {
+        // Relations can be null (e.g. a soft-deleted medication excluded by its
+        // global scope). Resolve them defensively so broadcastWith never throws
+        // and floods the queue with failed BroadcastEvent jobs.
+        $medication = $this->administration->medication;
+        $resident = $this->administration->resident;
+        $administeredBy = $this->administration->administeredBy;
+
         return [
             'id' => $this->administration->id,
             'medication_id' => $this->administration->medication_id,
@@ -77,19 +82,19 @@ class MedicationAdministrationCreated implements ShouldBroadcast
             'administered_at' => $this->administration->administered_at?->toIso8601String(),
             'status' => $this->administration->status,
             'dosage_given' => $this->administration->dosage_given,
-            'medication' => [
-                'id' => $this->administration->medication->id,
-                'name' => $this->administration->medication->drug?->name ?? $this->administration->medication->name,
-            ],
-            'resident' => [
-                'id' => $this->administration->resident->id,
-                'name' => trim(($this->administration->resident->first_name ?? '') . ' ' . ($this->administration->resident->last_name ?? '')),
-            ],
-            'administered_by_user' => $this->administration->administeredBy ? [
-                'id' => $this->administration->administeredBy->id,
-                'name' => trim(($this->administration->administeredBy->first_name ?? '') . ' ' . ($this->administration->administeredBy->last_name ?? '')),
+            'medication' => $medication ? [
+                'id' => $medication->id,
+                'name' => $medication->drug?->name ?? $medication->name,
             ] : null,
-            'created_at' => $this->administration->created_at->toIso8601String(),
+            'resident' => $resident ? [
+                'id' => $resident->id,
+                'name' => trim(($resident->first_name ?? '').' '.($resident->last_name ?? '')),
+            ] : null,
+            'administered_by_user' => $administeredBy ? [
+                'id' => $administeredBy->id,
+                'name' => trim(($administeredBy->first_name ?? '').' '.($administeredBy->last_name ?? '')),
+            ] : null,
+            'created_at' => $this->administration->created_at?->toIso8601String(),
         ];
     }
 }

@@ -2,16 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Models\Resident;
 use App\Models\Facility;
+use App\Models\Resident;
 use App\Models\VitalSign;
 use App\Services\PremiumReportService;
 use App\Support\ReportBranding;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
-class VitalsLogReportController extends Controller
+class VitalsLogReportController extends BaseApiController
 {
     protected $premiumReportService;
 
@@ -22,8 +21,12 @@ class VitalsLogReportController extends Controller
 
     public function __invoke(Request $request, $residentId)
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::REPORTS)) {
+            return $error;
+        }
+
         $resident = Resident::findOrFail($residentId);
-        
+
         try {
             $vitals = VitalSign::where('resident_id', $resident->id)
                 ->with('takenBy')
@@ -52,7 +55,7 @@ class VitalsLogReportController extends Controller
             }
 
             $data = [
-                'reportTitle' => 'Vitals Log: ' . $resident->name,
+                'reportTitle' => 'Vitals Log: '.$resident->name,
                 'facilityName' => $facility?->name ?? 'Evergreen Care',
                 'facilityAddress' => $facility?->address,
                 'facilityLogoDataUri' => ReportBranding::imageToDataUri($facility?->logo),
@@ -61,7 +64,7 @@ class VitalsLogReportController extends Controller
                 'dateOfBirth' => $resident->date_of_birth?->format('M d, Y') ?? 'N/A',
                 'roomNumber' => $resident->room ?? 'N/A',
                 'exportedAt' => now()->format('M d, Y g:i A'),
-                ...$branding
+                ...$branding,
             ];
 
             $filename = sprintf(
@@ -79,12 +82,12 @@ class VitalsLogReportController extends Controller
 
             return response($pdfBinary, 200, [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             ]);
         } catch (\Throwable $e) {
             Log::error('Vitals Log PDF generation failed', [
                 'resident_id' => $resident->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([

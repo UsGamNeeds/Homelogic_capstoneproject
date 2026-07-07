@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
+use App\Constants\Modules;
 use App\Models\BehaviorCategory;
 use App\Models\BehaviorDefinition;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class BehaviorDataController extends Controller
+class BehaviorDataController extends BaseApiController
 {
     /**
      * Display a listing of behavior categories and their definitions.
@@ -18,9 +18,9 @@ class BehaviorDataController extends Controller
         $categories = BehaviorCategory::with(['definitions' => function ($query) {
             $query->where('is_active', true);
         }])
-        ->where('is_active', true)
-        ->get();
-        
+            ->where('is_active', true)
+            ->get();
+
         return response()->json($categories);
     }
 
@@ -29,6 +29,13 @@ class BehaviorDataController extends Controller
      */
     public function store(Request $request)
     {
+        if ($error = $this->requireModuleAccess(Modules::BEHAVIORS)) {
+            return $error;
+        }
+        if ($error = $this->requirePermission('create_behaviors')) {
+            return $error;
+        }
+
         $validated = $request->validate([
             'behavior_category_id' => 'required|exists:behavior_categories,id',
             'name' => 'required|string|max:255',
@@ -44,7 +51,15 @@ class BehaviorDataController extends Controller
      */
     public function destroy(BehaviorDefinition $behaviorDefinition)
     {
+        if ($error = $this->requireModuleAccess(Modules::BEHAVIORS)) {
+            return $error;
+        }
+        if ($error = $this->requirePermission('delete_behaviors')) {
+            return $error;
+        }
+
         $behaviorDefinition->delete();
+
         return response()->json(null, 204);
     }
 
@@ -54,6 +69,13 @@ class BehaviorDataController extends Controller
      */
     public function bulkUpdate(Request $request)
     {
+        if ($error = $this->requireModuleAccess(Modules::BEHAVIORS)) {
+            return $error;
+        }
+        if ($error = $this->requirePermission('edit_behaviors')) {
+            return $error;
+        }
+
         $validated = $request->validate([
             'data' => 'required|array',
             'data.*.id' => 'nullable|exists:behavior_definitions,id',
@@ -65,7 +87,7 @@ class BehaviorDataController extends Controller
         DB::beginTransaction();
         try {
             foreach ($validated['data'] as $item) {
-                if (!empty($item['is_remove']) && !empty($item['id'])) {
+                if (! empty($item['is_remove']) && ! empty($item['id'])) {
                     BehaviorDefinition::where('id', $item['id'])->delete();
                 } elseif (empty($item['id'])) {
                     BehaviorDefinition::create([
@@ -79,9 +101,11 @@ class BehaviorDataController extends Controller
                 }
             }
             DB::commit();
+
             return response()->json(['message' => 'Chart data updated successfully']);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json(['message' => 'Failed to update chart data', 'error' => $e->getMessage()], 500);
         }
     }

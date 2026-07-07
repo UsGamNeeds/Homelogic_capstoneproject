@@ -2,11 +2,11 @@
 
 namespace App\Observers;
 
+use App\Events\IncidentCreated;
 use App\Models\Incident;
 use App\Models\Notification;
 use App\Models\User;
 use App\Services\NotificationService;
-use App\Events\IncidentCreated;
 use Carbon\Carbon;
 
 class IncidentObserver
@@ -25,27 +25,31 @@ class IncidentObserver
                 ->where('is_active', true)
                 ->get();
 
-            $residentName = $incident->resident 
-                ? trim(($incident->resident->first_name ?? '') . ' ' . ($incident->resident->last_name ?? ''))
+            $residentName = $incident->resident
+                ? trim(($incident->resident->first_name ?? '').' '.($incident->resident->last_name ?? ''))
                 : 'Unknown Resident';
-            
-            $reportedByName = $incident->reportedBy 
-                ? trim(($incident->reportedBy->first_name ?? '') . ' ' . ($incident->reportedBy->last_name ?? ''))
+
+            $reportedByName = $incident->reportedBy
+                ? trim(($incident->reportedBy->first_name ?? '').' '.($incident->reportedBy->last_name ?? ''))
                 : 'Staff';
-            
+
             $incidentDate = $incident->incident_date ? Carbon::parse($incident->incident_date)->format('M d, Y g:i A') : 'TBD';
             $incidentNumber = $incident->incident_number ?? 'N/A';
             $location = $incident->location ? " at {$incident->location}" : '';
-            
+
             // Determine icon color based on severity and priority
-            $iconColor = match($incident->priority ?? $incident->severity ?? 'low') {
+            $iconColor = match ($incident->priority ?? $incident->severity ?? 'low') {
                 'critical' => 'text-red-600',
                 'high' => 'text-orange-600',
                 'medium' => 'text-yellow-600',
                 default => 'text-[#8B4513]',
             };
-            
-            foreach ($admins as $admin) {
+
+            $facilityId = $incident->resident?->branch?->facility_id;
+            $allowInApp = app(\App\Services\NotificationPreferenceService::class)
+                ->shouldSendInApp($facilityId, 'incident');
+
+            foreach (($allowInApp ? $admins : []) as $admin) {
                 try {
                     Notification::create([
                         'user_id' => $admin->id,
@@ -56,7 +60,7 @@ class IncidentObserver
                         'message' => "Incident #{$incidentNumber}: A {$incident->severity} severity, {$incident->priority} priority {$incident->incident_type} incident involving {$residentName}{$location} was reported by {$reportedByName} on {$incidentDate}",
                         'icon' => 'alert-circle',
                         'icon_color' => $iconColor,
-                        'action_url' => '/incidents/' . $incident->id,
+                        'action_url' => '/incidents/'.$incident->id,
                         'metadata' => [
                             'incident_id' => $incident->id,
                             'incident_number' => $incidentNumber,
@@ -69,12 +73,12 @@ class IncidentObserver
                         ],
                     ]);
                 } catch (\Exception $ne) {
-                    \Log::error("Failed to create admin notification for incident {$incident->id}: " . $ne->getMessage());
+                    \Log::error("Failed to create admin notification for incident {$incident->id}: ".$ne->getMessage());
                 }
             }
 
             // Notify assigned staff if incident is assigned
-            if ($incident->assigned_to && $incident->assignedTo) {
+            if ($allowInApp && $incident->assigned_to && $incident->assignedTo) {
                 try {
                     Notification::create([
                         'user_id' => $incident->assigned_to,
@@ -85,7 +89,7 @@ class IncidentObserver
                         'message' => "You have been assigned to handle Incident #{$incidentNumber}: {$incident->incident_type} involving {$residentName}{$location}",
                         'icon' => 'user-check',
                         'icon_color' => $iconColor,
-                        'action_url' => '/incidents/' . $incident->id,
+                        'action_url' => '/incidents/'.$incident->id,
                         'metadata' => [
                             'incident_id' => $incident->id,
                             'incident_number' => $incidentNumber,
@@ -97,7 +101,7 @@ class IncidentObserver
                         ],
                     ]);
                 } catch (\Exception $ne) {
-                    \Log::error("Failed to create staff notification for incident {$incident->id}: " . $ne->getMessage());
+                    \Log::error("Failed to create staff notification for incident {$incident->id}: ".$ne->getMessage());
                 }
             }
 
@@ -106,14 +110,14 @@ class IncidentObserver
                 $notificationService = app(\App\Services\NotificationService::class);
                 $notificationService->sendIncidentEmail($incident, $admins, 'reported');
             } catch (\Exception $ee) {
-                \Log::error("Failed to send incident emails for incident {$incident->id}: " . $ee->getMessage());
+                \Log::error("Failed to send incident emails for incident {$incident->id}: ".$ee->getMessage());
             }
 
             // Broadcast real-time event
             event(new IncidentCreated($incident));
         } catch (\Exception $e) {
-            \Log::error("Error in IncidentObserver::created for incident {$incident->id}: " . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
+            \Log::error("Error in IncidentObserver::created for incident {$incident->id}: ".$e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
             ]);
         }
     }
@@ -128,8 +132,8 @@ class IncidentObserver
 
         $changes = $incident->getChanges();
         $original = $incident->getOriginal();
-        
-        $residentName = trim(($incident->resident->first_name ?? '') . ' ' . ($incident->resident->last_name ?? ''));
+
+        $residentName = trim(($incident->resident->first_name ?? '').' '.($incident->resident->last_name ?? ''));
         $incidentNumber = $incident->incident_number ?? 'N/A';
 
         // Handle status changes
@@ -157,7 +161,7 @@ class IncidentObserver
                         'message' => "Incident #{$incidentNumber}: {$incident->incident_type} involving {$residentName} has been resolved",
                         'icon' => 'check-circle',
                         'icon_color' => 'text-green-600',
-                        'action_url' => '/incidents/' . $incident->id,
+                        'action_url' => '/incidents/'.$incident->id,
                         'metadata' => [
                             'incident_id' => $incident->id,
                             'incident_number' => $incidentNumber,
@@ -188,7 +192,7 @@ class IncidentObserver
                         'message' => "Incident #{$incidentNumber}: {$incident->incident_type} involving {$residentName} has been closed",
                         'icon' => 'lock-closed',
                         'icon_color' => 'text-gray-600',
-                        'action_url' => '/incidents/' . $incident->id,
+                        'action_url' => '/incidents/'.$incident->id,
                         'metadata' => [
                             'incident_id' => $incident->id,
                             'incident_number' => $incidentNumber,
@@ -223,7 +227,7 @@ class IncidentObserver
                         'message' => "Incident #{$incidentNumber}: {$incident->incident_type} involving {$residentName} has been closed",
                         'icon' => 'lock-closed',
                         'icon_color' => 'text-gray-600',
-                        'action_url' => '/incidents/' . $incident->id,
+                        'action_url' => '/incidents/'.$incident->id,
                         'metadata' => [
                             'incident_id' => $incident->id,
                             'incident_number' => $incidentNumber,
@@ -255,7 +259,7 @@ class IncidentObserver
                     'message' => "You have been assigned to handle Incident #{$incidentNumber}: {$incident->incident_type} involving {$residentName}",
                     'icon' => 'user-check',
                     'icon_color' => 'text-blue-600',
-                    'action_url' => '/incidents/' . $incident->id,
+                    'action_url' => '/incidents/'.$incident->id,
                     'metadata' => [
                         'incident_id' => $incident->id,
                         'incident_number' => $incidentNumber,
@@ -293,7 +297,7 @@ class IncidentObserver
                         'message' => "Incident #{$incidentNumber}: {$incident->incident_type} involving {$residentName} has been escalated to CRITICAL priority/severity",
                         'icon' => 'exclamation-triangle',
                         'icon_color' => 'text-red-600',
-                        'action_url' => '/incidents/' . $incident->id,
+                        'action_url' => '/incidents/'.$incident->id,
                         'metadata' => [
                             'incident_id' => $incident->id,
                             'incident_number' => $incidentNumber,
@@ -311,5 +315,3 @@ class IncidentObserver
         }
     }
 }
-
-

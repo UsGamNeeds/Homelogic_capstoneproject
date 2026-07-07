@@ -224,6 +224,12 @@ class UserController extends BaseApiController
             'role_ids.*' => 'exists:roles,id',
         ]);
 
+        // Privilege gate: a non-super-admin must not be able to mint a
+        // super_admin or administrative account via the mass-assigned role.
+        if ($error = $this->roleAssignmentError($currentUser, $validated['role'] ?? null)) {
+            return $error;
+        }
+
         // Convert empty string to null for nullable fields
         if (array_key_exists('assigned_branch_id', $validated)) {
             $validated['assigned_branch_id'] = $validated['assigned_branch_id'] ?: null;
@@ -438,6 +444,13 @@ class UserController extends BaseApiController
             }
         }
 
+        // Privilege gate: block escalation to super_admin / admin tiers via role change.
+        if (array_key_exists('role', $validated)) {
+            if ($error = $this->roleAssignmentError($currentUser, $validated['role'])) {
+                return $error;
+            }
+        }
+
         // Remove position if column doesn't exist in database or if it's empty
         if (! Schema::hasColumn('users', 'position')) {
             unset($validated['position']);
@@ -587,6 +600,36 @@ class UserController extends BaseApiController
         $user->delete();
 
         return response()->json(['message' => 'User deleted successfully']);
+    }
+
+    /**
+     * Guard against privilege escalation through the mass-assignable `role`
+     * field. Only a super admin may grant super_admin; only admins/super
+     * admins may grant an administrative-tier role. Returns a 403 response
+     * when the caller is not allowed to assign the target role, else null.
+     */
+    private function roleAssignmentError(?User $caller, ?string $targetRole): ?JsonResponse
+    {
+        if ($targetRole === null || $targetRole === '') {
+            return null;
+        }
+
+        $callerIsSuper = $caller && $caller->isSuperAdmin();
+
+        if ($targetRole === 'super_admin' && ! $callerIsSuper) {
+            return $this->error('You are not allowed to assign the super admin role.', 403);
+        }
+
+        $adminTierRoles = ['administrator', 'admin', 'facility_admin', 'manager'];
+        if (
+            in_array($targetRole, $adminTierRoles, true)
+            && ! $callerIsSuper
+            && ! ($caller && $caller->isAnyAdmin())
+        ) {
+            return $this->error('You are not allowed to assign an administrative role.', 403);
+        }
+
+        return null;
     }
 
     private function canAccessUser(User $targetUser, ?User $currentUser = null): bool

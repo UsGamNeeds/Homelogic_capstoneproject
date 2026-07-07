@@ -2,16 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\FacilityScope;
+use App\Traits\Loggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Traits\Loggable;
-use Carbon\Carbon;
 
 class Visitor extends Model
 {
-    use HasFactory, SoftDeletes, Loggable;
+    use HasFactory, Loggable, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new FacilityScope);
+    }
 
     protected $fillable = [
         'branch_id',
@@ -99,7 +104,7 @@ class Visitor extends Model
 
     public function getDurationMinutesAttribute(): ?int
     {
-        if (!$this->check_out_at) {
+        if (! $this->check_out_at) {
             return null;
         }
 
@@ -117,12 +122,11 @@ class Visitor extends Model
         $this->check_out_at = now();
         $this->checked_out_by = $user->id;
         $this->is_active = false;
-        
+
         if ($notes) {
-            $this->notes = ($this->notes ? $this->notes . "\n" : '') . $notes;
+            $this->notes = ($this->notes ? $this->notes."\n" : '').$notes;
         }
-        
+
         $this->save();
     }
 }
-

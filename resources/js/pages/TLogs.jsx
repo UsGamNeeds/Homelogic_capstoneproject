@@ -10,6 +10,7 @@ import Tooltip from '../components/ui/Tooltip';
 import { toast } from 'sonner';
 import TLogForm from './TLogForm';
 import logger from '../utils/logger';
+import { safeHref } from '../utils/safeUrl';
 import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
 
 const NOTIFICATION_LEVEL_COLORS = {
@@ -760,7 +761,7 @@ function ViewTLog({ tLog, onClose, onEdit, canEdit = true }) {
                                         <div className="flex items-center gap-2">
                                             <Tooltip content="View" position="top">
                                                 <a
-                                                    href={attachment.file_url}
+                                                    href={safeHref(attachment.file_url)}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="p-2 text-gray-600 hover:text-[var(--theme-primary)] hover:bg-white rounded-lg transition-colors inline-flex"

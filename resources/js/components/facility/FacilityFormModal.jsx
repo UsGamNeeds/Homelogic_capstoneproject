@@ -6,6 +6,7 @@ import {
 import api from '../../services/api';
 import { getUserLocation } from '../../utils/location';
 import { slugifyFacilitySubdomain, getFacilityPortalUrlPreview } from '../../utils/facilitySubdomain';
+import { safeHref } from '../../utils/safeUrl';
 import Tooltip from '../ui/Tooltip';
 
 /**
@@ -422,7 +423,7 @@ function BasicInfoTab({ formData, onChange, errors, isSuperAdmin }) {
                             <p className="text-xs text-emerald-900">
                                 Preview:{' '}
                                 <a
-                                    href={facilityUrlPreview}
+                                    href={safeHref(facilityUrlPreview)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="font-mono underline underline-offset-2 hover:text-emerald-950"

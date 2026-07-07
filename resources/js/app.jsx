@@ -6,6 +6,7 @@ import App from './Root.jsx';
 import ErrorBoundary from './components/ErrorBoundary';
 import { reconcileAppBuildId } from './utils/buildId';
 import { ToastProvider } from './contexts/ToastContext';
+import { AssistantResidentProvider } from './contexts/AssistantResidentContext';
 import ThemeWrapper from './components/ThemeWrapper';
 // Import CSS - Vite will handle it properly
 import '../css/app.css';
@@ -117,7 +118,9 @@ function initApp() {
                             <ThemeWrapper>
                                 <ToastProvider>
                                     <BrowserRouter>
-                                        <App />
+                                        <AssistantResidentProvider>
+                                            <App />
+                                        </AssistantResidentProvider>
                                     </BrowserRouter>
                                 </ToastProvider>
                             </ThemeWrapper>

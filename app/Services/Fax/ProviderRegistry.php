@@ -148,6 +148,9 @@ class ProviderRegistry
             'key' => $key,
             'display_name' => $displayName,
             'description' => $description,
+            'supports_number_provisioning' => method_exists($class, 'supportsNumberProvisioning')
+                ? $class::supportsNumberProvisioning()
+                : true,
             'credential_schema' => collect($class::credentialSchema())
                 ->map(fn ($field) => $field->toArray())
                 ->all(),

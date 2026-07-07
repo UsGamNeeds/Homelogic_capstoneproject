@@ -373,6 +373,36 @@ export const calculateAgeFromPacificBirthDate = (dateOfBirth) => {
     return age;
 };
 
+/**
+ * True instant (a UTC-serialized datetime such as `administered_at`) → Pacific calendar date "M/D/YYYY".
+ * Use this — NOT formatPacificDate — for datetime columns the API serializes to UTC ("...Z"),
+ * otherwise the displayed day shifts +7/8h vs the actual Pacific wall-clock day.
+ */
+export const formatPacificInstantDate = (value) => {
+    if (!value) return 'N/A';
+    const inst = new Date(value);
+    if (Number.isNaN(inst.getTime())) return 'N/A';
+    return new Intl.DateTimeFormat('en-US', {
+        timeZone: PACIFIC_TIMEZONE,
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+    }).format(inst);
+};
+
+/** True instant → Pacific wall-clock time "h:mm AM/PM". Companion to formatPacificInstantDate. */
+export const formatPacificInstantTime = (value) => {
+    if (!value) return 'N/A';
+    const inst = new Date(value);
+    if (Number.isNaN(inst.getTime())) return 'N/A';
+    return new Intl.DateTimeFormat('en-US', {
+        timeZone: PACIFIC_TIMEZONE,
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+    }).format(inst);
+};
+
 /** Instant (e.g. updated_at) formatted in Pacific for display. */
 export const formatPacificDateTimeShort = (value) => {
     if (!value) return 'N/A';

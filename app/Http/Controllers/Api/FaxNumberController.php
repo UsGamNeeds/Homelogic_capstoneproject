@@ -155,6 +155,101 @@ class FaxNumberController extends BaseApiController
     }
 
     /**
+     * POST /api/v1/fax/numbers/register
+     * Body: {e164_number, friendly_name?}
+     *
+     * Registers a number the facility already owns out-of-band, for providers
+     * that do not expose number provisioning via their API (e.g. mfax, where
+     * numbers are bought in the provider dashboard). No purchase call is made —
+     * we simply record the E.164 so inbound webhooks can route to this facility.
+     */
+    public function register(Request $request): JsonResponse
+    {
+        if ($error = $this->requireModuleAccess(Modules::FAX)) {
+            return $error;
+        }
+        if ($error = $this->requirePermission('fax.manage_numbers')) {
+            return $error;
+        }
+
+        $facility = $this->getCurrentFacility($request->user());
+        if (! $facility) {
+            return $this->error('Facility context required.', 400);
+        }
+
+        try {
+            $validated = $request->validate([
+                'e164_number' => ['required', 'string', 'max:24', 'regex:'.self::E164_REGEX],
+                'friendly_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            ], [
+                'e164_number.regex' => 'Number must be in E.164 format (e.g. +14255550100).',
+            ]);
+        } catch (ValidationException $e) {
+            return $this->error('Validation failed.', 422, $e->errors());
+        }
+
+        $manager = app(FaxManager::class);
+        $settings = $manager->settingsFor($facility);
+        if (! $settings || ! $settings->isConfigured()) {
+            return $this->error('Fax provider is not configured for this facility.', 409);
+        }
+
+        // Only allow manual registration for providers that cannot provision via
+        // API. Providers with a marketplace must use search + buy so billing and
+        // provider-side ownership stay authoritative.
+        try {
+            $provider = $manager->forFacility($facility);
+        } catch (Throwable $e) {
+            return $this->error('Fax provider is not configured for this facility.', 409);
+        }
+
+        $supportsProvisioning = ! method_exists($provider, 'supportsNumberProvisioning')
+            || $provider::supportsNumberProvisioning();
+        if ($supportsProvisioning) {
+            return $this->error(
+                'This provider provisions numbers via its API. Use "Search and buy" instead of manual registration.',
+                409,
+            );
+        }
+
+        $alreadyRegistered = FaxNumber::withoutGlobalScopes()
+            ->where('provider', $settings->provider)
+            ->where('e164_number', $validated['e164_number'])
+            ->exists();
+        if ($alreadyRegistered) {
+            return $this->error('That number is already registered.', 409);
+        }
+
+        $isFirst = FaxNumber::query()->withTrashed()->count() === 0;
+
+        $number = DB::transaction(function () use ($facility, $settings, $validated, $request, $isFirst) {
+            if ($isFirst) {
+                FaxNumber::withoutGlobalScopes()
+                    ->where('facility_id', $facility->id)
+                    ->update(['is_default' => false]);
+            }
+
+            $row = new FaxNumber([
+                'provider' => $settings->provider,
+                'provider_number_id' => $validated['e164_number'],
+                'e164_number' => $validated['e164_number'],
+                'friendly_name' => $validated['friendly_name'] ?? null,
+                'is_default' => $isFirst,
+                'is_active' => true,
+                'monthly_cost_cents' => null,
+                'provisioned_at' => now(),
+                'created_by' => $request->user()?->id,
+            ]);
+            $row->facility_id = (int) $facility->id;
+            $row->save();
+
+            return $row;
+        });
+
+        return $this->success($number, 'Number registered.', 201);
+    }
+
+    /**
      * PATCH /api/v1/fax/numbers/{id}
      * Allows toggling is_default (auto-unsets siblings), is_active, friendly_name.
      */

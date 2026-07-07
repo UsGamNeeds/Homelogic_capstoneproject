@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api, { setupProactiveRefresh, clearStoredAuth, getStoredAuthToken } from '../services/api';
+import { safeHref } from '../utils/safeUrl';
 import { 
     LayoutDashboard, 
     Building2, 
@@ -42,6 +43,7 @@ import DropdownMenu, { DropdownMenuItem, DropdownMenuSeparator } from './ui/radi
 import Tooltip from './ui/Tooltip';
 import PageBackButton from './ui/PageBackButton';
 import HeaderResidentSwitcher from './HeaderResidentSwitcher';
+import ChatWidget from './assistant/ChatWidget';
 import {
     RESIDENT_HUB_PREFIXES,
     RESIDENT_LEGACY_DETAIL,
@@ -720,7 +722,7 @@ export default function Layout() {
                                     >
                                         {currentUser?.profile_image_url ? (
                                             <img
-                                                src={currentUser.profile_image_url}
+                                                src={safeHref(currentUser.profile_image_url)}
                                                 alt={currentUser.name}
                                                 className="w-full h-full object-cover"
                                             />
@@ -770,7 +772,10 @@ export default function Layout() {
             {/* Command Palette */}
             <CommandPalette isOpen={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} isCaregiver={isCaregiver} />
 
-            
+            {/* Chat Widget */}
+            <ChatWidget />
+
+
             {/* PWA Install Prompt */}
             <PWAInstallPrompt />
             

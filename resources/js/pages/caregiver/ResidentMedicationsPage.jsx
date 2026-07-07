@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearchParams, Link, useLocation } from 'react-router-dom';
 import api from '../../services/api';
+import { safeHref } from '../../utils/safeUrl';
 import { toast } from 'sonner';
 import { offlinePost } from '../../services/offlineApi';
 import { useResidentUpdates } from '../../hooks/useRealtimeUpdates';
@@ -421,7 +422,8 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
                 prn.push({ ...medication, slotTime: null, uniqueId: `prn-${medication.id}` });
             } else {
                 times.forEach((time, index) => {
-                    if (isMedicationSlotCoveredToday(medication, time)) {
+                    // Default view hides slots already administered today; "All medications" reveals them.
+                    if (activeOnly && isMedicationSlotCoveredToday(medication, time)) {
                         return;
                     }
                     const [h] = time.split(':').map(Number);
@@ -438,7 +440,7 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
                     else pm.push(entry);
                 });
 
-                if (times.length === 0 && !isNoScheduledTimeRowCoveredToday(medication)) {
+                if (times.length === 0 && (!activeOnly || !isNoScheduledTimeRowCoveredToday(medication))) {
                     scheduled.push({ ...medication, slotTime: null, uniqueId: `sc-${medication.id}` });
                 }
             }
@@ -1158,6 +1160,7 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
                             </div>
                         ) : (
                             <div className="px-4 pt-4 border-b border-gray-100 bg-gray-50/50">
+                              <div className="flex items-end justify-between gap-3">
                                 <div className="max-w-full overflow-x-auto">
                                     <div className="flex items-center gap-1 min-w-max pb-1">
                                         {[
@@ -1203,6 +1206,24 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
                                         })}
                                     </div>
                                 </div>
+                                {variant === 'list' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { setActiveOnly(v => !v); setExpandedRows(new Set()); setSelectedMeds(new Set()); }}
+                                        aria-pressed={!activeOnly}
+                                        title={activeOnly
+                                            ? 'Showing active medications only. Click to include inactive and ended orders.'
+                                            : 'Showing all medications, including inactive and ended orders. Inactive orders cannot be administered.'}
+                                        className={`flex-shrink-0 mb-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] ${
+                                            activeOnly
+                                                ? 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                                : 'bg-[var(--theme-primary)]/10 text-[var(--theme-primary)] border-[var(--theme-primary)]/40'
+                                        }`}
+                                    >
+                                        {activeOnly ? 'Show all medications' : 'Show active only'}
+                                    </button>
+                                )}
+                              </div>
                             </div>
                         )}
 
@@ -1667,8 +1688,8 @@ function QuickAdminister({
 
     const periodRefForMed = periodReferenceDateProp || getPacificNow();
     const computeMedicationPeriodActive = React.useCallback(
-        () => isMedicationPeriodActiveNow(medication, periodRefForMed),
-        [medication.start_date, medication.end_date, periodRefForMed]
+        () => medication.is_active !== false && isMedicationPeriodActiveNow(medication, periodRefForMed),
+        [medication.is_active, medication.start_date, medication.end_date, periodRefForMed]
     );
 
     const hasAdminForWindow = React.useCallback((scheduledDate) => {
@@ -2218,10 +2239,10 @@ function MedicationWindowBadge({ medication, slotTime }) {
     const calculateStatus = React.useCallback(() => {
         const instruction = (medication.instructions || '').toLowerCase().trim();
         const isPrn = instruction.includes('prn') || instruction.includes('as needed');
-        const periodActive = isMedicationPeriodActiveNow(medication);
+        const periodActive = medication.is_active !== false && isMedicationPeriodActiveNow(medication);
 
         if (!periodActive) {
-            return { isOpen: false, nextStart: null, label: 'Period Ended' };
+            return { isOpen: false, nextStart: null, label: medication.is_active === false ? 'Inactive' : 'Period Ended' };
         }
 
         if (isPrn) {
@@ -2406,7 +2427,7 @@ function ResidentProfilePanel({ resident, isLoading, residentId, carePlanPath, d
                 <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-md bg-[var(--theme-primary)]/10">
                     {resident.profile_image_url || resident.profile_image ? (
                         <img
-                            src={resident.profile_image_url || `/storage/${resident.profile_image}`}
+                            src={safeHref(resident.profile_image_url) || `/storage/${resident.profile_image}`}
                             alt={fullName}
                             className="w-full h-full object-cover"
                             onError={e => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}

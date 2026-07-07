@@ -6,7 +6,6 @@ use App\Constants\Modules;
 use App\Models\FaxSetting;
 use App\Services\Fax\FaxManager;
 use App\Services\Fax\ProviderRegistry;
-use App\Services\Fax\Providers\IFaxFaxProvider;
 use App\Services\Fax\Support\CredentialField;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -206,11 +205,13 @@ class FaxSettingsController extends BaseApiController
 
         $provider = $settings->provider ?: 'telnyx';
 
-        if ($provider === IFaxFaxProvider::key()) {
+        if ($this->usesSharedWebhook($provider)) {
+            $sharedUrl = $this->sharedWebhookUrl($provider);
+
             return $this->success([
-                'url' => IFaxFaxProvider::sharedWebhookUrl(),
+                'url' => $sharedUrl,
                 'provider' => $provider,
-                'secret_present' => IFaxFaxProvider::sharedWebhookUrl() !== null,
+                'secret_present' => $sharedUrl !== null,
                 'shared_across_facilities' => true,
             ]);
         }
@@ -243,9 +244,9 @@ class FaxSettingsController extends BaseApiController
         $settings = $this->resolveOrCreateSettings((int) $facility->id, $request->user()?->id);
 
         $provider = $settings->provider ?: 'telnyx';
-        if ($provider === IFaxFaxProvider::key()) {
+        if ($this->usesSharedWebhook($provider)) {
             return $this->error(
-                'iFax uses one shared webhook URL for all facilities. Update FAX_IFAX_WEBHOOK_SECRET in the server environment instead.',
+                'This provider uses one shared, account-wide webhook URL. Update its signing secret in the server environment instead of rotating it per facility.',
                 422,
             );
         }
@@ -257,6 +258,41 @@ class FaxSettingsController extends BaseApiController
             'provider' => $provider,
             'secret_present' => true,
         ], 'Webhook secret rotated.');
+    }
+
+    /**
+     * Whether a provider uses one account-wide webhook URL (iFax, mfax, …)
+     * rather than a per-facility one.
+     */
+    private function usesSharedWebhook(string $provider): bool
+    {
+        $registry = app(ProviderRegistry::class);
+        if (! $registry->has($provider)) {
+            return false;
+        }
+
+        $instance = $registry->make($provider, []);
+
+        return method_exists($instance, 'usesSharedWebhook') && $instance::usesSharedWebhook();
+    }
+
+    /**
+     * The shared, account-wide webhook URL for a provider, or null if it is
+     * not a shared-webhook provider or its app-level secret is unset.
+     */
+    private function sharedWebhookUrl(string $provider): ?string
+    {
+        $registry = app(ProviderRegistry::class);
+        if (! $registry->has($provider)) {
+            return null;
+        }
+
+        $instance = $registry->make($provider, []);
+        if (! method_exists($instance, 'sharedWebhookUrl')) {
+            return null;
+        }
+
+        return $instance::sharedWebhookUrl();
     }
 
     /**
@@ -371,8 +407,9 @@ class FaxSettingsController extends BaseApiController
         }
 
         $secret = $settings->getRawOriginal('webhook_secret');
-        $webhookUrl = $canonicalProvider === IFaxFaxProvider::key()
-            ? IFaxFaxProvider::sharedWebhookUrl()
+        $isShared = $canonicalProvider && $this->usesSharedWebhook($canonicalProvider);
+        $webhookUrl = $isShared
+            ? $this->sharedWebhookUrl($canonicalProvider)
             : (($canonicalProvider && $secret)
                 ? url('/api/webhooks/fax/'.$canonicalProvider.'/'.$secret)
                 : null);
@@ -394,10 +431,8 @@ class FaxSettingsController extends BaseApiController
             'last_test_message' => $settings->last_test_message,
             'credentials_status' => $credentialsStatus,
             'webhook_url' => $webhookUrl,
-            'webhook_shared_across_facilities' => $canonicalProvider === IFaxFaxProvider::key(),
-            'secret_present' => $canonicalProvider === IFaxFaxProvider::key()
-                ? IFaxFaxProvider::sharedWebhookUrl() !== null
-                : ! empty($secret),
+            'webhook_shared_across_facilities' => (bool) $isShared,
+            'secret_present' => $isShared ? ($webhookUrl !== null) : ! empty($secret),
             'created_at' => optional($settings->created_at)->toIso8601String(),
             'updated_at' => optional($settings->updated_at)->toIso8601String(),
         ];

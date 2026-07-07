@@ -4,6 +4,7 @@ import {
     CheckCircle, XCircle, Calendar, User, Copy, ExternalLink
 } from 'lucide-react';
 import logger from '../../utils/logger';
+import { safeHref } from '../../utils/safeUrl';
 import Tooltip from '../ui/Tooltip';
 
 /**
@@ -159,7 +160,7 @@ export default function FacilityDetailView({ facility, onEdit, onClose }) {
                                             label="Brochure URL"
                                             value={
                                                 <a
-                                                    href={brochure_url}
+                                                    href={safeHref(brochure_url)}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="text-blue-600 hover:underline flex items-center"

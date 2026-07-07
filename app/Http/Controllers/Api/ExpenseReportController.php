@@ -2,17 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Expense;
-use App\Models\BillingInvoice;
 use App\Constants\Modules;
-use Illuminate\Http\Request;
+use App\Models\BillingInvoice;
+use App\Models\Expense;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 
 class ExpenseReportController extends BaseApiController
 {
     public function summary(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::REPORTS)) {
+            return $error;
+        }
+
         if ($error = $this->requireModuleAccess(Modules::BILLING_EXPENSES)) {
             return $error;
         }
@@ -66,6 +69,10 @@ class ExpenseReportController extends BaseApiController
 
     public function byCategory(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::REPORTS)) {
+            return $error;
+        }
+
         if ($error = $this->requireModuleAccess(Modules::BILLING_EXPENSES)) {
             return $error;
         }
@@ -94,8 +101,8 @@ class ExpenseReportController extends BaseApiController
             ->map(function ($expenses) {
                 $firstExpense = $expenses->first();
                 $category = $firstExpense->category;
-                
-                if (!$category) {
+
+                if (! $category) {
                     return [
                         'category_id' => null,
                         'category_name' => 'Uncategorized',
@@ -104,7 +111,7 @@ class ExpenseReportController extends BaseApiController
                         'count' => $expenses->count(),
                     ];
                 }
-                
+
                 return [
                     'category_id' => $category->id,
                     'category_name' => $category->name ?? 'Uncategorized',
@@ -117,15 +124,15 @@ class ExpenseReportController extends BaseApiController
         // Group invoice items by category
         $invoiceItemsByCategory = collect();
         foreach ($invoices as $invoice) {
-            if (!$invoice->items || $invoice->items->isEmpty()) {
+            if (! $invoice->items || $invoice->items->isEmpty()) {
                 continue;
             }
-            
+
             foreach ($invoice->items as $item) {
                 try {
                     $categoryId = $item->expense_category_id;
-                    $key = $categoryId === null ? 'null' : (string)$categoryId;
-                    
+                    $key = $categoryId === null ? 'null' : (string) $categoryId;
+
                     // Safely access category
                     $category = null;
                     if ($item->relationLoaded('category')) {
@@ -133,8 +140,8 @@ class ExpenseReportController extends BaseApiController
                     } elseif ($categoryId) {
                         $category = \App\Models\ExpenseCategory::find($categoryId);
                     }
-                    
-                    if (!$invoiceItemsByCategory->has($key)) {
+
+                    if (! $invoiceItemsByCategory->has($key)) {
                         $invoiceItemsByCategory[$key] = [
                             'category_id' => $categoryId,
                             'category_name' => $category ? ($category->name ?? 'Uncategorized') : 'Uncategorized',
@@ -152,6 +159,7 @@ class ExpenseReportController extends BaseApiController
                         'invoice_id' => $invoice->id ?? null,
                         'error' => $e->getMessage(),
                     ]);
+
                     continue;
                 }
             }
@@ -159,18 +167,20 @@ class ExpenseReportController extends BaseApiController
 
         // Convert both collections to use consistent keys
         $expensesKeyed = $expensesByCategory->mapWithKeys(function ($item, $categoryId) {
-            $key = $categoryId === null ? 'null' : (string)$categoryId;
+            $key = $categoryId === null ? 'null' : (string) $categoryId;
+
             return [$key => $item];
         });
 
         // Merge and aggregate
         $allCategories = $expensesKeyed->merge($invoiceItemsByCategory);
-        
+
         $byCategory = $allCategories->groupBy(function ($item) {
             return $item['category_id'] ?? 'null';
         })
             ->map(function ($items) {
                 $first = $items->first();
+
                 return [
                     'category_id' => $first['category_id'],
                     'category_name' => $first['category_name'],
@@ -183,7 +193,7 @@ class ExpenseReportController extends BaseApiController
             ->filter(function ($item) {
                 // Only include categories that have expenses (amount > 0 and count > 0)
                 // AND exclude uncategorized entries (category_id is null)
-                return ($item['total_amount'] > 0 || $item['count'] > 0) 
+                return ($item['total_amount'] > 0 || $item['count'] > 0)
                     && $item['category_id'] !== null;
             })
             ->sortByDesc('total_amount')
@@ -194,6 +204,10 @@ class ExpenseReportController extends BaseApiController
 
     public function byDateRange(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::REPORTS)) {
+            return $error;
+        }
+
         if ($error = $this->requireModuleAccess(Modules::BILLING_EXPENSES)) {
             return $error;
         }
@@ -230,6 +244,10 @@ class ExpenseReportController extends BaseApiController
 
     public function residentBilling(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::REPORTS)) {
+            return $error;
+        }
+
         if ($error = $this->requireModuleAccess(Modules::BILLING_EXPENSES)) {
             return $error;
         }
@@ -276,6 +294,10 @@ class ExpenseReportController extends BaseApiController
 
     public function vendorPayments(Request $request): JsonResponse
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::REPORTS)) {
+            return $error;
+        }
+
         if ($error = $this->requireModuleAccess(Modules::BILLING_EXPENSES)) {
             return $error;
         }
@@ -305,4 +327,3 @@ class ExpenseReportController extends BaseApiController
         return $this->success($byVendor);
     }
 }
-

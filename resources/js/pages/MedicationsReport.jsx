@@ -2,6 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { FileText, Pill, ClipboardList, User as UserIcon, Building2, Calendar, Download, AlertCircle } from 'lucide-react';
 import api from '../services/api';
+import { safeHref } from '../utils/safeUrl';
 import SectionCard from '../components/SectionCard';
 import PrintableReportLayout from '../components/reports/PrintableReportLayout';
 import {
@@ -359,7 +360,7 @@ export default function MedicationsReport() {
                                                 const r = item.resident || {};
                                                 const name = r.name || r.full_name || [r.first_name, r.last_name].filter(Boolean).join(' ').trim() || 'Resident';
                                                 const initials = (r.first_name?.[0] || '') + (r.last_name?.[0] || '');
-                                                const avatarSrc = r.profile_image_url
+                                                const avatarSrc = safeHref(r.profile_image_url)
                                                     || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=25603E&color=fff&size=128`;
 
                                                 const avatar = (

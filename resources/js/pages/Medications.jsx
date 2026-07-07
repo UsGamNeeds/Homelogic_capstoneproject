@@ -388,7 +388,8 @@ export default function Medications() {
                 prn.push({ ...medication, slotTime: null, uniqueId: `prn-${medication.id}` });
             } else {
                 times.forEach((time, index) => {
-                    if (isMedicationSlotCoveredToday(medication, time)) {
+                    // Default view hides slots already administered today; "All Medications" reveals them.
+                    if (activeOnly && isMedicationSlotCoveredToday(medication, time)) {
                         return;
                     }
                     const [h] = time.split(':').map(Number);
@@ -406,7 +407,7 @@ export default function Medications() {
                 });
 
                 // If no times scheduled but not PRN, put in scheduled
-                if (times.length === 0 && !isNoScheduledTimeRowCoveredToday(medication)) {
+                if (times.length === 0 && (!activeOnly || !isNoScheduledTimeRowCoveredToday(medication))) {
                     scheduled.push({ ...medication, slotTime: null, uniqueId: `sc-${medication.id}` });
                 }
             }
@@ -1236,7 +1237,7 @@ export default function Medications() {
                                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                                 }`}
                         >
-                            {activeOnly ? 'Active Only' : 'All Medications'}
+                            {activeOnly ? 'Show all medications' : 'Show active only'}
                         </button>
                     </div>
                     <div>

@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\ActivityLogService;
-use App\Services\LocationService;
 use App\Models\Facility;
 use App\Models\StaffClockIn;
+use App\Services\ActivityLogService;
+use App\Services\LocationService;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -30,44 +30,44 @@ class AuthController extends Controller
         $usersWithEmail = \App\Models\User::where('email', $credentials['email'])->get();
         $facilityIds = $usersWithEmail->pluck('facility_id')->filter()->unique()->values();
         $hasMultipleFacilities = $facilityIds->count() > 1;
-        
+
         // If email exists in multiple facilities, provider_code is required
         if ($hasMultipleFacilities) {
-            if (!$request->filled('provider_code')) {
+            if (! $request->filled('provider_code')) {
                 return response()->json([
                     'message' => 'This email is registered in multiple facilities. Please provide a provider code.',
                     'requires_provider_code' => true,
                 ], 422);
             }
-            
+
             // Find facility by provider code (excludes soft-deleted)
             $facility = Facility::whereRaw('LOWER(provider_code) = ?', [strtolower($request->provider_code)])->first();
-            
-            if (!$facility || !$facility->is_active) {
+
+            if (! $facility || ! $facility->is_active) {
                 return response()->json([
                     'message' => 'Invalid provider code or facility is no longer active.',
                 ], 422);
             }
-            
+
             // Find user with this email in the specified facility
             $user = \App\Models\User::where('email', $credentials['email'])
                 ->where('facility_id', $facility->id)
                 ->first();
-            
-            if (!$user) {
+
+            if (! $user) {
                 return response()->json([
                     'message' => 'This email is not registered in the facility with the provided provider code.',
                 ], 401);
             }
-            
+
             // Verify password
-            if (!Hash::check($credentials['password'], $user->password)) {
+            if (! Hash::check($credentials['password'], $user->password)) {
                 return response()->json([
                     'message' => 'Invalid credentials',
                 ], 401);
             }
 
-            if (!$user->is_active) {
+            if (! $user->is_active) {
                 return response()->json([
                     'message' => 'This account has been deactivated. Please contact an administrator.',
                 ], 403);
@@ -84,31 +84,33 @@ class AuthController extends Controller
             // Single facility or no facility - use normal authentication
             // Try to find the user first to verify they exist
             $user = \App\Models\User::where('email', $credentials['email'])->first();
-            
-            if (!$user) {
+
+            if (! $user) {
                 \Log::warning('Login attempt failed - user not found', [
                     'email' => $credentials['email'],
                     'ip' => $request->ip(),
                 ]);
+
                 return response()->json([
                     'message' => 'Invalid credentials',
                 ], 401);
             }
-            
+
             // Verify password manually
-            if (!Hash::check($credentials['password'], $user->password)) {
+            if (! Hash::check($credentials['password'], $user->password)) {
                 \Log::warning('Login attempt failed - invalid password', [
                     'email' => $credentials['email'],
                     'user_id' => $user->id,
                     'ip' => $request->ip(),
                 ]);
+
                 return response()->json([
                     'message' => 'Invalid credentials',
                 ], 401);
             }
-            
+
             // Check if user is active
-            if (!$user->is_active) {
+            if (! $user->is_active) {
                 return response()->json([
                     'message' => 'This account has been deactivated. Please contact an administrator.',
                 ], 403);
@@ -117,13 +119,13 @@ class AuthController extends Controller
             // Block login if user belongs to a deleted or inactive facility
             if ($user->facility_id) {
                 $userFacility = Facility::find($user->facility_id);
-                if (!$userFacility || !$userFacility->is_active) {
+                if (! $userFacility || ! $userFacility->is_active) {
                     return response()->json([
                         'message' => 'This facility is no longer active. Please contact an administrator.',
                     ], 403);
                 }
             }
-            
+
             // Clear guest session data without invalidate() — invalidating before login can 500 on the
             // first POST after an expired/stale session cookie (session driver edge case).
             if ($request->hasSession()) {
@@ -140,7 +142,7 @@ class AuthController extends Controller
             /** @var \App\Models\User $user */
             $user = Auth::guard('web')->user();
 
-            if (!$user?->is_active) {
+            if (! $user?->is_active) {
                 // Immediately end the session and block login for inactive accounts
                 Auth::guard('web')->logout();
                 if ($request->hasSession()) {
@@ -156,7 +158,7 @@ class AuthController extends Controller
             // Block access if user's facility has been deleted or marked inactive
             if ($user->facility_id) {
                 $userFacility = Facility::find($user->facility_id);
-                if (!$userFacility || !$userFacility->is_active) {
+                if (! $userFacility || ! $userFacility->is_active) {
                     // Revoke tokens before clearing auth (after logout, $request->user() is null)
                     $user->tokens()->delete();
                     Auth::guard('web')->logout();
@@ -172,13 +174,13 @@ class AuthController extends Controller
             }
 
             // Validate provider code if provided (for single-facility emails, provider_code is optional but validated if provided)
-            if ($request->filled('provider_code') && !$hasMultipleFacilities) {
+            if ($request->filled('provider_code') && ! $hasMultipleFacilities) {
                 // Super admins don't have facility_id, so skip provider code validation
                 if ($user->role !== 'super_admin') {
                     // Find facility by provider code (case-insensitive)
                     $facility = Facility::whereRaw('LOWER(provider_code) = ?', [strtolower($request->provider_code)])->first();
 
-                    if (!$facility || !$facility->is_active) {
+                    if (! $facility || ! $facility->is_active) {
                         Auth::guard('web')->logout();
                         if ($request->hasSession()) {
                             $request->session()->invalidate();
@@ -208,7 +210,7 @@ class AuthController extends Controller
             // Location-based access control for caregivers
             $locationService = app(LocationService::class);
             $locationCheckResult = $this->validateUserLocation($user, $request, $locationService);
-            
+
             if ($locationCheckResult !== null) {
                 // Location check failed
                 Auth::guard('web')->logout();
@@ -361,25 +363,28 @@ class AuthController extends Controller
     {
         try {
             $user = $request->user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json(['message' => 'Unauthenticated'], 401);
             }
             // Reject if user's facility has been deleted or marked inactive (so frontend redirects to login)
             if ($user->facility_id) {
                 $facility = Facility::find($user->facility_id);
-                if (!$facility || !$facility->is_active) {
+                if (! $facility || ! $facility->is_active) {
                     $request->user()->currentAccessToken()->delete();
+
                     return response()->json(['message' => 'This facility is no longer active.'], 401);
                 }
             }
+
             return response()->json($this->transformUser($user));
         } catch (\Exception $e) {
-            \Log::error('Error in user endpoint: ' . $e->getMessage(), [
+            \Log::error('Error in user endpoint: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
                 'message' => 'Failed to load user data',
-                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error',
             ], 500);
         }
     }
@@ -394,7 +399,7 @@ class AuthController extends Controller
         $user = $request->user();
 
         // Verify current password
-        if (!Hash::check($validated['current_password'], $user->password)) {
+        if (! Hash::check($validated['current_password'], $user->password)) {
             return response()->json([
                 'message' => 'Current password is incorrect',
             ], 422);
@@ -413,7 +418,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
@@ -431,15 +436,16 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json(['valid' => false], 401);
         }
 
         // Invalidate token if user's facility has been deleted or marked inactive
         if ($user->facility_id) {
             $facility = Facility::find($user->facility_id);
-            if (!$facility || !$facility->is_active) {
+            if (! $facility || ! $facility->is_active) {
                 $request->user()->currentAccessToken()->delete();
+
                 return response()->json(['valid' => false], 401);
             }
         }
@@ -460,7 +466,7 @@ class AuthController extends Controller
 
         $user = $request->user();
 
-        if (!Hash::check($validated['current_password'], $user->password)) {
+        if (! Hash::check($validated['current_password'], $user->password)) {
             return response()->json([
                 'message' => 'Current password is incorrect',
             ], 422);
@@ -468,9 +474,9 @@ class AuthController extends Controller
 
         $newEmail = isset($validated['email']) ? strtolower(trim($validated['email'])) : null;
         $hasEmailChange = $newEmail !== null && $newEmail !== '' && $newEmail !== $user->email;
-        $hasPasswordChange = !empty($validated['password']);
+        $hasPasswordChange = ! empty($validated['password']);
 
-        if (!$hasEmailChange && !$hasPasswordChange) {
+        if (! $hasEmailChange && ! $hasPasswordChange) {
             return response()->json([
                 'message' => 'No credential changes were provided',
             ], 422);
@@ -577,7 +583,7 @@ class AuthController extends Controller
      */
     protected function transformUser(?\App\Models\User $user): array
     {
-        if (!$user) {
+        if (! $user) {
             return [];
         }
 
@@ -599,13 +605,13 @@ class AuthController extends Controller
         $payload['app_timezone_abbr'] = $now->format('T');
         $payload['app_timezone_offset'] = $now->format('P');
         $payload['app_current_time'] = $now->toIso8601String();
-        
+
         // Include facility branding if available
         $facility = $user->facility ?? ($user->assignedBranch ? $user->assignedBranch->facility : null);
-        
+
         if ($facility) {
             $payload['facility_branding'] = $facility->branding;
-            
+
             // Include enabled modules for this facility (hasModuleAccess treats "no record" as enabled)
             $allModuleKeys = array_keys(\App\Constants\Modules::all());
             $enabledModules = array_values(array_filter($allModuleKeys, fn ($key) => $facility->hasModuleAccess($key)));
@@ -619,7 +625,7 @@ class AuthController extends Controller
                 'secondary_color' => '#86EFAC', // Light green from logo
                 'accent_color' => '#FFFFFF', // White from logo
             ];
-            
+
             // Super admins have access to all modules
             if ($user->role === 'super_admin' || $user->hasRole('super_admin')) {
                 $payload['enabled_modules'] = array_keys(\App\Constants\Modules::all());
@@ -685,7 +691,7 @@ class AuthController extends Controller
         } else {
             $facility = $user->facility ?? ($user->assignedBranch ? $user->assignedBranch->facility : null);
         }
-        
+
         // Get enabled modules for this facility (use already loaded if available)
         $enabledModules = [];
         if ($facility) {
@@ -716,44 +722,44 @@ class AuthController extends Controller
 
         // Get facility-specific overrides for user's roles
         $effectivePermissions = [];
-        
+
         // Pre-load module mapping for all permissions to avoid repeated calls
         $permissionModuleMap = [];
-        
+
         foreach ($userRoles as $role) {
             // Get global permissions for this role (use already loaded if available)
             $roleGlobalPermissions = $role->relationLoaded('permissions')
                 ? $role->permissions->pluck('name')->toArray()
                 : $role->permissions()->pluck('name')->toArray();
-            
+
             // Get facility overrides for this role (if facility exists)
             $roleFacilityOverrides = $allFacilityOverrides->get($role->id, collect());
 
             // Merge: facility overrides take precedence
             foreach ($roleGlobalPermissions as $permissionName) {
                 $isAllowed = true;
-                
+
                 if ($roleFacilityOverrides->has($permissionName)) {
                     // Facility override exists - use it
                     $isAllowed = $roleFacilityOverrides[$permissionName]->is_allowed;
                 }
-                
+
                 if ($isAllowed) {
                     // Check if permission requires module access
                     // Cache module mapping to avoid repeated calls
-                    if (!isset($permissionModuleMap[$permissionName])) {
+                    if (! isset($permissionModuleMap[$permissionName])) {
                         try {
                             $permissionModuleMap[$permissionName] = \App\Helpers\ModulePermissionMapper::getModuleForPermission($permissionName);
                         } catch (\Exception $e) {
-                            \Log::warning('ModulePermissionMapper error for permission: ' . $permissionName, [
+                            \Log::warning('ModulePermissionMapper error for permission: '.$permissionName, [
                                 'error' => $e->getMessage(),
                             ]);
                             $permissionModuleMap[$permissionName] = null; // Allow permission if mapper fails
                         }
                     }
-                    
+
                     $module = $permissionModuleMap[$permissionName];
-                    
+
                     if ($module === null) {
                         // Permission doesn't map to a module, allow it
                         $effectivePermissions[] = $permissionName;
@@ -778,7 +784,7 @@ class AuthController extends Controller
                     try {
                         $permissionModuleMap[$permissionName] = \App\Helpers\ModulePermissionMapper::getModuleForPermission($permissionName);
                     } catch (\Exception $e) {
-                        \Log::warning('ModulePermissionMapper error for permission: ' . $permissionName, [
+                        \Log::warning('ModulePermissionMapper error for permission: '.$permissionName, [
                             'error' => $e->getMessage(),
                         ]);
                         $permissionModuleMap[$permissionName] = null;
@@ -799,22 +805,20 @@ class AuthController extends Controller
 
     /**
      * Validate user location for caregivers
-     * 
-     * @param \App\Models\User $user
-     * @param \Illuminate\Http\Request $request
-     * @param \App\Services\LocationService $locationService
+     *
+     * @param  \App\Models\User  $user
      * @return array|null Returns error array on failure, null on success
      */
     protected function validateUserLocation($user, Request $request, LocationService $locationService): ?array
     {
         // Check if location checking is enabled globally
-        if (!config('location.enabled', true)) {
+        if (! config('location.enabled', true)) {
             return null;
         }
 
         // Skip location check for non-caregivers, super admins, or users with bypass enabled
-        if (!$user->isCaregiver() 
-            || $user->role === 'super_admin' 
+        if (! $user->isCaregiver()
+            || $user->role === 'super_admin'
             || $user->location_check_bypass) {
             return null;
         }
@@ -840,17 +844,19 @@ class AuthController extends Controller
                     'user_id' => $user->id,
                     'ip' => $userIp,
                 ]);
+
                 return null;
             }
         }
 
         // Validate user coordinates
-        if (!$locationService->validateCoordinates($userLat, $userLon)) {
+        if (! $locationService->validateCoordinates($userLat, $userLon)) {
             Log::warning('Invalid user coordinates provided', [
                 'user_id' => $user->id,
                 'latitude' => $userLat,
                 'longitude' => $userLon,
             ]);
+
             return null; // Allow login if coordinates are invalid (graceful degradation)
         }
 
@@ -880,6 +886,7 @@ class AuthController extends Controller
                 'branch_id' => $branch?->id,
                 'facility_id' => $facility?->id,
             ]);
+
             return null;
         }
 
@@ -892,19 +899,19 @@ class AuthController extends Controller
         );
 
         // Check if within allowed distance
-        if (!$locationService->isWithinAllowedDistance($distanceKm)) {
+        if (! $locationService->isWithinAllowedDistance($distanceKm)) {
             $formattedDistance = $locationService->formatDistance($distanceKm);
-            
+
             Log::warning('Login blocked due to distance', [
                 'user_id' => $user->id,
                 'distance_km' => $distanceKm,
                 'target' => $targetName,
             ]);
 
-            $maxDistanceFormatted = LocationService::MAX_LOGIN_DISTANCE_KM < 1 
-                ? (LocationService::MAX_LOGIN_DISTANCE_KM * 1000) . ' meters'
-                : LocationService::MAX_LOGIN_DISTANCE_KM . 'km';
-            
+            $maxDistanceFormatted = LocationService::MAX_LOGIN_DISTANCE_KM < 1
+                ? (LocationService::MAX_LOGIN_DISTANCE_KM * 1000).' meters'
+                : LocationService::MAX_LOGIN_DISTANCE_KM.'km';
+
             return [
                 'message' => "You are too far from your assigned location ({$targetName}). You are {$formattedDistance} away, but must be within {$maxDistanceFormatted} to log in.",
                 'distance' => $distanceKm,
@@ -923,15 +930,11 @@ class AuthController extends Controller
 
     /**
      * Automatically clock in user after successful login
-     * 
-     * @param \App\Models\User $user
-     * @param \Illuminate\Http\Request $request
-     * @return void
      */
     protected function autoClockIn(\App\Models\User $user, Request $request): void
     {
         // Only clock in users who have an assigned branch (staff members)
-        if (!$user->assigned_branch_id) {
+        if (! $user->assigned_branch_id) {
             return;
         }
 
@@ -940,12 +943,13 @@ class AuthController extends Controller
             Log::info('User already clocked in, skipping auto clock-in', [
                 'user_id' => $user->id,
             ]);
+
             return;
         }
 
         try {
             $locationService = app(LocationService::class);
-            
+
             // Get location from request (may be null if not provided)
             $latitude = $request->input('latitude');
             $longitude = $request->input('longitude');
@@ -1020,28 +1024,31 @@ class AuthController extends Controller
     private function notifyStaffClockIn(StaffClockIn $clockIn): void
     {
         $clockIn->load(['staff', 'branch', 'facility']);
-        
+
         // Get admins and facility admins
-        $users = \App\Models\User::where(function($query) use ($clockIn) {
+        $users = \App\Models\User::where(function ($query) use ($clockIn) {
             $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
-            
+
             // Filter by facility if applicable
             if ($clockIn->facility_id) {
-                $query->where(function($q) use ($clockIn) {
+                $query->where(function ($q) use ($clockIn) {
                     $q->where('facility_id', $clockIn->facility_id)
-                      ->orWhereNull('facility_id'); // Super admins
+                        ->orWhereNull('facility_id'); // Super admins
                 });
             }
         })
-        ->where('is_active', true)
-        ->where('id', '!=', $clockIn->staff_id) // Don't notify the staff member themselves
-        ->get();
+            ->where('is_active', true)
+            ->where('id', '!=', $clockIn->staff_id) // Don't notify the staff member themselves
+            ->get();
 
         $branchName = $clockIn->branch?->name ?? 'Unknown Branch';
         $staffName = $clockIn->staff?->name ?? 'Unknown Staff';
         $time = Carbon::parse($clockIn->clock_in_at)->format('g:i A');
 
-        foreach ($users as $admin) {
+        $allowInApp = app(\App\Services\NotificationPreferenceService::class)
+            ->shouldSendInApp($clockIn->facility_id, 'check_in_out');
+
+        foreach (($allowInApp ? $users : []) as $admin) {
             \App\Models\Notification::create([
                 'user_id' => $admin->id,
                 'type' => 'staff_clock_in',
@@ -1072,15 +1079,11 @@ class AuthController extends Controller
 
     /**
      * Automatically clock out user on logout
-     * 
-     * @param \App\Models\User $user
-     * @param \Illuminate\Http\Request $request
-     * @return void
      */
     protected function autoClockOut(\App\Models\User $user, Request $request): void
     {
         // Check if user has an active clock-in
-        if (!$user->hasActiveClockIn()) {
+        if (! $user->hasActiveClockIn()) {
             return;
         }
 
@@ -1120,33 +1123,36 @@ class AuthController extends Controller
     private function notifyStaffClockOut(StaffClockIn $clockIn, ?\App\Models\User $actionBy = null): void
     {
         $clockIn->load(['staff', 'branch', 'facility']);
-        
+
         // Get admins and facility admins
-        $users = \App\Models\User::where(function($query) use ($clockIn) {
+        $users = \App\Models\User::where(function ($query) use ($clockIn) {
             $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
-            
+
             // Filter by facility if applicable
             if ($clockIn->facility_id) {
-                $query->where(function($q) use ($clockIn) {
+                $query->where(function ($q) use ($clockIn) {
                     $q->where('facility_id', $clockIn->facility_id)
-                      ->orWhereNull('facility_id'); // Super admins
+                        ->orWhereNull('facility_id'); // Super admins
                 });
             }
         })
-        ->where('is_active', true)
-        ->where('id', '!=', $clockIn->staff_id) // Don't notify the staff member themselves
-        ->get();
+            ->where('is_active', true)
+            ->where('id', '!=', $clockIn->staff_id) // Don't notify the staff member themselves
+            ->get();
 
         $branchName = $clockIn->branch?->name ?? 'Unknown Branch';
         $staffName = $clockIn->staff?->name ?? 'Unknown Staff';
         $time = Carbon::parse($clockIn->clock_out_at)->format('g:i A');
-        $duration = $clockIn->total_hours ? round($clockIn->total_hours, 2) . ' hours' : 'N/A';
-        
-        $actionByText = $actionBy && $actionBy->id !== $clockIn->staff_id 
-            ? " by {$actionBy->name}" 
+        $duration = $clockIn->total_hours ? round($clockIn->total_hours, 2).' hours' : 'N/A';
+
+        $actionByText = $actionBy && $actionBy->id !== $clockIn->staff_id
+            ? " by {$actionBy->name}"
             : '';
 
-        foreach ($users as $admin) {
+        $allowInApp = app(\App\Services\NotificationPreferenceService::class)
+            ->shouldSendInApp($clockIn->facility_id, 'check_in_out');
+
+        foreach (($allowInApp ? $users : []) as $admin) {
             \App\Models\Notification::create([
                 'user_id' => $admin->id,
                 'type' => 'staff_clock_out',
@@ -1175,4 +1181,3 @@ class AuthController extends Controller
         }
     }
 }
-

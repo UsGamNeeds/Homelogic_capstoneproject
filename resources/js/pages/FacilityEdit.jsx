@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
+import { safeHref } from '../utils/safeUrl';
 import {
   ArrowLeft, Save, Building2, Palette, Settings, Users, Shield,
   MapPin, Phone, Mail, Image as ImageIcon, CheckCircle, XCircle,
@@ -1218,7 +1219,7 @@ function UserProfileModal({ user, onClose, onEdit }) {
             <div className="flex flex-col items-center gap-4 md:flex-row md:items-center md:gap-6">
               {displayUser.profile_image_url ? (
                 <img
-                  src={displayUser.profile_image_url}
+                  src={safeHref(displayUser.profile_image_url)}
                   alt={displayUser.name || displayUser.email || 'Profile'}
                   className="mx-auto h-24 w-24 rounded-full border-4 border-white object-cover shadow-lg md:mx-0 md:h-32 md:w-32"
                   onError={(e) => {

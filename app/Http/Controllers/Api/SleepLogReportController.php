@@ -2,16 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Models\Resident;
 use App\Models\Facility;
+use App\Models\Resident;
 use App\Models\SleepRecord;
 use App\Services\PremiumReportService;
 use App\Support\ReportBranding;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
-class SleepLogReportController extends Controller
+class SleepLogReportController extends BaseApiController
 {
     protected $premiumReportService;
 
@@ -22,8 +21,12 @@ class SleepLogReportController extends Controller
 
     public function __invoke(Request $request, $residentId)
     {
+        if ($error = $this->requireModuleAccess(\App\Constants\Modules::REPORTS)) {
+            return $error;
+        }
+
         $resident = Resident::findOrFail($residentId);
-        
+
         try {
             $records = SleepRecord::where('resident_id', $resident->id)
                 ->with('createdBy')
@@ -40,7 +43,7 @@ class SleepLogReportController extends Controller
                     'date' => $record->sleep_date->format('Y-m-d'),
                     'sleep_time' => $record->sleep_time ? date('g:i A', strtotime($record->sleep_time)) : 'N/A',
                     'wake_time' => $record->wake_time ? date('g:i A', strtotime($record->wake_time)) : 'N/A',
-                    'duration' => $record->total_sleep_hours . ' hrs',
+                    'duration' => $record->total_sleep_hours.' hrs',
                     'quality' => $record->sleep_quality_text,
                     'restlessness' => $record->restlessness_episodes ?? 0,
                     'notes' => $record->notes ?? '',
@@ -49,7 +52,7 @@ class SleepLogReportController extends Controller
             }
 
             $viewData = [
-                'reportTitle' => 'Sleep Historical Log: ' . $resident->name,
+                'reportTitle' => 'Sleep Historical Log: '.$resident->name,
                 'facilityName' => $facility?->name ?? 'Evergreen Care',
                 'facilityAddress' => $facility?->address,
                 'facilityLogoDataUri' => ReportBranding::imageToDataUri($facility?->logo),
@@ -59,7 +62,7 @@ class SleepLogReportController extends Controller
                 'dateOfBirth' => $resident->date_of_birth?->format('M d, Y') ?? 'N/A',
                 'roomNumber' => $resident->room ?? 'N/A',
                 'exportedAt' => now()->format('M d, Y g:i A'),
-                ...$branding
+                ...$branding,
             ];
 
             $filename = sprintf(
@@ -77,13 +80,13 @@ class SleepLogReportController extends Controller
 
             return response($pdfBinary, 200, [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             ]);
         } catch (\Throwable $e) {
             Log::error('Sleep Log PDF generation failed', [
                 'resident_id' => $resident->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([

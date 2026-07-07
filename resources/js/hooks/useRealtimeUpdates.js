@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getEcho } from '../services/echo';
 import { toast } from 'sonner';
+import { safeRedirect } from '../utils/safeUrl';
 
 /**
  * Core hook: subscribe to one or more Echo channels and react to events.
@@ -164,7 +165,7 @@ export function useUserNotifications(userId, options = {}) {
                     description: data.message,
                     duration: 5000,
                     action: data.action_url
-                        ? { label: 'View', onClick: () => { window.location.href = data.action_url; } }
+                        ? { label: 'View', onClick: () => { window.location.href = safeRedirect(data.action_url); } }
                         : undefined,
                 });
             }

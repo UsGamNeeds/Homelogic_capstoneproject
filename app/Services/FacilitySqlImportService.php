@@ -25,6 +25,22 @@ class FacilitySqlImportService
             return ['ok' => false, 'detail' => 'Backup file is not readable.'];
         }
 
+        // Encrypted backups are decrypted to a temp plaintext file so the
+        // streaming reader below works; legacy plaintext uses the original path.
+        $decryptedTemp = app(BackupCipher::class)->decryptToTemp($absolutePath);
+        $workPath = $decryptedTemp ?? $absolutePath;
+
+        try {
+            return $this->runImport($workPath, $expectedFacilityId);
+        } finally {
+            if ($decryptedTemp !== null) {
+                @unlink($decryptedTemp);
+            }
+        }
+    }
+
+    private function runImport(string $absolutePath, int $expectedFacilityId): array
+    {
         $parsed = $this->parseHeaderFacilityId($absolutePath);
         if ($parsed === null) {
             return ['ok' => false, 'detail' => 'Invalid facility backup file (missing HL360_FACILITY_BACKUP header).'];

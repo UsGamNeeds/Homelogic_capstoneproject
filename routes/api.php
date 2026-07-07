@@ -66,6 +66,7 @@ use App\Http\Controllers\Api\VitalsLogReportController;
 use App\Http\Controllers\Webhook\DocumoFaxWebhookController;
 use App\Http\Controllers\Webhook\FakeFaxWebhookController;
 use App\Http\Controllers\Webhook\IFaxFaxWebhookController;
+use App\Http\Controllers\Webhook\MFaxFaxWebhookController;
 use App\Http\Controllers\Webhook\TelnyxFaxWebhookController;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -150,6 +151,12 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
     Route::apiResource('residents', ResidentController::class)->middleware('auth:sanctum');
     Route::get('/residents/{id}/appointments', [ResidentController::class, 'appointments'])->middleware('auth:sanctum');
     Route::get('/residents/{id}/vitals', [ResidentController::class, 'vitals'])->middleware('auth:sanctum');
+
+    // Assistant
+    Route::post('/assistant/query', [\App\Http\Controllers\Api\AssistantController::class, 'query'])
+        ->middleware(['auth:sanctum', 'throttle:30,1']);
+    Route::get('/assistant/suggestions', [\App\Http\Controllers\Api\AssistantController::class, 'suggestions'])
+        ->middleware(['auth:sanctum', 'throttle:60,1']);
 
     // Resident contacts (family portal invites) - staff only
     Route::get('/resident-contacts', [\App\Http\Controllers\Api\ResidentContactController::class, 'index'])->middleware('auth:sanctum');
@@ -514,14 +521,15 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
         Route::get('/providers', [FaxSettingsController::class, 'providers']);
         Route::get('/settings', [FaxSettingsController::class, 'show']);
         Route::put('/settings', [FaxSettingsController::class, 'update']);
-        Route::post('/settings/test-connection', [FaxSettingsController::class, 'testConnection']);
+        Route::post('/settings/test-connection', [FaxSettingsController::class, 'testConnection'])->middleware('throttle:10,1');
         Route::get('/settings/webhook-url', [FaxSettingsController::class, 'webhookUrl']);
         Route::post('/settings/rotate-webhook', [FaxSettingsController::class, 'rotateWebhook']);
 
         Route::apiResource('contacts', FaxContactController::class);
 
         Route::get('/numbers', [FaxNumberController::class, 'index']);
-        Route::post('/numbers/search', [FaxNumberController::class, 'search']);
+        Route::post('/numbers/search', [FaxNumberController::class, 'search'])->middleware('throttle:15,1');
+        Route::post('/numbers/register', [FaxNumberController::class, 'register']);
         Route::post('/numbers', [FaxNumberController::class, 'store']);
         Route::patch('/numbers/{id}', [FaxNumberController::class, 'update']);
         Route::delete('/numbers/{id}', [FaxNumberController::class, 'destroy']);
@@ -529,7 +537,7 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
         // Specific routes BEFORE the catch-all "/{id}" so they don't get
         // swallowed by the wildcard.
         Route::get('/cost-summary', [FaxController::class, 'costSummary']);
-        Route::post('/send', [FaxController::class, 'send']);
+        Route::post('/send', [FaxController::class, 'send'])->middleware('throttle:20,1');
         Route::get('/', [FaxController::class, 'index']);
         Route::get('/{id}', [FaxController::class, 'show'])->whereNumber('id');
         Route::get('/{id}/download', [FaxController::class, 'download'])->whereNumber('id');
@@ -553,6 +561,7 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
 Route::post('/webhooks/fax/telnyx/{secret}', TelnyxFaxWebhookController::class);
 Route::post('/webhooks/fax/documo/{secret}', DocumoFaxWebhookController::class);
 Route::post('/webhooks/fax/ifax/{secret}', IFaxFaxWebhookController::class);
+Route::post('/webhooks/fax/mfax/{secret}', MFaxFaxWebhookController::class);
 Route::post('/webhooks/fax/fake/{secret}', FakeFaxWebhookController::class);
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('/chart/{resident}')->group(function () {

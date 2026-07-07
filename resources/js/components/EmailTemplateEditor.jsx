@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Eye, Code, Plus } from 'lucide-react';
+import DOMPurify from 'dompurify';
 import api from '../services/api';
 import { useToastContext } from '../contexts/ToastContext';
 
@@ -200,13 +201,15 @@ export default function EmailTemplateEditor({
             {showPreview && previewMutation.data?.data ? (
               <div
                 dangerouslySetInnerHTML={{
-                  __html: previewMutation.data.data.html || htmlContent,
+                  __html: DOMPurify.sanitize(previewMutation.data.data.html || htmlContent),
                 }}
               />
             ) : (
               <div
                 dangerouslySetInnerHTML={{
-                  __html: htmlContent || '<p class="text-gray-400">Enter HTML template...</p>',
+                  __html: DOMPurify.sanitize(
+                    htmlContent || '<p class="text-gray-400">Enter HTML template...</p>'
+                  ),
                 }}
               />
             )}

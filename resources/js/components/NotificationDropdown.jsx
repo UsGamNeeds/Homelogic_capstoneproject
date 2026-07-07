@@ -13,6 +13,7 @@ import {
     showDesktopNotification
 } from '../utils/desktopNotifications';
 import Tooltip from './ui/Tooltip';
+import { safeRedirect } from '../utils/safeUrl';
 
 // Map notification types to filter categories
 const TYPE_CATEGORIES = {
@@ -197,7 +198,7 @@ export default function NotificationDropdown() {
         };
 
         if (notification.action_url) {
-            navigate(normalizeUrl(notification.action_url));
+            navigate(safeRedirect(normalizeUrl(notification.action_url)));
             setIsOpen(false);
             return;
         }
@@ -244,7 +245,7 @@ export default function NotificationDropdown() {
                 navUrl = '/check-in-dashboard'; break;
         }
 
-        navigate(navUrl);
+        navigate(safeRedirect(navUrl));
         setIsOpen(false);
     };
 
