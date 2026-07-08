@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ActivityLogController;
+use App\Http\Controllers\Api\AgentWorkflowController;
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AppointmentReportController;
 use App\Http\Controllers\Api\AssessmentController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BehaviorDataController;
 use App\Http\Controllers\Api\BillingInvoiceController;
 use App\Http\Controllers\Api\BranchController;
+use App\Http\Controllers\Api\ChartAssistantController;
 use App\Http\Controllers\Api\ChartController;
 use App\Http\Controllers\Api\CleaningAreaController;
 use App\Http\Controllers\Api\CleaningChecklistController;
@@ -221,6 +223,7 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
     Route::post('/medication-administrations/bulk-delete', [MedicationAdministrationController::class, 'bulkDestroy'])->middleware('auth:sanctum');
     // Administrator-only: resolve missed doses (completed, refused, hospital admission)
     Route::post('/medication-administrations/bulk-resolve-missed', [MedicationAdministrationController::class, 'bulkResolveMissed'])->middleware('auth:sanctum');
+    // Administrator-only: flip a missed dose to administered, preserving the originally scheduled time
     Route::patch('/medication-administrations/{id}/mark-administered', [MedicationAdministrationController::class, 'markAdministered'])->middleware('auth:sanctum');
     Route::apiResource('medication-administrations', MedicationAdministrationController::class)->middleware('auth:sanctum');
 
@@ -369,11 +372,18 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
     // Charts
     Route::prefix('charts')->middleware('auth:sanctum')->group(function () {
         Route::get('/residents', [ChartController::class, 'residentStats']);
+        Route::get('/assistant/conversations', [ChartAssistantController::class, 'index']);
+        Route::post('/assistant/conversations', [ChartAssistantController::class, 'store']);
+        Route::get('/assistant/conversations/{conversation}', [ChartAssistantController::class, 'showConversation']);
+        Route::post('/assistant/conversations/{conversation}/messages', [ChartAssistantController::class, 'sendMessage']);
+        Route::post('/assistant/{resident}/workflow', [AgentWorkflowController::class, 'run']);
+        Route::post('/assistant/{resident}/analyze', [ChartAssistantController::class, 'analyze']);
         Route::get('/vitals', [ChartController::class, 'vitalsStats']);
         Route::get('/assessments', [ChartController::class, 'assessmentStats']);
         Route::get('/appointments', [ChartController::class, 'appointmentStats']);
         Route::get('/sleep', [ChartController::class, 'sleepStats']);
         Route::get('/staff', [ChartController::class, 'staffStats']);
+        Route::get('/assistant/{resident}', [ChartAssistantController::class, 'show']);
     });
 
     // Analytics
@@ -550,3 +560,13 @@ Route::post('/webhooks/fax/documo/{secret}', DocumoFaxWebhookController::class);
 Route::post('/webhooks/fax/ifax/{secret}', IFaxFaxWebhookController::class);
 Route::post('/webhooks/fax/mfax/{secret}', MFaxFaxWebhookController::class);
 Route::post('/webhooks/fax/fake/{secret}', FakeFaxWebhookController::class);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::prefix('/chart/{resident}')->group(function () {
+        Route::post('/summarize', [App\Http\Controllers\ChartAssistantController::class, 'summarize']);
+        Route::post('/extract-care-plan', [App\Http\Controllers\ChartAssistantController::class, 'extractCarePlan']);
+        Route::post('/generate-progress-note', [App\Http\Controllers\ChartAssistantController::class, 'generateProgressNote']);
+        Route::post('/chat', [App\Http\Controllers\ChartAssistantController::class, 'chat']);
+        Route::get('/chat-history', [App\Http\Controllers\ChartAssistantController::class, 'chatHistory']);
+        Route::post('/analyze-risks', [App\Http\Controllers\ChartAssistantController::class, 'analyzeRisks']);
+    });
+});

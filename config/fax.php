@@ -15,8 +15,10 @@ return [
     |
     */
     'providers' => [
-        \App\Services\Fax\Providers\MFaxFaxProvider::class,
         \App\Services\Fax\Providers\IFaxFaxProvider::class,
+        \App\Services\Fax\Providers\TelnyxFaxProvider::class,
+        \App\Services\Fax\Providers\DocumoFaxProvider::class,
+        \App\Services\Fax\Providers\MFaxFaxProvider::class,
         \App\Services\Fax\Providers\FakeFaxProvider::class,
     ],
 

@@ -139,7 +139,11 @@ class VitalSignObserver
         }
 
         // Broadcast real-time event
-        event(new VitalSignCreated($vitalSign));
+        try {
+            event(new VitalSignCreated($vitalSign));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('[VitalSignObserver] Broadcast failed: ' . $e->getMessage());
+        }
     }
 }
 }

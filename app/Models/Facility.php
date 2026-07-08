@@ -81,7 +81,12 @@ class Facility extends Model
      */
     public function hasModuleAccess(string $module): bool
     {
-        $moduleRecord = $this->modules()->where('module', $module)->first();
+        // Use the already eager-loaded collection when available to avoid an
+        // extra query per module (e.g. AuthController::transformUser() checks
+        // every module key to build `enabled_modules` on every /user call).
+        $moduleRecord = $this->relationLoaded('modules')
+            ? $this->modules->firstWhere('module', $module)
+            : $this->modules()->where('module', $module)->first();
 
         // If no record exists, default to enabled (backward compatibility)
         if (! $moduleRecord) {

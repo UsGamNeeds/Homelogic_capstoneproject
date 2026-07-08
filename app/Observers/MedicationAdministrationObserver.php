@@ -97,7 +97,11 @@ class MedicationAdministrationObserver
         }
 
         // Broadcast real-time event
-        event(new MedicationAdministrationCreated($administration));
+        try {
+            event(new MedicationAdministrationCreated($administration));
+        } catch (\Throwable $e) {
+            Log::warning('[MedicationAdministrationObserver] Broadcast failed: ' . $e->getMessage());
+        }
     }
 
     /**

@@ -24,26 +24,49 @@ class ResidentResolver
         // FacilityScope limits this to the user's facility/branch automatically.
         $residents = Resident::query()->get(['id', 'first_name', 'last_name', 'branch_id']);
 
+        // Phase 0: find residents whose FULL name literally appears in the message.
+        // A full-name mention is unambiguous evidence of intent, so if any full-name
+        // match exists we must not ALSO treat other residents as matched just because
+        // part of the message happens to share their bare first or last name (e.g.
+        // "Alice Williams" must not also match a resident named "Margaret Williams").
+        $fullNameMatches = [];
+        foreach ($residents as $resident) {
+            $full = trim(($resident->first_name ?? '').' '.($resident->last_name ?? ''));
+            if ($full === '') {
+                continue;
+            }
+            $pattern = '/\b'.preg_quote($full, '/').'\b/i';
+            if (preg_match($pattern, $message) === 1) {
+                $fullNameMatches[$resident->id] = $resident;
+            }
+        }
+
         $matched = [];
         $namesToReplace = [];
 
-        // Phase 1 (detection, no mutation): test every candidate form against
-        // the ORIGINAL message and collect ALL matching forms for ALL matched
-        // residents. Do not stop at the first hit per resident, or other
-        // occurrences/forms of that resident's name would survive redaction.
-        foreach ($residents as $resident) {
-            $full = trim(($resident->first_name ?? '').' '.($resident->last_name ?? ''));
-            $candidates = array_filter([
-                $full,
-                $resident->first_name,
-                $resident->last_name,
-            ]);
-
-            foreach ($candidates as $candidate) {
-                $pattern = '/\b'.preg_quote((string) $candidate, '/').'\b/i';
-                if (preg_match($pattern, $message) === 1) {
-                    $matched[$resident->id] = $resident;
+        if ($fullNameMatches !== []) {
+            // Only the full-name matches count. Still collect every name form
+            // for those residents so a later bare mention in the same message
+            // (e.g. "Mary" after "Mary Smith") is also redacted.
+            foreach ($fullNameMatches as $resident) {
+                $matched[$resident->id] = $resident;
+                $full = trim(($resident->first_name ?? '').' '.($resident->last_name ?? ''));
+                foreach (array_filter([$full, $resident->first_name, $resident->last_name]) as $candidate) {
                     $namesToReplace[] = $candidate;
+                }
+            }
+        } else {
+            // No full name was typed - fall back to bare first/last name matching
+            // (e.g. "meds for Mary" is ambiguous across every resident named Mary).
+            foreach ($residents as $resident) {
+                $candidates = array_filter([$resident->first_name, $resident->last_name]);
+
+                foreach ($candidates as $candidate) {
+                    $pattern = '/\b'.preg_quote((string) $candidate, '/').'\b/i';
+                    if (preg_match($pattern, $message) === 1) {
+                        $matched[$resident->id] = $resident;
+                        $namesToReplace[] = $candidate;
+                    }
                 }
             }
         }

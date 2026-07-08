@@ -84,6 +84,34 @@ class ResidentResolverTest extends TestCase
         $this->assertSame('none', $resolution->status);
     }
 
+    public function test_full_name_match_is_not_ambiguous_with_a_shared_last_name(): void
+    {
+        [, $branch, $user] = $this->seedFacilityUser();
+        Resident::factory()->create(['branch_id' => $branch->id, 'first_name' => 'Alice', 'last_name' => 'Williams']);
+        Resident::factory()->create(['branch_id' => $branch->id, 'first_name' => 'Margaret', 'last_name' => 'Williams']);
+        Sanctum::actingAs($user);
+
+        $resolution = app(ResidentResolver::class)->resolve("today's meds for Alice Williams", $user);
+
+        $this->assertSame('one', $resolution->status);
+        $this->assertCount(1, $resolution->matches);
+        $this->assertSame('Alice', $resolution->matches[0]->first_name);
+    }
+
+    public function test_full_name_match_is_not_ambiguous_with_a_shared_first_name(): void
+    {
+        [, $branch, $user] = $this->seedFacilityUser();
+        Resident::factory()->create(['branch_id' => $branch->id, 'first_name' => 'Margaret', 'last_name' => 'Williams']);
+        Resident::factory()->create(['branch_id' => $branch->id, 'first_name' => 'Margaret', 'last_name' => 'Thompson']);
+        Sanctum::actingAs($user);
+
+        $resolution = app(ResidentResolver::class)->resolve("today's meds for Margaret Williams", $user);
+
+        $this->assertSame('one', $resolution->status);
+        $this->assertCount(1, $resolution->matches);
+        $this->assertSame('Williams', $resolution->matches[0]->last_name);
+    }
+
     public function test_redacts_all_occurrences_and_forms_of_same_resident_name(): void
     {
         [, $branch, $user] = $this->seedFacilityUser();
