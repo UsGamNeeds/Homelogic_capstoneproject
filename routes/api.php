@@ -95,9 +95,6 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
             AddQueuedCookiesToResponse::class,
             StartSession::class,
         ])->withoutMiddleware([\App\Http\Middleware\SetFacilityContext::class]);
-    Route::post('/auto-login', [AuthController::class, 'autoLogin'])
-        ->middleware(['throttle:30,1'])
-        ->withoutMiddleware([\App\Http\Middleware\SetFacilityContext::class]);
     Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])
         ->middleware('throttle:3,1')
         ->withoutMiddleware([\App\Http\Middleware\SetFacilityContext::class]);

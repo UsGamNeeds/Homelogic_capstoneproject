@@ -113,7 +113,7 @@ These are documented here because they're easy to reintroduce if this deployment
 ## 5. Post-deploy verification checklist
 
 - [ ] `php artisan migrate:status` — confirm no pending migrations
-- [ ] Log in (or use the demo auto-login) and confirm the sidebar renders with the correct facility branding, not the generic "HomeLogic360 / Care Home" super-admin fallback
+- [ ] Log in and confirm the sidebar renders with the correct facility branding, not the generic "HomeLogic360 / Care Home" super-admin fallback
 - [ ] Open the AI Assistant page, select a resident with chart data, and confirm the response shows `Mode: anthropic (claude-opus-4-8)` — if it shows `Mode: heuristic`, check `storage/logs/laravel.log` for the `Chart assistant Anthropic fallback triggered` warning to see why
 - [ ] Confirm real-time notifications work (or fail *silently*, per gotcha #4, rather than crashing pages) if Pusher isn't configured yet
 - [ ] Run `php artisan db:seed --force` once to populate demo data, and re-run it any time new demo residents/facilities are added (it's safe to re-run — see gotcha #7)

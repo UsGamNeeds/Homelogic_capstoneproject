@@ -106,10 +106,10 @@ const SYSTEM_HUB_PREFIXES = ['/administration'];
  */
 const caregiverNavigation = [
     { name: 'Dashboard',  icon: LayoutDashboard, path: '/dashboard',    children: null, section: 'Home' },
-    { name: 'AI Assistant', icon: Command, path: '/ai-assistant', children: null, section: 'Home', activePathPrefixes: ['/ai-assistant'], highlight: true },
     { name: 'Residents',  icon: Users,           path: '/my-residents', children: null, section: HUB_SECTION, activePathPrefixes: RESIDENT_HUB_PREFIXES, activePathRegex: RESIDENT_LEGACY_DETAIL },
     { name: 'Clinical',   icon: Stethoscope,     path: '/clinical',     children: null, section: HUB_SECTION, activePathPrefixes: CLINICAL_HUB_PREFIXES },
     { name: 'Operations', icon: Wrench,          path: '/operations',   children: null, section: HUB_SECTION, activePathPrefixes: OPERATIONS_HUB_PREFIXES },
+    { name: 'AI Assistant', icon: Command, path: '/ai-assistant', children: null, section: HUB_SECTION, activePathPrefixes: ['/ai-assistant'] },
     {
         name: 'Reports',
         icon: FileText,
@@ -125,7 +125,6 @@ const caregiverNavigation = [
  */
 const facilityStaffHubNavigation = [
     { name: 'Dashboard',          icon: LayoutDashboard, path: '/dashboard',      children: null, section: 'Home' },
-    { name: 'AI Assistant', icon: Command, path: '/ai-assistant', children: null, section: 'Home', activePathPrefixes: ['/ai-assistant'], highlight: true },
     { name: 'Residents',          icon: Users,           path: '/my-residents',   children: null, section: HUB_SECTION, activePathPrefixes: RESIDENT_HUB_PREFIXES, activePathRegex: RESIDENT_LEGACY_DETAIL },
     { name: 'Clinical',           icon: Stethoscope,     path: '/clinical',       children: null, section: HUB_SECTION, activePathPrefixes: CLINICAL_HUB_PREFIXES },
     { name: 'Operations',         icon: Wrench,          path: '/operations',     children: null, section: HUB_SECTION, activePathPrefixes: OPERATIONS_HUB_PREFIXES },
@@ -133,6 +132,7 @@ const facilityStaffHubNavigation = [
     { name: 'Organization',       icon: Building2,      path: '/organization',   children: null, section: HUB_SECTION, activePathPrefixes: ORGANIZATION_HUB_PREFIXES },
     { name: 'Team & compliance', icon: UsersRound,      path: '/team',            children: null, section: HUB_SECTION, activePathPrefixes: TEAM_HUB_PREFIXES },
     { name: 'System',             icon: Settings,        path: '/administration', children: null, section: HUB_SECTION, activePathPrefixes: SYSTEM_HUB_PREFIXES },
+    { name: 'AI Assistant', icon: Command, path: '/ai-assistant', children: null, section: HUB_SECTION, activePathPrefixes: ['/ai-assistant'] },
     {
         name: 'Reports',
         icon: FileText,
@@ -437,15 +437,14 @@ export default function Layout() {
                     icon: Command,
                     path: '/ai-assistant',
                     children: null,
-                    section: 'Home',
+                    section: HUB_SECTION,
                     activePathPrefixes: ['/ai-assistant'],
-                    highlight: true,
                 };
-                const dashboardIndex = items.findIndex((item) => item.path === '/dashboard' || item.name === 'Dashboard');
-                if (dashboardIndex >= 0) {
-                    items.splice(dashboardIndex + 1, 0, aiAssistantItem);
+                const reportsIndex = items.findIndex((item) => item.path === '/reports' || item.name === 'Reports');
+                if (reportsIndex >= 0) {
+                    items.splice(reportsIndex, 0, aiAssistantItem);
                 } else {
-                    items.unshift(aiAssistantItem);
+                    items.push(aiAssistantItem);
                 }
             }
         }

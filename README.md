@@ -171,14 +171,11 @@ Beyond the standard Laravel `.env` values, HomeLogic360 uses:
 |---|---|
 | `ANTHROPIC_API_KEY` | Required for the AI Assistant to call Claude; without it the assistant runs in heuristic-only mode |
 | `BROADCAST_CONNECTION` + `PUSHER_*` | Real-time notifications, vital alerts, fax status updates |
-| `AUTO_LOGIN_EMAIL` | Optional — bypasses the login screen for a specific account (used for demo/grading access; see note below) |
 | `VAPID_*` | Web push notifications (PWA) |
 | `FAX_IFAX_WEBHOOK_SECRET` | iFax webhook verification (fax provider credentials are stored per-facility in the database, not `.env`) |
 | `AWS_*` | Optional S3/SES integration |
 
 See [`.env.example`](.env.example) for the complete, commented list.
-
-> **Note for reviewers**: this deployment currently auto-authenticates visitors and lands directly on the AI Assistant page, bypassing the login screen, to make grading/demo access frictionless. This is a temporary configuration for evaluation purposes — the underlying login, role, and permission system is fully implemented and enforced everywhere else (see `app/Http/Controllers/Api/AuthController.php` and `app/Models/Scopes/FacilityScope.php`).
 
 ---
 
