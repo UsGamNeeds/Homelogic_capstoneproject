@@ -935,28 +935,44 @@ class DashboardService
             })
             ->get();
 
+        // Batch-fetch today's completed administrations for these medications in one query
+        // instead of firing an exists() query per medication per time slot.
+        $administeredLookup = [];
+        if ($medications->isNotEmpty()) {
+            MedicationAdministration::whereIn('medication_id', $medications->pluck('id'))
+                ->whereDate('administered_at', today())
+                ->where('status', 'completed')
+                ->get(['medication_id', 'administered_at'])
+                ->each(function ($administration) use (&$administeredLookup) {
+                    $key = $administration->medication_id.'|'.$administration->administered_at->format('H:i');
+                    $administeredLookup[$key] = true;
+                });
+        }
+
         $reminders = [];
+        // Build the "today at midnight" base once; cloning + setTime() per slot is far
+        // cheaper than calling Carbon::today()->setTimeFromTimeString() per slot, which
+        // re-resolves "now"/timezone on every one of the (medications x slots) iterations.
+        $todayStart = Carbon::today();
 
         foreach ($medications as $medication) {
-            // Get scheduled times for today
+            // Get scheduled times for today. time_1..4 are stored as "HH:MM:SS" strings;
+            // slice instead of Carbon::parse() to avoid re-parsing per slot per medication
+            // (this loop can run over hundreds of slots and Carbon parsing dominated the runtime).
             $times = [];
             for ($i = 1; $i <= 4; $i++) {
-                if ($medication->{"time_{$i}"}) {
-                    $time = Carbon::parse($medication->{"time_{$i}"})->format('H:i');
-                    $times[] = $time;
+                $raw = $medication->{"time_{$i}"};
+                if ($raw) {
+                    $times[] = substr($raw, 0, 5);
                 }
             }
 
             foreach ($times as $time) {
-                $timeToday = Carbon::today()->setTimeFromTimeString($time);
+                $timeToday = $todayStart->copy()->setTime((int) substr($time, 0, 2), (int) substr($time, 3, 2));
 
                 // Check if time is in next 24 hours and not already administered
                 if ($timeToday >= $now && $timeToday <= $next24Hours) {
-                    $alreadyAdministered = MedicationAdministration::where('medication_id', $medication->id)
-                        ->whereDate('administered_at', today())
-                        ->whereTime('administered_at', $time)
-                        ->where('status', 'completed')
-                        ->exists();
+                    $alreadyAdministered = isset($administeredLookup[$medication->id.'|'.$time]);
 
                     if (! $alreadyAdministered) {
                         $residentName = 'Unknown';
@@ -966,10 +982,11 @@ class DashboardService
                         }
                         $reminders[] = [
                             'medication_id' => $medication->id,
+                            'resident_id' => $medication->resident_id,
                             'resident_name' => $residentName,
                             'medication_name' => $medication->drug?->name ?? $medication->name,
                             'medication_dosage' => $medication->instructions ?? '',
-                            'due_time' => Carbon::parse($time)->format('g:i A'),
+                            'due_time' => self::formatTimeSlot($time),
                             'room' => $medication->resident->room_number ?? $medication->resident->room ?? 'N/A',
                         ];
                     }
@@ -983,6 +1000,24 @@ class DashboardService
         });
 
         return array_slice($reminders, 0, $limit);
+    }
+
+    /**
+     * Format an "HH:MM" 24-hour string as "g:i A" (e.g. "8:00 AM") without going
+     * through Carbon::parse(), which is comparatively expensive when called for
+     * every medication reminder slot.
+     */
+    private static function formatTimeSlot(string $time): string
+    {
+        [$hour, $minute] = explode(':', $time);
+        $hour = (int) $hour;
+        $suffix = $hour >= 12 ? 'PM' : 'AM';
+        $hour12 = $hour % 12;
+        if ($hour12 === 0) {
+            $hour12 = 12;
+        }
+
+        return "{$hour12}:{$minute} {$suffix}";
     }
 
     /**
@@ -1339,52 +1374,60 @@ class DashboardService
      */
     private function calculateFacilityMedicationAdherence(int $facilityId, Carbon $rangeStart, Carbon $rangeEnd): ?float
     {
-        $totalScheduled = 0;
-        $totalCompleted = 0;
-        $current = $rangeStart->copy()->startOfDay();
+        $start = $rangeStart->copy()->startOfDay();
         $end = $rangeEnd->copy()->endOfDay();
+
+        // Fetch medications that could be active at any point in the range once,
+        // rather than re-querying per day (was 2 queries x N days).
+        $candidateMeds = Medication::withoutGlobalScopes()
+            ->where('is_active', true)
+            ->where('start_date', '<=', $end->toDateString())
+            ->where(function ($q) use ($start) {
+                $q->whereNull('end_date')
+                    ->orWhere('end_date', '>=', $start->toDateString());
+            })
+            ->whereHas('resident', function ($q) use ($facilityId) {
+                $q->where('is_active', true)
+                    ->whereHas('branch', function ($b) use ($facilityId) {
+                        $b->where('facility_id', $facilityId);
+                    });
+            })
+            ->get(['id', 'instructions', 'start_date', 'end_date', 'time_1', 'time_2', 'time_3', 'time_4'])
+            ->reject(function ($medication) {
+                $instructions = strtolower((string) $medication->instructions);
+
+                return str_contains($instructions, 'prn') || str_contains($instructions, 'as needed');
+            })
+            // Extract raw date strings and slot count once per medication, up front.
+            // Accessing $medication->start_date/end_date repeatedly inside the day loop
+            // below re-triggers Eloquent's date cast (Carbon parsing) on every access,
+            // which is what made this loop take seconds instead of milliseconds.
+            ->map(function ($medication) {
+                return [
+                    'start_date' => $medication->getRawOriginal('start_date'),
+                    'end_date' => $medication->getRawOriginal('end_date'),
+                    'slot_count' => collect([$medication->time_1, $medication->time_2, $medication->time_3, $medication->time_4])
+                        ->filter()
+                        ->count(),
+                ];
+            });
+
+        $totalScheduled = 0;
+        $current = $start->copy();
 
         while ($current <= $end) {
             $dateStr = $current->toDateString();
 
-            $activeMeds = Medication::withoutGlobalScopes()
-                ->where('is_active', true)
-                ->where('start_date', '<=', $dateStr)
-                ->where(function ($q) use ($dateStr) {
-                    $q->whereNull('end_date')
-                        ->orWhere('end_date', '>=', $dateStr);
-                })
-                ->whereHas('resident', function ($q) use ($facilityId) {
-                    $q->where('is_active', true)
-                        ->whereHas('branch', function ($b) use ($facilityId) {
-                            $b->where('facility_id', $facilityId);
-                        });
-                })
-                ->get(['id', 'instructions', 'time_1', 'time_2', 'time_3', 'time_4']);
-
-            foreach ($activeMeds as $medication) {
-                $instructions = strtolower((string) $medication->instructions);
-                if (str_contains($instructions, 'prn') || str_contains($instructions, 'as needed')) {
+            foreach ($candidateMeds as $medication) {
+                if ($medication['start_date'] && $medication['start_date'] > $dateStr) {
+                    continue;
+                }
+                if ($medication['end_date'] && $medication['end_date'] < $dateStr) {
                     continue;
                 }
 
-                for ($slot = 1; $slot <= 4; $slot++) {
-                    if ($medication->{"time_{$slot}"}) {
-                        $totalScheduled++;
-                    }
-                }
+                $totalScheduled += $medication['slot_count'];
             }
-
-            $totalCompleted += MedicationAdministration::withoutGlobalScopes()
-                ->where('status', 'completed')
-                ->whereBetween('administered_at', [$current->copy()->startOfDay(), $current->copy()->endOfDay()])
-                ->whereHas('resident', function ($q) use ($facilityId) {
-                    $q->where('is_active', true)
-                        ->whereHas('branch', function ($b) use ($facilityId) {
-                            $b->where('facility_id', $facilityId);
-                        });
-                })
-                ->count();
 
             $current->addDay();
         }
@@ -1392,6 +1435,19 @@ class DashboardService
         if ($totalScheduled === 0) {
             return null;
         }
+
+        // Single aggregate query for completed administrations across the whole range,
+        // instead of one COUNT query per day.
+        $totalCompleted = MedicationAdministration::withoutGlobalScopes()
+            ->where('status', 'completed')
+            ->whereBetween('administered_at', [$start, $end])
+            ->whereHas('resident', function ($q) use ($facilityId) {
+                $q->where('is_active', true)
+                    ->whereHas('branch', function ($b) use ($facilityId) {
+                        $b->where('facility_id', $facilityId);
+                    });
+            })
+            ->count();
 
         return min(100, round(($totalCompleted / $totalScheduled) * 100, 1));
     }

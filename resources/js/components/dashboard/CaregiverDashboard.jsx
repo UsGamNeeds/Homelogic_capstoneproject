@@ -129,6 +129,7 @@ export default function CaregiverDashboard({
         return new Set(reminders.map(m => String(m.resident_id)).filter(Boolean));
     }, [stats?.medication_reminders]);
 
+
     // ── Fetch PRN follow-ups due today ─────────────────────────────────────────
     const { data: prnFollowupsData } = useQuery({
         queryKey: ['dashboard-prn-followups'],
@@ -223,7 +224,7 @@ export default function CaregiverDashboard({
                     value={stats?.medication_reminders?.length || 0}
                     icon={Pill}
                     urgent={(stats?.medication_reminders?.length || 0) > 0}
-                    onClick={() => navigate('/medications/residents')}
+                    onClick={() => navigate('/medications/due')}
                 />
                 <StatCard
                     title="Pending Tasks"

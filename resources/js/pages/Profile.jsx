@@ -878,49 +878,39 @@ function NotificationCategoryPreferences() {
 function ViewPersonalInfo({ user }) {
     return (
         <div className="space-y-4">
-            {user.first_name && (
-                <div className="pb-3 border-b border-gray-100 last:border-0">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">First Name</p>
-                    <p className="text-base font-semibold text-gray-900">{user.first_name}</p>
-                </div>
-            )}
-            {user.middle_names && (
-                <div className="pb-3 border-b border-gray-100 last:border-0">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Middle Names</p>
-                    <p className="text-base font-semibold text-gray-900">{user.middle_names}</p>
-                </div>
-            )}
-            {user.last_name && (
-                <div className="pb-3 border-b border-gray-100 last:border-0">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Last Name</p>
-                    <p className="text-base font-semibold text-gray-900">{user.last_name}</p>
-                </div>
-            )}
-            {user.date_of_birth && (
-                <div className="pb-3 border-b border-gray-100 last:border-0">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 flex items-center">
-                        <Calendar className="w-3.5 h-3.5 mr-1.5" />
-                        Date of Birth
-                    </p>
-                    <p className="text-base font-semibold text-gray-900">
-                        {new Date(user.date_of_birth).toLocaleDateString('en-US', { 
-                            month: 'long', day: 'numeric', year: 'numeric' 
-                        })}
-                    </p>
-                </div>
-            )}
-            {user.marital_status && (
-                <div className="pb-3 border-b border-gray-100 last:border-0">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Marital Status</p>
-                    <p className="text-base font-semibold text-gray-900 capitalize">{user.marital_status}</p>
-                </div>
-            )}
-            {user.sex && (
-                <div className="pb-3 border-b border-gray-100 last:border-0">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Sex</p>
-                    <p className="text-base font-semibold text-gray-900 capitalize">{user.sex}</p>
-                </div>
-            )}
+            <div className="pb-3 border-b border-gray-100 last:border-0">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">First Name</p>
+                <p className={`text-base font-semibold ${user.first_name ? 'text-gray-900' : 'text-gray-400 italic font-normal'}`}>{user.first_name || 'Not set'}</p>
+            </div>
+            <div className="pb-3 border-b border-gray-100 last:border-0">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Middle Names</p>
+                <p className={`text-base font-semibold ${user.middle_names ? 'text-gray-900' : 'text-gray-400 italic font-normal'}`}>{user.middle_names || 'Not set'}</p>
+            </div>
+            <div className="pb-3 border-b border-gray-100 last:border-0">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Last Name</p>
+                <p className={`text-base font-semibold ${user.last_name ? 'text-gray-900' : 'text-gray-400 italic font-normal'}`}>{user.last_name || 'Not set'}</p>
+            </div>
+            <div className="pb-3 border-b border-gray-100 last:border-0">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 flex items-center">
+                    <Calendar className="w-3.5 h-3.5 mr-1.5" />
+                    Date of Birth
+                </p>
+                <p className={`text-base font-semibold ${user.date_of_birth ? 'text-gray-900' : 'text-gray-400 italic font-normal'}`}>
+                    {user.date_of_birth
+                        ? new Date(user.date_of_birth).toLocaleDateString('en-US', {
+                            month: 'long', day: 'numeric', year: 'numeric'
+                        })
+                        : 'Not set'}
+                </p>
+            </div>
+            <div className="pb-3 border-b border-gray-100 last:border-0">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Marital Status</p>
+                <p className={`text-base font-semibold capitalize ${user.marital_status ? 'text-gray-900' : 'text-gray-400 italic font-normal'}`}>{user.marital_status || 'Not set'}</p>
+            </div>
+            <div className="pb-3 border-b border-gray-100 last:border-0">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Sex</p>
+                <p className={`text-base font-semibold capitalize ${user.sex ? 'text-gray-900' : 'text-gray-400 italic font-normal'}`}>{user.sex || 'Not set'}</p>
+            </div>
         </div>
     );
 }
@@ -1011,34 +1001,38 @@ function ViewEmploymentInfo({ user }) {
 function ViewContactInfo({ user }) {
     return (
         <div className="space-y-4">
-            {user.email && (
-                <div className="pb-3 border-b border-gray-100 last:border-0">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 flex items-center">
-                        <Mail className="w-3.5 h-3.5 mr-1.5" />
-                        Email
-                    </p>
-                    <a 
+            <div className="pb-3 border-b border-gray-100 last:border-0">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 flex items-center">
+                    <Mail className="w-3.5 h-3.5 mr-1.5" />
+                    Email
+                </p>
+                {user.email ? (
+                    <a
                         href={`mailto:${user.email}`}
-                        className="text-base font-semibold text-[var(--theme-primary)] hover:text-[var(--theme-primary-hover)] transition-colors break-all"
+                        className="text-base font-semibold text-gray-900 hover:text-[var(--theme-primary)] transition-colors break-all"
                     >
                         {user.email}
                     </a>
-                </div>
-            )}
-            {user.phone_number && (
-                <div className="pb-3 border-b border-gray-100 last:border-0">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 flex items-center">
-                        <Phone className="w-3.5 h-3.5 mr-1.5" />
-                        Phone Number
-                    </p>
-                    <a 
+                ) : (
+                    <p className="text-base font-normal text-gray-400 italic">Not set</p>
+                )}
+            </div>
+            <div className="pb-3 border-b border-gray-100 last:border-0">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 flex items-center">
+                    <Phone className="w-3.5 h-3.5 mr-1.5" />
+                    Phone Number
+                </p>
+                {user.phone_number ? (
+                    <a
                         href={`tel:${user.phone_number}`}
-                        className="text-base font-semibold text-[var(--theme-primary)] hover:text-[var(--theme-primary-hover)] transition-colors"
+                        className="text-base font-semibold text-gray-900 hover:text-[var(--theme-primary)] transition-colors"
                     >
                         {user.phone_number}
                     </a>
-                </div>
-            )}
+                ) : (
+                    <p className="text-base font-normal text-gray-400 italic">Not set</p>
+                )}
+            </div>
         </div>
     );
 }
