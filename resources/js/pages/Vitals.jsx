@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { offlinePost, offlinePut } from '../services/offlineApi';
 import { useBranchUpdates, useFacilityUpdates } from '../hooks/useRealtimeUpdates';
-import { Activity, Heart, Plus, Thermometer, Droplet, Edit, Trash2, ChevronDown, X, Calendar } from 'lucide-react';
+import { Activity, Heart, Plus, Thermometer, Droplet, Edit, Trash2, ChevronDown, X, Calendar, Scale } from 'lucide-react';
 import { getLocalDateString } from '../utils/pacificTime';
 import { TableSkeleton, ListSkeleton } from '../components/ui/SkeletonLoader';
 import EmptyState from '../components/ui/EmptyState';
@@ -450,6 +450,28 @@ export default function Vitals() {
                                                 </div>
                                             </div>
                                         )}
+                                        {vital.blood_glucose && (
+                                            <div className="flex items-center space-x-2 p-2 bg-amber-50 rounded-lg">
+                                                <Droplet className="w-5 h-5 text-red-600 flex-shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs text-gray-500">Blood Glucose</p>
+                                                    <p className="text-sm font-semibold text-gray-900">
+                                                        {vital.blood_glucose} mg/dL
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {vital.weight && (
+                                            <div className="flex items-center space-x-2 p-2 bg-green-50 rounded-lg">
+                                                <Scale className="w-5 h-5 text-green-600 flex-shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs text-gray-500">Weight</p>
+                                                    <p className="text-sm font-semibold text-gray-900">
+                                                        {vital.weight} lbs
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                     
                                     {vital.notes ? (
@@ -540,6 +562,8 @@ function VitalSignForm({
         temperature: record?.temperature || '',
         pulse: record?.pulse || '',
         oxygen_saturation: record?.oxygen_saturation || '',
+        blood_glucose: record?.blood_glucose || '',
+        weight: record?.weight || '',
         pain_level: record?.pain_level || '',
         pain_description: record?.pain_description || '',
         notes: record?.notes || '',
@@ -579,6 +603,8 @@ function VitalSignForm({
                 temperature: formData.temperature ? parseFloat(formData.temperature) : null,
                 pulse: formData.pulse ? parseInt(formData.pulse) : null,
                 oxygen_saturation: formData.oxygen_saturation ? parseInt(formData.oxygen_saturation) : null,
+                blood_glucose: formData.blood_glucose ? parseFloat(formData.blood_glucose) : null,
+                weight: formData.weight ? parseFloat(formData.weight) : null,
                 pain_level: formData.pain_level ? parseInt(formData.pain_level) : null,
             };
 
@@ -685,7 +711,7 @@ function VitalSignForm({
                         </div>
 
                         <div className="border-t pt-4">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Vital Signs</h3>
+                            <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-4">Blood Pressure</h3>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -714,6 +740,25 @@ function VitalSignForm({
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                                     />
                                 </div>
+                            </div>
+                        </div>
+
+                        <div className="border-t pt-4">
+                            <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-4">Other Vitals</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Heart Rate (bpm)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={formData.pulse}
+                                        onChange={(e) => setFormData({...formData, pulse: e.target.value})}
+                                        min="0"
+                                        max="200"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                    />
+                                </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -732,21 +777,7 @@ function VitalSignForm({
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Pulse (bpm)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={formData.pulse}
-                                        onChange={(e) => setFormData({...formData, pulse: e.target.value})}
-                                        min="0"
-                                        max="200"
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Oxygen Saturation (%)
+                                        O2 Saturation (%)
                                     </label>
                                     <input
                                         type="number"
@@ -754,6 +785,36 @@ function VitalSignForm({
                                         onChange={(e) => setFormData({...formData, oxygen_saturation: e.target.value})}
                                         min="0"
                                         max="100"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Blood Glucose (mg/dL)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={formData.blood_glucose}
+                                        onChange={(e) => setFormData({...formData, blood_glucose: e.target.value})}
+                                        min="0"
+                                        max="1000"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Weight (lbs)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={formData.weight}
+                                        onChange={(e) => setFormData({...formData, weight: e.target.value})}
+                                        min="0"
+                                        max="1000"
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                                     />
                                 </div>
