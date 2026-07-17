@@ -986,6 +986,7 @@ class DashboardService
                             'resident_name' => $residentName,
                             'medication_name' => $medication->drug?->name ?? $medication->name,
                             'medication_dosage' => $medication->instructions ?? '',
+                            'due_at' => $timeToday->toISOString(),
                             'due_time' => self::formatTimeSlot($time),
                             'room' => $medication->resident->room_number ?? $medication->resident->room ?? 'N/A',
                         ];
