@@ -680,7 +680,7 @@ export default function Incidents() {
                     right={
                         <button
                             type="button"
-                            onClick={() => handleOpenForm()}
+                            onClick={() => navigate('/incidents/add')}
                             className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--theme-primary)] px-4 py-2 text-sm font-bold text-[var(--theme-text-on-primary)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] focus-visible:ring-offset-2"
                         >
                             <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -728,7 +728,7 @@ export default function Incidents() {
                         <p className="text-slate-600">No incidents found</p>
                         <button
                             type="button"
-                            onClick={() => handleOpenForm()}
+                            onClick={() => navigate('/incidents/add')}
                             className="mt-6 rounded-xl bg-[var(--theme-primary)] px-5 py-2.5 text-sm font-semibold text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-hover)]"
                         >
                             Create first incident
@@ -939,7 +939,7 @@ export default function Incidents() {
 }
 
 // Incident Form Component (Full Page Form like Expenses)
-function IncidentForm({ record, branches, residents, users, attachments, setAttachments, currentUser, isCaregiver, onClose, onSuccess, onRequestResolveConfirm, createMutation, updateMutation, methods, branchId, inModal = false }) {
+export function IncidentForm({ record, branches, residents, users, attachments, setAttachments, currentUser, isCaregiver, onClose, onSuccess, onRequestResolveConfirm, createMutation, updateMutation, methods, branchId, inModal = false, hideResidentSelect = false }) {
     const handleSubmit = (data) => {
         if (record) {
             if (
@@ -1023,6 +1023,8 @@ function IncidentForm({ record, branches, residents, users, attachments, setAtta
             <FormProvider {...methods}>
                 <form onSubmit={methods.handleSubmit(handleSubmit)} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {!hideResidentSelect && (
+                                <>
                                 <FormSelect
                                     name="branch_id"
                                     label="Branch"
@@ -1039,12 +1041,14 @@ function IncidentForm({ record, branches, residents, users, attachments, setAtta
                                     placeholder="Select Resident"
                                     options={residents
                                         .filter(r => !branchId || r.branch_id == branchId)
-                                        .map(resident => ({ 
-                                            value: resident.id, 
-                                            label: `${resident.first_name} ${resident.last_name}` 
+                                        .map(resident => ({
+                                            value: resident.id,
+                                            label: `${resident.first_name} ${resident.last_name}`
                                         }))}
                                     disabled={!branchId}
                                 />
+                                </>
+                                )}
 
                                 <FormSelect
                                     name="incident_type"

@@ -663,11 +663,7 @@ export default function Appointments() {
                                         return (
                                             <Link
                                                 key={resident.id}
-                                                to={`/appointments/create/${resident.id}`}
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    window.location.href = `/appointments/create/${resident.id}`;
-                                                }}
+                                                to={`/appointments/add/${resident.id}`}
                                                 className="block rounded-2xl text-inherit no-underline outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] focus-visible:ring-offset-2"
                                                 aria-label={`Add appointment for ${resident.first_name} ${resident.last_name}`}
                                             >
@@ -724,7 +720,7 @@ export default function Appointments() {
                                 )}
                                 {canCreate && (
                                     <button
-                                        onClick={handleOpenFormManually}
+                                        onClick={() => navigate('/appointments/add')}
                                         className="inline-flex items-center gap-2 rounded-lg border-2 border-[var(--theme-primary)] bg-[var(--theme-primary)] px-4 py-2 text-sm font-semibold text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-hover)] transition-colors shadow-sm"
                                     >
                                         <Plus className="h-4 w-4" />
@@ -1390,7 +1386,7 @@ export default function Appointments() {
     );
 }
 
-function AddAppointmentModal({ branches, residents, formData, setFormData, onClose, onSubmit, isSubmitting, mutation, isPreFilled = false, appointmentTypes = [], currentUser, isFacilityAdmin, isBranchAdmin, selectedBranchId, inModal = false }) {
+export function AddAppointmentModal({ branches, residents, formData, setFormData, onClose, onSubmit, isSubmitting, mutation, isPreFilled = false, appointmentTypes = [], currentUser, isFacilityAdmin, isBranchAdmin, selectedBranchId, inModal = false }) {
     const [errors, setErrors] = React.useState({});
     
     // Ensure branch_id is set from selectedBranchId if provided

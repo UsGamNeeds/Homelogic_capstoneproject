@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Link, Navigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import logger from '../utils/logger';
@@ -16,6 +16,7 @@ import { isCaregiverRole } from '../utils/userRoles';
 
 export default function Assessments({ embedded = false, embeddedResidentId = null } = {}) {
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const fromUrl = searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) || searchParams.get('resident_id') || '';
     const headerResidentScope =
@@ -357,8 +358,14 @@ export default function Assessments({ embedded = false, embeddedResidentId = nul
                     {canCreate && (
                         <button
                             onClick={() => {
-                                setEditing(null);
-                                setShowForm(true);
+                                // Already resident-scoped when embedded (e.g. inside a resident's hub tab) —
+                                // the two-step resident picker only applies to the standalone page.
+                                if (embedded && embeddedResidentId) {
+                                    setEditing(null);
+                                    setShowForm(true);
+                                } else {
+                                    navigate('/assessments/add');
+                                }
                             }}
                             className="w-full sm:w-auto px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
                         >
@@ -603,7 +610,7 @@ export default function Assessments({ embedded = false, embeddedResidentId = nul
 }
 
 // Assessment Form Component
-function AssessmentForm({
+export function AssessmentForm({
     record,
     residents,
     branches,
@@ -614,6 +621,7 @@ function AssessmentForm({
     isBranchAdmin,
     inModal = false,
     defaultResidentId = '',
+    hideResidentSelect = false,
 }) {
     const initialResidentId = record?.resident_id
         ? String(record.resident_id)
@@ -726,6 +734,7 @@ function AssessmentForm({
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
+                        {!hideResidentSelect && (
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -767,6 +776,7 @@ function AssessmentForm({
                                 {errors.resident_id && <p className="text-xs text-red-600 mt-1">{errors.resident_id[0]}</p>}
                             </div>
                         </div>
+                        )}
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>

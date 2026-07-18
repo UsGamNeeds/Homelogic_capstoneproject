@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { FileText, Plus, Edit, Trash2, Search, Filter, Download, Calendar, User as UserIcon, AlertCircle, X } from 'lucide-react';
@@ -9,6 +10,7 @@ import CardIconButton from '../components/ui/CardIconButton';
 
 export default function EmployeeDocuments() {
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
     const [search, setSearch] = useState('');
     const [employeeFilter, setEmployeeFilter] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
@@ -109,10 +111,7 @@ export default function EmployeeDocuments() {
                         <p className="text-gray-600">Search and manage employee documents.</p>
                     </div>
                     <button
-                        onClick={() => {
-                            setEditing(null);
-                            setShowForm(true);
-                        }}
+                        onClick={() => navigate('/team/employee-documents/add')}
                         className="w-full sm:w-auto px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
                     >
                         <Plus className="w-4 h-4" />
@@ -399,9 +398,9 @@ export default function EmployeeDocuments() {
 }
 
 // Employee Document Form Component
-function EmployeeDocumentForm({ record, users, onClose, onSuccess, inModal = false }) {
+export function EmployeeDocumentForm({ record, users, onClose, onSuccess, inModal = false, defaultUserId = '', hideUserSelect = false }) {
     const [formData, setFormData] = useState({
-        user_id: record?.user_id || '',
+        user_id: record?.user_id || defaultUserId || '',
         document_name: record?.document_name || '',
         document_type: record?.document_type || '',
         expiration_date: record?.expiration_date ? (record.expiration_date.split('T')[0] || record.expiration_date.split(' ')[0]) : '',
@@ -521,6 +520,7 @@ function EmployeeDocumentForm({ record, users, onClose, onSuccess, inModal = fal
                         <div>
                             <h3 className="text-lg font-semibold text-gray-900 mb-4">Document Information</h3>
                             <div className="grid grid-cols-2 gap-4">
+                                {!hideUserSelect && (
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Employee *
@@ -540,6 +540,7 @@ function EmployeeDocumentForm({ record, users, onClose, onSuccess, inModal = fal
                                     </select>
                                     {errors.user_id && <p className="text-xs text-red-600 mt-1">{errors.user_id[0]}</p>}
                                 </div>
+                                )}
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">

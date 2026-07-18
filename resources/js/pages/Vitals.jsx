@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { offlinePost, offlinePut } from '../services/offlineApi';
 import { useBranchUpdates, useFacilityUpdates } from '../hooks/useRealtimeUpdates';
@@ -21,6 +21,7 @@ import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
 export default function Vitals() {
     const queryClient = useQueryClient();
     const toast = useToastContext();
+    const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const selectedBranchId = searchParams.get('branch');
     const [dateFilter, setDateFilter] = useState('all');
@@ -267,10 +268,7 @@ export default function Vitals() {
                         </div>
                         <button
                             type="button"
-                            onClick={() => {
-                                setEditing(null);
-                                setShowForm(true);
-                            }}
+                            onClick={() => navigate('/vitals/add')}
                             className="w-full sm:w-auto shrink-0 px-3 py-1.5 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors flex items-center justify-center gap-1.5 text-sm font-medium"
                         >
                             <Plus className="w-4 h-4 shrink-0" aria-hidden="true" />
@@ -499,10 +497,7 @@ export default function Vitals() {
                             }
                             action={canCreate ? (
                                 <button
-                                    onClick={() => {
-                                        setEditing(null);
-                                        setShowForm(true);
-                                    }}
+                                    onClick={() => navigate('/vitals/add')}
                                     className="px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors"
                                 >
                                     <Plus className="w-4 h-4 inline mr-2" />
@@ -518,7 +513,7 @@ export default function Vitals() {
     );
 }
 
-function VitalSignForm({
+export function VitalSignForm({
     record,
     residents,
     branches = [],
@@ -530,6 +525,7 @@ function VitalSignForm({
     onSuccess,
     inModal = false,
     initialResidentId = '',
+    hideResidentSelect = false,
 }) {
     const toast = useToastContext();
     // Always use branch from URL/props - no branch selection in form
@@ -665,25 +661,27 @@ function VitalSignForm({
                             {propSelectedBranchId && (
                                 <input type="hidden" value={propSelectedBranchId} />
                             )}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Resident *
-                                </label>
-                                <select
-                                    value={formData.resident_id}
-                                    onChange={(e) => setFormData({...formData, resident_id: e.target.value})}
-                                    required
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                                >
-                                    <option value="">Select Resident</option>
-                                    {filteredResidents.map(r => (
-                                        <option key={r.id} value={r.id}>
-                                            {r.first_name} {r.last_name}
-                                        </option>
-                                    ))}
-                                </select>
-                                {errors.resident_id && <p className="text-xs text-red-600 mt-1">{errors.resident_id[0]}</p>}
-                            </div>
+                            {!hideResidentSelect && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Resident *
+                                    </label>
+                                    <select
+                                        value={formData.resident_id}
+                                        onChange={(e) => setFormData({...formData, resident_id: e.target.value})}
+                                        required
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
+                                    >
+                                        <option value="">Select Resident</option>
+                                        {filteredResidents.map(r => (
+                                            <option key={r.id} value={r.id}>
+                                                {r.first_name} {r.last_name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {errors.resident_id && <p className="text-xs text-red-600 mt-1">{errors.resident_id[0]}</p>}
+                                </div>
+                            )}
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">

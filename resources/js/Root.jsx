@@ -6,6 +6,8 @@ import { hardReloadWithCacheBust } from './utils/hardReload';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import ModuleProtectedRoute from './components/ModuleProtectedRoute';
+import ResidentPickerPage from './components/records/ResidentPickerPage';
+import StaffPickerPage from './components/records/StaffPickerPage';
 
 // Loading component for Suspense
 const PageLoader = () => (
@@ -159,6 +161,10 @@ const AppointmentsDashboard = lazyWithRetry(() => import('./pages/AppointmentsDa
 const AppointmentDetail = lazyWithRetry(() => import('./pages/AppointmentDetail'));
 const CreateAppointment = lazyWithRetry(() => import('./pages/CreateAppointment'));
 const Vitals = lazyWithRetry(() => import('./pages/Vitals'));
+const AddVitalPage = lazyWithRetry(() => import('./pages/records/AddVitalPage'));
+const AddSleepRecordPage = lazyWithRetry(() => import('./pages/records/AddSleepRecordPage'));
+const AddAssessmentPage = lazyWithRetry(() => import('./pages/records/AddAssessmentPage'));
+const AddMedicationPage = lazyWithRetry(() => import('./pages/records/AddMedicationPage'));
 const Medications = lazyWithRetry(() => import('./pages/Medications'));
 const MedicationsReport = lazyWithRetry(() => import('./pages/MedicationsReport'));
 const Reminders = lazyWithRetry(() => import('./pages/Reminders'));
@@ -196,6 +202,7 @@ const UserCreate = lazyWithRetry(() => import('./pages/UserCreate'));
 const UserEdit = lazyWithRetry(() => import('./pages/UserEdit'));
 const ViewUser = lazyWithRetry(() => import('./pages/ViewUser'));
 const EmployeeDocuments = lazyWithRetry(() => import('./pages/EmployeeDocuments'));
+const AddEmployeeDocumentPage = lazyWithRetry(() => import('./pages/records/AddEmployeeDocumentPage'));
 const Drugs = lazyWithRetry(() => import('./pages/Drugs'));
 const Profile = lazyWithRetry(() => import('./pages/Profile'));
 const ActivityLogs = lazyWithRetry(() => import('./pages/ActivityLogs'));
@@ -230,6 +237,8 @@ const Expenses = lazyWithRetry(() => import('./pages/Expenses'));
 const BillingInvoices = lazyWithRetry(() => import('./pages/BillingInvoices'));
 const ExpenseReports = lazyWithRetry(() => import('./pages/reports/ExpenseReports'));
 const Incidents = lazyWithRetry(() => import('./pages/Incidents'));
+const AddIncidentPage = lazyWithRetry(() => import('./pages/records/AddIncidentPage'));
+const AddAppointmentPage = lazyWithRetry(() => import('./pages/records/AddAppointmentPage'));
 const TLogs = lazyWithRetry(() => import('./pages/TLogs'));
 const ChartReports = lazyWithRetry(() => import('./pages/reports/ChartReports'));
 const AnalyticsDashboard = lazyWithRetry(() => import('./pages/reports/AnalyticsDashboard'));
@@ -402,9 +411,29 @@ function App() {
                 <Route element={<Suspense fallback={<PageLoader />}><ClinicalSectionLayout /></Suspense>}>
                     <Route path="clinical"            element={<Suspense fallback={<PageLoader />}><ClinicalHubPage /></Suspense>} />
                     <Route path="vitals"              element={<Suspense fallback={<PageLoader />}><Vitals /></Suspense>} />
+                    <Route path="vitals/add" element={
+                        <ResidentPickerPage
+                            moduleLabel="Vital Signs"
+                            heading="Add Vital Signs"
+                            subheading="Select a resident to record vitals for."
+                            buildDestination={(id) => `/vitals/add/${id}`}
+                            backTo="/vitals"
+                        />
+                    } />
+                    <Route path="vitals/add/:residentId" element={<Suspense fallback={<PageLoader />}><AddVitalPage /></Suspense>} />
                     <Route path="view-vitals"         element={<Suspense fallback={<PageLoader />}><ViewVitals /></Suspense>} />
                     <Route path="medication-history"  element={<Suspense fallback={<PageLoader />}><MedicationHistory /></Suspense>} />
                     <Route path="sleep"               element={<Suspense fallback={<PageLoader />}><Sleep /></Suspense>} />
+                    <Route path="sleep/add" element={
+                        <ResidentPickerPage
+                            moduleLabel="Sleep Records"
+                            heading="Add Sleep Record"
+                            subheading="Select a resident to record a sleep entry for."
+                            buildDestination={(id) => `/sleep/add/${id}`}
+                            backTo="/sleep"
+                        />
+                    } />
+                    <Route path="sleep/add/:residentId" element={<Suspense fallback={<PageLoader />}><AddSleepRecordPage /></Suspense>} />
                     <Route path="sleep-pattern"       element={<Navigate to="/sleep-patterns" replace />} />
                     <Route path="sleep-patterns"      element={<Suspense fallback={<PageLoader />}><SleepPatterns /></Suspense>} />
                     <Route path="medications/report" element={<Suspense fallback={<PageLoader />}><MedicationsReport /></Suspense>} />
@@ -412,13 +441,45 @@ function App() {
                     <Route path="medications/residents/:residentId" element={<MedResidentRedirect />} />
                     <Route path="medications/due" element={<Suspense fallback={<PageLoader />}><MedicationsDueList /></Suspense>} />
                     <Route path="medications/residents" element={<Suspense fallback={<PageLoader />}><CaregiverMedicationsResidents /></Suspense>} />
+                    <Route path="medications/add" element={
+                        <ResidentPickerPage
+                            moduleLabel="Medication Management"
+                            heading="Add Medication"
+                            subheading="Select a resident to add a medication for."
+                            buildDestination={(id) => `/medications/add/${id}`}
+                            backTo="/medications"
+                        />
+                    } />
+                    <Route path="medications/add/:residentId" element={<Suspense fallback={<PageLoader />}><AddMedicationPage /></Suspense>} />
                     <Route path="medications" element={<Suspense fallback={<PageLoader />}><Medications /></Suspense>} />
                     <Route path="medication-deliveries" element={<Suspense fallback={<PageLoader />}><MedicationDeliveries /></Suspense>} />
                     <Route path="assessments/:id/review" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="assessments"><AssessmentReview /></ModuleProtectedRoute></Suspense>} />
                     <Route path="assessments/:id" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="assessments"><AssessmentDetail /></ModuleProtectedRoute></Suspense>} />
                     <Route path="assessments" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="assessments"><Assessments /></ModuleProtectedRoute></Suspense>} />
+                    <Route path="assessments/add" element={
+                        <ModuleProtectedRoute module="assessments">
+                            <ResidentPickerPage
+                                moduleLabel="Assessments"
+                                heading="Add Assessment"
+                                subheading="Select a resident to create an assessment for."
+                                buildDestination={(id) => `/assessments/add/${id}`}
+                                backTo="/assessments"
+                            />
+                        </ModuleProtectedRoute>
+                    } />
+                    <Route path="assessments/add/:residentId" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="assessments"><AddAssessmentPage /></ModuleProtectedRoute></Suspense>} />
                     <Route path="appointments/dashboard" element={<Suspense fallback={<PageLoader />}><AppointmentsDashboard /></Suspense>} />
                     <Route path="appointments/create/:residentId" element={<Suspense fallback={<PageLoader />}><CreateAppointment /></Suspense>} />
+                    <Route path="appointments/add" element={
+                        <ResidentPickerPage
+                            moduleLabel="Appointments"
+                            heading="Add Appointment"
+                            subheading="Select a resident to schedule an appointment for."
+                            buildDestination={(id) => `/appointments/add/${id}`}
+                            backTo="/appointments"
+                        />
+                    } />
+                    <Route path="appointments/add/:residentId" element={<Suspense fallback={<PageLoader />}><AddAppointmentPage /></Suspense>} />
                     <Route path="appointments/:id" element={<Suspense fallback={<PageLoader />}><AppointmentDetail /></Suspense>} />
                     <Route path="appointments" element={<Suspense fallback={<PageLoader />}><Appointments /></Suspense>} />
                     <Route path="charts/resident/:residentId" element={<Suspense fallback={<PageLoader />}><CaregiverResidentChart /></Suspense>} />
@@ -436,6 +497,18 @@ function App() {
                     <Route path="grocery-status"          element={<Suspense fallback={<PageLoader />}><GroceryStatus /></Suspense>} />
                     <Route path="fire-drills"             element={<Suspense fallback={<PageLoader />}><FireDrills /></Suspense>} />
                     <Route path="incidents"               element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="incidents"><Incidents /></ModuleProtectedRoute></Suspense>} />
+                    <Route path="incidents/add" element={
+                        <ModuleProtectedRoute module="incidents">
+                            <ResidentPickerPage
+                                moduleLabel="Incidents"
+                                heading="Report Incident"
+                                subheading="Select the resident this incident involves."
+                                buildDestination={(id) => `/incidents/add/${id}`}
+                                backTo="/incidents"
+                            />
+                        </ModuleProtectedRoute>
+                    } />
+                    <Route path="incidents/add/:residentId" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="incidents"><AddIncidentPage /></ModuleProtectedRoute></Suspense>} />
                     <Route path="leave-requests"          element={<Suspense fallback={<PageLoader />}><LeaveRequests /></Suspense>} />
                 </Route>
 
@@ -496,6 +569,16 @@ function App() {
                     <Route path="team/users/:id/edit" element={<Suspense fallback={<PageLoader />}><UserEdit /></Suspense>} />
                     <Route path="team/users/:id" element={<Suspense fallback={<PageLoader />}><ViewUser /></Suspense>} />
                     <Route path="team/employee-documents" element={<Suspense fallback={<PageLoader />}><EmployeeDocuments /></Suspense>} />
+                    <Route path="team/employee-documents/add" element={
+                        <StaffPickerPage
+                            moduleLabel="Employee Documents"
+                            heading="Add Document"
+                            subheading="Select the staff member this document belongs to."
+                            buildDestination={(id) => `/team/employee-documents/add/${id}`}
+                            backTo="/team/employee-documents"
+                        />
+                    } />
+                    <Route path="team/employee-documents/add/:userId" element={<Suspense fallback={<PageLoader />}><AddEmployeeDocumentPage /></Suspense>} />
                     <Route path="team/activity-logs" element={<Suspense fallback={<PageLoader />}><ActivityLogs /></Suspense>} />
                     <Route path="team/deactivated" element={<Suspense fallback={<PageLoader />}><DeactivatedRecords /></Suspense>} />
                 </Route>

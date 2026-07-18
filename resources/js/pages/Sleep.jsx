@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
 import { Moon, Plus, Search, Calendar, Clock, User, Edit, Trash2, Filter, ChevronDown, X } from 'lucide-react';
@@ -16,6 +16,7 @@ import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
 
 export default function Sleep() {
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const [dateFilter, setDateFilter] = useState('all');
     const [residentFilter, setResidentFilter] = useState('');
@@ -440,10 +441,7 @@ export default function Sleep() {
                         <p className="text-gray-600">View and track resident sleep records.</p>
                     </div>
                     <button
-                        onClick={() => {
-                            setEditingRecord(null);
-                            setShowForm(true);
-                        }}
+                        onClick={() => navigate('/sleep/add')}
                         className="w-full sm:w-auto px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"
                     >
                         <Plus className="w-4 h-4" />
@@ -641,7 +639,7 @@ export default function Sleep() {
 }
 
 // Sleep Record Form Component
-function SleepRecordForm({
+export function SleepRecordForm({
     record,
     residents,
     isCaregiver,
@@ -654,6 +652,7 @@ function SleepRecordForm({
     isBranchAdmin,
     inModal = false,
     defaultResidentId = '',
+    hideResidentSelect = false,
 }) {
     const initialResidentId = record?.resident_id
         ? String(record.resident_id)
@@ -803,6 +802,7 @@ function SleepRecordForm({
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-6">
+                        {!hideResidentSelect && (
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -853,6 +853,7 @@ function SleepRecordForm({
                                 {errors.resident_id && <p className="text-xs text-red-600 mt-1">{errors.resident_id[0]}</p>}
                             </div>
                         </div>
+                        )}
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
