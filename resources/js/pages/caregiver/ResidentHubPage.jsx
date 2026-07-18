@@ -403,7 +403,9 @@ export default function ResidentHubPage() {
                         medicationHubListPath={`/my-residents/${residentId}/medications/list`}
                     />
                 )}
-                {activeTab === 'notes'        && <NotesTab residentId={residentId} canAddProgressNotes={!isCaregiver} />}
+                {/* Creating a T-Log isn't restricted to non-caregivers (matches the standalone /t-logs page,
+                    which only restricts editing/deleting existing notes for caregivers). */}
+                {activeTab === 'notes'        && <NotesTab residentId={residentId} canAddProgressNotes />}
                 {activeTab === 'care'         && <CarePlanTab resident={resident} residentId={residentId} currentUser={currentUser} />}
                 {activeTab === 'documents'    && <ResidentDocuments residentId={residentId} />}
                 {activeTab === 'vitals'       && <VitalsTab residentId={residentId} resident={resident} navigate={navigate} />}
