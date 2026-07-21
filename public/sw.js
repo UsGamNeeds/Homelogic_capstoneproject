@@ -4,7 +4,7 @@
  */
 
 // Bump when changing fetch/caching logic so clients drop stale HTML cached as "JS"
-const CACHE_VERSION = 'v1.0.3';
+const CACHE_VERSION = 'v1.0.4';
 const STATIC_CACHE = `homeLogic360-static-${CACHE_VERSION}`;
 const API_CACHE = `homeLogic360-api-${CACHE_VERSION}`;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -97,6 +97,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Binary file downloads (backups, documents, fax, exports): NEVER intercept.
+  // These stream large blobs; the SW's cache.put(response.clone()) can't hold
+  // them ("Cache.put() encountered a network error") and the tee'd clone stream
+  // aborts the real download. Let the browser fetch these directly.
+  if (url.pathname.includes('/download') || url.pathname.includes('/export')) {
+    return;
+  }
+
   // API requests - Network first with cache fallback
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(networkFirstStrategy(request));
@@ -117,6 +125,20 @@ self.addEventListener('fetch', (event) => {
 });
 
 /**
+ * Only small JSON API responses are safe to cache. Large or binary bodies
+ * (file downloads, exports) make cache.put() fail and can abort the response.
+ */
+function isCacheableApiResponse(response) {
+  const contentType = response.headers.get('Content-Type') || '';
+  if (!contentType.includes('application/json')) {
+    return false;
+  }
+  const MAX_CACHEABLE_BYTES = 2 * 1024 * 1024; // 2 MB
+  const contentLength = Number(response.headers.get('Content-Length') || '0');
+  return contentLength <= MAX_CACHEABLE_BYTES;
+}
+
+/**
  * Network-first strategy: Try network, fallback to cache
  */
 async function networkFirstStrategy(request) {
@@ -126,11 +148,13 @@ async function networkFirstStrategy(request) {
   try {
     const response = await fetch(request);
 
-    // Only cache API JSON — never cache HTML navigations here (was conflated
-    // with API_CACHE and could serve wrong bodies for document requests).
-    if (response.ok && request.method === 'GET' && isApi) {
+    // Only cache small API JSON — never tee/cache large or binary bodies.
+    // cache.put() throws a network error on big blobs and, via the clone,
+    // aborts the real response (broke 64 MB backup downloads). Guard by
+    // content-type + length, and swallow put errors so they never surface.
+    if (response.ok && request.method === 'GET' && isApi && isCacheableApiResponse(response)) {
       const cache = await caches.open(API_CACHE);
-      cache.put(request, response.clone());
+      cache.put(request, response.clone()).catch(() => {});
     }
 
     return response;
