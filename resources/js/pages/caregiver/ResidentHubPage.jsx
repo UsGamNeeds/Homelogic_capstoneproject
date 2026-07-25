@@ -67,6 +67,10 @@ const RESIDENT_TAB_BASE = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// Matches free-text "no allergies" phrasing so it renders as a neutral/safe badge
+// instead of the red allergy-alert styling meant for actual allergy lists.
+const NO_ALLERGIES_PATTERN = /^(none|none known|no known allergies|nka|n\/a|not applicable)\.?$/i;
+
 function formatCalDate(value) {
     if (!value) return 'N/A';
     try { return formatPacificCalendarMedium(value); } catch { return value; }
@@ -285,12 +289,24 @@ export default function ResidentHubPage() {
                                     {resident.code_status}
                                 </span>
                             )}
-                            {resident.allergies && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100">
-                                    <AlertCircle className="w-3 h-3" aria-hidden="true" />
-                                    {Array.isArray(resident.allergies) ? resident.allergies.join(', ') : resident.allergies}
-                                </span>
-                            )}
+                            {resident.allergies && (() => {
+                                const allergiesText = Array.isArray(resident.allergies)
+                                    ? resident.allergies.join(', ')
+                                    : resident.allergies;
+                                const noneKnown = NO_ALLERGIES_PATTERN.test(allergiesText.trim());
+
+                                return noneKnown ? (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100">
+                                        <CheckCircle className="w-3 h-3" aria-hidden="true" />
+                                        {allergiesText}
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-100">
+                                        <AlertCircle className="w-3 h-3" aria-hidden="true" />
+                                        {allergiesText}
+                                    </span>
+                                );
+                            })()}
                             {computeLengthOfStay(resident.admission_date) && (
                                 <span className="text-[10px] text-gray-400 font-medium">
                                     Stay: {computeLengthOfStay(resident.admission_date)}
