@@ -180,6 +180,23 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
     Route::get('/appointments/statistics', [AppointmentController::class, 'statistics'])->middleware('auth:sanctum'); // Must come BEFORE apiResource
     Route::apiResource('appointments', AppointmentController::class)->middleware('auth:sanctum');
     Route::patch('/appointments/{id}/status', [AppointmentController::class, 'updateStatus'])->middleware('auth:sanctum');
+    Route::post('/appointments/{id}/attachments', [AppointmentController::class, 'uploadAttachment'])->middleware('auth:sanctum');
+    Route::get('/appointments/{id}/attachments/{attachmentId}/download', [AppointmentController::class, 'downloadAttachment'])->middleware('auth:sanctum');
+    Route::delete('/appointments/{id}/attachments/{attachmentId}', [AppointmentController::class, 'deleteAttachment'])->middleware('auth:sanctum');
+
+    // Healthcare provider search (Consultant / Hospital lookups on the appointment form)
+    Route::get('/healthcare-providers', [\App\Http\Controllers\Api\HealthcareProviderController::class, 'index'])->middleware('auth:sanctum');
+    Route::post('/healthcare-providers', [\App\Http\Controllers\Api\HealthcareProviderController::class, 'store'])->middleware('auth:sanctum');
+    Route::get('/healthcare-providers/{id}', [\App\Http\Controllers\Api\HealthcareProviderController::class, 'show'])->middleware('auth:sanctum');
+
+    // Hospital lookup (appointment form's Hospital field)
+    Route::get('/hospitals', [\App\Http\Controllers\Api\HospitalController::class, 'index'])->middleware('auth:sanctum');
+    Route::post('/hospitals', [\App\Http\Controllers\Api\HospitalController::class, 'store'])->middleware('auth:sanctum');
+    Route::get('/hospitals/{id}', [\App\Http\Controllers\Api\HospitalController::class, 'show'])->middleware('auth:sanctum');
+
+    // Specialty lookup (appointment form's Specialty field)
+    Route::get('/specialties', [\App\Http\Controllers\Api\SpecialtyController::class, 'index'])->middleware('auth:sanctum');
+    Route::post('/specialties', [\App\Http\Controllers\Api\SpecialtyController::class, 'store'])->middleware('auth:sanctum');
 
     // Incidents
     Route::get('/incidents/export', [\App\Http\Controllers\Api\IncidentController::class, 'export'])->middleware('auth:sanctum');
@@ -197,6 +214,9 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
     Route::post('/t-logs/{id}/attachments', [\App\Http\Controllers\Api\TLogController::class, 'uploadAttachment'])->middleware('auth:sanctum');
     Route::get('/t-logs/{id}/attachments/{attachmentId}/download', [\App\Http\Controllers\Api\TLogController::class, 'downloadAttachment'])->middleware('auth:sanctum');
     Route::delete('/t-logs/{id}/attachments/{attachmentId}', [\App\Http\Controllers\Api\TLogController::class, 'deleteAttachment'])->middleware('auth:sanctum');
+
+    // Blood glucose reports
+    Route::apiResource('blood-glucose-reports', \App\Http\Controllers\Api\BloodGlucoseReportController::class)->middleware('auth:sanctum');
 
     // Vital Signs
     Route::apiResource('vitals', VitalSignController::class)->middleware('auth:sanctum');

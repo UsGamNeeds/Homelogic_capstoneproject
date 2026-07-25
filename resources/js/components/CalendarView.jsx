@@ -126,6 +126,11 @@ export default function CalendarView({ events, onSelectEvent, onSelectSlot, defa
                 .rbc-agenda-view .rbc-event {
                     font-size: 11px;
                 }
+                /* Allow multi-line event titles (e.g. "Individual: X\nSpecialty: Y") to
+                   actually break across lines instead of collapsing into one row. */
+                .rbc-event-content {
+                    white-space: pre-line !important;
+                }
             `}</style>
             <Calendar
                 localizer={localizer}
