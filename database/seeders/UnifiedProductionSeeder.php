@@ -107,6 +107,9 @@ class UnifiedProductionSeeder extends Seeder
             
             // Sleep monitoring
             'view_sleep_records', 'create_sleep_records', 'edit_sleep_records', 'delete_sleep_records',
+
+            // Blood glucose reports
+            'view_blood_glucose_reports', 'create_blood_glucose_reports', 'edit_blood_glucose_reports', 'delete_blood_glucose_reports',
         ];
 
         foreach ($permissions as $permissionName) {
@@ -152,12 +155,13 @@ class UnifiedProductionSeeder extends Seeder
         $caregiverPermissions = Permission::whereIn('name', [
             'view_admin_panel', 'view_dashboard',
             'view_own_profile', 'edit_own_profile',
-            'view_residents', 'view_medications', 'view_appointments',
+            'view_residents', 'view_medications', 'view_appointments', 'create_appointments',
             'view_assessments', 'view_vital_signs', 'create_vital_signs',
             'view_assignments', 'create_leave_requests', 'view_leave_requests',
             'view_schedules',
             'view_incidents', 'create_incidents', 'view_behaviors', 'create_behaviors',
-            'view_sleep_records', 'create_sleep_records', 'assign_cleaning_tasks'
+            'view_sleep_records', 'create_sleep_records', 'assign_cleaning_tasks',
+            'view_blood_glucose_reports', 'create_blood_glucose_reports',
         ])->pluck('id');
         $caregiverRole->permissions()->sync($caregiverPermissions);
 
@@ -175,7 +179,8 @@ class UnifiedProductionSeeder extends Seeder
             'view_reports', 'create_reports', 'view_incidents', 'create_incidents', 'edit_incidents',
             'view_behaviors', 'create_behaviors', 'edit_behaviors',
             'view_sleep_records', 'create_sleep_records', 'edit_sleep_records',
-            'assign_cleaning_tasks'
+            'assign_cleaning_tasks',
+            'view_blood_glucose_reports', 'create_blood_glucose_reports', 'edit_blood_glucose_reports',
         ])->pluck('id');
         $nurseRole->permissions()->sync($nursePermissions);
 
