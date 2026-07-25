@@ -239,6 +239,8 @@ const ExpenseReports = lazyWithRetry(() => import('./pages/reports/ExpenseReport
 const Incidents = lazyWithRetry(() => import('./pages/Incidents'));
 const AddIncidentPage = lazyWithRetry(() => import('./pages/records/AddIncidentPage'));
 const AddAppointmentPage = lazyWithRetry(() => import('./pages/records/AddAppointmentPage'));
+const BloodGlucoseReports = lazyWithRetry(() => import('./pages/BloodGlucoseReports'));
+const AddBloodGlucoseReportPage = lazyWithRetry(() => import('./pages/records/AddBloodGlucoseReportPage'));
 const TLogs = lazyWithRetry(() => import('./pages/TLogs'));
 const ChartReports = lazyWithRetry(() => import('./pages/reports/ChartReports'));
 const AnalyticsDashboard = lazyWithRetry(() => import('./pages/reports/AnalyticsDashboard'));
@@ -484,6 +486,17 @@ function App() {
                     <Route path="appointments" element={<Suspense fallback={<PageLoader />}><Appointments /></Suspense>} />
                     <Route path="charts/resident/:residentId" element={<Suspense fallback={<PageLoader />}><CaregiverResidentChart /></Suspense>} />
                     <Route path="charts" element={<Suspense fallback={<PageLoader />}><CaregiverChartsPage /></Suspense>} />
+                    <Route path="blood-glucose-reports" element={<Suspense fallback={<PageLoader />}><BloodGlucoseReports /></Suspense>} />
+                    <Route path="blood-glucose-reports/add" element={
+                        <ResidentPickerPage
+                            moduleLabel="Blood Glucose Reports"
+                            heading="New Blood Glucose Report"
+                            subheading="Select a resident to record a blood glucose reading for."
+                            buildDestination={(id) => `/blood-glucose-reports/add/${id}`}
+                            backTo="/blood-glucose-reports"
+                        />
+                    } />
+                    <Route path="blood-glucose-reports/add/:residentId" element={<Suspense fallback={<PageLoader />}><AddBloodGlucoseReportPage /></Suspense>} />
                 </Route>
 
                 <Route path="reminders" element={<Suspense fallback={<PageLoader />}><Reminders /></Suspense>} />

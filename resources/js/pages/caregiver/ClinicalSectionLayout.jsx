@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { ClipboardList, Heart, Moon, LayoutDashboard, Pill, Truck, Calendar, BarChart3, ClipboardCheck } from 'lucide-react';
+import { ClipboardList, Heart, Moon, LayoutDashboard, Pill, Truck, Calendar, BarChart3, ClipboardCheck, Droplet } from 'lucide-react';
 import SectionLayout from '../../components/SectionLayout';
 
 const TABS = [
@@ -18,6 +18,12 @@ const TABS = [
         extraPaths: ['/appointments/dashboard', '/appointments/create'],
     },
     { id: 'assessments',        label: 'Assessments',        icon: ClipboardCheck,   path: '/assessments' },
+    {
+        id: 'blood-glucose-reports',
+        label: 'Blood Glucose',
+        icon: Droplet,
+        path: '/blood-glucose-reports',
+    },
     {
         id: 'charts',
         label: 'Charts',
