@@ -16,7 +16,7 @@ export default function BranchSelector({ currentUser }) {
     }, [currentUser]);
 
     // Fetch branches based on user role
-    const { data: branchesData, isLoading } = useQuery({
+    const { data: branchesData, isLoading, error } = useQuery({
         queryKey: ['housekeeping-branches', currentUser?.facility_id, currentUser?.id],
         queryFn: async () => {
             const params = { per_page: 100, is_active: true };
@@ -98,6 +98,18 @@ export default function BranchSelector({ currentUser }) {
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-[var(--theme-primary)]"></div>
                     Loading branches...
                 </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 shadow-sm">
+                <p className="text-sm font-semibold text-red-800">Unable to load branches</p>
+                <p className="mt-1 text-xs text-red-700">
+                    {error.response?.status ? `Server responded with ${error.response.status}. ` : ''}
+                    {error.response?.data?.message || error.message || 'Please try again.'}
+                </p>
             </div>
         );
     }

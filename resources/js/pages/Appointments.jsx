@@ -28,7 +28,6 @@ export default function Appointments() {
     const appointmentRowRefs = useRef({});
     const urlParamsProcessed = useRef(false);
     const [showForm, setShowForm] = useState(false);
-    const [currentUser, setCurrentUser] = useState(null);
     const [componentError, setComponentError] = useState(null);
     const [isPreFilled, setIsPreFilled] = useState(false); // Track if form was opened with pre-filled data
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar' - default to list (calendar hidden)
@@ -44,6 +43,15 @@ export default function Appointments() {
         status: 'scheduled',
     });
     
+    // Fetch current user. Uses react-query (auto-retry on transient failures) instead
+    // of a plain effect — a bare fetch here used to fail silently under load and get
+    // stuck as `null` for the rest of the page's life, which made isCaregiver/branch
+    // scoping wrong and produced a misleading "No Branches Available" message.
+    const { data: currentUser = null } = useQuery({
+        queryKey: ['current-user'],
+        queryFn: async () => (await api.get('/user')).data,
+    });
+
     // Auto-fill branch for branch admin users on mount (not facility administrators)
     React.useEffect(() => {
         const isBranchAdmin = currentUser?.role === 'admin';
@@ -51,19 +59,6 @@ export default function Appointments() {
             setFormData(prev => ({ ...prev, branch_id: currentUser.assigned_branch_id }));
         }
     }, [currentUser]);
-
-    // Fetch current user
-    React.useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const response = await api.get('/user');
-                setCurrentUser(response.data);
-            } catch (err) {
-                logger.error('Failed to fetch current user:', err);
-            }
-        };
-        fetchUser();
-    }, []);
 
     // Fetch appointment types
     const { data: appointmentTypes } = useQuery({
