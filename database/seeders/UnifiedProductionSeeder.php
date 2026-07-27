@@ -155,7 +155,7 @@ class UnifiedProductionSeeder extends Seeder
         $caregiverPermissions = Permission::whereIn('name', [
             'view_admin_panel', 'view_dashboard',
             'view_own_profile', 'edit_own_profile',
-            'view_residents', 'view_medications', 'view_appointments', 'create_appointments',
+            'view_residents', 'view_medications', 'view_appointments', 'create_appointments', 'edit_appointments',
             'view_assessments', 'view_vital_signs', 'create_vital_signs',
             'view_assignments', 'create_leave_requests', 'view_leave_requests',
             'view_schedules',
