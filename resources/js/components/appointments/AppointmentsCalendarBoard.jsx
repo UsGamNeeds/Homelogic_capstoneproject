@@ -373,7 +373,7 @@ export default function AppointmentsCalendarBoard({ branchId }) {
                                         <li key={event.id}>
                                             <button
                                                 type="button"
-                                                onClick={() => navigate(`/appointments/${event.id}`)}
+                                                onClick={() => window.open(`/appointments/${event.id}`, '_blank', 'noopener,noreferrer')}
                                                 className="w-full flex items-center gap-3 px-2 py-3 text-left hover:bg-gray-50 transition-colors"
                                             >
                                                 <span
@@ -410,6 +410,9 @@ export default function AppointmentsCalendarBoard({ branchId }) {
                             views={['month', 'week', 'day']}
                             height="650px"
                             components={{ toolbar: CustomToolbar }}
+                            onSelectEvent={(event) => {
+                                window.open(`/appointments/${event.id}`, '_blank', 'noopener,noreferrer');
+                            }}
                         />
                     )}
                 </div>
