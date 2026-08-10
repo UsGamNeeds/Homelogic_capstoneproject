@@ -72,7 +72,7 @@ class ResidentSignOutController extends Controller
             'destination' => $validated['destination'] ?? null,
             'purpose' => $validated['purpose'] ?? null,
             'accompanied_by' => $validated['accompanied_by'] ?? null,
-            'expected_return_at' => $validated['expected_return_at'] ? Carbon::parse($validated['expected_return_at']) : null,
+            'expected_return_at' => ($validated['expected_return_at'] ?? null) ? Carbon::parse($validated['expected_return_at']) : null,
             'emergency_contact_notified' => $validated['emergency_contact_notified'] ?? false,
             'notes' => $validated['notes'] ?? null,
             'is_active' => true,
