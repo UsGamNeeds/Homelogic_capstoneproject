@@ -15,13 +15,14 @@ import LookupSearchInput from '../components/forms/LookupSearchInput';
 import AppointmentsCalendarBoard from '../components/appointments/AppointmentsCalendarBoard';
 import logger from '../utils/logger';
 import { toast } from 'sonner';
+import { readResidentIdParam } from '../utils/headerResidentSwitcher';
 
 export default function Appointments() {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const selectedBranchId = searchParams.get('branch');
-    const headerResidentId = searchParams.get('residentId') || '';
+    const headerResidentId = readResidentIdParam(searchParams);
     const [residentFilter, setResidentFilter] = useState('');
     const effectiveResidentFilter = headerResidentId || residentFilter;
     const highlightedAppointmentId = useRef(null);
@@ -253,7 +254,7 @@ export default function Appointments() {
         if (urlParamsProcessed.current) return;
 
         try {
-            const residentId = searchParams.get('resident_id');
+            const residentId = readResidentIdParam(searchParams);
             const appointmentId = searchParams.get('appointment_id');
 
             if (residentId) {
@@ -284,7 +285,7 @@ export default function Appointments() {
         if (searchParams.get('openCreate') !== '1') return;
         if (!isCaregiver && !selectedBranchId) return;
 
-        const rid = searchParams.get('residentId');
+        const rid = readResidentIdParam(searchParams);
         if (rid && !allResidentsData?.data) return;
 
         const next = new URLSearchParams(searchParams);
@@ -544,6 +545,9 @@ export default function Appointments() {
         );
     }
 
+    // Carry the resident already in scope into the create flow, so the user is not asked to pick again.
+    const addAppointmentPath = effectiveResidentFilter ? `/appointments/add/${effectiveResidentFilter}` : '/appointments/add';
+
     return (
         <div className="space-y-6">
             <BranchSelector currentUser={currentUser} />
@@ -802,7 +806,7 @@ export default function Appointments() {
                                 )}
                                 {canCreate && (
                                     <button
-                                        onClick={() => navigate('/appointments/add')}
+                                        onClick={() => navigate(addAppointmentPath)}
                                         className="inline-flex items-center gap-2 rounded-lg border-2 border-[var(--theme-primary)] bg-[var(--theme-primary)] px-4 py-2 text-sm font-semibold text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-hover)] transition-colors shadow-sm"
                                     >
                                         <Plus className="h-4 w-4" />

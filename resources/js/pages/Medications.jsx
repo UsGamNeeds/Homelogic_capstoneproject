@@ -57,7 +57,7 @@ import {
     canSelectMedicationRowForBulkAdministration,
     getMedicationAdministrations,
 } from '../utils/medicationSchedule';
-import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
+import { readResidentIdParam } from '../utils/headerResidentSwitcher';
 
 /** Laravel paginator + filtered collections must return JSON arrays; normalize if keys are sparse. */
 function normalizePaginatedList(payload) {
@@ -194,11 +194,7 @@ export default function Medications() {
     const [isBulkAdministering, setIsBulkAdministering] = useState(false);
 
     React.useEffect(() => {
-        const rid =
-            searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) ||
-            searchParams.get('resident_id') ||
-            '';
-        setResidentFilter(rid);
+        setResidentFilter(readResidentIdParam(searchParams));
     }, [searchParams]);
 
     // Fetch current user
@@ -299,8 +295,7 @@ export default function Medications() {
         return role === 'admin';
     }, [currentUser]);
 
-    const clinicalScopedResidentId =
-        searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) || searchParams.get('resident_id') || '';
+    const clinicalScopedResidentId = readResidentIdParam(searchParams);
 
     // Redirect caregivers to the resident picker unless Clinical hub already scoped a resident (?residentId=)
     React.useEffect(() => {
@@ -1112,6 +1107,9 @@ export default function Medications() {
 
     const formatTime = (timeValue) => formatPacificTimeValue(timeValue);
 
+    // Carry the resident already in scope into the create flow, so the user is not asked to pick again.
+    const addMedicationPath = residentFilter ? `/medications/add/${residentFilter}` : '/medications/add';
+
     // Caregivers: Clinical hub /medications?residentId= shows the per-resident MAR here; otherwise redirect to picker
     if (isCaregiver) {
         if (clinicalScopedResidentId) {
@@ -1207,7 +1205,7 @@ export default function Medications() {
                         const canCreate = isSuperAdmin || isAdmin || permissions.includes('create_medications');
                         return canCreate ? (
                             <button
-                                onClick={() => navigate('/medications/add')}
+                                onClick={() => navigate(addMedicationPath)}
                                 className="flex-shrink-0 w-full sm:w-auto px-6 py-2.5 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base font-semibold shadow-md hover:shadow-lg"
                             >
                                 <Plus className="w-5 h-5" />

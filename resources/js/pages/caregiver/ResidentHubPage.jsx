@@ -837,7 +837,7 @@ function VitalsTab({ residentId, resident, navigate }) {
                     <div className="flex items-center gap-3">
                         <button
                             type="button"
-                            onClick={() => navigate(`/vitals?resident=${residentId}`)}
+                            onClick={() => navigate(`/vitals/add/${residentId}`)}
                             className="text-xs font-bold bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity"
                         >
                             + Record Vitals
@@ -881,7 +881,7 @@ function VitalsTab({ residentId, resident, navigate }) {
                     <div className="flex flex-col items-center justify-center py-16 text-center">
                         <Heart className="w-10 h-10 text-gray-200 mb-3" aria-hidden="true" />
                         <p className="text-sm font-semibold text-gray-900">No vitals recorded</p>
-                        <button onClick={() => navigate(`/vitals?resident=${residentId}`)} className="mt-3 text-xs font-bold text-[var(--theme-primary)] hover:underline">
+                        <button onClick={() => navigate(`/vitals/add/${residentId}`)} className="mt-3 text-xs font-bold text-[var(--theme-primary)] hover:underline">
                             Record first vital →
                         </button>
                     </div>

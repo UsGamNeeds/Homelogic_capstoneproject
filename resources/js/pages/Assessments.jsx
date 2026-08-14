@@ -11,14 +11,14 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Modal from '../components/ui/Modal';
 import Tooltip from '../components/ui/Tooltip';
 import { hasModuleAccess } from '../utils/moduleAccess';
-import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
+import { readResidentIdParam } from '../utils/headerResidentSwitcher';
 import { isCaregiverRole } from '../utils/userRoles';
 
 export default function Assessments({ embedded = false, embeddedResidentId = null } = {}) {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const fromUrl = searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) || searchParams.get('resident_id') || '';
+    const fromUrl = readResidentIdParam(searchParams);
     const headerResidentScope =
         embeddedResidentId != null && embeddedResidentId !== ''
             ? String(embeddedResidentId)
@@ -300,6 +300,9 @@ export default function Assessments({ embedded = false, embeddedResidentId = nul
         );
     }
 
+    // Carry the resident already in scope into the create flow, so the user is not asked to pick again.
+    const addAssessmentPath = headerResidentScope ? `/assessments/add/${headerResidentScope}` : '/assessments/add';
+
     return (
         <>
             <ConfirmDialog
@@ -364,7 +367,7 @@ export default function Assessments({ embedded = false, embeddedResidentId = nul
                                     setEditing(null);
                                     setShowForm(true);
                                 } else {
-                                    navigate('/assessments/add');
+                                    navigate(addAssessmentPath);
                                 }
                             }}
                             className="w-full sm:w-auto px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base"

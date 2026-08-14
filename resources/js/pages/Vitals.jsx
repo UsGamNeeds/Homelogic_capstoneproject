@@ -16,7 +16,7 @@ import CardIconButton from '../components/ui/CardIconButton';
 import ResidentAvatarInline from '../components/ui/ResidentAvatarInline';
 import { DataPillSection } from '../components/ui/DataPill';
 import { useToastContext } from '../contexts/ToastContext';
-import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
+import { readResidentIdParam } from '../utils/headerResidentSwitcher';
 
 export default function Vitals() {
     const queryClient = useQueryClient();
@@ -66,9 +66,7 @@ export default function Vitals() {
     const canDelete = isSuperAdmin || isAdmin || permissions.includes('delete_vitals');
 
     React.useEffect(() => {
-        const rid =
-            searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) || searchParams.get('resident_id') || '';
-        setResidentFilter(rid);
+        setResidentFilter(readResidentIdParam(searchParams));
     }, [searchParams]);
 
     const { data, isLoading } = useQuery({
@@ -215,6 +213,9 @@ export default function Vitals() {
         );
     }
 
+    // Carry the resident already in scope into the create flow, so the user is not asked to pick again.
+    const addVitalsPath = residentFilter ? `/vitals/add/${residentFilter}` : '/vitals/add';
+
     return (
         <>
             <ConfirmDialog
@@ -268,7 +269,7 @@ export default function Vitals() {
                         </div>
                         <button
                             type="button"
-                            onClick={() => navigate('/vitals/add')}
+                            onClick={() => navigate(addVitalsPath)}
                             className="w-full sm:w-auto shrink-0 px-3 py-1.5 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors flex items-center justify-center gap-1.5 text-sm font-medium"
                         >
                             <Plus className="w-4 h-4 shrink-0" aria-hidden="true" />
@@ -497,7 +498,7 @@ export default function Vitals() {
                             }
                             action={canCreate ? (
                                 <button
-                                    onClick={() => navigate('/vitals/add')}
+                                    onClick={() => navigate(addVitalsPath)}
                                     className="px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors"
                                 >
                                     <Plus className="w-4 h-4 inline mr-2" />

@@ -22,6 +22,7 @@ import FormTextarea from '../components/forms/FormTextarea';
 import FormSelect from '../components/forms/FormSelect';
 import { toast } from 'sonner';
 import logger from '../utils/logger';
+import { readResidentIdParam } from '../utils/headerResidentSwitcher';
 
 const SEVERITY_COLORS = {
     critical: 'bg-red-100 text-red-800 border-red-300',
@@ -81,7 +82,7 @@ export default function Incidents() {
         priority: searchParams.get('priority') || 'all',
         severity: searchParams.get('severity') || 'all',
         incident_type: searchParams.get('incident_type') || 'all',
-        resident_id: searchParams.get('resident_id') || '',
+        resident_id: readResidentIdParam(searchParams),
         branch_id: searchParams.get('branch_id') || '',
         assigned_to: searchParams.get('assigned_to') || 'all',
         search: searchParams.get('search') || '',
@@ -500,6 +501,9 @@ export default function Incidents() {
     const branches = branchesData?.data || [];
     const users = usersData?.data || [];
 
+    // Carry the resident already in scope into the create flow, so the user is not asked to pick again.
+    const addIncidentPath = filters.resident_id ? `/incidents/add/${filters.resident_id}` : '/incidents/add';
+
     return (
         <>
             <Modal
@@ -680,7 +684,7 @@ export default function Incidents() {
                     right={
                         <button
                             type="button"
-                            onClick={() => navigate('/incidents/add')}
+                            onClick={() => navigate(addIncidentPath)}
                             className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[var(--theme-primary)] px-4 py-2 text-sm font-bold text-[var(--theme-text-on-primary)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] focus-visible:ring-offset-2"
                         >
                             <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -728,7 +732,7 @@ export default function Incidents() {
                         <p className="text-slate-600">No incidents found</p>
                         <button
                             type="button"
-                            onClick={() => navigate('/incidents/add')}
+                            onClick={() => navigate(addIncidentPath)}
                             className="mt-6 rounded-xl bg-[var(--theme-primary)] px-5 py-2.5 text-sm font-semibold text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-hover)]"
                         >
                             Create first incident

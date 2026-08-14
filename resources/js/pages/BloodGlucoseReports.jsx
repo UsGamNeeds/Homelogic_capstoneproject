@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Edit, Trash2, X, Droplet, Calendar, User } from 'lucide-react';
 import api from '../services/api';
 import Card from '../components/Card';
@@ -9,6 +9,7 @@ import Modal from '../components/ui/Modal';
 import Tooltip from '../components/ui/Tooltip';
 import { toast } from 'sonner';
 import logger from '../utils/logger';
+import { readResidentIdParam } from '../utils/headerResidentSwitcher';
 
 const NOTIFICATION_LEVEL_COLORS = {
     urgent: 'bg-red-100 text-red-800 border-red-300',
@@ -34,9 +35,15 @@ const TREATMENT_LABELS = {
 export default function BloodGlucoseReports() {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [showForm, setShowForm] = useState(false);
     const [editing, setEditing] = useState(null);
     const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+    const [residentFilter, setResidentFilter] = useState('');
+
+    React.useEffect(() => {
+        setResidentFilter(readResidentIdParam(searchParams));
+    }, [searchParams]);
 
     const { data, isLoading, error } = useQuery({
         queryKey: ['blood-glucose-reports'],
@@ -89,6 +96,9 @@ export default function BloodGlucoseReports() {
 
     const reports = data?.data || [];
 
+    // Carry the resident already in scope into the create flow, so the user is not asked to pick again.
+    const addBloodGlucosePath = residentFilter ? `/blood-glucose-reports/add/${residentFilter}` : '/blood-glucose-reports/add';
+
     return (
         <>
             <ConfirmDialog
@@ -133,7 +143,7 @@ export default function BloodGlucoseReports() {
                     <h1 className="text-2xl font-bold text-gray-900">Blood Glucose Reports</h1>
                     {canCreate && (
                         <button
-                            onClick={() => navigate('/blood-glucose-reports/add')}
+                            onClick={() => navigate(addBloodGlucosePath)}
                             className="flex items-center gap-2 px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors"
                         >
                             <Plus className="w-5 h-5" />
@@ -157,7 +167,7 @@ export default function BloodGlucoseReports() {
                             <p className="text-gray-500 text-sm">No blood glucose reports found</p>
                             {canCreate && (
                                 <button
-                                    onClick={() => navigate('/blood-glucose-reports/add')}
+                                    onClick={() => navigate(addBloodGlucosePath)}
                                     className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors"
                                 >
                                     <Plus className="w-4 h-4" />
