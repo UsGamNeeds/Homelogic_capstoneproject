@@ -2,18 +2,16 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Pill, MapPin, Clock, ChevronRight, CheckCircle2 } from 'lucide-react';
-import { format, isToday, isTomorrow, isYesterday } from 'date-fns';
 import { dashboardStatsQueryOptions } from '../../queries/dashboardStats';
 
-function formatDueLabel(dueAt) {
-    if (!dueAt) return null;
-    const date = new Date(dueAt);
-    if (Number.isNaN(date.getTime())) return null;
-    if (isToday(date)) return 'Today';
-    if (isTomorrow(date)) return 'Tomorrow';
-    if (isYesterday(date)) return 'Yesterday';
-    return format(date, 'MMM d');
-}
+/**
+ * Timezone note: `due_time` is formatted server-side in the facility's timezone, while
+ * `due_at` is a UTC instant. Deriving a Today/Tomorrow label by parsing `due_at` in the
+ * browser reported the wrong DAY whenever the viewer's timezone differed from the
+ * facility's (8:00 PM in Los Angeles is 03:00 the next day in UTC), so a dose due
+ * tonight read as "Tomorrow". The API only ever returns slots scheduled for today, so
+ * the time alone is unambiguous and no day label is derived here.
+ */
 
 export default function MedicationsDueList() {
     const { data: stats, isLoading, error } = useQuery(dashboardStatsQueryOptions);
@@ -58,7 +56,6 @@ export default function MedicationsDueList() {
             ) : (
                 <section className="space-y-3">
                     {reminders.map((reminder, index) => {
-                        const dueLabel = formatDueLabel(reminder.due_at);
                         return (
                             <Link
                                 key={`${reminder.medication_id}-${reminder.due_time}-${index}`}
@@ -85,7 +82,7 @@ export default function MedicationsDueList() {
                                     <div className="text-right">
                                         <p className="flex items-center gap-1 text-sm font-semibold text-gray-900">
                                             <Clock className="h-3.5 w-3.5 text-gray-400" />
-                                            {dueLabel ? `${dueLabel} · ${reminder.due_time}` : reminder.due_time}
+                                            {reminder.due_time}
                                         </p>
                                         {reminder.room && reminder.room !== 'N/A' && (
                                             <p className="mt-0.5 flex items-center justify-end gap-1 text-xs text-gray-400">

@@ -1,15 +1,19 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
 import { ClipboardList, Heart, Moon, LayoutDashboard, Pill, Truck, Calendar, BarChart3, ClipboardCheck, Droplet } from 'lucide-react';
 import SectionLayout from '../../components/SectionLayout';
 
+// Order mirrors the per-resident hub's tabs (Medications, Vitals, Assessments,
+// Appointments, Charts) so moving between a resident and the house-wide view does not
+// reshuffle the same labels. Clinical-only tabs sit beside the tab they belong with:
+// medication history and deliveries after Medications, sleep after Vitals.
 const TABS = [
     { id: 'overview',           label: 'Overview',           icon: LayoutDashboard,  path: '/clinical' },
-    { id: 'vitals',             label: 'Vitals',             icon: Heart,            path: '/vitals',              extraPaths: ['/view-vitals'] },
-    { id: 'sleep',              label: 'Sleep',              icon: Moon,             path: '/sleep',               extraPaths: ['/sleep-patterns'] },
     { id: 'medications',        label: 'Medications',        icon: Pill,             path: '/medications',         extraPaths: ['/medications/residents', '/medications/dashboard', '/medications/report'] },
     { id: 'medication-history', label: 'Medication history', icon: ClipboardList,    path: '/medication-history' },
     { id: 'deliveries',         label: 'Deliveries',         icon: Truck,            path: '/medication-deliveries' },
+    { id: 'vitals',             label: 'Vitals',             icon: Heart,            path: '/vitals',              extraPaths: ['/view-vitals'] },
+    { id: 'sleep',              label: 'Sleep',              icon: Moon,             path: '/sleep',               extraPaths: ['/sleep-patterns'] },
+    { id: 'assessments',        label: 'Assessments',        icon: ClipboardCheck,   path: '/assessments' },
     {
         id: 'appointments',
         label: 'Appointments',
@@ -17,7 +21,6 @@ const TABS = [
         path: '/appointments',
         extraPaths: ['/appointments/dashboard', '/appointments/create'],
     },
-    { id: 'assessments',        label: 'Assessments',        icon: ClipboardCheck,   path: '/assessments' },
     {
         id: 'blood-glucose-reports',
         label: 'Blood Glucose',
@@ -34,10 +37,10 @@ const TABS = [
 ];
 
 export default function ClinicalSectionLayout() {
-    const { pathname } = useLocation();
-    const showTabBar = pathname !== '/clinical';
-
+    // The tab bar renders on every clinical route, including the /clinical overview.
+    // It used to be hidden there, which made the section's own navigation vanish on
+    // the one page a user is most likely to land on first.
     return (
-        <SectionLayout title="Clinical" tabs={TABS} showTabBar={showTabBar} />
+        <SectionLayout title="Clinical" tabs={TABS} />
     );
 }
