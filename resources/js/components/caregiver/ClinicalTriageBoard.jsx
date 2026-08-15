@@ -1,8 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Pill, MapPin, Clock, ChevronRight, CalendarCheck } from 'lucide-react';
+import { Pill, MapPin, Clock, ChevronRight, CalendarCheck, AlertTriangle } from 'lucide-react';
 import { dashboardStatsQueryOptions } from '../../queries/dashboardStats';
+import api from '../../services/api';
 import EmptyState from '../ui/EmptyState';
 
 /**
@@ -49,9 +50,98 @@ function groupIntoRounds(reminders) {
     return [...rounds.values()].sort((a, b) => a.sortKey - b.sortKey);
 }
 
-/** Where a caregiver goes to actually give the dose. */
+/** Where a caregiver goes to actually give the dose, or to record what happened to a missed one. */
 function administerPath(residentId) {
     return residentId ? `/my-residents/${residentId}/medications/mar` : '/medications/residents';
+}
+
+/**
+ * Doses already missed today, house-wide.
+ *
+ * Deliberately a separate query from the "due" list: /dashboard/stats carries no missed
+ * flag at all, so a dose whose time passed un-given simply drops out of medication_reminders.
+ * Reading it from /medications/dashboard (same query key as the Medication dashboard page,
+ * so they share cache) is what stops this board implying "nothing to do" when someone has
+ * actually missed medication.
+ *
+ * Caveats worth knowing: the API caps the list at 20, and a dose only lands here once the
+ * `medications:mark-missed` command has persisted it (every 5 minutes), so the per-resident
+ * MAR will flag a just-missed dose slightly sooner than this board does.
+ */
+function MissedTodaySection() {
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['medication-dashboard'],
+        queryFn: async () => (await api.get('/medications/dashboard')).data,
+        refetchInterval: 120000,
+        refetchIntervalInBackground: false,
+        retry: 2,
+    });
+
+    // Never fail silently here. Rendering nothing would read as "no doses missed", which is
+    // the opposite of the truth when the request failed.
+    if (error) {
+        return (
+            <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <div className="flex items-start gap-2">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" aria-hidden="true" />
+                    <p className="text-sm text-amber-800">
+                        Missed doses could not be loaded, so this board cannot confirm whether any were
+                        missed today. Check the{' '}
+                        <Link to="/medications/dashboard" className="font-semibold underline">
+                            medication dashboard
+                        </Link>{' '}
+                        directly.
+                    </p>
+                </div>
+            </section>
+        );
+    }
+
+    if (isLoading) return null;
+
+    const missed = Array.isArray(data?.missed_today) ? data.missed_today : [];
+    if (missed.length === 0) return null;
+
+    return (
+        <section className="rounded-2xl border border-red-200 bg-white shadow-sm">
+            <header className="flex items-center justify-between gap-3 border-b border-red-100 bg-red-50 px-4 py-3">
+                <div className="flex min-w-0 items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 flex-shrink-0 text-red-600" aria-hidden="true" />
+                    <h3 className="truncate text-sm font-semibold text-red-900">Missed today</h3>
+                </div>
+                <span className="flex-shrink-0 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700">
+                    {missed.length} {missed.length === 1 ? 'dose' : 'doses'}
+                </span>
+            </header>
+
+            <ul className="divide-y divide-gray-100">
+                {missed.map((item) => (
+                    <li key={item.id}>
+                        <Link
+                            to={administerPath(item.resident_id)}
+                            className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-red-50"
+                        >
+                            <div className="flex min-w-0 items-center gap-3">
+                                <span className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                                    <Pill className="h-4 w-4" aria-hidden="true" />
+                                </span>
+                                <div className="min-w-0">
+                                    <p className="truncate text-sm font-semibold text-gray-900">{item.resident_name}</p>
+                                    <p className="truncate text-xs text-gray-500">{item.medication_name}</p>
+                                </div>
+                            </div>
+                            <div className="flex flex-shrink-0 items-center gap-3">
+                                {item.scheduled_time && (
+                                    <span className="text-xs font-semibold text-red-700">{item.scheduled_time}</span>
+                                )}
+                                <ChevronRight className="h-4 w-4 text-gray-300" aria-hidden="true" />
+                            </div>
+                        </Link>
+                    </li>
+                ))}
+            </ul>
+        </section>
+    );
 }
 
 function RoundBlock({ round }) {
@@ -119,6 +209,9 @@ export default function ClinicalTriageBoard() {
 
     return (
         <div className="space-y-4">
+            {/* Missed doses first: they are the only thing on this board that is already late. */}
+            <MissedTodaySection />
+
             <div className="rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
