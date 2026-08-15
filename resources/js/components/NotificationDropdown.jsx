@@ -218,7 +218,7 @@ export default function NotificationDropdown() {
             case 'appointment_completed':
                 navUrl = '/appointments'; break;
             case 'leave_request': case 'leave_approved': case 'leave_rejected':
-                navUrl = '/team/leave-requests'; break;
+                navUrl = '/leave-requests'; break;
             case 'vital_recorded': case 'vital_critical':
                 navUrl = metadata.resident_id ? `/vitals?resident_id=${metadata.resident_id}` : '/vitals'; break;
             case 'incident_reported':

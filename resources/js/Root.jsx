@@ -144,7 +144,6 @@ const OperationsHubPage = lazyWithRetry(() => import('./pages/caregiver/Operatio
 const ClinicalSectionLayout = lazyWithRetry(() => import('./pages/caregiver/ClinicalSectionLayout'));
 const OperationsSectionLayout = lazyWithRetry(() => import('./pages/caregiver/OperationsSectionLayout'));
 const ResidentsSectionLayout = lazyWithRetry(() => import('./pages/caregiver/ResidentsSectionLayout'));
-const ResidentsHubPage = lazyWithRetry(() => import('./pages/caregiver/ResidentsHubPage'));
 const ManagementSectionLayout = lazyWithRetry(() => import('./pages/caregiver/ManagementSectionLayout'));
 const ManagementHubPage = lazyWithRetry(() => import('./pages/caregiver/ManagementHubPage'));
 const DocumentLibraryPage = lazyWithRetry(() => import('./pages/DocumentLibraryPage'));
@@ -367,7 +366,10 @@ function App() {
 
                 {/* ── Residents section (persistent tab bar) ───────────────── */}
                 <Route element={<Suspense fallback={<PageLoader />}><ResidentsSectionLayout /></Suspense>}>
-                    <Route path="residents" element={<Suspense fallback={<PageLoader />}><ResidentsHubPage /></Suspense>} />
+                    {/* /residents was a second, strictly-poorer copy of /my-residents (same query,
+                        no list view, no medication-hub shortcut). Redirected rather than removed so
+                        existing bookmarks keep working. */}
+                    <Route path="residents" element={<Navigate to="/my-residents" replace />} />
                     <Route path="my-residents" element={<Suspense fallback={<PageLoader />}><MyResidentsPage /></Suspense>} />
                     <Route path="residents/:residentId/detail" element={<Suspense fallback={<PageLoader />}><ResidentDetailPage /></Suspense>} />
                     <Route path="t-logs" element={<Suspense fallback={<PageLoader />}><TLogs /></Suspense>} />
@@ -574,7 +576,9 @@ function App() {
                 <Route element={<Suspense fallback={<PageLoader />}><TeamSectionLayout /></Suspense>}>
                     <Route path="team" element={<Suspense fallback={<PageLoader />}><TeamHubPage /></Suspense>} />
                     <Route path="team/billing" element={<Suspense fallback={<PageLoader />}><SubscriptionBillingPage /></Suspense>} />
-                    <Route path="team/leave-requests" element={<Suspense fallback={<PageLoader />}><LeaveRequests /></Suspense>} />
+                    {/* Leave Requests lives once, under Operations at /leave-requests. Operations is
+                        the only section caregivers can reach, so it wins as the canonical home. */}
+                    <Route path="team/leave-requests" element={<Navigate to="/leave-requests" replace />} />
                     <Route path="team/roles" element={<Suspense fallback={<PageLoader />}><Roles /></Suspense>} />
                     <Route path="team/facility-permissions" element={<Suspense fallback={<PageLoader />}><Permissions /></Suspense>} />
                     <Route path="team/users" element={<Suspense fallback={<PageLoader />}><Users /></Suspense>} />
@@ -611,7 +615,7 @@ function App() {
                 <Route path="administration/branches" element={<Navigate to="/organization/branches" replace />} />
                 <Route path="administration/vital-ranges" element={<Navigate to="/organization/vital-ranges" replace />} />
                 <Route path="administration/drugs" element={<Navigate to="/organization/drugs" replace />} />
-                <Route path="administration/leave-requests" element={<Navigate to="/team/leave-requests" replace />} />
+                <Route path="administration/leave-requests" element={<Navigate to="/leave-requests" replace />} />
                 <Route path="administration/roles" element={<Navigate to="/team/roles" replace />} />
                 <Route path="administration/facility-permissions" element={<Navigate to="/team/facility-permissions" replace />} />
                 <Route path="administration/users" element={<Navigate to="/team/users" replace />} />

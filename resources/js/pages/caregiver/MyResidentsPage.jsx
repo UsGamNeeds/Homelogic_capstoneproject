@@ -410,11 +410,11 @@ export default function MyResidentsPage() {
                         setShowForm(false);
                         setEditing(null);
                     }}
-                    title={editing ? 'Edit Resident' : 'Add Resident'}
+                    title="Edit Resident"
                     size="xl"
                 >
                     <ResidentForm
-                        key={editing?.id ?? 'new'}
+                        key={editing?.id}
                         record={editing}
                         branches={branchesData?.data || []}
                         selectedBranchId={currentUser?.assigned_branch_id}

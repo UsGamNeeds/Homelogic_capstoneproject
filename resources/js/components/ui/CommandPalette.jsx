@@ -26,7 +26,7 @@ const ADMIN_COMMANDS = [
     { id: 'sleep', label: 'Sleep Records', path: '/sleep', icon: Moon, category: 'Care' },
     { id: 'incidents', label: 'Incidents', path: '/incidents', icon: AlertTriangle, category: 'Care' },
     { id: 'reports', label: 'Reports', path: '/reports', icon: FileText, category: 'Reports' },
-    { id: 'users', label: 'Users', path: '/team/users', icon: Users, category: 'Team & compliance' },
+    { id: 'users', label: 'Staff directory', path: '/team/users', icon: Users, category: 'Team & compliance' },
     { id: 'settings', label: 'Settings', path: '/profile', icon: Settings, category: 'Settings' },
 ];
 

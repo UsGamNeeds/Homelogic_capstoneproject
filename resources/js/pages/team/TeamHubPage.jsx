@@ -27,7 +27,7 @@ const TILES_BASE = [
     },
     {
         id: 'users',
-        title: 'Users',
+        title: 'Staff directory',
         description: 'Manage staff accounts, profiles, and assignments.',
         icon: Contact,
         path: '/team/users',
@@ -57,7 +57,7 @@ const TILES_BASE = [
         title: 'Leave Requests',
         description: 'Review and approve staff time-off and leave applications.',
         icon: Clock,
-        path: '/team/leave-requests',
+        path: '/leave-requests',
         accent: 'text-teal-600',
         bg: 'bg-teal-50',
     },
@@ -81,7 +81,7 @@ const TILES_BASE = [
     },
     {
         id: 'subscription-billing',
-        title: 'Subscription & billing',
+        title: 'Subscription',
         description: 'Payment methods, invoices, and plan status (Stripe).',
         icon: CreditCard,
         path: '/team/billing',

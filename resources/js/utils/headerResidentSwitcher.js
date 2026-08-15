@@ -49,7 +49,8 @@ export function isClinicalSectionForSwitcher(pathname) {
 
 /**
  * Whether the compact resident avatar strip should appear in the app header.
- * Clinical hub index (/clinical) keeps cards-only overview without the strip.
+ * /clinical is a cross-resident triage board, so there is no single resident in
+ * context there and the strip stays hidden.
  */
 export function shouldShowHeaderResidentSwitcher(pathname) {
     if (!pathname) return false;
