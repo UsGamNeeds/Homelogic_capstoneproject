@@ -456,7 +456,9 @@ function App() {
                     } />
                     <Route path="medications/add/:residentId" element={<Suspense fallback={<PageLoader />}><AddMedicationPage /></Suspense>} />
                     <Route path="medications" element={<Suspense fallback={<PageLoader />}><Medications /></Suspense>} />
-                    <Route path="medication-deliveries" element={<Suspense fallback={<PageLoader />}><MedicationDeliveries /></Suspense>} />
+                    {/* Guarded as "pharmacy" to match MedicationDeliveryController, which requires
+                        Modules::PHARMACY. Without this the nav could offer a page the API then 403s. */}
+                    <Route path="medication-deliveries" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="pharmacy"><MedicationDeliveries /></ModuleProtectedRoute></Suspense>} />
                     <Route path="assessments/:id/review" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="assessments"><AssessmentReview /></ModuleProtectedRoute></Suspense>} />
                     <Route path="assessments/:id" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="assessments"><AssessmentDetail /></ModuleProtectedRoute></Suspense>} />
                     <Route path="assessments" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="assessments"><Assessments /></ModuleProtectedRoute></Suspense>} />
@@ -532,9 +534,13 @@ function App() {
                     <Route path="management" element={<Suspense fallback={<PageLoader />}><ManagementHubPage /></Suspense>} />
                     <Route path="document-library" element={<Suspense fallback={<PageLoader />}><DocumentLibraryPage /></Suspense>} />
                     <Route path="pharmacy/dashboard" element={<Suspense fallback={<PageLoader />}><PharmacyDashboard /></Suspense>} />
-                    <Route path="pharmacy/suppliers" element={<Suspense fallback={<PageLoader />}><PharmacySuppliers /></Suspense>} />
-                    <Route path="pharmacy/inventory" element={<Suspense fallback={<PageLoader />}><PharmacyInventory /></Suspense>} />
-                    <Route path="pharmacy/orders" element={<Suspense fallback={<PageLoader />}><PharmacyOrders /></Suspense>} />
+                    {/* All three back onto controllers that require Modules::PHARMACY, so they are
+                        guarded here like /pharmacy/dashboard (which self-guards) and /reports/pharmacy.
+                        The API already refuses these without the module; this makes the block a clean
+                        message instead of a page that loads and then errors. */}
+                    <Route path="pharmacy/suppliers" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="pharmacy"><PharmacySuppliers /></ModuleProtectedRoute></Suspense>} />
+                    <Route path="pharmacy/inventory" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="pharmacy"><PharmacyInventory /></ModuleProtectedRoute></Suspense>} />
+                    <Route path="pharmacy/orders" element={<Suspense fallback={<PageLoader />}><ModuleProtectedRoute module="pharmacy"><PharmacyOrders /></ModuleProtectedRoute></Suspense>} />
                     <Route path="billing/expense-categories" element={<Suspense fallback={<PageLoader />}><ExpenseCategories /></Suspense>} />
                     <Route path="billing/expenses" element={<Suspense fallback={<PageLoader />}><Expenses /></Suspense>} />
                     <Route path="billing/invoices" element={<Suspense fallback={<PageLoader />}><BillingInvoices /></Suspense>} />

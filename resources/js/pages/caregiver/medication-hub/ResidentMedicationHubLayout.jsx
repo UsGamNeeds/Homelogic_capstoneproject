@@ -29,7 +29,9 @@ const TAB_BASE = [
     { id: 'prn', path: 'prn', label: 'PRN', icon: Stethoscope },
     { id: 'pharmacy', path: 'pharmacy', label: 'Pharmacy', icon: Building2 },
     { id: 'deliveries', path: 'deliveries', label: 'Deliveries', icon: Truck },
-    { id: 'orders', path: 'orders', label: 'Orders', icon: FileText },
+    // Physician order paperwork (renders ResidentDocuments) — NOT pharmacy purchase orders,
+    // which live on the neighbouring Pharmacy tab. The bare label "Orders" read as the latter.
+    { id: 'orders', path: 'orders', label: 'Physician orders', icon: FileText },
     { id: 'context', path: 'context', label: 'Profile', icon: User },
 ];
 
