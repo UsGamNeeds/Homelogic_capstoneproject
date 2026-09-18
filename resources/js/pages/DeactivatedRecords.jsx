@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserX, RefreshCcw, Home, Building, Mail, Phone, Calendar, Repeat2 } from 'lucide-react';
+import { UserX, RefreshCcw, Home, Building, Mail, Phone, Calendar, Repeat2, Trash2 } from 'lucide-react';
 import api from '../services/api';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Tooltip from '../components/ui/Tooltip';
@@ -9,6 +9,7 @@ import CardIconButton from '../components/ui/CardIconButton';
 import DataPill from '../components/ui/DataPill';
 import ResidentAvatarInline from '../components/ui/ResidentAvatarInline';
 import ResidentStatusBadges from '../components/residents/ResidentStatusBadges';
+import DeleteResidentDialog from '../components/residents/DeleteResidentDialog';
 
 function EmptyState({ title, description }) {
     return (
@@ -23,7 +24,22 @@ function EmptyState({ title, description }) {
 export default function DeactivatedRecords() {
     const [activeTab, setActiveTab] = useState('residents');
     const [reactivateConfirm, setReactivateConfirm] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const queryClient = useQueryClient();
+
+    const { data: currentUser } = useQuery({
+        queryKey: ['current-user'],
+        queryFn: async () => (await api.get('/user')).data,
+        staleTime: 5 * 60 * 1000,
+    });
+
+    const permissions = Array.isArray(currentUser?.permissions) ? currentUser.permissions : [];
+    const canDeleteResidents =
+        currentUser?.role === 'super_admin' ||
+        currentUser?.role === 'administrator' ||
+        currentUser?.role === 'admin' ||
+        permissions.includes('delete_residents');
 
     const {
         data: residentsData,
@@ -64,6 +80,22 @@ export default function DeactivatedRecords() {
             queryClient.invalidateQueries({ queryKey: ['users'] });
         },
     });
+
+    const deleteResidentMutation = useMutation({
+        mutationFn: async (residentId) => api.delete(`/residents/${residentId}`),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['deactivated-residents'] });
+            queryClient.invalidateQueries({ queryKey: ['residents'] });
+            queryClient.invalidateQueries({ queryKey: ['resident-hub'] });
+        },
+    });
+
+    const closeDeleteDialog = () => {
+        if (deleteResidentMutation.isPending) return;
+        deleteResidentMutation.reset();
+        setDeleteTarget(null);
+        setDeleteConfirmText('');
+    };
 
     const isResidentsTab = activeTab === 'residents';
 
@@ -142,18 +174,34 @@ export default function DeactivatedRecords() {
                                     </div>
                                 }
                                 right={
-                                    <Tooltip content="Reactivate resident" position="top">
-                                        <CardIconButton
-                                            variant="primary"
-                                            icon={Repeat2}
-                                            aria-label="Reactivate resident"
-                                            disabled={
-                                                reactivateResidentMutation.isPending &&
-                                                reactivateResidentMutation.variables === resident.id
-                                            }
-                                            onClick={() => handleReactivateResident(resident)}
-                                        />
-                                    </Tooltip>
+                                    <>
+                                        <Tooltip content="Reactivate resident" position="top">
+                                            <CardIconButton
+                                                variant="primary"
+                                                icon={Repeat2}
+                                                aria-label="Reactivate resident"
+                                                disabled={
+                                                    reactivateResidentMutation.isPending &&
+                                                    reactivateResidentMutation.variables === resident.id
+                                                }
+                                                onClick={() => handleReactivateResident(resident)}
+                                            />
+                                        </Tooltip>
+                                        {canDeleteResidents && (
+                                            <Tooltip content="Permanently delete resident" position="top">
+                                                <CardIconButton
+                                                    variant="delete"
+                                                    icon={Trash2}
+                                                    aria-label="Permanently delete resident"
+                                                    onClick={() => {
+                                                        deleteResidentMutation.reset();
+                                                        setDeleteConfirmText('');
+                                                        setDeleteTarget(resident);
+                                                    }}
+                                                />
+                                            </Tooltip>
+                                        )}
+                                    </>
                                 }
                             />
                             <h3 className="text-lg font-bold leading-snug text-slate-900 sm:text-xl">{displayName}</h3>
@@ -300,6 +348,24 @@ export default function DeactivatedRecords() {
                 cancelLabel="Cancel"
                 variant="primary"
                 isPending={reactivateResidentMutation.isPending || reactivateUserMutation.isPending}
+            />
+            <DeleteResidentDialog
+                resident={deleteTarget}
+                isOpen={deleteTarget != null}
+                isPending={deleteResidentMutation.isPending}
+                error={deleteResidentMutation.error}
+                confirmText={deleteConfirmText}
+                onConfirmTextChange={setDeleteConfirmText}
+                onClose={closeDeleteDialog}
+                onConfirm={() => {
+                    if (!deleteTarget) return;
+                    deleteResidentMutation.mutate(deleteTarget.id, {
+                        onSuccess: () => {
+                            setDeleteTarget(null);
+                            setDeleteConfirmText('');
+                        },
+                    });
+                }}
             />
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

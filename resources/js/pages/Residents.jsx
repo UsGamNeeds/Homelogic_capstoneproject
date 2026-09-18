@@ -20,12 +20,14 @@ import {
     CalendarClock,
     Stethoscope,
     AlertTriangle,
+    Trash2,
 } from 'lucide-react';
 import Tooltip from '../components/ui/Tooltip';
 import EmptyState from '../components/ui/EmptyState';
 import BranchSelector from '../components/BranchSelector';
 import ResidentForm from '../components/ResidentForm';
 import Modal from '../components/ui/Modal';
+import DeleteResidentDialog from '../components/residents/DeleteResidentDialog';
 import EntityCardShell, { EntityCardHeader } from '../components/ui/EntityCardShell';
 import CardIconButton from '../components/ui/CardIconButton';
 import DataPill from '../components/ui/DataPill';
@@ -46,6 +48,8 @@ export default function Residents() {
     const [editing, setEditing] = useState(null);
     const [currentUser, setCurrentUser] = useState(null);
     const [statusResident, setStatusResident] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
     React.useEffect(() => {
         const loadUser = async () => {
@@ -129,6 +133,22 @@ export default function Residents() {
         },
     });
 
+    const deleteResidentMutation = useMutation({
+        mutationFn: async (id) => api.delete(`/residents/${id}`),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['residents'] });
+            queryClient.invalidateQueries({ queryKey: ['resident-hub'] });
+            queryClient.invalidateQueries({ queryKey: ['deactivated-residents'] });
+        },
+    });
+
+    const closeDeleteDialog = () => {
+        if (deleteResidentMutation.isPending) return;
+        deleteResidentMutation.reset();
+        setDeleteTarget(null);
+        setDeleteConfirmText('');
+    };
+
     const residentsList = data?.data || [];
     const filteredResidents = residentsList.filter((resident) => {
         if (statusFilter === 'active') return isResidentLifecycleActive(resident);
@@ -197,6 +217,20 @@ export default function Residents() {
                                         onClick={() => {
                                             updateStatusMutation.reset();
                                             setStatusResident(resident);
+                                        }}
+                                    />
+                                </Tooltip>
+                            )}
+                            {canDelete && (
+                                <Tooltip content="Permanently delete resident" position="top">
+                                    <CardIconButton
+                                        variant="delete"
+                                        icon={Trash2}
+                                        aria-label="Permanently delete resident"
+                                        onClick={() => {
+                                            deleteResidentMutation.reset();
+                                            setDeleteConfirmText('');
+                                            setDeleteTarget(resident);
                                         }}
                                     />
                                 </Tooltip>
@@ -298,6 +332,24 @@ export default function Residents() {
                     }}
                 />
             </Modal>
+            <DeleteResidentDialog
+                resident={deleteTarget}
+                isOpen={deleteTarget != null}
+                isPending={deleteResidentMutation.isPending}
+                error={deleteResidentMutation.error}
+                confirmText={deleteConfirmText}
+                onConfirmTextChange={setDeleteConfirmText}
+                onClose={closeDeleteDialog}
+                onConfirm={() => {
+                    if (!deleteTarget) return;
+                    deleteResidentMutation.mutate(deleteTarget.id, {
+                        onSuccess: () => {
+                            setDeleteTarget(null);
+                            setDeleteConfirmText('');
+                        },
+                    });
+                }}
+            />
             <ResidentStatusModal
                 resident={statusResident}
                 isOpen={statusResident != null}
