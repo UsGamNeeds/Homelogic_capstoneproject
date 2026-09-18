@@ -20,7 +20,6 @@ import {
     CalendarClock,
     Stethoscope,
     AlertTriangle,
-    Trash2,
 } from 'lucide-react';
 import Tooltip from '../components/ui/Tooltip';
 import EmptyState from '../components/ui/EmptyState';
@@ -28,6 +27,7 @@ import BranchSelector from '../components/BranchSelector';
 import ResidentForm from '../components/ResidentForm';
 import Modal from '../components/ui/Modal';
 import DeleteResidentDialog from '../components/residents/DeleteResidentDialog';
+import ResidentActionsMenu from '../components/residents/ResidentActionsMenu';
 import EntityCardShell, { EntityCardHeader } from '../components/ui/EntityCardShell';
 import CardIconButton from '../components/ui/CardIconButton';
 import DataPill from '../components/ui/DataPill';
@@ -222,18 +222,13 @@ export default function Residents() {
                                 </Tooltip>
                             )}
                             {canDelete && (
-                                <Tooltip content="Permanently delete resident" position="top">
-                                    <CardIconButton
-                                        variant="delete"
-                                        icon={Trash2}
-                                        aria-label="Permanently delete resident"
-                                        onClick={() => {
-                                            deleteResidentMutation.reset();
-                                            setDeleteConfirmText('');
-                                            setDeleteTarget(resident);
-                                        }}
-                                    />
-                                </Tooltip>
+                                <ResidentActionsMenu
+                                    onDelete={() => {
+                                        deleteResidentMutation.reset();
+                                        setDeleteConfirmText('');
+                                        setDeleteTarget(resident);
+                                    }}
+                                />
                             )}
                         </>
                     }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserX, RefreshCcw, Home, Building, Mail, Phone, Calendar, Repeat2, Trash2 } from 'lucide-react';
+import { UserX, RefreshCcw, Home, Building, Mail, Phone, Calendar, Repeat2 } from 'lucide-react';
 import api from '../services/api';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Tooltip from '../components/ui/Tooltip';
@@ -10,6 +10,7 @@ import DataPill from '../components/ui/DataPill';
 import ResidentAvatarInline from '../components/ui/ResidentAvatarInline';
 import ResidentStatusBadges from '../components/residents/ResidentStatusBadges';
 import DeleteResidentDialog from '../components/residents/DeleteResidentDialog';
+import ResidentActionsMenu from '../components/residents/ResidentActionsMenu';
 
 function EmptyState({ title, description }) {
     return (
@@ -188,18 +189,13 @@ export default function DeactivatedRecords() {
                                             />
                                         </Tooltip>
                                         {canDeleteResidents && (
-                                            <Tooltip content="Permanently delete resident" position="top">
-                                                <CardIconButton
-                                                    variant="delete"
-                                                    icon={Trash2}
-                                                    aria-label="Permanently delete resident"
-                                                    onClick={() => {
-                                                        deleteResidentMutation.reset();
-                                                        setDeleteConfirmText('');
-                                                        setDeleteTarget(resident);
-                                                    }}
-                                                />
-                                            </Tooltip>
+                                            <ResidentActionsMenu
+                                                onDelete={() => {
+                                                    deleteResidentMutation.reset();
+                                                    setDeleteConfirmText('');
+                                                    setDeleteTarget(resident);
+                                                }}
+                                            />
                                         )}
                                     </>
                                 }
