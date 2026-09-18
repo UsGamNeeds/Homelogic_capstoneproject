@@ -27,7 +27,6 @@ import BranchSelector from '../components/BranchSelector';
 import ResidentForm from '../components/ResidentForm';
 import Modal from '../components/ui/Modal';
 import DeleteResidentDialog from '../components/residents/DeleteResidentDialog';
-import ResidentActionsMenu from '../components/residents/ResidentActionsMenu';
 import EntityCardShell, { EntityCardHeader } from '../components/ui/EntityCardShell';
 import CardIconButton from '../components/ui/CardIconButton';
 import DataPill from '../components/ui/DataPill';
@@ -221,15 +220,6 @@ export default function Residents() {
                                     />
                                 </Tooltip>
                             )}
-                            {canDelete && (
-                                <ResidentActionsMenu
-                                    onDelete={() => {
-                                        deleteResidentMutation.reset();
-                                        setDeleteConfirmText('');
-                                        setDeleteTarget(resident);
-                                    }}
-                                />
-                            )}
                         </>
                     }
                 />
@@ -315,6 +305,14 @@ export default function Residents() {
                     record={editing}
                     branches={branchesData?.data || []}
                     selectedBranchId={branchId}
+                    canDelete={canDelete}
+                    onDelete={(resident) => {
+                        setShowForm(false);
+                        setEditing(null);
+                        deleteResidentMutation.reset();
+                        setDeleteConfirmText('');
+                        setDeleteTarget(resident);
+                    }}
                     inModal
                     onClose={() => {
                         setShowForm(false);
