@@ -18,9 +18,9 @@ class EditUser extends EditRecord
             $firstName = $data['first_name'] ?? $this->record->first_name ?? '';
             $middleNames = $data['middle_names'] ?? $this->record->middle_names ?? '';
             $lastName = $data['last_name'] ?? $this->record->last_name ?? '';
-            
+
             $fullName = trim(implode(' ', array_filter([$firstName, $middleNames, $lastName])));
-            if (!empty($fullName)) {
+            if (! empty($fullName)) {
                 $data['name'] = $fullName;
             } elseif (empty($data['name'])) {
                 $data['name'] = $data['email'] ?? $this->record->email ?? '';
@@ -46,11 +46,11 @@ class EditUser extends EditRecord
         // Automatically assign the appropriate role based on user role field
         $user = $this->record;
         $role = $user->role ?? null;
-        
+
         if ($role === 'administrator') {
             $adminRole = Role::where('name', 'administrator')->first();
             if ($adminRole) {
-                if (!$user->hasRole('administrator')) {
+                if (! $user->hasRole('administrator')) {
                     $user->assignRole('administrator');
                 }
             }
@@ -61,7 +61,7 @@ class EditUser extends EditRecord
         } elseif ($role === 'admin') {
             $adminRole = Role::where('name', 'admin')->first();
             if ($adminRole) {
-                if (!$user->hasRole('admin')) {
+                if (! $user->hasRole('admin')) {
                     $user->assignRole('admin');
                 }
             }
@@ -83,7 +83,9 @@ class EditUser extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            // Hidden for anyone with care records behind them - see ViewUser.
+            Actions\DeleteAction::make()
+                ->visible(fn () => ! $this->getRecord()->hasProtectedRecords()),
         ];
     }
 

@@ -3,49 +3,52 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
-use App\Filament\Resources\UserResource\RelationManagers;
 use App\Models\User;
+use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Actions;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
+
     protected static ?string $navigationLabel = 'Users';
+
     protected static ?string $modelLabel = 'User';
+
     protected static ?string $pluralModelLabel = 'Users';
+
     protected static ?string $navigationGroup = 'Administration';
+
     protected static bool $shouldRegisterNavigation = false; // Handled by CustomNavigationProvider
 
     public static function shouldRegisterNavigation(): bool
     {
         // Only register if user has permission AND is not a caregiver
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             return false;
         }
-        
+
         $user = auth()->user();
-        
+
         // Caregivers should NEVER see this in navigation
         $roleValue = strtolower(trim($user->role ?? ''));
         $roleValueNormalized = str_replace([' ', '_'], '', $roleValue);
-        $isCaregiver = $user->hasRole('caregiver') || 
-                       $user->hasRole('care_giver') || 
+        $isCaregiver = $user->hasRole('caregiver') ||
+                       $user->hasRole('care_giver') ||
                        $roleValueNormalized === 'caregiver' ||
                        (stripos($roleValue, 'care') !== false && stripos($roleValue, 'giver') !== false);
-        
+
         if ($isCaregiver) {
             return false;
         }
-        
+
         // Only show if user has permission
         return $user->hasPermission('view_users');
     }
@@ -83,7 +86,7 @@ class UserResource extends Resource
                             ->unique(ignoreRecord: true)
                             ->placeholder('staff@serenityafh.com')
                             ->helperText('This will be used for login'),
-                        
+
                         Forms\Components\FileUpload::make('profile_image')
                             ->label('Profile Picture')
                             ->image()
@@ -100,13 +103,13 @@ class UserResource extends Resource
                             ->visibility('private')
                             ->helperText('Upload a profile picture (max 5MB)')
                             ->columnSpanFull(),
-                        
+
                         Forms\Components\Hidden::make('name')
                             ->afterStateUpdated(function ($state, $set, $get) {
                                 $firstName = $get('first_name') ?? '';
                                 $middleNames = $get('middle_names') ?? '';
                                 $lastName = $get('last_name') ?? '';
-                                
+
                                 $fullName = trim(implode(' ', array_filter([$firstName, $middleNames, $lastName])));
                                 $set('name', $fullName);
                             }),
@@ -120,7 +123,7 @@ class UserResource extends Resource
                                 $firstName = $state ?? '';
                                 $middleNames = $get('middle_names') ?? '';
                                 $lastName = $get('last_name') ?? '';
-                                
+
                                 $fullName = trim(implode(' ', array_filter([$firstName, $middleNames, $lastName])));
                                 $set('name', $fullName);
                             }),
@@ -133,7 +136,7 @@ class UserResource extends Resource
                                 $firstName = $get('first_name') ?? '';
                                 $middleNames = $state ?? '';
                                 $lastName = $get('last_name') ?? '';
-                                
+
                                 $fullName = trim(implode(' ', array_filter([$firstName, $middleNames, $lastName])));
                                 $set('name', $fullName);
                             }),
@@ -147,7 +150,7 @@ class UserResource extends Resource
                                 $firstName = $get('first_name') ?? '';
                                 $middleNames = $get('middle_names') ?? '';
                                 $lastName = $state ?? '';
-                                
+
                                 $fullName = trim(implode(' ', array_filter([$firstName, $middleNames, $lastName])));
                                 $set('name', $fullName);
                             }),
@@ -226,7 +229,9 @@ class UserResource extends Resource
                             ->label('Assigned Branch')
                             ->relationship('assignedBranch', 'name', function (Builder $query, Forms\Get $get) {
                                 $user = auth()->user();
-                                if (!$user) return $query;
+                                if (! $user) {
+                                    return $query;
+                                }
 
                                 // If super admin and facility selected, filter by that facility
                                 if ($user->role === 'super_admin') {
@@ -234,14 +239,15 @@ class UserResource extends Resource
                                     if ($facilityId) {
                                         return $query->where('facility_id', $facilityId);
                                     }
+
                                     return $query;
                                 }
-                                
+
                                 // If regular user, filter by their facility
                                 if ($user->facility_id) {
                                     return $query->where('facility_id', $user->facility_id);
                                 }
-                                
+
                                 return $query;
                             })
                             ->searchable()
@@ -393,16 +399,35 @@ class UserResource extends Resource
                     ->color('gray')
                     ->icon('heroicon-o-pencil')
                     ->size('sm'),
+                Tables\Actions\Action::make('toggleActive')
+                    ->label(fn (User $record) => $record->is_active ? 'Deactivate' : 'Reactivate')
+                    ->icon(fn (User $record) => $record->is_active ? 'heroicon-o-lock-closed' : 'heroicon-o-lock-open')
+                    ->color(fn (User $record) => $record->is_active ? 'warning' : 'success')
+                    ->size('sm')
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (User $record) => $record->is_active
+                        ? "Deactivate {$record->name}?"
+                        : "Reactivate {$record->name}?")
+                    ->modalDescription(fn (User $record) => $record->is_active
+                        ? 'They will be signed out and will no longer be able to log in. '
+                          .'All of their care records are kept. You can reactivate them at any time.'
+                        : 'They will be able to log in again.')
+                    ->action(function (User $record) {
+                        $record->update(['is_active' => ! $record->is_active]);
+                    }),
+                // Only offered for accounts with no history behind them - typically
+                // one created by mistake. Anyone who has recorded care is deactivated
+                // instead, so their clinical records are never cascade-deleted.
                 Tables\Actions\DeleteAction::make()
                     ->color('danger')
                     ->icon('heroicon-o-trash')
-                    ->size('sm'),
+                    ->size('sm')
+                    ->visible(fn (User $record) => ! $record->hasProtectedRecords()),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ])
+            // No delete bulk action: it cannot be guarded per row, so one careless
+            // multi-select would cascade-delete the care records of every staff
+            // member ticked. Deactivate individually instead.
+            ->bulkActions([])
             ->defaultSort('name')
             ->paginated([10, 25, 50])
             ->defaultPaginationPageOption(10)
@@ -460,7 +485,7 @@ class UserResource extends Resource
                 ->icon('heroicon-o-chart-bar')
                 ->color('info')
                 ->url(route('filament.admin.pages.staff-charts'))
-                ->visible(fn() => auth()->user()->hasRole('administrator') || auth()->user()->hasRole('super_admin')),
+                ->visible(fn () => auth()->user()->hasRole('administrator') || auth()->user()->hasRole('super_admin')),
         ];
     }
 }

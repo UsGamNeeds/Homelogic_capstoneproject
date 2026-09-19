@@ -3,24 +3,75 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Exceptions\UserHasProtectedRecordsException;
+use App\Notifications\PasswordResetLinkNotification;
+use App\Traits\FormatsPhoneNumbers;
+use App\Traits\Loggable;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
-use Filament\Models\Contracts\FilamentUser;
-use Filament\Panel;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use App\Models\Notification;
-use App\Notifications\PasswordResetLinkNotification;
-use App\Traits\Loggable;
-use App\Traits\FormatsPhoneNumbers;
+use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, Loggable, FormatsPhoneNumbers;
+    use FormatsPhoneNumbers, HasApiTokens, HasFactory, Loggable, Notifiable;
+
+    /**
+     * Tables whose rows are clinical, payroll or audit history and must outlive
+     * the employment of the person who created them. Each entry is a table name
+     * mapped to the columns on it that reference users.id with an ON DELETE
+     * CASCADE, so a hard delete of the user would take these rows with them.
+     *
+     * Deliberately EXCLUDED from this list are tables that hold a user's own
+     * settings rather than a record anyone needs to keep: notification_preferences,
+     * payment_notification_preferences, staff_email_preferences,
+     * user_push_subscriptions, notifications, reminders, staff_availability and
+     * the user_roles pivot. Every user has those, so treating them as protected
+     * would make every account undeletable and leave no way to clear up an
+     * account created by mistake.
+     *
+     * @var array<string, list<string>>
+     */
+    public const PROTECTED_RECORD_REFERENCES = [
+        'appointments' => ['created_by'],
+        'assessments' => ['assessor_id'],
+        'assignments' => ['assigned_by', 'caregiver_id'],
+        'behavior_charts' => ['caregiver_id'],
+        'behaviors' => ['reported_by'],
+        'cleaning_task_assignments' => ['user_id'],
+        'employee_documents' => ['user_id'],
+        'expense_approvals' => ['approver_id'],
+        'fire_drill_templates' => ['created_by'],
+        'fire_drills' => ['created_by'],
+        'grocery_item_templates' => ['created_by'],
+        'grocery_status_updates' => ['updated_by'],
+        'incident_attachments' => ['uploaded_by'],
+        'incidents' => ['reported_by'],
+        'leave_requests' => ['staff_id'],
+        'medication_administrations' => ['administered_by'],
+        'medication_deliveries' => ['received_by'],
+        'medications' => ['created_by'],
+        'pharmacy_orders' => ['ordered_by'],
+        'pharmacy_stock_lots' => ['received_by'],
+        'pharmacy_stock_transactions' => ['performed_by'],
+        'pharmacy_suppliers' => ['created_by'],
+        'pharmacy_templates' => ['created_by'],
+        'resident_documents' => ['uploaded_by'],
+        'resident_sign_outs' => ['created_by'],
+        'shifts' => ['user_id'],
+        'staff_clock_ins' => ['staff_id'],
+        't_log_attachments' => ['uploaded_by'],
+        't_logs' => ['entered_by_id'],
+        'visitors' => ['checked_in_by'],
+        'vital_signs' => ['recorded_by', 'taken_by'],
+    ];
 
     /**
      * The attributes that are mass assignable.
@@ -62,7 +113,6 @@ class User extends Authenticatable implements FilamentUser
      */
     protected $appends = ['profile_image_url', 'is_caregiver', 'is_any_admin', 'is_facility_administrator', 'is_branch_admin'];
 
-
     /**
      * The attributes that should be hidden for serialization.
      *
@@ -103,7 +153,7 @@ class User extends Authenticatable implements FilamentUser
         }
 
         // Other users need permission and must belong to a facility
-        return $this->is_active 
+        return $this->is_active
             && $this->hasPermission('view_admin_panel')
             && $this->facility_id !== null;
     }
@@ -130,7 +180,7 @@ class User extends Authenticatable implements FilamentUser
         // Use null coalescing with explicit parentheses to avoid PHP notices
         // when the key isn't selected in lightweight queries (e.g., select id,name).
         $raw = ($this->attributes['profile_image'] ?? null);
-        if (!$raw) {
+        if (! $raw) {
             return null;
         }
 
@@ -232,6 +282,7 @@ class User extends Authenticatable implements FilamentUser
         if ($role === 'family' || $role === 'family_member') {
             return true;
         }
+
         return $this->hasRole('family') || $this->hasRole('family_member');
     }
 
@@ -324,7 +375,7 @@ class User extends Authenticatable implements FilamentUser
                         $query->where('name', $permission);
                     })
                     ->first();
-                
+
                 if ($facilityOverride) {
                     // Facility-specific override exists, use it
                     if ($facilityOverride->is_allowed) {
@@ -343,7 +394,7 @@ class User extends Authenticatable implements FilamentUser
             return $role->permissions()->where('name', $permission)->exists();
         });
 
-        if (!$hasGlobalRolePermission) {
+        if (! $hasGlobalRolePermission) {
             return false;
         }
 
@@ -358,7 +409,7 @@ class User extends Authenticatable implements FilamentUser
     {
         // Check if this permission requires module access check
         $module = \App\Helpers\ModulePermissionMapper::getModuleForPermission($permission);
-        
+
         if ($module === null) {
             // Permission doesn't map to a module, allow if role has permission
             return true;
@@ -386,14 +437,15 @@ class User extends Authenticatable implements FilamentUser
         // Branch admins have module access within their facility (but data scoped to branch)
         if ($this->isBranchAdmin()) {
             // Check if user's facility has access to this module
-            if (!$this->facility_id || !$this->facility) {
+            if (! $this->facility_id || ! $this->facility) {
                 return false;
             }
+
             return $this->facility->hasModuleAccess($module);
         }
 
         // If user doesn't have a facility, deny access
-        if (!$this->facility_id || !$this->facility) {
+        if (! $this->facility_id || ! $this->facility) {
             return false;
         }
 
@@ -422,7 +474,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function isFacilityAdministrator(): bool
     {
-        return $this->role === 'administrator' 
+        return $this->role === 'administrator'
             || $this->hasRole('administrator');
     }
 
@@ -431,7 +483,7 @@ class User extends Authenticatable implements FilamentUser
      */
     public function isBranchAdmin(): bool
     {
-        return $this->role === 'admin' 
+        return $this->role === 'admin'
             || $this->hasRole('admin');
     }
 
@@ -465,7 +517,6 @@ class User extends Authenticatable implements FilamentUser
         return $this->isBranchAdmin();
     }
 
-
     // Scopes
     public function scopeCaregivers($query)
     {
@@ -482,27 +533,94 @@ class User extends Authenticatable implements FilamentUser
         return $query->where('assigned_branch_id', $branchId);
     }
 
+    /**
+     * Counts the clinical, payroll and audit rows that would be destroyed if
+     * this user were hard-deleted. Returns only the tables that actually have
+     * rows, so an empty array means the account is safe to delete.
+     *
+     * @return array<string, int>
+     */
+    public function protectedRecordCounts(): array
+    {
+        if (! $this->exists) {
+            return [];
+        }
+
+        $counts = [];
+
+        foreach (self::PROTECTED_RECORD_REFERENCES as $table => $columns) {
+            // Tolerate tables that a given deployment has not migrated yet
+            // rather than blowing up on a missing-table error.
+            if (! \Illuminate\Support\Facades\Schema::hasTable($table)) {
+                continue;
+            }
+
+            $query = DB::table($table)->where(function ($q) use ($table, $columns) {
+                foreach ($columns as $column) {
+                    if (\Illuminate\Support\Facades\Schema::hasColumn($table, $column)) {
+                        $q->orWhere($column, $this->getKey());
+                    }
+                }
+            });
+
+            if (($count = $query->count()) > 0) {
+                $counts[$table] = $count;
+            }
+        }
+
+        return $counts;
+    }
+
+    /**
+     * True when this user has history that must survive their employment, and
+     * therefore must be deactivated rather than deleted.
+     */
+    public function hasProtectedRecords(): bool
+    {
+        return $this->protectedRecordCounts() !== [];
+    }
+
     // Boot method to automatically set name field
     protected static function boot()
     {
         parent::boot();
-        
+
+        /*
+         * Last line of defence against clinical data loss.
+         *
+         * users is referenced by 41 cascading foreign keys, so deleting a user
+         * row silently deletes the medication doses they signed, the incidents
+         * they reported and the shifts they were paid for. Guarding at the model
+         * means every route in - the API, the Filament row action, the bulk
+         * action - is covered by one check, because they all go through Eloquent.
+         *
+         * Accounts with no history at all (created by mistake, never used) stay
+         * deletable so admins can still tidy up.
+         */
+        static::deleting(function (User $user) {
+            $counts = $user->protectedRecordCounts();
+
+            if ($counts !== []) {
+                throw new UserHasProtectedRecordsException($user->getKey(), $counts);
+            }
+        });
+
         static::creating(function ($user) {
             if (empty($user->name)) {
                 $user->name = trim(implode(' ', array_filter([
                     $user->first_name,
                     $user->middle_names,
-                    $user->last_name
+                    $user->last_name,
                 ]))) ?: $user->email;
             }
         });
-        
+
         static::updating(function ($user) {
             if ($user->isDirty(['first_name', 'middle_names', 'last_name'])) {
                 $user->name = trim(implode(' ', array_filter([
                     $user->first_name,
                     $user->middle_names,
-                    $user->last_name
+                    $user->last_name,
                 ]))) ?: $user->email;
             }
         });
@@ -514,8 +632,9 @@ class User extends Authenticatable implements FilamentUser
         $parts = array_filter([
             $this->first_name,
             $this->middle_names,
-            $this->last_name
+            $this->last_name,
         ]);
+
         return trim(implode(' ', $parts));
     }
 
@@ -531,8 +650,6 @@ class User extends Authenticatable implements FilamentUser
 
     /**
      * Check if user is a caregiver
-     * 
-     * @return bool
      */
     public function isCaregiver(): bool
     {
@@ -620,12 +737,12 @@ class User extends Authenticatable implements FilamentUser
      */
     public function verifyClockPin(?string $pin): bool
     {
-        if (!$this->clock_pin) {
+        if (! $this->clock_pin) {
             // If no PIN is set, allow clock-in without PIN
             return true;
         }
 
-        if (!$pin) {
+        if (! $pin) {
             return false;
         }
 
