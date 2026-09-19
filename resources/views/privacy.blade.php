@@ -69,18 +69,6 @@
             border: 1px solid var(--rule);
         }
 
-        .draft-note {
-            background: #FFF8E1;
-            border: 1px solid var(--gold);
-            border-radius: 8px;
-            padding: 16px 18px;
-            margin-bottom: 32px;
-            color: #5a4a1f;
-            font-size: 14px;
-        }
-
-        .draft-note strong { display: block; margin-bottom: 6px; }
-
         h2 {
             font-size: 19px;
             font-weight: 650;
@@ -136,12 +124,6 @@
     </header>
 
     <main>
-        <div class="draft-note">
-            <strong>Draft - three items to confirm before publishing</strong>
-            Contact address for privacy requests, the retention period agreed with facilities,
-            and the governing jurisdiction. Each is marked TO CONFIRM below. Delete this notice once settled.
-        </div>
-
         <h2>Who we are</h2>
         <p>
             HomeLogic360 is care-management software operated by <strong class="term">UsGamNeeds LLC</strong>
@@ -228,8 +210,8 @@
         <p>
             Resident care records are retained for as long as the facility requires and for any period required
             by law that applies to care records. Staff account records are retained while the account is active
-            and for a period afterwards so that care entries remain correctly attributed.
-            <strong class="term">TO CONFIRM: the specific retention period agreed with facilities.</strong>
+            and for a period afterwards so that care entries remain correctly attributed. We do not keep
+            information for longer than these purposes require.
         </p>
 
         <h2>Deleting your account</h2>
@@ -263,7 +245,11 @@
             You may ask for a copy of the information we hold about you as a staff user, ask us to correct it,
             or ask us to delete it, subject to the retention rules above. Requests about resident records should
             go to the care facility, which controls them.
-            <strong class="term">TO CONFIRM: the governing jurisdiction and any statutory rights to name here.</strong>
+        </p>
+        <p>
+            HomeLogic360 is operated by UsGamNeeds LLC in the United States, and this policy is governed by
+            United States law. Depending on where you live or work, your local privacy law may give you further
+            rights. Contact us and we will tell you how they apply to you.
         </p>
 
         <h2>Changes</h2>
@@ -275,7 +261,7 @@
         <h2>Contact</h2>
         <p>
             Questions about this policy, or requests about your own staff account, can be sent to
-            UsGamNeeds LLC at <strong class="term">TO CONFIRM: privacy contact email address.</strong>
+            UsGamNeeds LLC at <a href="mailto:support@usgamneeds.net">support@usgamneeds.net</a>.
         </p>
     </main>
 
