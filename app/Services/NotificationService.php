@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Mail\AccountDeletionRequestNotification;
 use App\Mail\AppointmentNotification;
 use App\Mail\AssessmentNotification;
 use App\Mail\EmployeeDocumentNotification;
@@ -23,6 +24,7 @@ use App\Mail\SleepRecordNotification;
 use App\Mail\StaffClockInNotification;
 use App\Mail\VisitorNotification;
 use App\Mail\VitalSignNotification;
+use App\Models\AccountDeletionRequest;
 use App\Models\Appointment;
 use App\Models\Assessment;
 use App\Models\EmployeeDocument;
@@ -333,6 +335,44 @@ class NotificationService
                     ]);
                 } catch (\Exception $e) {
                     Log::error('Failed to send leave request email', [
+                        'to' => $recipient->email,
+                        'error' => $e->getMessage(),
+                        'facility_id' => $facility?->id,
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Send email notification for account deletion request events
+     */
+    public function sendAccountDeletionRequestEmail(AccountDeletionRequest $deletionRequest, $recipients): void
+    {
+        $facility = $deletionRequest->facility;
+        if ($this->shouldSkipNotificationForFacility($facility)) {
+            Log::info('Account deletion request email skipped - facility missing or deleted', ['account_deletion_request_id' => $deletionRequest->id]);
+
+            return;
+        }
+        $this->mailConfigService->configureForFacility($facility);
+
+        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients);
+
+        foreach ($recipientsToNotify as $recipient) {
+            if ($recipient->email) {
+                try {
+                    Mail::to($recipient->email)->send(
+                        new AccountDeletionRequestNotification($deletionRequest)
+                    );
+
+                    Log::info('Account deletion request email sent', [
+                        'to' => $recipient->email,
+                        'account_deletion_request_id' => $deletionRequest->id,
+                        'facility_id' => $facility?->id,
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send account deletion request email', [
                         'to' => $recipient->email,
                         'error' => $e->getMessage(),
                         'facility_id' => $facility?->id,
