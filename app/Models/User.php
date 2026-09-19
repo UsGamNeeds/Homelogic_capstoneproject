@@ -74,6 +74,12 @@ class User extends Authenticatable implements FilamentUser
     ];
 
     /**
+     * Memoised answer for hasProtectedRecords(), which is asked once per row
+     * when rendering staff lists. Null means "not worked out yet".
+     */
+    private ?bool $hasProtectedRecords = null;
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
@@ -549,19 +555,9 @@ class User extends Authenticatable implements FilamentUser
         $counts = [];
 
         foreach (self::PROTECTED_RECORD_REFERENCES as $table => $columns) {
-            // Tolerate tables that a given deployment has not migrated yet
-            // rather than blowing up on a missing-table error.
-            if (! \Illuminate\Support\Facades\Schema::hasTable($table)) {
+            if (! $query = $this->protectedRecordQuery($table, $columns)) {
                 continue;
             }
-
-            $query = DB::table($table)->where(function ($q) use ($table, $columns) {
-                foreach ($columns as $column) {
-                    if (\Illuminate\Support\Facades\Schema::hasColumn($table, $column)) {
-                        $q->orWhere($column, $this->getKey());
-                    }
-                }
-            });
 
             if (($count = $query->count()) > 0) {
                 $counts[$table] = $count;
@@ -572,12 +568,71 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * Schema lookups hit the database, and this runs for every reference on
+     * every check, so the shape of the deployment is resolved once per request
+     * rather than once per user per table.
+     *
+     * Returns null when this deployment has not migrated the table, or has none
+     * of the expected columns on it.
+     *
+     * @param  list<string>  $columns
+     */
+    private function protectedRecordQuery(string $table, array $columns): ?\Illuminate\Database\Query\Builder
+    {
+        static $usableColumns = [];
+
+        if (! array_key_exists($table, $usableColumns)) {
+            $schema = \Illuminate\Support\Facades\Schema::getFacadeRoot();
+
+            $usableColumns[$table] = $schema->hasTable($table)
+                ? array_values(array_filter(
+                    $columns,
+                    fn (string $column) => $schema->hasColumn($table, $column)
+                ))
+                : [];
+        }
+
+        if ($usableColumns[$table] === []) {
+            return null;
+        }
+
+        return DB::table($table)->where(function ($q) use ($table, $usableColumns) {
+            foreach ($usableColumns[$table] as $column) {
+                $q->orWhere($column, $this->getKey());
+            }
+        });
+    }
+
+    /**
      * True when this user has history that must survive their employment, and
      * therefore must be deactivated rather than deleted.
+     *
+     * Stops at the first reference it finds instead of counting them all, and
+     * remembers the answer, because this is asked once per row when rendering
+     * staff lists. Use protectedRecordCounts() when you need the full breakdown
+     * to show someone.
      */
     public function hasProtectedRecords(): bool
     {
-        return $this->protectedRecordCounts() !== [];
+        if ($this->hasProtectedRecords !== null) {
+            return $this->hasProtectedRecords;
+        }
+
+        if (! $this->exists) {
+            return $this->hasProtectedRecords = false;
+        }
+
+        foreach (self::PROTECTED_RECORD_REFERENCES as $table => $columns) {
+            if (! $query = $this->protectedRecordQuery($table, $columns)) {
+                continue;
+            }
+
+            if ($query->exists()) {
+                return $this->hasProtectedRecords = true;
+            }
+        }
+
+        return $this->hasProtectedRecords = false;
     }
 
     // Boot method to automatically set name field

@@ -168,10 +168,62 @@ class UserDeletionPreservesClinicalRecordsTest extends TestCase
             $user->hasProtectedRecords(),
             'A personal notification should not make an account undeletable.'
         );
+        // Memoised, so re-read the row to ask again after the assertion above.
+        $user = $user->fresh();
 
         $user->delete();
 
         $this->assertFalse(DB::table('users')->where('id', $user->id)->exists());
+    }
+
+    /**
+     * hasProtectedRecords() is asked once per row when rendering staff lists, so
+     * it must stop at the first reference it finds and remember the answer.
+     * Counting every protected table on every call made a single check take over
+     * a minute in this suite.
+     */
+    public function test_checking_for_protected_records_stops_early_and_is_memoised(): void
+    {
+        $caregiver = $this->makeUser();
+        $resident = Resident::factory()->create(['branch_id' => $this->branch->id]);
+
+        DB::table('appointments')->insert([
+            'resident_id' => $resident->id,
+            'branch_id' => $this->branch->id,
+            'title' => 'GP review',
+            'appointment_date' => now()->addDay()->toDateString(),
+            'appointment_time' => '10:00',
+            'created_by' => $caregiver->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Warm the schema lookups so we measure the record checks, not the
+        // one-off introspection that is cached per request.
+        $this->makeUser()->hasProtectedRecords();
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+
+        $this->assertTrue($caregiver->hasProtectedRecords());
+        $firstCall = count(DB::getQueryLog());
+
+        $this->assertLessThan(
+            count(User::PROTECTED_RECORD_REFERENCES),
+            $firstCall,
+            'The check should stop at the first reference found, not scan every protected table.'
+        );
+
+        DB::flushQueryLog();
+        $caregiver->hasProtectedRecords();
+
+        $this->assertCount(
+            0,
+            DB::getQueryLog(),
+            'A repeated check should reuse the memoised answer rather than query again.'
+        );
+
+        DB::disableQueryLog();
     }
 
     /**

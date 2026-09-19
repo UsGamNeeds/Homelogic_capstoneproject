@@ -6,6 +6,7 @@ use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
 use Filament\Actions;
 use Filament\Forms;
+use Filament\Notifications\Notification;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -415,14 +416,34 @@ class UserResource extends Resource
                     ->action(function (User $record) {
                         $record->update(['is_active' => ! $record->is_active]);
                     }),
-                // Only offered for accounts with no history behind them - typically
-                // one created by mistake. Anyone who has recorded care is deactivated
-                // instead, so their clinical records are never cascade-deleted.
+                // Deletion is only ever allowed for an account with no history
+                // behind it - typically one created by mistake. Anyone who has
+                // recorded care is deactivated instead, so their clinical records
+                // are never cascade-deleted.
+                //
+                // The check runs when the button is pressed rather than as
+                // ->visible(), which would query every protected table for every
+                // row on every render of the staff list.
                 Tables\Actions\DeleteAction::make()
                     ->color('danger')
                     ->icon('heroicon-o-trash')
                     ->size('sm')
-                    ->visible(fn (User $record) => ! $record->hasProtectedRecords()),
+                    ->before(function (User $record, Tables\Actions\DeleteAction $action) {
+                        if (! $record->hasProtectedRecords()) {
+                            return;
+                        }
+
+                        Notification::make()
+                            ->danger()
+                            ->title('This user cannot be deleted')
+                            ->body("{$record->name} has care records that must be kept. "
+                                .'Deactivate them instead - they will no longer be able to '
+                                .'sign in, and their records stay intact.')
+                            ->persistent()
+                            ->send();
+
+                        $action->cancel();
+                    }),
             ])
             // No delete bulk action: it cannot be guarded per row, so one careless
             // multi-select would cascade-delete the care records of every staff
