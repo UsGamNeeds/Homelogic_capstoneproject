@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AccountDeletionRequestController;
 use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\AgentWorkflowController;
 use App\Http\Controllers\Api\AppointmentController;
@@ -112,6 +113,7 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
         ->withoutMiddleware([\App\Http\Middleware\SetFacilityContext::class]);
     Route::put('/user/password', [AuthController::class, 'changePassword'])->middleware('auth:sanctum');
     Route::put('/user/credentials', [AuthController::class, 'updateCredentials'])->middleware('auth:sanctum');
+    Route::post('/account-deletion-requests', [AccountDeletionRequestController::class, 'store'])->middleware('auth:sanctum');
     Route::post('/token/refresh', [AuthController::class, 'refreshToken'])->middleware(['auth:sanctum', 'throttle:10,1']);
     Route::post('/token/validate', [AuthController::class, 'validateToken'])->middleware(['auth:sanctum', 'throttle:30,1']);
 
