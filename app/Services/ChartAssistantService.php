@@ -12,6 +12,24 @@ class ChartAssistantService
         $resolvedPrompt = $prompt ?? 'Summarize the chart trends and recommend next actions.';
         $heuristicResult = $this->buildHeuristicResult($payload, $prompt);
 
+        // Both the master switch AND a key are required. A key alone must
+        // never be enough to enable transmission - that gap is exactly how
+        // resident PHI was sent to the vendor previously. Each disabled case
+        // logs its own distinct message so the two failure modes stay
+        // distinguishable in the logs.
+        $enabled = (bool) config('services.anthropic.enabled', false);
+        if (! $enabled) {
+            Log::warning('Chart assistant Anthropic call skipped', [
+                'message' => 'AI assistant is disabled by configuration (services.anthropic.enabled / AI_ASSISTANT_ENABLED is false); skipped the live API call entirely regardless of API key presence.',
+            ]);
+
+            return array_merge($heuristicResult, [
+                'prompt' => $resolvedPrompt,
+                'mode' => 'heuristic',
+                'model' => 'heuristic',
+            ]);
+        }
+
         $apiKey = config('services.anthropic.api_key') ?: env('ANTHROPIC_API_KEY');
         if (empty($apiKey)) {
             Log::warning('Chart assistant Anthropic fallback triggered', [
@@ -25,6 +43,8 @@ class ChartAssistantService
             ]);
         }
 
+        $model = config('services.anthropic.model');
+
         try {
             $response = Http::timeout(30)
                 ->withHeaders([
@@ -33,7 +53,7 @@ class ChartAssistantService
                     'Content-Type' => 'application/json',
                 ])
                 ->post('https://api.anthropic.com/v1/messages', [
-                    'model' => 'claude-opus-4-8',
+                    'model' => $model,
                     'max_tokens' => (int) env('ANTHROPIC_MAX_TOKENS', 2048),
                     'messages' => [[
                         'role' => 'user',
@@ -59,12 +79,19 @@ class ChartAssistantService
                 throw new \RuntimeException('Anthropic response was not valid JSON: '.substr($content, 0, 500));
             }
 
-            $decodedSummary = (string) ($decoded['summary'] ?? $heuristicResult['summary']);
+            // The model sometimes returns 'summary' as an array of sentences
+            // instead of a single string, which previously threw "Array to
+            // string conversion" under a blind (string) cast. Join it into a
+            // readable string instead; leave an actual string untouched.
+            $summaryValue = $decoded['summary'] ?? $heuristicResult['summary'];
+            $decodedSummary = is_array($summaryValue)
+                ? implode(' ', $this->normalizeList($summaryValue))
+                : (string) $summaryValue;
 
             return array_merge($heuristicResult, [
                 'prompt' => $resolvedPrompt,
                 'mode' => 'anthropic',
-                'model' => 'claude-opus-4-8',
+                'model' => $model,
                 'summary' => $decodedSummary,
                 'insights' => $this->normalizeList($decoded['insights'] ?? $heuristicResult['insights']),
                 'recommendations' => $this->normalizeList($decoded['recommendations'] ?? $heuristicResult['recommendations']),
@@ -97,13 +124,33 @@ class ChartAssistantService
 
     private function buildAnthropicPrompt(array $payload, ?string $prompt = null): string
     {
+        // The vendor analysis works on trends (vitals, sleep, medication
+        // counts, etc.) and does not need resident identity to do that, so
+        // the name is never sent - this mirrors what ResidentResolver
+        // already does for the (better-designed) intent-parsing assistant
+        // path. Always redact, regardless of what the caller passed in.
+        $facilityFollowUpCandidates = $payload['facility_follow_up_candidates'] ?? [];
+        if (is_array($facilityFollowUpCandidates)) {
+            // Each candidate carries a *different* resident's full name (see
+            // ChartAssistantController::buildFacilityFollowUpCandidates) -
+            // that is just as much PHI as the primary resident's name, so
+            // redact it too.
+            $facilityFollowUpCandidates = array_map(function ($candidate) {
+                if (is_array($candidate) && array_key_exists('name', $candidate)) {
+                    $candidate['name'] = '{RESIDENT}';
+                }
+
+                return $candidate;
+            }, $facilityFollowUpCandidates);
+        }
+
         return json_encode([
             'prompt' => $prompt ?? 'Summarize the chart trends and recommend next actions.',
-            'resident' => $payload['resident']['name'] ?? 'the selected resident',
+            'resident' => '{RESIDENT}',
             'window' => $payload['window'] ?? 'the selected period',
             'vitals' => $payload['vitals'] ?? [],
             'comparison' => $payload['comparison'] ?? [],
-            'facility_follow_up_candidates' => $payload['facility_follow_up_candidates'] ?? [],
+            'facility_follow_up_candidates' => $facilityFollowUpCandidates,
             'sleep' => $payload['sleep'] ?? [],
             'behavior_charts' => $payload['behavior_charts'] ?? [],
             'appointments' => $payload['appointments'] ?? [],
