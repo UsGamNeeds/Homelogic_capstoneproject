@@ -38,6 +38,10 @@ return [
     'anthropic' => [
         'api_key' => env('ANTHROPIC_API_KEY'),
         'model' => env('ANTHROPIC_MODEL', 'claude-haiku-4-5-20251001'),
+        // Hard off by default. A key alone must never be enough to enable
+        // transmission of resident data to the vendor - see
+        // AI_ASSISTANT_ENABLED in .env.example.
+        'enabled' => env('AI_ASSISTANT_ENABLED', false),
     ],
 
 ];
