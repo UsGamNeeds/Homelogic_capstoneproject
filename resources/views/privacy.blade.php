@@ -106,6 +106,12 @@
 
         a { color: var(--brand); }
 
+        .address {
+            border-left: 3px solid var(--rule);
+            padding-left: 16px;
+            line-height: 1.55;
+        }
+
         @media (max-width: 600px) {
             header { padding: 28px 16px; }
             main { margin: -12px 16px 40px; padding: 24px 20px; border-radius: 10px; }
@@ -247,9 +253,9 @@
             go to the care facility, which controls them.
         </p>
         <p>
-            HomeLogic360 is operated by UsGamNeeds LLC in the United States, and this policy is governed by
-            United States law. Depending on where you live or work, your local privacy law may give you further
-            rights. Contact us and we will tell you how they apply to you.
+            HomeLogic360 is operated by UsGamNeeds LLC in Portland, Oregon, United States, and this policy is
+            governed by the laws of the State of Oregon. Depending on where you live or work, your local privacy
+            law may give you further rights. Contact us and we will tell you how they apply to you.
         </p>
 
         <h2>Changes</h2>
@@ -261,7 +267,13 @@
         <h2>Contact</h2>
         <p>
             Questions about this policy, or requests about your own staff account, can be sent to
-            UsGamNeeds LLC at <a href="mailto:support@usgamneeds.net">support@usgamneeds.net</a>.
+            UsGamNeeds LLC at <a href="mailto:support@usgamneeds.net">support@usgamneeds.net</a>, or by post at:
+        </p>
+        <p class="address">
+            UsGamNeeds LLC<br>
+            3055 NW Yeon Ave #408<br>
+            Portland, OR 97210<br>
+            United States
         </p>
     </main>
 
