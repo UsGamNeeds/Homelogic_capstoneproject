@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
-import { CheckCircle, XCircle, Calendar, Plus, User, Stethoscope, MapPin, ChevronDown, Edit, List, Grid, Building2 } from 'lucide-react';
+import { CheckCircle, XCircle, Calendar, Plus, User, Stethoscope, MapPin, ChevronDown, Edit, List, Grid, Building2, X } from 'lucide-react';
 import SectionCard from '../components/SectionCard';
 import CalendarView from '../components/CalendarView';
 import BranchSelector from '../components/BranchSelector';
@@ -11,22 +11,24 @@ import ResidentAvatarInline from '../components/ui/ResidentAvatarInline';
 import DataPill, { DataPillSection } from '../components/ui/DataPill';
 import Tooltip from '../components/ui/Tooltip';
 import Modal from '../components/ui/Modal';
+import LookupSearchInput from '../components/forms/LookupSearchInput';
+import AppointmentsCalendarBoard from '../components/appointments/AppointmentsCalendarBoard';
 import logger from '../utils/logger';
 import { toast } from 'sonner';
+import { readResidentIdParam } from '../utils/headerResidentSwitcher';
 
 export default function Appointments() {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const selectedBranchId = searchParams.get('branch');
-    const headerResidentId = searchParams.get('residentId') || '';
+    const headerResidentId = readResidentIdParam(searchParams);
     const [residentFilter, setResidentFilter] = useState('');
     const effectiveResidentFilter = headerResidentId || residentFilter;
     const highlightedAppointmentId = useRef(null);
     const appointmentRowRefs = useRef({});
     const urlParamsProcessed = useRef(false);
     const [showForm, setShowForm] = useState(false);
-    const [currentUser, setCurrentUser] = useState(null);
     const [componentError, setComponentError] = useState(null);
     const [isPreFilled, setIsPreFilled] = useState(false); // Track if form was opened with pre-filled data
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar' - default to list (calendar hidden)
@@ -42,6 +44,15 @@ export default function Appointments() {
         status: 'scheduled',
     });
     
+    // Fetch current user. Uses react-query (auto-retry on transient failures) instead
+    // of a plain effect — a bare fetch here used to fail silently under load and get
+    // stuck as `null` for the rest of the page's life, which made isCaregiver/branch
+    // scoping wrong and produced a misleading "No Branches Available" message.
+    const { data: currentUser = null } = useQuery({
+        queryKey: ['current-user'],
+        queryFn: async () => (await api.get('/user')).data,
+    });
+
     // Auto-fill branch for branch admin users on mount (not facility administrators)
     React.useEffect(() => {
         const isBranchAdmin = currentUser?.role === 'admin';
@@ -49,19 +60,6 @@ export default function Appointments() {
             setFormData(prev => ({ ...prev, branch_id: currentUser.assigned_branch_id }));
         }
     }, [currentUser]);
-
-    // Fetch current user
-    React.useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const response = await api.get('/user');
-                setCurrentUser(response.data);
-            } catch (err) {
-                logger.error('Failed to fetch current user:', err);
-            }
-        };
-        fetchUser();
-    }, []);
 
     // Fetch appointment types
     const { data: appointmentTypes } = useQuery({
@@ -161,7 +159,7 @@ export default function Appointments() {
 
     // Define queries FIRST before using them in useEffect
     const { data, isLoading, error: appointmentsError, refetch } = useQuery({
-        queryKey: ['appointments', effectiveResidentFilter, selectedBranchId],
+        queryKey: ['appointments', effectiveResidentFilter, selectedBranchId, isCaregiver],
         queryFn: async () => {
             try {
                 const params = {
@@ -180,7 +178,10 @@ export default function Appointments() {
                 throw error;
             }
         },
-        enabled: !isCaregiver && !!effectiveResidentFilter, // Only fetch for non-caregivers when resident is selected
+        // Caregivers always fetch (scoped server-side to their facility/branch) so
+        // the "Next appointment" teaser and Upcoming Appointments list have data;
+        // non-caregivers only fetch once a specific resident is selected.
+        enabled: isCaregiver || !!effectiveResidentFilter,
         retry: 1,
     });
 
@@ -253,7 +254,7 @@ export default function Appointments() {
         if (urlParamsProcessed.current) return;
 
         try {
-            const residentId = searchParams.get('resident_id');
+            const residentId = readResidentIdParam(searchParams);
             const appointmentId = searchParams.get('appointment_id');
 
             if (residentId) {
@@ -284,7 +285,7 @@ export default function Appointments() {
         if (searchParams.get('openCreate') !== '1') return;
         if (!isCaregiver && !selectedBranchId) return;
 
-        const rid = searchParams.get('residentId');
+        const rid = readResidentIdParam(searchParams);
         if (rid && !allResidentsData?.data) return;
 
         const next = new URLSearchParams(searchParams);
@@ -544,9 +545,18 @@ export default function Appointments() {
         );
     }
 
+    // Carry the resident already in scope into the create flow, so the user is not asked to pick again.
+    const addAppointmentPath = effectiveResidentFilter ? `/appointments/add/${effectiveResidentFilter}` : '/appointments/add';
+
     return (
         <div className="space-y-6">
             <BranchSelector currentUser={currentUser} />
+
+            {/* Facility/branch-wide calendar + advanced search — shows every resident's
+                appointments at once, distinct from the resident-scoped sections below
+                (which are for scheduling new ones / a quick "next appointment" glance). */}
+            <AppointmentsCalendarBoard branchId={selectedBranchId || currentUser?.assigned_branch_id} />
+
             {isCaregiver ? (
                 <>
                     {/* Resident Cards Section */}
@@ -663,11 +673,7 @@ export default function Appointments() {
                                         return (
                                             <Link
                                                 key={resident.id}
-                                                to={`/appointments/create/${resident.id}`}
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    window.location.href = `/appointments/create/${resident.id}`;
-                                                }}
+                                                to={`/appointments/add/${resident.id}`}
                                                 className="block rounded-2xl text-inherit no-underline outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--theme-primary)] focus-visible:ring-offset-2"
                                                 aria-label={`Add appointment for ${resident.first_name} ${resident.last_name}`}
                                             >
@@ -694,7 +700,83 @@ export default function Appointments() {
                         )}
                     </div>
 
+                    {/* Upcoming Appointments — the resident cards above are for scheduling new
+                        ones; this is the actual list of what's already on the calendar. */}
+                    <div className="mt-8">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Upcoming Appointments</h3>
+                        {isLoading ? (
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-500">
+                                Loading appointments...
+                            </div>
+                        ) : appointmentsError ? (
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-red-600">
+                                Unable to load appointments.
+                            </div>
+                        ) : (() => {
+                            const upcoming = (data?.data || [])
+                                .filter(a => a.status !== 'cancelled' && a.status !== 'completed')
+                                .sort((a, b) => {
+                                    const aKey = `${a.appointment_date}T${a.appointment_time || '00:00'}`;
+                                    const bKey = `${b.appointment_date}T${b.appointment_time || '00:00'}`;
+                                    return aKey.localeCompare(bKey);
+                                });
 
+                            return upcoming.length === 0 ? (
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+                                    <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                    <p className="text-gray-500 text-sm">No upcoming appointments scheduled.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {upcoming.map((appt) => {
+                                        const residentName = appt.resident
+                                            ? `${appt.resident.first_name || ''} ${appt.resident.last_name || ''}`.trim()
+                                            : 'Unknown resident';
+                                        const timeLabel = appt.appointment_time
+                                            ? (() => {
+                                                  const [h, m] = appt.appointment_time.split(':');
+                                                  const hour12 = (parseInt(h, 10) % 12) || 12;
+                                                  const ampm = parseInt(h, 10) >= 12 ? 'PM' : 'AM';
+                                                  return `${hour12}:${m} ${ampm}`;
+                                              })()
+                                            : null;
+
+                                        return (
+                                            <Link
+                                                key={appt.id}
+                                                to={`/appointments/${appt.id}`}
+                                                className="block rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md hover:border-[var(--theme-primary)]/30 transition-all"
+                                            >
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <span className="text-sm font-semibold text-gray-900">
+                                                                {new Date(appt.appointment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                            </span>
+                                                            {timeLabel && <span className="text-sm text-gray-500">{timeLabel}</span>}
+                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${
+                                                                appt.status === 'scheduled' ? 'bg-amber-100 text-amber-800' :
+                                                                appt.status === 'confirmed' ? 'bg-[var(--theme-primary-bg)] text-[var(--theme-primary)]' :
+                                                                'bg-gray-100 text-gray-700'
+                                                            }`}>
+                                                                {appt.status}
+                                                            </span>
+                                                        </div>
+                                                        <p className="mt-1 font-medium text-gray-900 truncate">{appt.title || 'Appointment'}</p>
+                                                        <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-0.5">
+                                                            <User className="w-3.5 h-3.5" />
+                                                            {residentName}
+                                                        </p>
+                                                    </div>
+                                                    <ChevronDown className="w-4 h-4 text-gray-300 -rotate-90 flex-shrink-0 mt-1" />
+                                                </div>
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })()}
+                    </div>
                 </>
             ) : (
                 <>
@@ -724,7 +806,7 @@ export default function Appointments() {
                                 )}
                                 {canCreate && (
                                     <button
-                                        onClick={handleOpenFormManually}
+                                        onClick={() => navigate(addAppointmentPath)}
                                         className="inline-flex items-center gap-2 rounded-lg border-2 border-[var(--theme-primary)] bg-[var(--theme-primary)] px-4 py-2 text-sm font-semibold text-[var(--theme-text-on-primary)] hover:bg-[var(--theme-primary-hover)] transition-colors shadow-sm"
                                     >
                                         <Plus className="h-4 w-4" />
@@ -1390,15 +1472,79 @@ export default function Appointments() {
     );
 }
 
-function AddAppointmentModal({ branches, residents, formData, setFormData, onClose, onSubmit, isSubmitting, mutation, isPreFilled = false, appointmentTypes = [], currentUser, isFacilityAdmin, isBranchAdmin, selectedBranchId, inModal = false }) {
+const APPOINTMENT_STATUS_OPTIONS = [
+    { value: 'not_scheduled', label: 'Not Scheduled' },
+    { value: 'scheduled', label: 'Scheduled' },
+    { value: 'rescheduled', label: 'Rescheduled' },
+    { value: 'results_pending', label: 'Results Pending' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'cancelled', label: 'Cancelled' },
+    { value: 'missed', label: 'Missed' },
+    { value: 'declined', label: 'Declined' },
+];
+
+const LOCATION_TYPE_OPTIONS = [
+    { value: 'home', label: 'Home' },
+    { value: 'hospital', label: 'Hospital' },
+    { value: 'office', label: 'Office' },
+    { value: 'telemedicine', label: 'Telemedicine' },
+    { value: 'other', label: 'Other' },
+];
+
+const REASON_FOR_APPOINTMENT_OPTIONS = [
+    { value: 'routine_checkup', label: 'Routine Checkup' },
+    { value: 'follow_up', label: 'Follow-up' },
+    { value: 'specialist_consult', label: 'Specialist Consult' },
+    { value: 'emergency', label: 'Emergency' },
+    { value: 'other', label: 'Other' },
+];
+
+const MAX_ATTACHMENTS_TOTAL_BYTES = 10 * 1024 * 1024; // 10MB, matches the form's stated limit
+
+// Branch addresses in this app are a single free-text string, typically
+// "Street, City, ST ZIP" (e.g. "123 Main Street, Edmond, WA 98020"). Best-effort
+// split into the appointment form's structured address fields; falls back to
+// putting the whole string in street1 if it doesn't match that shape.
+function parseAddressIntoFields(address) {
+    if (!address) return null;
+    const parts = address.split(',').map((p) => p.trim()).filter(Boolean);
+    if (parts.length < 3) {
+        return { address_street1: address, address_street2: '', address_city: '', address_state: '', address_zip: '', address_country: 'USA' };
+    }
+    const [street, city, ...rest] = parts;
+    const stateZip = rest.join(' ').trim();
+    const stateZipMatch = stateZip.match(/^([A-Za-z]{2,})\s+(\S+)$/);
+    return {
+        address_street1: street,
+        address_street2: '',
+        address_city: city,
+        address_state: stateZipMatch ? stateZipMatch[1] : stateZip,
+        address_zip: stateZipMatch ? stateZipMatch[2] : '',
+        address_country: 'USA',
+    };
+}
+
+export function AddAppointmentModal({
+    branches, residents, formData, setFormData, onClose, onSubmit, isSubmitting, mutation,
+    isPreFilled = false, appointmentTypes = [], currentUser, isFacilityAdmin, isBranchAdmin,
+    selectedBranchId, inModal = false, users = [], attachments = [], setAttachments = () => {},
+}) {
     const [errors, setErrors] = React.useState({});
-    
+    const [locating, setLocating] = React.useState(false);
+
     // Ensure branch_id is set from selectedBranchId if provided
     React.useEffect(() => {
         if (selectedBranchId && !formData.branch_id) {
             setFormData(prev => ({ ...prev, branch_id: String(selectedBranchId) }));
         }
     }, [selectedBranchId]);
+
+    // Default Reported By to the current user, once, without clobbering a value already set.
+    React.useEffect(() => {
+        if (currentUser?.id && !formData.reported_by) {
+            setFormData(prev => ({ ...prev, reported_by: String(currentUser.id) }));
+        }
+    }, [currentUser?.id]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -1417,151 +1563,467 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
         onSubmit();
     };
 
+    const handleUseCurrentLocation = () => {
+        if (!navigator.geolocation) return;
+        setLocating(true);
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setFormData(prev => ({
+                    ...prev,
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                }));
+                setLocating(false);
+            },
+            () => setLocating(false),
+            { timeout: 10000 },
+        );
+    };
+
+    const totalAttachmentBytes = attachments.reduce((sum, f) => sum + (f.size || 0), 0);
+
+    const handleAddFiles = (fileList) => {
+        const newFiles = Array.from(fileList || []);
+        if (newFiles.length === 0) return;
+        const combinedBytes = totalAttachmentBytes + newFiles.reduce((sum, f) => sum + f.size, 0);
+        if (combinedBytes > MAX_ATTACHMENTS_TOTAL_BYTES) {
+            setErrors(prev => ({ ...prev, attachments: 'The total size of all attachments cannot exceed 10 MB' }));
+            return;
+        }
+        setErrors(prev => ({ ...prev, attachments: null }));
+        setAttachments(prev => [...prev, ...newFiles]);
+    };
+
+    const removeAttachment = (index) => {
+        setAttachments(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const inputClass = 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent';
+    const sectionTitleClass = 'text-sm font-bold text-gray-700 uppercase tracking-wide mb-4';
+
     const formInner = (
                 <form onSubmit={handleSubmit}>
-                    <div className={`${inModal ? 'space-y-6' : 'p-6 space-y-6'}`}>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Branch Selection - Only show if branch not already selected from URL */}
-                            {!selectedBranchId ? (
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-900 mb-1">
-                                        Branch
-                                    </label>
-                                    <div className="relative">
+                    <div className={`${inModal ? 'space-y-8' : 'p-6 space-y-8'}`}>
+
+                        {/* General Information */}
+                        <div>
+                            <h3 className={sectionTitleClass}>General Information</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {!selectedBranchId ? (
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-900 mb-1">Branch (Program)</label>
                                         <select
                                             value={formData.branch_id}
                                             onChange={(e) => {
-                                                setFormData({
-                                                    ...formData,
-                                                    branch_id: e.target.value,
-                                                    resident_id: '' // Reset resident when branch changes
-                                                });
+                                                setFormData({ ...formData, branch_id: e.target.value, resident_id: '' });
                                                 setErrors({ ...errors, branch_id: null, resident_id: null });
                                             }}
                                             disabled={isPreFilled || (!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id)}
-                                            className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${isPreFilled || (!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id) ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''
-                                                }`}
+                                            className={`${inputClass} ${isPreFilled || (!isFacilityAdmin && isBranchAdmin && currentUser?.assigned_branch_id) ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
                                         >
                                             <option value="">All Branches</option>
                                             {(branches || []).map(branch => (
                                                 <option key={branch.id} value={branch.id}>{branch.name}</option>
                                             ))}
                                         </select>
+                                        {errors.branch_id && <p className="text-xs text-red-600 mt-1">{errors.branch_id}</p>}
                                     </div>
-                                    {errors.branch_id && <p className="text-xs text-red-600 mt-1">{errors.branch_id}</p>}
+                                ) : (
+                                    <input type="hidden" value={selectedBranchId.toString()} />
+                                )}
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">Resident *</label>
+                                    <div className="relative">
+                                        <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                        <select
+                                            value={formData.resident_id}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, resident_id: e.target.value });
+                                                setErrors({ ...errors, resident_id: null });
+                                            }}
+                                            disabled={isPreFilled}
+                                            className={`w-full pl-9 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${errors.resident_id ? 'border-red-300' : 'border-gray-300'} ${isPreFilled ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
+                                        >
+                                            <option value="">Select resident</option>
+                                            {(residents || []).map(r => (
+                                                <option key={r.id} value={r.id}>{r.first_name} {r.last_name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    {errors.resident_id && <p className="text-xs text-red-600 mt-1">{errors.resident_id}</p>}
                                 </div>
-                            ) : (
-                                // Branch is selected from URL, use it as hidden field
-                                <input type="hidden" value={selectedBranchId.toString()} />
-                            )}
-                            <div>
-                                <label className="block text-sm font-bold text-gray-900 mb-1">
-                                    Resident *
-                                </label>
-                                <div className="relative">
-                                    <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">Reported By *</label>
                                     <select
-                                        value={formData.resident_id}
-                                        onChange={(e) => {
-                                            setFormData({ ...formData, resident_id: e.target.value });
-                                            setErrors({ ...errors, resident_id: null });
-                                        }}
-                                        disabled={isPreFilled}
-                                        className={`w-full pl-9 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${errors.resident_id ? 'border-red-300' : 'border-gray-300'
-                                            } ${isPreFilled ? 'bg-gray-100 cursor-not-allowed opacity-75' : ''}`}
+                                        value={formData.reported_by || ''}
+                                        onChange={(e) => setFormData({ ...formData, reported_by: e.target.value })}
+                                        className={inputClass}
                                     >
-                                        <option value="">Select resident</option>
-                                        {(residents || []).map(r => (
-                                            <option key={r.id} value={r.id}>{r.first_name} {r.last_name}</option>
+                                        <option value="">Select staff member</option>
+                                        {(users || []).map(u => (
+                                            <option key={u.id} value={u.id}>{u.name}</option>
                                         ))}
                                     </select>
                                 </div>
-                                {errors.resident_id && <p className="text-xs text-red-600 mt-1">{errors.resident_id}</p>}
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-gray-900 mb-1">
-                                    Date *
-                                </label>
-                                <input
-                                    type="date"
-                                    value={formData.appointment_date}
-                                    onChange={(e) => {
-                                        setFormData({ ...formData, appointment_date: e.target.value });
-                                        setErrors({ ...errors, appointment_date: null });
-                                    }}
-                                    required
-                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${errors.appointment_date ? 'border-red-300' : 'border-gray-300'
-                                        }`}
-                                />
-                                {errors.appointment_date && <p className="text-xs text-red-600 mt-1">{errors.appointment_date}</p>}
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-gray-900 mb-1">
-                                    Time
-                                </label>
-                                <TimePicker
-                                    value={formData.appointment_time}
-                                    onChange={(value) => setFormData({ ...formData, appointment_time: value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-gray-900 mb-1">
-                                    Provider Name
-                                </label>
-                                <div className="relative">
-                                    <Stethoscope className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">Date *</label>
                                     <input
-                                        type="text"
-                                        value={formData.provider_name}
-                                        onChange={(e) => setFormData({ ...formData, provider_name: e.target.value })}
-                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                                        placeholder="Dr. Smith"
+                                        type="date"
+                                        value={formData.appointment_date}
+                                        onChange={(e) => {
+                                            setFormData({ ...formData, appointment_date: e.target.value });
+                                            setErrors({ ...errors, appointment_date: null });
+                                        }}
+                                        required
+                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent ${errors.appointment_date ? 'border-red-300' : 'border-gray-300'}`}
                                     />
+                                    {errors.appointment_date && <p className="text-xs text-red-600 mt-1">{errors.appointment_date}</p>}
                                 </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-gray-900 mb-1">
-                                    Location
-                                </label>
-                                <div className="relative">
-                                    <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        value={formData.location}
-                                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                                        placeholder="Clinic / Room"
-                                    />
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">Notification Level</label>
+                                    <select
+                                        value={formData.notification_level || 'low'}
+                                        onChange={(e) => setFormData({ ...formData, notification_level: e.target.value })}
+                                        className={inputClass}
+                                    >
+                                        <option value="low">Low</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="high">High</option>
+                                        <option value="urgent">Urgent</option>
+                                    </select>
                                 </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-gray-900 mb-1">
-                                    Appointment Type
-                                </label>
-                                <select
-                                    value={formData.appointment_type_id}
-                                    onChange={(e) => setFormData({ ...formData, appointment_type_id: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                                >
-                                    <option value="">Select Type</option>
-                                    {(appointmentTypes || []).map(type => (
-                                        <option key={type.id} value={type.id}>{type.name}</option>
-                                    ))}
-                                </select>
                             </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-bold text-gray-900 mb-1">
-                                Notes / Description
-                            </label>
+
+                        {/* Appointment Information */}
+                        <div className="border-t pt-6">
+                            <h3 className={sectionTitleClass}>Appointment Information</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">Appointment Status</label>
+                                    <select
+                                        value={formData.status || ''}
+                                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                        className={inputClass}
+                                    >
+                                        <option value="">- Please Select -</option>
+                                        {APPOINTMENT_STATUS_OPTIONS.map(opt => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div />
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">Begin Time *</label>
+                                    <TimePicker
+                                        value={formData.appointment_time}
+                                        onChange={(value) => setFormData({ ...formData, appointment_time: value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">End Time *</label>
+                                    <TimePicker
+                                        value={formData.end_time}
+                                        onChange={(value) => setFormData({ ...formData, end_time: value })}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Appointment With */}
+                        <div className="border-t pt-6">
+                            <h3 className={sectionTitleClass}>Appointment With</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">Consultant</label>
+                                    <LookupSearchInput
+                                        value={formData.healthcare_provider_id}
+                                        selectedName={formData.consultant_name}
+                                        onChange={(id, name) => setFormData({ ...formData, healthcare_provider_id: id, consultant_name: name })}
+                                        endpoint="/healthcare-providers"
+                                        placeholder="Search consultants..."
+                                        entityLabel="consultant"
+                                        subtitleField="specialty"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">Hospital</label>
+                                    <LookupSearchInput
+                                        value={formData.hospital_id}
+                                        selectedName={formData.hospital_name}
+                                        onChange={(id, name) => setFormData({ ...formData, hospital_id: id, hospital_name: name })}
+                                        endpoint="/hospitals"
+                                        placeholder="Search hospitals..."
+                                        entityLabel="hospital"
+                                        subtitleField="address"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">Other</label>
+                                    <input
+                                        type="text"
+                                        value={formData.other_provider || ''}
+                                        onChange={(e) => setFormData({ ...formData, other_provider: e.target.value })}
+                                        className={inputClass}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">Specialty *</label>
+                                    <LookupSearchInput
+                                        value={formData.specialty_id}
+                                        selectedName={formData.specialty_name}
+                                        onChange={(id, name) => setFormData({ ...formData, specialty_id: id, specialty_name: name, specialty: name })}
+                                        endpoint="/specialties"
+                                        placeholder="Search specialties..."
+                                        entityLabel="specialty"
+                                        subtitleField={null}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">Location Type</label>
+                                    <select
+                                        value={formData.location_type || ''}
+                                        onChange={(e) => {
+                                            const newType = e.target.value;
+                                            if (newType === 'home') {
+                                                const currentBranch = (branches || []).find(
+                                                    b => String(b.id) === String(selectedBranchId || formData.branch_id)
+                                                ) || (branches || [])[0];
+                                                const parsed = parseAddressIntoFields(currentBranch?.address);
+                                                setFormData({ ...formData, location_type: newType, ...(parsed || {}) });
+                                                return;
+                                            }
+                                            setFormData({ ...formData, location_type: newType });
+                                        }}
+                                        className={inputClass}
+                                    >
+                                        <option value="">- Please Select -</option>
+                                        {LOCATION_TYPE_OPTIONS.map(opt => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                    {formData.location_type === 'home' && (
+                                        <p className="text-xs text-gray-400 mt-1">Address auto-filled from the branch — edit below if needed.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="block text-sm font-bold text-gray-900 mb-1">Address</label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                        <input
+                                            type="text"
+                                            value={formData.address_street1 || ''}
+                                            onChange={(e) => setFormData({ ...formData, address_street1: e.target.value })}
+                                            placeholder="Street 1"
+                                            className={inputClass}
+                                        />
+                                        <p className="text-xs text-gray-400 mt-1">Street 1</p>
+                                    </div>
+                                    <div>
+                                        <input
+                                            type="text"
+                                            value={formData.address_street2 || ''}
+                                            onChange={(e) => setFormData({ ...formData, address_street2: e.target.value })}
+                                            placeholder="Street 2"
+                                            className={inputClass}
+                                        />
+                                        <p className="text-xs text-gray-400 mt-1">Street 2</p>
+                                    </div>
+                                    <div>
+                                        <input
+                                            type="text"
+                                            value={formData.address_city || ''}
+                                            onChange={(e) => setFormData({ ...formData, address_city: e.target.value })}
+                                            placeholder="City"
+                                            className={inputClass}
+                                        />
+                                        <p className="text-xs text-gray-400 mt-1">City</p>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <input
+                                            type="text"
+                                            value={formData.address_state || ''}
+                                            onChange={(e) => setFormData({ ...formData, address_state: e.target.value })}
+                                            placeholder="State"
+                                            className={inputClass}
+                                        />
+                                        <input
+                                            type="text"
+                                            value={formData.address_zip || ''}
+                                            onChange={(e) => setFormData({ ...formData, address_zip: e.target.value })}
+                                            placeholder="Zip Code"
+                                            className={inputClass}
+                                        />
+                                        <input
+                                            type="text"
+                                            value={formData.address_country || 'USA'}
+                                            onChange={(e) => setFormData({ ...formData, address_country: e.target.value })}
+                                            placeholder="Country"
+                                            className={inputClass}
+                                        />
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleUseCurrentLocation}
+                                    disabled={locating}
+                                    className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                                >
+                                    <MapPin className="w-3.5 h-3.5" />
+                                    {locating ? 'Locating...' : formData.latitude ? 'Location captured ✓' : 'Use current location'}
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">Phone</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <input
+                                            type="text"
+                                            value={formData.phone || ''}
+                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                            className={`${inputClass} col-span-2`}
+                                        />
+                                        <input
+                                            type="text"
+                                            value={formData.phone_extension || ''}
+                                            onChange={(e) => setFormData({ ...formData, phone_extension: e.target.value })}
+                                            placeholder="Extension"
+                                            className={inputClass}
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">Driver</label>
+                                    <input
+                                        type="text"
+                                        value={formData.driver || ''}
+                                        onChange={(e) => setFormData({ ...formData, driver: e.target.value })}
+                                        className={inputClass}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">Pick Up At</label>
+                                    <input
+                                        type="text"
+                                        value={formData.pick_up_at || ''}
+                                        onChange={(e) => setFormData({ ...formData, pick_up_at: e.target.value })}
+                                        className={inputClass}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">Depart Time</label>
+                                    <TimePicker
+                                        value={formData.depart_time}
+                                        onChange={(value) => setFormData({ ...formData, depart_time: value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">Reason for Appointment</label>
+                                    <select
+                                        value={formData.reason_for_appointment || ''}
+                                        onChange={(e) => setFormData({ ...formData, reason_for_appointment: e.target.value })}
+                                        className={inputClass}
+                                    >
+                                        <option value="">- Please Select -</option>
+                                        {REASON_FOR_APPOINTMENT_OPTIONS.map(opt => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1">Appointment Type</label>
+                                    <select
+                                        value={formData.appointment_type_id}
+                                        onChange={(e) => setFormData({ ...formData, appointment_type_id: e.target.value })}
+                                        className={inputClass}
+                                    >
+                                        <option value="">Select Type</option>
+                                        {(appointmentTypes || []).map(type => (
+                                            <option key={type.id} value={type.id}>{type.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-gray-900 mb-1">
+                                    Description <span className="font-normal text-gray-400">— about 3000 characters</span>
+                                </label>
+                                <textarea
+                                    rows={4}
+                                    maxLength={3000}
+                                    value={formData.description || ''}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    className={inputClass}
+                                    placeholder="Additional details..."
+                                />
+                            </div>
+                        </div>
+
+                        {/* Confidential Note */}
+                        <div className="border-t pt-6">
+                            <h3 className={sectionTitleClass}>Confidential Note</h3>
                             <textarea
-                                rows={3}
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
-                                placeholder="Additional details..."
+                                rows={5}
+                                maxLength={30000}
+                                value={formData.confidential_note || ''}
+                                onChange={(e) => setFormData({ ...formData, confidential_note: e.target.value })}
+                                className={inputClass}
                             />
                         </div>
+
+                        {/* External Attachments */}
+                        <div className="border-t pt-6">
+                            <h3 className={sectionTitleClass}>External Attachment(s)</h3>
+                            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 mb-3">
+                                <p className="text-xs text-amber-800">The total size of all attachments cannot exceed 10 MB</p>
+                            </div>
+                            {errors.attachments && <p className="text-xs text-red-600 mb-2">{errors.attachments}</p>}
+                            {attachments.length > 0 && (
+                                <ul className="mb-3 space-y-1.5">
+                                    {attachments.map((file, index) => (
+                                        <li key={`${file.name}-${index}`} className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 text-sm">
+                                            <span className="truncate text-gray-700">{file.name}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeAttachment(index)}
+                                                className="ml-2 text-gray-400 hover:text-red-600"
+                                                aria-label="Remove attachment"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                            <label className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-50">
+                                Add File
+                                <input
+                                    type="file"
+                                    multiple
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        handleAddFiles(e.target.files);
+                                        e.target.value = '';
+                                    }}
+                                />
+                            </label>
+                        </div>
+
+                        {/* Comments */}
+                        <div className="border-t pt-6">
+                            <h3 className={sectionTitleClass}>Comments</h3>
+                            <textarea
+                                rows={3}
+                                value={formData.notes || ''}
+                                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                className={inputClass}
+                            />
+                        </div>
+
                         {mutation?.isError && (
                             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                                 <p className="text-sm text-red-800">
@@ -1590,7 +2052,7 @@ function AddAppointmentModal({ branches, residents, formData, setFormData, onClo
                             disabled={isSubmitting || !formData.resident_id || !formData.appointment_date}
                             className="px-4 py-2 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {isSubmitting ? 'Creating...' : 'Create Appointment'}
+                            {isSubmitting ? 'Submitting...' : 'Submit'}
                         </button>
                     </div>
                 </form>

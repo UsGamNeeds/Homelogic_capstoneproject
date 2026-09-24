@@ -19,7 +19,7 @@ import logger from '../utils/logger';
 import { useToastContext } from '../contexts/ToastContext';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Tooltip from '../components/ui/Tooltip';
-import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
+import { readResidentIdParam } from '../utils/headerResidentSwitcher';
 
 ChartJS.register(
     CategoryScale,
@@ -180,8 +180,7 @@ export default function ViewVitals() {
 
     useEffect(() => {
         const b = searchParams.get('branch') || '';
-        const rid =
-            searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) || searchParams.get('resident_id') || '';
+        const rid = readResidentIdParam(searchParams);
         if (b) setBranchId(b);
         if (rid) setResidentId(rid);
     }, [searchParams]);

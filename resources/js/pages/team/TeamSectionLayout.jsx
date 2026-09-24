@@ -16,15 +16,15 @@ import { currentUserQueryOptions } from '../../queries/currentUser';
 
 const BASE_TABS = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard, path: '/team', exact: true },
-    { id: 'users', label: 'Staff', icon: Contact, path: '/team/users' },
+    { id: 'users', label: 'Staff directory', icon: Contact, path: '/team/users' },
     { id: 'audit', label: 'Audit Log', icon: History, path: '/team/activity-logs' },
     { id: 'roles', label: 'Roles & Perms', icon: ShieldCheck, path: '/team/roles', extraPaths: ['/team/facility-permissions'] },
-    { id: 'leave', label: 'Leave Requests', icon: Clock, path: '/team/leave-requests' },
+    { id: 'leave', label: 'Leave Requests', icon: Clock, path: '/leave-requests' },
     { id: 'employee-docs', label: 'Employee Documents', icon: FileStack, path: '/team/employee-documents' },
     { id: 'archive', label: 'Archive', icon: UserMinus, path: '/team/deactivated' },
 ];
 
-const BILLING_TAB = { id: 'billing', label: 'Billing', icon: CreditCard, path: '/team/billing' };
+const BILLING_TAB = { id: 'billing', label: 'Subscription', icon: CreditCard, path: '/team/billing' };
 
 function canAccessSaasBilling(user) {
     if (!user) {

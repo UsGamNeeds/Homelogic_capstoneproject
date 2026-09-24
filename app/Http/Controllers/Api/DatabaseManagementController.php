@@ -283,6 +283,13 @@ class DatabaseManagementController extends Controller
 
         $wantsFullDatabase = filter_var($request->query('full_database', false), FILTER_VALIDATE_BOOLEAN);
 
+        // Large encrypted backups are read + decrypted fully in memory before the
+        // file streams, which can exceed default time/memory limits on big tenants
+        // and surface as an Nginx 504. Lift the caps for this super-admin-only
+        // route (mirrors restoreBackup). Real fix: decrypt in a queued job.
+        @set_time_limit(0);
+        @ini_set('memory_limit', '512M');
+
         try {
             if ($wantsFullDatabase && config('backup.enable_full_database_mysqldump', false)) {
                 if (! str_starts_with($filename, 'backup_')) {

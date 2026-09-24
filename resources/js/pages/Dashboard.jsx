@@ -638,7 +638,7 @@ export default function Dashboard() {
                 title: 'Pending Approvals',
                 description: `${stats.pending_leave_requests} leave request${stats.pending_leave_requests > 1 ? 's' : ''} awaiting your approval`,
                 priority: 'info',
-                link: '/team/leave-requests',
+                link: '/leave-requests',
                 metadata: { count: stats.pending_leave_requests },
             });
         }

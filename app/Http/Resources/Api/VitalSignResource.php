@@ -17,6 +17,8 @@ class VitalSignResource extends JsonResource
             'temperature' => $this->temperature,
             'pulse' => $this->pulse,
             'oxygen_saturation' => $this->oxygen_saturation,
+            'blood_glucose' => $this->blood_glucose,
+            'weight' => $this->weight,
             'status' => $this->status,
             'resident' => new ResidentResource($this->whenLoaded('resident')),
             'created_at' => $this->created_at?->toISOString(),

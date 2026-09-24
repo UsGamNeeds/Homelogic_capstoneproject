@@ -986,6 +986,7 @@ class DashboardService
                             'resident_name' => $residentName,
                             'medication_name' => $medication->drug?->name ?? $medication->name,
                             'medication_dosage' => $medication->instructions ?? '',
+                            'due_at' => $timeToday->toISOString(),
                             'due_time' => self::formatTimeSlot($time),
                             'room' => $medication->resident->room_number ?? $medication->resident->room ?? 'N/A',
                         ];
@@ -1890,41 +1891,41 @@ class DashboardService
             $medicationsQuery->limit(20) // Get more to filter
                 ->get()
                 ->each(function ($medication) use (&$schedule) {
-                    $upcomingTimes = [];
-                    $allTimes = [];
-
                     // Get all scheduled times for this medication
+                    $allTimeStrs = [];
                     for ($i = 1; $i <= 4; $i++) {
                         if ($medication->{"time_{$i}"}) {
-                            $timeStr = $medication->{"time_{$i}"};
-                            $timeToday = Carbon::today()->setTimeFromTimeString($timeStr);
-                            $allTimes[] = [
-                                'time' => Carbon::parse($timeStr)->format('g:i A'),
-                                'time24h' => Carbon::parse($timeStr)->format('H:i'),
-                                'timeObj' => $timeToday,
-                            ];
-
-                            // Check if medication has been administered at this time today
-                            $alreadyAdministered = false;
-                            if (Schema::hasTable('medication_administrations')) {
-                                $alreadyAdministered = MedicationAdministration::where('medication_id', $medication->id)
-                                    ->whereDate('administered_at', today())
-                                    ->whereTime('administered_at', $timeStr)
-                                    ->where('status', 'completed')
-                                    ->exists();
-                            }
-
-                            // Include if not yet administered (regardless of whether time has passed)
-                            // This shows medications that still need to be given today
-                            if (! $alreadyAdministered) {
-                                $upcomingTimes[] = [
-                                    'time' => Carbon::parse($timeStr)->format('g:i A'),
-                                    'time24h' => Carbon::parse($timeStr)->format('H:i'),
-                                    'timeObj' => $timeToday,
-                                ];
-                            }
+                            $allTimeStrs[] = $medication->{"time_{$i}"};
                         }
                     }
+
+                    if (empty($allTimeStrs)) {
+                        return;
+                    }
+
+                    // There's no explicit slot reference on an administration record, so —
+                    // same convention as DashboardService::getMedicationReminders() and the
+                    // mobile app's buildTodayDoseSlots() — pair the Nth scheduled time with
+                    // the Nth completed administration today. Matching on exact administered_at
+                    // clock time doesn't work: that's the real time a caregiver gave the dose
+                    // (e.g. 8:03 AM), essentially never equal to the scheduled slot (8:00:00 AM).
+                    $administeredCountToday = 0;
+                    if (Schema::hasTable('medication_administrations')) {
+                        $administeredCountToday = MedicationAdministration::where('medication_id', $medication->id)
+                            ->whereDate('administered_at', today())
+                            ->where('status', 'completed')
+                            ->count();
+                    }
+
+                    $upcomingTimeStrs = array_slice($allTimeStrs, $administeredCountToday);
+
+                    $upcomingTimes = array_map(function ($timeStr) {
+                        return [
+                            'time' => Carbon::parse($timeStr)->format('g:i A'),
+                            'time24h' => Carbon::parse($timeStr)->format('H:i'),
+                            'timeObj' => Carbon::today()->setTimeFromTimeString($timeStr),
+                        ];
+                    }, $upcomingTimeStrs);
 
                     // Only add if there are upcoming times (not yet administered)
                     if (count($upcomingTimes) > 0) {

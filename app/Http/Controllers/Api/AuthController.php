@@ -627,14 +627,18 @@ class AuthController extends Controller
             $facility = $user->facility ?? ($user->assignedBranch ? $user->assignedBranch->facility : null);
         }
 
-        // Get enabled modules for this facility (use already loaded if available)
+        // Get enabled modules for this facility. Must use hasModuleAccess() (not a raw
+        // "is_enabled = true" query) so a module with no facility_modules row at all is
+        // treated as enabled — same backward-compat default used everywhere else (e.g.
+        // the `enabled_modules` list built above). A raw query here would silently strip
+        // every module-gated permission for any facility that's never touched its module
+        // config, which is the common case.
         $enabledModules = [];
         if ($facility) {
-            if ($facility->relationLoaded('modules')) {
-                $enabledModules = $facility->modules->where('is_enabled', true)->pluck('module')->toArray();
-            } else {
-                $enabledModules = $facility->modules()->where('is_enabled', true)->pluck('module')->toArray();
-            }
+            $enabledModules = array_values(array_filter(
+                array_keys(\App\Constants\Modules::all()),
+                fn ($key) => $facility->hasModuleAccess($key)
+            ));
         }
 
         // Get ALL facility overrides at once to avoid N+1 queries
