@@ -12,6 +12,17 @@ class MedicationService
      *
      * @param  string|Carbon|null  $date
      */
+    /**
+     * How far from its scheduled time a dose may be given and still count
+     * against that slot.
+     *
+     * Callers that pre-load administrations for this method must cover the
+     * reported day widened by this much on each edge, or a dose that should
+     * have bound to a slot will be missing and read as not given.
+     * MedicationDashboardController::getActiveMedications does exactly that.
+     */
+    public const SLOT_MATCH_MINUTES = 60;
+
     public function getMedicationsWithStatus(Collection $medications, $date = null): Collection
     {
         $timezone = config('app.timezone', 'UTC');
@@ -42,7 +53,7 @@ class MedicationService
                         $hasAdmin = $med->administrations->contains(function ($admin) use ($scheduledTime, $timezone) {
                             $adminAt = Carbon::parse($admin->administered_at)->setTimezone($timezone);
 
-                            return abs($adminAt->diffInMinutes($scheduledTime)) <= 60 &&
+                            return abs($adminAt->diffInMinutes($scheduledTime)) <= self::SLOT_MATCH_MINUTES &&
                                    in_array($admin->status, ['completed', 'refused', 'hospital_admission', 'pharmacy_administration_confirm']);
                         });
 
