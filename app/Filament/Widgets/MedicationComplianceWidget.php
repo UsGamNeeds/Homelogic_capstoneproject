@@ -2,14 +2,16 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Concerns\ResolvesViewerScope;
 use App\Models\MedicationAdministration;
 use Carbon\Carbon;
 use Filament\Widgets\Widget;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Auth;
 
 class MedicationComplianceWidget extends Widget
 {
+    use ResolvesViewerScope;
+
     protected static string $view = 'filament.widgets.medication-compliance-widget';
 
     protected int|string|array $columnSpan = 'full';
@@ -48,43 +50,25 @@ class MedicationComplianceWidget extends Widget
      * it. Every other caller in the codebase arrives at this table through
      * medication ids that were already branch-filtered; this widget queries it
      * directly, so it has to carry the boundary itself.
-     *
-     * The rules below mirror App\Models\Scopes\FacilityScope deliberately, so
-     * a number here means the same thing as a number anywhere else.
      */
     private function administrations(): Builder
     {
         $query = MedicationAdministration::query();
-        $user = Auth::user();
 
-        if ($user && $user->role === 'super_admin') {
+        if ($this->viewerIsSuperAdmin()) {
             return $query;
         }
 
-        try {
-            $facility = app()->bound('facility') ? app('facility') : null;
-        } catch (\Exception $e) {
-            $facility = null;
-        }
-
-        $facilityId = $facility?->id ?? ($user?->facility_id ?: null);
+        $branchIds = $this->viewerBranchIds();
 
         // No facility means no rows. FacilityScope returns unscoped here, which
         // is safe for models it is attached to because they are reached through
         // a scoped parent. This widget counts the table directly, so the same
         // choice would show one home every other home's month.
-        if (! $facilityId) {
+        if ($branchIds === []) {
             return $query->whereRaw('1 = 0');
         }
 
-        $query->whereHas('branch', fn ($q) => $q->where('facility_id', $facilityId));
-
-        // 'administrator' covers every branch in the facility; 'admin' is the
-        // branch-level role and sees only their own.
-        if ($user && $user->role === 'admin' && $user->assigned_branch_id) {
-            $query->where('branch_id', $user->assigned_branch_id);
-        }
-
-        return $query;
+        return $query->whereIn('branch_id', $branchIds);
     }
 }
