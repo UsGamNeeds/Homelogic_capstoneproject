@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\ExpoPushToken;
 use App\Models\Notification;
 use App\Models\User;
+use App\Services\PushNotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Routing\Middleware\ThrottleRequests;
@@ -98,8 +99,50 @@ class ExpoPushTokenTest extends TestCase
             return $request->url() === 'https://exp.host/--/api/v2/push/send'
                 && $message['to'] === self::TOKEN
                 && $message['title'] === 'Incident reported'
+                && $message['body'] === PushNotificationService::EXPO_GENERIC_BODY
                 && $message['data']['notificationId'] === $notification->id;
         });
+        $this->assertDatabaseHas('user_expo_push_tokens', ['token' => self::TOKEN]);
+    }
+
+    public function test_the_resident_details_stay_off_the_phone_by_default(): void
+    {
+        Http::fake(['exp.host/*' => Http::response(['data' => [['status' => 'ok']]])]);
+
+        $user = $this->createAndActAs('caregiver');
+        ExpoPushToken::create(['user_id' => $user->id, 'token' => self::TOKEN]);
+
+        $this->notify($user);
+
+        Http::assertSent(fn (Request $request) => !str_contains(json_encode($request->data()), 'A fall was reported.'));
+    }
+
+    public function test_details_can_be_switched_on(): void
+    {
+        config(['services.expo_push.show_details' => true]);
+        Http::fake(['exp.host/*' => Http::response(['data' => [['status' => 'ok']]])]);
+
+        $user = $this->createAndActAs('caregiver');
+        ExpoPushToken::create(['user_id' => $user->id, 'token' => self::TOKEN]);
+
+        $this->notify($user);
+
+        Http::assertSent(fn (Request $request) => ($request->data()[0]['body'] ?? null) === 'A fall was reported.');
+    }
+
+    public function test_the_off_switch_stops_phone_alerts(): void
+    {
+        config(['services.expo_push.enabled' => false]);
+        Http::fake();
+
+        $user = $this->createAndActAs('caregiver');
+        ExpoPushToken::create(['user_id' => $user->id, 'token' => self::TOKEN]);
+
+        $notification = $this->notify($user);
+
+        Http::assertNothingSent();
+        // The in-app notification and the device registration are untouched.
+        $this->assertDatabaseHas('notifications', ['id' => $notification->id]);
         $this->assertDatabaseHas('user_expo_push_tokens', ['token' => self::TOKEN]);
     }
 

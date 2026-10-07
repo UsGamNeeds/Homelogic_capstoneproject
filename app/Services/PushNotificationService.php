@@ -12,6 +12,13 @@ use Minishlink\WebPush\Subscription as WebPushSubscription;
 
 class PushNotificationService
 {
+    /**
+     * What a phone shows in place of the notification's message unless
+     * EXPO_PUSH_SHOW_DETAILS is on. Notification titles are generic ("New
+     * Incident Reported"); the messages name residents.
+     */
+    public const EXPO_GENERIC_BODY = 'Open HomeLogic360 to view details.';
+
     protected ?WebPush $webPush = null;
 
     public function __construct()
@@ -95,6 +102,14 @@ class PushNotificationService
      */
     protected function sendToExpo(User $user, string $title, string $body, array $data): void
     {
+        if (!config('services.expo_push.enabled')) {
+            return;
+        }
+
+        if (!config('services.expo_push.show_details')) {
+            $body = self::EXPO_GENERIC_BODY;
+        }
+
         $tokens = ExpoPushToken::where('user_id', $user->id)->get();
         if ($tokens->isEmpty()) {
             return;
