@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\ExpoPushToken;
 use App\Models\PushSubscription;
 use App\Models\User;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Minishlink\WebPush\WebPush;
 use Minishlink\WebPush\Subscription as WebPushSubscription;
@@ -34,6 +36,10 @@ class PushNotificationService
      */
     public function sendToUser(User $user, string $title, string $body, array $data = []): void
     {
+        // The mobile app goes through Expo, which needs no VAPID keys, so it is
+        // sent before the web-push early returns below.
+        $this->sendToExpo($user, $title, $body, $data);
+
         if (!$this->webPush) {
             Log::debug('[PushNotification] VAPID not configured, skipping push');
             return;
@@ -78,6 +84,59 @@ class PushNotificationService
                 'url' => $actionUrl,
             ],
         ]);
+    }
+
+    /**
+     * Send to the user's mobile devices through Expo's push service.
+     *
+     * Expo answers with one ticket per message, in order. A ticket reporting
+     * DeviceNotRegistered means the app was uninstalled or the token rotated,
+     * so that token is removed, like a 404/410 web-push subscription.
+     */
+    protected function sendToExpo(User $user, string $title, string $body, array $data): void
+    {
+        $tokens = ExpoPushToken::where('user_id', $user->id)->get();
+        if ($tokens->isEmpty()) {
+            return;
+        }
+
+        $messages = $tokens->map(fn (ExpoPushToken $token) => [
+            'to' => $token->token,
+            'title' => $title,
+            'body' => $body,
+            'sound' => 'default',
+            'channelId' => 'default',
+            'data' => array_merge($data['data'] ?? [], ['url' => $data['url'] ?? '/']),
+        ])->values();
+
+        try {
+            // Expo accepts at most 100 messages per request.
+            foreach ($messages->chunk(100) as $chunk) {
+                $chunk = $chunk->values();
+                $response = Http::timeout(5)
+                    ->acceptJson()
+                    ->post('https://exp.host/--/api/v2/push/send', $chunk->all());
+
+                if (!$response->successful()) {
+                    Log::warning("[PushNotification] Expo push failed for user {$user->id}: HTTP " . $response->status());
+                    continue;
+                }
+
+                foreach ($response->json('data', []) as $i => $ticket) {
+                    if (($ticket['status'] ?? null) !== 'error') {
+                        continue;
+                    }
+                    if (($ticket['details']['error'] ?? null) === 'DeviceNotRegistered') {
+                        ExpoPushToken::where('token', $chunk[$i]['to'] ?? null)->delete();
+                        Log::info("[PushNotification] Removed unregistered Expo token for user {$user->id}");
+                    } else {
+                        Log::warning("[PushNotification] Expo push error for user {$user->id}: " . ($ticket['message'] ?? 'unknown'));
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('[PushNotification] Expo send failed: ' . $e->getMessage(), ['user_id' => $user->id]);
+        }
     }
 
     /**

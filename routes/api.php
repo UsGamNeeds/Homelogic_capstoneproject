@@ -372,6 +372,10 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
     Route::post('/push-subscriptions', [\App\Http\Controllers\Api\PushSubscriptionController::class, 'store'])->middleware('auth:sanctum');
     Route::delete('/push-subscriptions', [\App\Http\Controllers\Api\PushSubscriptionController::class, 'destroy'])->middleware('auth:sanctum');
 
+    // Expo push tokens (native mobile app push notifications)
+    Route::post('/expo-push-tokens', [\App\Http\Controllers\Api\ExpoPushTokenController::class, 'store'])->middleware('auth:sanctum');
+    Route::delete('/expo-push-tokens', [\App\Http\Controllers\Api\ExpoPushTokenController::class, 'destroy'])->middleware('auth:sanctum');
+
     // Reminders
     Route::get('/reminders', [ReminderController::class, 'index'])->middleware('auth:sanctum');
     Route::get('/reminders/upcoming', [ReminderController::class, 'upcoming'])->middleware('auth:sanctum');
