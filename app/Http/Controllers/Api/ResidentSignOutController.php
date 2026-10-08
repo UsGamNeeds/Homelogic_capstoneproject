@@ -138,18 +138,7 @@ class ResidentSignOutController extends Controller
         $signOut->load(['resident', 'branch', 'createdBy']);
 
         // Get admins and facility admins
-        $users = User::where(function ($query) use ($signOut) {
-            $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
-
-            // Filter by facility if applicable
-            if ($signOut->facility_id) {
-                $query->where(function ($q) use ($signOut) {
-                    $q->where('facility_id', $signOut->facility_id)
-                        ->orWhereNull('facility_id'); // Super admins
-                });
-            }
-        })
-            ->where('is_active', true)
+        $users = User::facilityRecipients($signOut->facility_id)
             ->get();
 
         $residentName = $signOut->resident?->name ?? 'Unknown Resident';
@@ -194,18 +183,7 @@ class ResidentSignOutController extends Controller
         $signOut->load(['resident', 'branch', 'createdBy', 'signedInBy']);
 
         // Get admins and facility admins
-        $users = User::where(function ($query) use ($signOut) {
-            $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
-
-            // Filter by facility if applicable
-            if ($signOut->facility_id) {
-                $query->where(function ($q) use ($signOut) {
-                    $q->where('facility_id', $signOut->facility_id)
-                        ->orWhereNull('facility_id'); // Super admins
-                });
-            }
-        })
-            ->where('is_active', true)
+        $users = User::facilityRecipients($signOut->facility_id)
             ->get();
 
         $residentName = $signOut->resident?->name ?? 'Unknown Resident';

@@ -22,8 +22,7 @@ class ResidentObserver
         $resident->load(['branch']);
 
         // Notify all admins/managers when a new resident is added
-        $admins = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-            ->where('is_active', true)
+        $admins = User::facilityRecipients($resident->branch?->facility_id)
             ->get();
 
         foreach ($admins as $admin) {
@@ -36,7 +35,7 @@ class ResidentObserver
 
             Notification::create([
                 'user_id' => $admin->id,
-                'facility_id' => $resident->facility_id ?? null,
+                'facility_id' => $facilityId,
                 'branch_id' => $resident->branch_id ?? $resident->assigned_branch_id ?? null,
                 'type' => 'resident_created',
                 'title' => 'New Resident Added',

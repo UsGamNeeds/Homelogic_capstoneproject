@@ -200,10 +200,7 @@ class VitalSignController extends BaseApiController
 
         // Notify admins
         try {
-            $admins = \App\Models\User::where(function ($query) {
-                $query->whereIn('role', ['admin', 'administrator', 'super_admin']);
-            })
-                ->orWhereHas('roles', fn ($q) => $q->whereIn('name', ['admin', 'administrator', 'super_admin']))
+            $admins = \App\Models\User::facilityRecipients($vital->resident?->branch?->facility_id, ['admin', 'administrator'])
                 ->get();
 
             app(\App\Services\NotificationService::class)->sendVitalSignEmail(

@@ -23,7 +23,7 @@ class GroceryStatusUpdateObserver
 
         // Notify admins/managers in the facility and the creator (if not already included).
         $recipients = User::where('facility_id', $facility->id)
-            ->whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
+            ->whereIn('role', ['administrator', 'admin', 'manager'])
             ->where('is_active', true)
             ->get();
 

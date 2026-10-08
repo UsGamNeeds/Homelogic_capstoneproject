@@ -32,8 +32,7 @@ class AppointmentObserver
             ->filter();
 
         if ($recipients->isEmpty()) {
-            $recipients = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                ->where('is_active', true)
+            $recipients = User::facilityRecipients($appointment->resident?->branch?->facility_id)
                 ->get();
         }
 
@@ -92,8 +91,7 @@ class AppointmentObserver
         
         // If no caregivers, notify all admins/managers
         if ($caregivers->isEmpty()) {
-            $caregivers = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                ->where('is_active', true)
+            $caregivers = User::facilityRecipients($appointment->resident?->branch?->facility_id)
                 ->get();
         }
 

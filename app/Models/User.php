@@ -540,6 +540,17 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * Active staff of one facility in the given roles, for notification recipients.
+     * Never includes super admins; a null facility matches nobody.
+     */
+    public function scopeFacilityRecipients($query, $facilityId, array $roles = ['administrator', 'admin', 'manager'])
+    {
+        return $query->where('facility_id', $facilityId ?: 0)
+            ->whereIn('role', array_values(array_diff($roles, ['super_admin'])))
+            ->where('is_active', true);
+    }
+
+    /**
      * Counts the clinical, payroll and audit rows that would be destroyed if
      * this user were hard-deleted. Returns only the tables that actually have
      * rows, so an empty array means the account is safe to delete.

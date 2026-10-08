@@ -180,9 +180,7 @@ class EmployeeDocumentController extends BaseApiController
             $facility = $targetUser?->facility ?? auth()->user()?->facility;
 
             if ($facility) {
-                $admins = \App\Models\User::where('facility_id', $facility->id)
-                    ->whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                    ->where('is_active', true)
+                $admins = \App\Models\User::facilityRecipients($facility->id)
                     ->get();
 
                 // Also notify the target user if they're not already in the list

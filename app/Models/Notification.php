@@ -8,9 +8,43 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Notification extends Model
 {
+    /**
+     * Platform-level types a super admin still receives even though they carry a facility_id.
+     */
+    public const PLATFORM_TYPES = ['facility_created'];
+
     protected static function booted(): void
     {
         static::addGlobalScope(new FacilityScope);
+
+        // Tenant guard: many triggers pick recipients with unscoped User queries,
+        // so drop any notification addressed to someone outside its facility.
+        // Returning false cancels the insert, so no broadcast or push is sent either.
+        static::creating(function (self $notification) {
+            if (! $notification->user_id) {
+                return;
+            }
+
+            $recipient = User::find($notification->user_id);
+            if (! $recipient) {
+                return false;
+            }
+
+            if ($notification->facility_id === null) {
+                $notification->facility_id = $recipient->facility_id;
+
+                return;
+            }
+
+            // Mirrors email policy: facility-originated alerts don't go to platform super admins.
+            if ($recipient->isSuperAdmin()) {
+                return in_array($notification->type, self::PLATFORM_TYPES, true) ? null : false;
+            }
+
+            if ((int) $recipient->facility_id !== (int) $notification->facility_id) {
+                return false;
+            }
+        });
     }
 
     protected $fillable = [
