@@ -961,18 +961,7 @@ class AuthController extends Controller
         $clockIn->load(['staff', 'branch', 'facility']);
 
         // Get admins and facility admins
-        $users = \App\Models\User::where(function ($query) use ($clockIn) {
-            $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
-
-            // Filter by facility if applicable
-            if ($clockIn->facility_id) {
-                $query->where(function ($q) use ($clockIn) {
-                    $q->where('facility_id', $clockIn->facility_id)
-                        ->orWhereNull('facility_id'); // Super admins
-                });
-            }
-        })
-            ->where('is_active', true)
+        $users = \App\Models\User::facilityRecipients($clockIn->facility_id)
             ->where('id', '!=', $clockIn->staff_id) // Don't notify the staff member themselves
             ->get();
 
@@ -1060,18 +1049,7 @@ class AuthController extends Controller
         $clockIn->load(['staff', 'branch', 'facility']);
 
         // Get admins and facility admins
-        $users = \App\Models\User::where(function ($query) use ($clockIn) {
-            $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
-
-            // Filter by facility if applicable
-            if ($clockIn->facility_id) {
-                $query->where(function ($q) use ($clockIn) {
-                    $q->where('facility_id', $clockIn->facility_id)
-                        ->orWhereNull('facility_id'); // Super admins
-                });
-            }
-        })
-            ->where('is_active', true)
+        $users = \App\Models\User::facilityRecipients($clockIn->facility_id)
             ->where('id', '!=', $clockIn->staff_id) // Don't notify the staff member themselves
             ->get();
 

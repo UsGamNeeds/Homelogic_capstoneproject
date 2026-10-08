@@ -18,8 +18,7 @@ class UserObserver
     {
         // Notify all admins/managers when a new user is added
         // Only notify if there are other admins (avoid notifying when creating first admin)
-        $admins = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-            ->where('is_active', true)
+        $admins = User::facilityRecipients($user->facility_id)
             ->where('id', '!=', $user->id) // Don't notify the user themselves
             ->get();
 

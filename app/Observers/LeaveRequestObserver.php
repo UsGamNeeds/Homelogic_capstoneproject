@@ -19,8 +19,7 @@ class LeaveRequestObserver
         $leaveRequest->load(['staff']);
 
         // Notify all admins/managers when a leave request is created
-        $admins = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-            ->where('is_active', true)
+        $admins = User::facilityRecipients($leaveRequest->staff?->facility_id)
             ->get();
 
         foreach ($admins as $admin) {
@@ -31,7 +30,7 @@ class LeaveRequestObserver
             
             Notification::create([
                 'user_id' => $admin->id,
-                'facility_id' => $leaveRequest->facility_id ?? null,
+                'facility_id' => $leaveRequest->staff?->facility_id,
                 'branch_id' => $leaveRequest->branch_id ?? $leaveRequest->assigned_branch_id ?? null,
                 'type' => 'leave_request',
                 'title' => 'New Leave Request',
@@ -79,7 +78,7 @@ class LeaveRequestObserver
                     
                     Notification::create([
                         'user_id' => $staff->id,
-                        'facility_id' => $leaveRequest->facility_id ?? null,
+                        'facility_id' => $leaveRequest->staff?->facility_id,
                         'branch_id' => $leaveRequest->branch_id ?? $leaveRequest->assigned_branch_id ?? null,
                         'type' => $currentStatus === 'approved' ? 'leave_approved' : 'leave_rejected',
                         'title' => $title,

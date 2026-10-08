@@ -23,7 +23,7 @@ class PharmacyOrderObserver
         }
 
         $admins = User::where('facility_id', $facility->id)
-            ->whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
+            ->whereIn('role', ['administrator', 'admin', 'manager'])
             ->where('is_active', true)
             ->get();
 
@@ -79,7 +79,7 @@ class PharmacyOrderObserver
         }
 
         $admins = User::where('facility_id', $facility->id)
-            ->whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
+            ->whereIn('role', ['administrator', 'admin', 'manager'])
             ->where('is_active', true)
             ->get();
 

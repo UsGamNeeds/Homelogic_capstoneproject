@@ -21,8 +21,7 @@ class IncidentObserver
             $incident->load(['resident', 'reportedBy', 'assignedTo']);
 
             // Always notify all admins/managers for incidents (critical events)
-            $admins = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                ->where('is_active', true)
+            $admins = User::facilityRecipients($incident->resident?->branch?->facility_id)
                 ->get();
 
             $residentName = $incident->resident
@@ -143,8 +142,7 @@ class IncidentObserver
 
             // Notify relevant users when status changes to resolved
             if ($newStatus === Incident::STATUS_RESOLVED) {
-                $notifyUsers = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                    ->where('is_active', true)
+                $notifyUsers = User::facilityRecipients($incident->resident?->branch?->facility_id)
                     ->get();
 
                 if ($incident->resolved_by && $incident->resolvedBy) {
@@ -174,43 +172,7 @@ class IncidentObserver
 
             // Notify when status changes to closed
             if ($newStatus === Incident::STATUS_CLOSED) {
-                $notifyUsers = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                    ->where('is_active', true)
-                    ->get();
-
-                if ($incident->reported_by && $incident->reportedBy) {
-                    $notifyUsers->push($incident->reportedBy);
-                }
-
-                foreach ($notifyUsers as $user) {
-                    Notification::create([
-                        'user_id' => $user->id,
-                        'facility_id' => $incident->resident?->branch?->facility_id ?? null,
-                        'branch_id' => $incident->branch_id ?? $incident->resident?->branch_id ?? null,
-                        'type' => 'incident_closed',
-                        'title' => 'Incident Closed',
-                        'message' => "Incident #{$incidentNumber}: {$incident->incident_type} involving {$residentName} has been closed",
-                        'icon' => 'lock-closed',
-                        'icon_color' => 'text-gray-600',
-                        'action_url' => '/incidents/'.$incident->id,
-                        'metadata' => [
-                            'incident_id' => $incident->id,
-                            'incident_number' => $incidentNumber,
-                            'resident_id' => $incident->resident_id,
-                            'status' => $newStatus,
-                        ],
-                    ]);
-                }
-
-                // Send email notifications
-                $notificationService = app(NotificationService::class);
-                $notificationService->sendIncidentEmail($incident, $notifyUsers, 'resolved');
-            }
-
-            // Notify when status changes to closed
-            if ($newStatus === Incident::STATUS_CLOSED) {
-                $notifyUsers = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                    ->where('is_active', true)
+                $notifyUsers = User::facilityRecipients($incident->resident?->branch?->facility_id)
                     ->get();
 
                 if ($incident->reported_by && $incident->reportedBy) {
@@ -283,8 +245,7 @@ class IncidentObserver
             $currentSeverity = $changes['severity'] ?? $incident->severity;
 
             if ($currentPriority === Incident::PRIORITY_CRITICAL || $currentSeverity === Incident::SEVERITY_CRITICAL) {
-                $admins = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                    ->where('is_active', true)
+                $admins = User::facilityRecipients($incident->resident?->branch?->facility_id)
                     ->get();
 
                 foreach ($admins as $admin) {
