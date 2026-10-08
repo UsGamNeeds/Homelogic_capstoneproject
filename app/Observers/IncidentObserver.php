@@ -21,8 +21,7 @@ class IncidentObserver
             $incident->load(['resident', 'reportedBy', 'assignedTo']);
 
             // Always notify all admins/managers for incidents (critical events)
-            $admins = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                ->where('is_active', true)
+            $admins = User::facilityRecipients($incident->resident?->branch?->facility_id)
                 ->get();
 
             $residentName = $incident->resident
@@ -143,8 +142,7 @@ class IncidentObserver
 
             // Notify relevant users when status changes to resolved
             if ($newStatus === Incident::STATUS_RESOLVED) {
-                $notifyUsers = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                    ->where('is_active', true)
+                $notifyUsers = User::facilityRecipients($incident->resident?->branch?->facility_id)
                     ->get();
 
                 if ($incident->resolved_by && $incident->resolvedBy) {
@@ -174,8 +172,7 @@ class IncidentObserver
 
             // Notify when status changes to closed
             if ($newStatus === Incident::STATUS_CLOSED) {
-                $notifyUsers = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                    ->where('is_active', true)
+                $notifyUsers = User::facilityRecipients($incident->resident?->branch?->facility_id)
                     ->get();
 
                 if ($incident->reported_by && $incident->reportedBy) {
@@ -248,8 +245,7 @@ class IncidentObserver
             $currentSeverity = $changes['severity'] ?? $incident->severity;
 
             if ($currentPriority === Incident::PRIORITY_CRITICAL || $currentSeverity === Incident::SEVERITY_CRITICAL) {
-                $admins = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                    ->where('is_active', true)
+                $admins = User::facilityRecipients($incident->resident?->branch?->facility_id)
                     ->get();
 
                 foreach ($admins as $admin) {

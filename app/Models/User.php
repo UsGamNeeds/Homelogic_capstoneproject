@@ -482,6 +482,17 @@ class User extends Authenticatable implements FilamentUser
         return $query->where('assigned_branch_id', $branchId);
     }
 
+    /**
+     * Active staff of one facility in the given roles, for notification recipients.
+     * Never includes super admins; a null facility matches nobody.
+     */
+    public function scopeFacilityRecipients($query, $facilityId, array $roles = ['administrator', 'admin', 'manager'])
+    {
+        return $query->where('facility_id', $facilityId ?: 0)
+            ->whereIn('role', array_values(array_diff($roles, ['super_admin'])))
+            ->where('is_active', true);
+    }
+
     // Boot method to automatically set name field
     protected static function boot()
     {

@@ -21,8 +21,7 @@ class BranchObserver
         $branch->load(['facility']);
 
         // Notify all admins/managers when a new branch is added
-        $admins = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-            ->where('is_active', true)
+        $admins = User::facilityRecipients($branch->facility_id)
             ->get();
 
         foreach ($admins as $admin) {

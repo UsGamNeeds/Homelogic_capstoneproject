@@ -26,8 +26,7 @@ class SleepRecordObserver
         
         // If no caregivers, notify all admins/managers
         if ($caregivers->isEmpty()) {
-            $caregivers = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                ->where('is_active', true)
+            $caregivers = User::facilityRecipients($sleepRecord->resident?->branch?->facility_id)
                 ->get();
         }
 

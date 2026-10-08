@@ -96,8 +96,7 @@ class GenerateNotifications extends Command
             
             // If no caregivers, notify all admins/managers
             if ($caregivers->isEmpty()) {
-                $caregivers = User::whereIn('role', ['administrator', 'admin', 'manager'])
-                    ->where('is_active', true)
+                $caregivers = User::facilityRecipients($appointment->resident?->branch?->facility_id)
                     ->get();
             }
 
@@ -180,8 +179,7 @@ class GenerateNotifications extends Command
             
             // If no caregivers, notify all admins/managers
             if ($caregivers->isEmpty()) {
-                $caregivers = User::whereIn('role', ['administrator', 'admin', 'manager'])
-                    ->where('is_active', true)
+                $caregivers = User::facilityRecipients($medication->resident?->branch?->facility_id)
                     ->get();
             }
 
@@ -309,12 +307,14 @@ class GenerateNotifications extends Command
 
         foreach ($allDrills as $drill) {
             // Get all staff in the branch and admins
-            $users = User::where(function($query) use ($drill) {
-                $query->where('assigned_branch_id', $drill->branch_id)
-                    ->orWhereIn('role', ['administrator', 'admin', 'manager', 'super_admin']);
-            })
-            ->where('is_active', true)
-            ->get();
+            $users = User::where('facility_id', $drill->branch?->facility_id ?: 0)
+                ->where('role', '!=', 'super_admin')
+                ->where(function ($query) use ($drill) {
+                    $query->where('assigned_branch_id', $drill->branch_id)
+                        ->orWhereIn('role', ['administrator', 'admin', 'manager']);
+                })
+                ->where('is_active', true)
+                ->get();
 
             $drillDate = Carbon::parse($drill->scheduled_date)->format('M d, Y');
             $drillTime = $drill->scheduled_time ? Carbon::parse($drill->scheduled_time)->format('g:i A') : 'TBD';
@@ -420,8 +420,7 @@ class GenerateNotifications extends Command
                                     ->filter();
                                 
                                 if ($caregivers->isEmpty()) {
-                                    $caregivers = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                                        ->where('is_active', true)
+                                    $caregivers = User::facilityRecipients($medication->resident?->branch?->facility_id)
                                         ->get();
                                 }
 
@@ -499,8 +498,7 @@ class GenerateNotifications extends Command
                         ->filter();
                     
                     if ($caregivers->isEmpty()) {
-                        $caregivers = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                            ->where('is_active', true)
+                        $caregivers = User::facilityRecipients($resident->branch?->facility_id)
                             ->get();
                     }
 

@@ -14,8 +14,8 @@ class FacilityObserver
      */
     public function created(Facility $facility): void
     {
-        // Notify all admins/managers when a new facility is added
-        $admins = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
+        // Platform event: only super admins are notified when a new facility is added
+        $admins = User::where('role', 'super_admin')
             ->where('is_active', true)
             ->get();
 

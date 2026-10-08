@@ -131,18 +131,7 @@ class VisitorController extends Controller
         $visitor->load(['branch', 'visitingResident', 'visitingStaff', 'checkedInBy']);
 
         // Get admins and facility admins
-        $users = User::where(function ($query) use ($visitor) {
-            $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
-
-            // Filter by facility if applicable
-            if ($visitor->facility_id) {
-                $query->where(function ($q) use ($visitor) {
-                    $q->where('facility_id', $visitor->facility_id)
-                        ->orWhereNull('facility_id'); // Super admins
-                });
-            }
-        })
-            ->where('is_active', true)
+        $users = User::facilityRecipients($visitor->facility_id)
             ->get();
 
         $visitorName = trim(($visitor->first_name ?? '').' '.($visitor->last_name ?? ''));
@@ -187,18 +176,7 @@ class VisitorController extends Controller
         $visitor->load(['branch', 'visitingResident', 'visitingStaff', 'checkedInBy', 'checkedOutBy']);
 
         // Get admins and facility admins
-        $users = User::where(function ($query) use ($visitor) {
-            $query->whereIn('role', ['super_admin', 'administrator', 'admin', 'manager']);
-
-            // Filter by facility if applicable
-            if ($visitor->facility_id) {
-                $query->where(function ($q) use ($visitor) {
-                    $q->where('facility_id', $visitor->facility_id)
-                        ->orWhereNull('facility_id'); // Super admins
-                });
-            }
-        })
-            ->where('is_active', true)
+        $users = User::facilityRecipients($visitor->facility_id)
             ->get();
 
         $visitorName = trim(($visitor->first_name ?? '').' '.($visitor->last_name ?? ''));

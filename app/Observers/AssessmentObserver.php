@@ -19,8 +19,7 @@ class AssessmentObserver
         $assessment->load(['resident', 'assessor']);
 
         // Get all admins/managers
-        $admins = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-            ->where('is_active', true)
+        $admins = User::facilityRecipients($assessment->resident?->branch?->facility_id)
             ->get();
 
         foreach ($admins as $admin) {
@@ -87,8 +86,7 @@ class AssessmentObserver
             $assessment->load(['resident', 'assessor']);
 
             // Get all admins/managers
-            $admins = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                ->where('is_active', true)
+            $admins = User::facilityRecipients($assessment->resident?->branch?->facility_id)
                 ->get();
 
             foreach ($admins as $admin) {
