@@ -272,20 +272,6 @@ class IncidentController extends BaseApiController
 
             \Log::info("Incident creation complete for ID {$incident->id}");
 
-            // Notify admins
-            try {
-                $admins = \App\Models\User::facilityRecipients($incident->resident?->branch?->facility_id, ['admin', 'administrator'])
-                    ->get();
-
-                app(\App\Services\NotificationService::class)->sendIncidentEmail(
-                    $incident,
-                    $admins,
-                    'created'
-                );
-            } catch (\Exception $e) {
-                \Log::error('Failed to trigger incident notification', ['error' => $e->getMessage()]);
-            }
-
             return response()->json($incident->load(['resident', 'branch', 'reportedBy', 'assignedTo', 'attachments']), 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([

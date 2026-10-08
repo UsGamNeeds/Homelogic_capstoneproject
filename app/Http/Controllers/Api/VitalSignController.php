@@ -198,20 +198,6 @@ class VitalSignController extends BaseApiController
 
         $vital = VitalSign::create($validated);
 
-        // Notify admins
-        try {
-            $admins = \App\Models\User::facilityRecipients($vital->resident?->branch?->facility_id, ['admin', 'administrator'])
-                ->get();
-
-            app(\App\Services\NotificationService::class)->sendVitalSignEmail(
-                $vital,
-                $admins,
-                $vital->status === 'critical'
-            );
-        } catch (\Exception $e) {
-            \Log::error('Failed to trigger vital sign notification', ['error' => $e->getMessage()]);
-        }
-
         return response()->json($vital->load(['resident', 'takenBy']), 201);
     }
 
