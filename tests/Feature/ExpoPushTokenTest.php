@@ -105,6 +105,30 @@ class ExpoPushTokenTest extends TestCase
         $this->assertDatabaseHas('user_expo_push_tokens', ['token' => self::TOKEN]);
     }
 
+    public function test_a_push_says_what_it_is_about_so_a_tap_opens_the_right_screen(): void
+    {
+        Http::fake(['exp.host/*' => Http::response(['data' => [['status' => 'ok']]])]);
+
+        $user = $this->createAndActAs('caregiver');
+        ExpoPushToken::create(['user_id' => $user->id, 'token' => self::TOKEN]);
+
+        Notification::create([
+            'user_id' => $user->id,
+            'facility_id' => $this->facility->id,
+            'type' => 'vital_recorded',
+            'title' => 'Vital Signs Recorded',
+            'message' => 'Vitals recorded.',
+            'action_url' => '/vitals',
+            'metadata' => ['resident_id' => 12],
+        ]);
+
+        Http::assertSent(function (Request $request) {
+            $data = $request->data()[0]['data'] ?? [];
+
+            return ($data['type'] ?? null) === 'vital_recorded' && ($data['residentId'] ?? null) === 12;
+        });
+    }
+
     public function test_the_resident_details_stay_off_the_phone_by_default(): void
     {
         Http::fake(['exp.host/*' => Http::response(['data' => [['status' => 'ok']]])]);
