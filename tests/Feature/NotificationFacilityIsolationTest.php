@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Mail\IncidentNotification;
 use App\Models\Branch;
 use App\Models\Facility;
 use App\Models\Incident;
@@ -184,5 +185,26 @@ class NotificationFacilityIsolationTest extends TestCase
         $this->assertDatabaseMissing('notifications', ['user_id' => $outsider->id]);
         $this->assertDatabaseMissing('notifications', ['user_id' => $superAdmin->id, 'type' => 'vital_recorded']);
         $this->assertDatabaseHas('notifications', ['user_id' => $superAdmin->id, 'type' => 'facility_created']);
+    }
+    public function test_submitting_an_incident_emails_each_admin_once(): void
+    {
+        Mail::fake();
+        $admin = $this->createAndActAs('administrator');
+        $resident = $this->createResident();
+
+        $this->postJson('/api/v1/incidents', [
+            'resident_id' => $resident->id,
+            'incident_type' => 'Fall',
+            'description' => 'Resident slipped in the hallway.',
+            'incident_date' => now()->toDateTimeString(),
+            'severity' => 'low',
+            'priority' => 'low',
+        ])->assertCreated();
+
+        $sent = collect(Mail::sent(IncidentNotification::class))
+            ->merge(Mail::queued(IncidentNotification::class))
+            ->filter(fn ($mail) => $mail->hasTo($admin->email));
+
+        $this->assertCount(1, $sent);
     }
 }

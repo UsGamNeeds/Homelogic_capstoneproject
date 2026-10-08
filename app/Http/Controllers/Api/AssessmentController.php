@@ -389,20 +389,6 @@ class AssessmentController extends BaseApiController
                 \Log::error('Failed to calculate assessment scores: '.$e->getMessage());
                 // Continue even if score calculation fails
             }
-
-            // Notify admins
-            try {
-                $admins = \App\Models\User::facilityRecipients($assessment->resident?->branch?->facility_id, ['admin', 'administrator'])
-                    ->get();
-
-                app(\App\Services\NotificationService::class)->sendAssessmentEmail(
-                    $assessment,
-                    $admins,
-                    'completed'
-                );
-            } catch (\Exception $e) {
-                \Log::error('Failed to trigger assessment notification', ['error' => $e->getMessage()]);
-            }
         }
         if ($status === 'reviewed' && ! $assessment->reviewed_at) {
             $assessment->reviewed_at = Carbon::now();
