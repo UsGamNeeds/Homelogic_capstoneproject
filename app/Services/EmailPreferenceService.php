@@ -28,6 +28,11 @@ class EmailPreferenceService
             return false;
         }
 
+        // Never email staff about another facility's events
+        if ($facility && (int) $user->facility_id !== (int) $facility->id) {
+            return false;
+        }
+
         // Get facility from user if not provided
         if (!$facility) {
             $facility = $user->facility;
