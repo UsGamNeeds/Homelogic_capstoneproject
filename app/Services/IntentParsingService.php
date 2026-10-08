@@ -59,6 +59,12 @@ class IntentParsingService
 
     private function classifyWithLlm(string $redactedText): string
     {
+        // Same master switch as ChartAssistantService: one flag disables ALL
+        // outbound AI traffic, not just the chart-analysis path.
+        if (! (bool) config('services.anthropic.enabled', false)) {
+            return 'unknown';
+        }
+
         $apiKey = config('services.anthropic.api_key');
         if (empty($apiKey)) {
             return 'unknown';

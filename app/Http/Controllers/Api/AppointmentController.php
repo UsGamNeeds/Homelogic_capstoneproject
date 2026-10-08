@@ -10,13 +10,46 @@ use Illuminate\Support\Facades\DB;
 
 class AppointmentController extends BaseApiController
 {
+    // Union of the original status set (still relied on by filtering/stats elsewhere
+    // in this controller) and the new set the extended appointment form exposes.
+    private const STATUS_VALUES = 'scheduled,completed,cancelled,confirmed,in_progress,no_show,rescheduled,'
+        .'not_scheduled,results_pending,missed,declined';
+
+    private const STATUS_RULE = 'nullable|in:'.self::STATUS_VALUES;
+
+    private const EXTENDED_FIELD_RULES = [
+        'reported_by' => 'nullable|exists:users,id',
+        'notification_level' => 'nullable|in:low,medium,high,urgent',
+        'end_time' => 'nullable|date_format:H:i',
+        'hospital_id' => 'nullable|exists:hospitals,id',
+        'other_provider' => 'nullable|string|max:255',
+        'specialty' => 'nullable|string|max:255',
+        'specialty_id' => 'nullable|exists:specialties,id',
+        'location_type' => 'nullable|in:home,hospital,office,telemedicine,other',
+        'address_street1' => 'nullable|string|max:255',
+        'address_street2' => 'nullable|string|max:255',
+        'address_city' => 'nullable|string|max:255',
+        'address_state' => 'nullable|string|max:100',
+        'address_zip' => 'nullable|string|max:20',
+        'address_country' => 'nullable|string|max:100',
+        'latitude' => 'nullable|numeric|between:-90,90',
+        'longitude' => 'nullable|numeric|between:-180,180',
+        'phone' => 'nullable|string|max:50',
+        'phone_extension' => 'nullable|string|max:20',
+        'driver' => 'nullable|string|max:255',
+        'pick_up_at' => 'nullable|string|max:255',
+        'depart_time' => 'nullable|date_format:H:i',
+        'reason_for_appointment' => 'nullable|in:routine_checkup,follow_up,specialist_consult,emergency,other',
+        'confidential_note' => 'nullable|string|max:30000',
+    ];
+
     public function index(Request $request): JsonResponse
     {
         if ($error = $this->requireModuleAccess(\App\Constants\Modules::APPOINTMENTS)) {
             return $error;
         }
 
-        $query = Appointment::with(['resident', 'healthcareProvider', 'appointmentType', 'documents']);
+        $query = Appointment::with(['resident', 'healthcareProvider', 'hospital', 'specialtyLookup', 'appointmentType', 'documents']);
         $user = $request->user();
 
         // Apply facility filtering for non-super admins
@@ -93,6 +126,45 @@ class AppointmentController extends BaseApiController
             $query->where('resident_id', $request->get('resident_id'));
         }
 
+        // Form ID — an exact appointment id lookup
+        if ($request->filled('id')) {
+            $query->where('id', $request->get('id'));
+        }
+
+        // Entered By — matches whoever reported OR created the appointment
+        if ($request->filled('entered_by')) {
+            $enteredBy = $request->get('entered_by');
+            $query->where(function ($q) use ($enteredBy) {
+                $q->where('reported_by', $enteredBy)->orWhere('created_by', $enteredBy);
+            });
+        }
+
+        if ($request->filled('specialty_id')) {
+            $query->where('specialty_id', $request->get('specialty_id'));
+        }
+
+        if ($request->filled('reason_for_appointment')) {
+            $query->where('reason_for_appointment', $request->get('reason_for_appointment'));
+        }
+
+        if ($request->filled('notification_level')) {
+            $query->where('notification_level', $request->get('notification_level'));
+        }
+
+        if ($request->filled('consultant_name')) {
+            $search = $request->get('consultant_name');
+            $query->whereHas('healthcareProvider', function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('hospital_name')) {
+            $search = $request->get('hospital_name');
+            $query->whereHas('hospital', function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%");
+            });
+        }
+
         // Order by appointment date (ascending) then by created_at (descending) so newest appointments for same date show first
         $appointments = $query->orderBy('appointment_date', 'asc')
             ->orderBy('created_at', 'desc')
@@ -110,10 +182,13 @@ class AppointmentController extends BaseApiController
         $appointment = Appointment::with([
             'resident',
             'healthcareProvider',
+            'hospital', 'specialtyLookup',
             'appointmentType',
             'branch',
             'createdBy',
+            'reportedByUser',
             'documents.uploadedBy',
+            'attachments.uploadedBy',
         ])
             ->findOrFail($id);
 
@@ -141,7 +216,7 @@ class AppointmentController extends BaseApiController
 
         $isCaregiver = $this->isCaregiver($user);
 
-        $validated = $request->validate([
+        $validated = $request->validate(array_merge([
             'title' => 'nullable|string|max:255',
             'resident_id' => 'required|exists:residents,id',
             'branch_id' => 'nullable|exists:branches,id',
@@ -152,11 +227,11 @@ class AppointmentController extends BaseApiController
             'provider_name' => 'nullable|string|max:255',
             'location' => 'nullable|string|max:255',
             'description' => 'nullable|string',
-            'status' => 'nullable|in:scheduled,completed,cancelled,confirmed,in_progress,no_show,rescheduled',
+            'status' => self::STATUS_RULE,
             'next_appointment_date' => 'nullable|date',
             'recurrence_pattern' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
-        ]);
+        ], self::EXTENDED_FIELD_RULES));
 
         // Default status
         if (! isset($validated['status'])) {
@@ -220,11 +295,18 @@ class AppointmentController extends BaseApiController
             $validated['title'] = "$base - {$residentName} on {$dateLabel}{$withTime}";
         }
 
+        foreach (['end_time', 'depart_time'] as $timeField) {
+            if (! empty($validated[$timeField]) && preg_match('/^\d{2}:\d{2}$/', $validated[$timeField])) {
+                $validated[$timeField] .= ':00';
+            }
+        }
+
         $validated['created_by'] = auth()->id();
+        $validated['reported_by'] = $validated['reported_by'] ?? auth()->id();
 
         $appointment = Appointment::create($validated);
 
-        return response()->json($appointment->load(['resident', 'healthcareProvider', 'appointmentType']), 201);
+        return response()->json($appointment->load(['resident', 'healthcareProvider', 'hospital', 'specialtyLookup', 'appointmentType', 'reportedByUser']), 201);
     }
 
     public function update(Request $request, $id): JsonResponse
@@ -247,7 +329,7 @@ class AppointmentController extends BaseApiController
             }
         }
 
-        $validated = $request->validate([
+        $validated = $request->validate(array_merge([
             'title' => 'sometimes|string|max:255',
             'resident_id' => 'sometimes|exists:residents,id',
             'branch_id' => 'nullable|exists:branches,id',
@@ -259,9 +341,15 @@ class AppointmentController extends BaseApiController
             'provider_name' => 'nullable|string|max:255',
             'location' => 'nullable|string|max:255',
             'description' => 'nullable|string',
-            'status' => 'nullable|in:scheduled,completed,cancelled,confirmed,in_progress,no_show,rescheduled',
+            'status' => self::STATUS_RULE,
             'notes' => 'nullable|string',
-        ]);
+        ], self::EXTENDED_FIELD_RULES));
+
+        foreach (['end_time', 'depart_time'] as $timeField) {
+            if (! empty($validated[$timeField]) && preg_match('/^\d{2}:\d{2}$/', $validated[$timeField])) {
+                $validated[$timeField] .= ':00';
+            }
+        }
 
         // Check if this is a reschedule (date or time is being changed)
         $isReschedule = false;
@@ -315,7 +403,7 @@ class AppointmentController extends BaseApiController
 
         $appointment->update($validated);
 
-        return response()->json($appointment->load(['resident', 'healthcareProvider', 'appointmentType', 'branch', 'createdBy']));
+        return response()->json($appointment->load(['resident', 'healthcareProvider', 'hospital', 'specialtyLookup', 'appointmentType', 'branch', 'createdBy', 'reportedByUser']));
     }
 
     public function updateStatus(Request $request, $id): JsonResponse
@@ -325,7 +413,7 @@ class AppointmentController extends BaseApiController
         }
 
         $request->validate([
-            'status' => 'required|in:scheduled,completed,cancelled,confirmed,in_progress,no_show,rescheduled',
+            'status' => 'required|in:'.self::STATUS_VALUES,
             'notes' => 'nullable|string',
             'documents' => 'nullable|array',
             'documents.*.document_name' => 'required_with:documents|string|max:255',
@@ -544,5 +632,72 @@ class AppointmentController extends BaseApiController
                 'diagnostic_error' => $e->getMessage(),
             ], 200);
         }
+    }
+
+    public function uploadAttachment(Request $request, $id): JsonResponse
+    {
+        $appointment = Appointment::findOrFail($id);
+
+        $validated = $request->validate([
+            'file' => 'required|file|max:10240', // 10MB, matches the 10MB total shown on the form
+            'description' => 'nullable|string',
+        ]);
+
+        $file = $request->file('file');
+        $storedPath = $file->store('appointment-attachments', $this->attachmentDisk());
+
+        $attachment = \App\Models\AppointmentAttachment::create([
+            'appointment_id' => $appointment->id,
+            'file_path' => $storedPath,
+            'file_name' => $file->getClientOriginalName(),
+            'file_size' => $file->getSize(),
+            'mime_type' => $file->getMimeType(),
+            'uploaded_by' => auth()->id(),
+            'description' => $validated['description'] ?? null,
+        ]);
+
+        return response()->json($attachment->load('uploadedBy'), 201);
+    }
+
+    public function downloadAttachment($id, $attachmentId)
+    {
+        $appointment = Appointment::findOrFail($id);
+        $attachment = \App\Models\AppointmentAttachment::findOrFail($attachmentId);
+
+        if ($attachment->appointment_id != $appointment->id) {
+            return $this->error('Attachment does not belong to this appointment.', 422);
+        }
+
+        if (! $attachment->file_path || ! \Illuminate\Support\Facades\Storage::disk($this->attachmentDisk())->exists($attachment->file_path)) {
+            return response()->json(['message' => 'File not found'], 404);
+        }
+
+        $filePath = \Illuminate\Support\Facades\Storage::disk($this->attachmentDisk())->path($attachment->file_path);
+        $fileName = $attachment->file_name ?? basename($attachment->file_path);
+
+        return response()->download($filePath, $fileName);
+    }
+
+    public function deleteAttachment($id, $attachmentId): JsonResponse
+    {
+        $appointment = Appointment::findOrFail($id);
+        $attachment = \App\Models\AppointmentAttachment::findOrFail($attachmentId);
+
+        if ($attachment->appointment_id != $appointment->id) {
+            return $this->error('Attachment does not belong to this appointment.', 422);
+        }
+
+        if (\Illuminate\Support\Facades\Storage::disk($this->attachmentDisk())->exists($attachment->file_path)) {
+            \Illuminate\Support\Facades\Storage::disk($this->attachmentDisk())->delete($attachment->file_path);
+        }
+
+        $attachment->delete();
+
+        return response()->json(['message' => 'Attachment deleted successfully']);
+    }
+
+    private function attachmentDisk(): string
+    {
+        return config('filesystems.appointment_attachments_disk', 'local');
     }
 }

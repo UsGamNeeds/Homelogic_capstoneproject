@@ -153,6 +153,8 @@ class VitalSignController extends BaseApiController
             'temperature' => 'nullable|numeric|min:90|max:110',
             'pulse' => 'nullable|integer|min:0|max:200',
             'oxygen_saturation' => 'nullable|integer|min:0|max:100',
+            'blood_glucose' => 'nullable|numeric|min:0|max:1000',
+            'weight' => 'nullable|numeric|min:0|max:1000',
             'pain_level' => 'nullable|integer|min:0|max:10',
             'pain_description' => 'nullable|string|max:255',
             'reason_declined' => 'nullable|string|max:255',
@@ -198,10 +200,7 @@ class VitalSignController extends BaseApiController
 
         // Notify admins
         try {
-            $admins = \App\Models\User::where(function ($query) {
-                $query->whereIn('role', ['admin', 'administrator', 'super_admin']);
-            })
-                ->orWhereHas('roles', fn ($q) => $q->whereIn('name', ['admin', 'administrator', 'super_admin']))
+            $admins = \App\Models\User::facilityRecipients($vital->resident?->branch?->facility_id, ['admin', 'administrator'])
                 ->get();
 
             app(\App\Services\NotificationService::class)->sendVitalSignEmail(
@@ -256,6 +255,8 @@ class VitalSignController extends BaseApiController
             'temperature' => 'nullable|numeric|min:90|max:110',
             'pulse' => 'nullable|integer|min:0|max:200',
             'oxygen_saturation' => 'nullable|integer|min:0|max:100',
+            'blood_glucose' => 'nullable|numeric|min:0|max:1000',
+            'weight' => 'nullable|numeric|min:0|max:1000',
             'pain_level' => 'nullable|integer|min:0|max:10',
             'pain_description' => 'nullable|string|max:255',
             'reason_declined' => 'nullable|string|max:255',

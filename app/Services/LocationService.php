@@ -24,11 +24,11 @@ class LocationService
 
     /**
      * Calculate the distance between two coordinates using the Haversine formula
-     * 
-     * @param float $lat1 Latitude of first point
-     * @param float $lon1 Longitude of first point
-     * @param float $lat2 Latitude of second point
-     * @param float $lon2 Longitude of second point
+     *
+     * @param  float  $lat1  Latitude of first point
+     * @param  float  $lon1  Longitude of first point
+     * @param  float  $lat2  Latitude of second point
+     * @param  float  $lon2  Longitude of second point
      * @return float Distance in kilometers
      */
     public function calculateDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
@@ -54,8 +54,8 @@ class LocationService
 
     /**
      * Check if distance is within allowed range
-     * 
-     * @param float $distanceKm Distance in kilometers
+     *
+     * @param  float  $distanceKm  Distance in kilometers
      * @return bool True if within allowed range
      */
     public function isWithinAllowedDistance(float $distanceKm): bool
@@ -65,8 +65,8 @@ class LocationService
 
     /**
      * Geocode an address to coordinates using OpenStreetMap Nominatim
-     * 
-     * @param string $address Address to geocode
+     *
+     * @param  string  $address  Address to geocode
      * @return array|null ['latitude' => float, 'longitude' => float] or null on failure
      */
     public function geocodeAddress(string $address): ?array
@@ -78,10 +78,10 @@ class LocationService
         try {
             // OpenStreetMap Nominatim API (free, no API key required)
             $url = 'https://nominatim.openstreetmap.org/search';
-            
+
             $response = Http::timeout(10)
                 ->withHeaders([
-                    'User-Agent' => config('location.geocoding_user_agent', config('app.name', 'Evergreen') . ' Location Service'),
+                    'User-Agent' => config('location.geocoding_user_agent', config('app.name', 'Evergreen').' Location Service'),
                 ])
                 ->get($url, [
                     'q' => $address,
@@ -91,8 +91,8 @@ class LocationService
 
             if ($response->successful()) {
                 $data = $response->json();
-                
-                if (!empty($data) && isset($data[0]['lat']) && isset($data[0]['lon'])) {
+
+                if (! empty($data) && isset($data[0]['lat']) && isset($data[0]['lon'])) {
                     return [
                         'latitude' => (float) $data[0]['lat'],
                         'longitude' => (float) $data[0]['lon'],
@@ -118,22 +118,23 @@ class LocationService
 
     /**
      * Get location from IP address using IP geolocation service
-     * 
-     * @param string $ipAddress IP address
+     *
+     * @param  string  $ipAddress  IP address
      * @return array|null ['latitude' => float, 'longitude' => float] or null on failure
      */
     public function getLocationFromIp(string $ipAddress): ?array
     {
         // Skip private/local IPs
-        if (!filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+        if (! filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
             Log::warning('IP geolocation skipped for private/local IP', ['ip' => $ipAddress]);
+
             return null;
         }
 
         try {
             // Using ip-api.com (free tier, no API key required for basic usage)
             $url = "http://ip-api.com/json/{$ipAddress}";
-            
+
             $response = Http::timeout(5)
                 ->get($url, [
                     'fields' => 'status,lat,lon',
@@ -141,8 +142,8 @@ class LocationService
 
             if ($response->successful()) {
                 $data = $response->json();
-                
-                if (isset($data['status']) && $data['status'] === 'success' 
+
+                if (isset($data['status']) && $data['status'] === 'success'
                     && isset($data['lat']) && isset($data['lon'])) {
                     return [
                         'latitude' => (float) $data['lat'],
@@ -169,10 +170,6 @@ class LocationService
 
     /**
      * Validate coordinates
-     * 
-     * @param float|null $latitude
-     * @param float|null $longitude
-     * @return bool
      */
     public function validateCoordinates(?float $latitude, ?float $longitude): bool
     {
@@ -195,31 +192,45 @@ class LocationService
 
     /**
      * Format distance for display
-     * 
-     * @param float $distanceKm Distance in kilometers
+     *
+     * @param  float  $distanceKm  Distance in kilometers
      * @return string Formatted distance
      */
     public function formatDistance(float $distanceKm): string
     {
         if ($distanceKm < 1) {
-            return round($distanceKm * 1000) . ' meters';
+            return round($distanceKm * 1000).' meters';
         }
 
-        return number_format($distanceKm, 2) . ' km';
+        return number_format($distanceKm, 2).' km';
     }
 
     /**
      * Validate check-in location for staff
-     * 
-     * @param \App\Models\User $user
-     * @param float $latitude
-     * @param float $longitude
+     *
+     * @param  \App\Models\User  $user
      * @return array|null Returns error array on failure, null on success
      */
     public function validateCheckInLocation($user, float $latitude, float $longitude): ?array
     {
+        // The column is named location_check_bypass, not login_location_bypass, and the
+        // admin-facing toggle (Filament UserResource) implies it covers location checks
+        // generally, not just login. Honour it here too, before coordinate resolution and
+        // the distance check, so it applies to every caller of this method (staff clock-in,
+        // public/kiosk clock-in, auto clock-in on login). This is also required so support
+        // staff, and App Store reviewers, can exercise clock-in from outside a facility's
+        // 50 metre radius. Still logged at info level so a bypassed check stays visible in
+        // the audit trail rather than being silent.
+        if ($user->location_check_bypass) {
+            Log::info('Check-in location validation bypassed', [
+                'user_id' => $user->id,
+            ]);
+
+            return null;
+        }
+
         // Validate coordinates
-        if (!$this->validateCoordinates($latitude, $longitude)) {
+        if (! $this->validateCoordinates($latitude, $longitude)) {
             return [
                 'message' => 'Invalid location coordinates provided.',
                 'error' => 'invalid_coordinates',
@@ -252,6 +263,7 @@ class LocationService
                 'branch_id' => $branch?->id,
                 'facility_id' => $facility?->id,
             ]);
+
             return [
                 'message' => 'Your assigned location does not have coordinates configured. Please contact your administrator.',
                 'error' => 'no_location_configured',
@@ -269,16 +281,16 @@ class LocationService
         // Check if within allowed distance
         if ($distanceKm > self::MAX_CHECKIN_DISTANCE_KM) {
             $formattedDistance = $this->formatDistance($distanceKm);
-            $maxDistanceFormatted = self::MAX_CHECKIN_DISTANCE_KM < 1 
-                ? (self::MAX_CHECKIN_DISTANCE_KM * 1000) . ' meters'
-                : self::MAX_CHECKIN_DISTANCE_KM . ' km';
-            
+            $maxDistanceFormatted = self::MAX_CHECKIN_DISTANCE_KM < 1
+                ? (self::MAX_CHECKIN_DISTANCE_KM * 1000).' meters'
+                : self::MAX_CHECKIN_DISTANCE_KM.' km';
+
             Log::warning('Check-in blocked due to distance', [
                 'user_id' => $user->id,
                 'distance_km' => $distanceKm,
                 'target' => $targetName,
             ]);
-            
+
             return [
                 'message' => "You are too far from your assigned location ({$targetName}). You are {$formattedDistance} away, but must be within {$maxDistanceFormatted} to clock in.",
                 'error' => 'distance_exceeded',
@@ -297,4 +309,3 @@ class LocationService
         return null;
     }
 }
-

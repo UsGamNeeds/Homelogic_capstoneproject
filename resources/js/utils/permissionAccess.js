@@ -8,6 +8,10 @@ export const PERMISSION_MAP = {
   '/organization/branches': 'view_branches',
   '/organization/vital-ranges': 'view_vital_ranges',
   '/organization/drugs': ['view_drugs', 'view_medications', 'create_drugs', 'edit_drugs', 'delete_drugs'],
+  // Leave requests live once, at /leave-requests under Operations (the only section
+  // caregivers can reach). The /team/ path is now a redirect but stays mapped so the
+  // check applies before the redirect resolves.
+  '/leave-requests': 'view_leave_requests',
   // Team & compliance hub
   '/team/leave-requests': 'view_leave_requests',
   '/team/roles': 'view_roles',
@@ -34,6 +38,8 @@ export const PERMISSION_MAP = {
   
   // Other navigation items that require specific permissions
   '/my-residents': 'view_residents',
+  // /residents now redirects to /my-residents; kept mapped so the check applies to
+  // bookmarked links before the redirect resolves.
   '/residents': 'view_residents',
 };
 

@@ -26,6 +26,8 @@ class VitalSign extends Model
         'temperature',
         'pulse',
         'oxygen_saturation',
+        'blood_glucose',
+        'weight',
         'pain_level',
         'pain_description',
         'reason_declined',
@@ -41,6 +43,8 @@ class VitalSign extends Model
         'temperature' => 'decimal:2',
         'pulse' => 'integer',
         'oxygen_saturation' => 'integer',
+        'blood_glucose' => 'decimal:1',
+        'weight' => 'decimal:1',
         'pain_level' => 'integer',
     ];
 

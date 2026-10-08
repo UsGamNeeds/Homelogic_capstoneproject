@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import TLogForm from './TLogForm';
 import logger from '../utils/logger';
 import { safeHref } from '../utils/safeUrl';
-import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
+import { readResidentIdParam } from '../utils/headerResidentSwitcher';
 
 const NOTIFICATION_LEVEL_COLORS = {
     urgent: 'bg-red-100 text-red-800 border-red-300',
@@ -41,7 +41,7 @@ export default function TLogs() {
     const [filters, setFilters] = useState({
         type: searchParams.get('type') || 'all',
         notification_level: searchParams.get('notification_level') || 'all',
-        resident_id: searchParams.get('resident_id') || searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) || '',
+        resident_id: readResidentIdParam(searchParams),
         branch_id: searchParams.get('branch_id') || '',
         search: searchParams.get('search') || '',
         date_from: searchParams.get('date_from') || '',
@@ -251,7 +251,7 @@ export default function TLogs() {
 
     // Header resident switcher uses `residentId`; keep filters in sync when URL changes.
     useEffect(() => {
-        const rid = searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) || searchParams.get('resident_id') || '';
+        const rid = readResidentIdParam(searchParams);
         setFilters((f) => (f.resident_id === rid ? f : { ...f, resident_id: rid }));
     }, [searchParams.toString()]);
 

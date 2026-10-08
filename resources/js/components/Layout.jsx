@@ -468,7 +468,6 @@ export default function Layout() {
         return timeZone;
     }, [currentUser?.app_current_time]);
 
-    const leaveRequestsPath = isCaregiver ? '/leave-requests' : '/team/leave-requests';
     const tLogsPath = '/t-logs';
 
     // Get theme from ThemeProvider (CSS variables are automatically set)

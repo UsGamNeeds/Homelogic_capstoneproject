@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import logger from '../utils/logger';
-import { X } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 import { formatPhoneNumber } from '../utils/phoneFormatter';
 
-export default function ResidentForm({ record, branches, onClose, onSuccess, selectedBranchId, inModal = false }) {
+export default function ResidentForm({
+    record,
+    branches,
+    onClose,
+    onSuccess,
+    selectedBranchId,
+    inModal = false,
+    canDelete = false,
+    onDelete,
+}) {
     const [formData, setFormData] = useState({
         first_name: record?.first_name || '',
         middle_names: record?.middle_names || '',
@@ -518,6 +527,24 @@ export default function ResidentForm({ record, branches, onClose, onSuccess, sel
                         </div>
                     </div>
                 </div>
+
+                {record && canDelete && onDelete && (
+                    <div className="rounded-xl border border-red-200 bg-red-50/60 p-5">
+                        <h3 className="text-base font-semibold text-red-800">Danger zone</h3>
+                        <p className="mt-1 text-sm text-red-700">
+                            Permanently remove this resident and everything recorded for them. This cannot be undone.
+                            To simply take them off day-to-day care, change their status instead.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => onDelete(record)}
+                            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            Delete resident permanently
+                        </button>
+                    </div>
+                )}
 
                 <div className="flex justify-end space-x-3 pt-6 border-t">
                     <button

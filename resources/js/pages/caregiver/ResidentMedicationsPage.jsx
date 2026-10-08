@@ -50,7 +50,7 @@ import {
 import Select from '../../components/ui/radix/Select';
 import Tooltip from '../../components/ui/Tooltip';
 import Modal from '../../components/ui/Modal';
-import { RESIDENT_CONTEXT_QUERY_KEY } from '../../utils/headerResidentSwitcher';
+import { readResidentIdParam } from '../../utils/headerResidentSwitcher';
 import ResidentSafetyStrip from '../../components/residents/ResidentSafetyStrip';
 import Breadcrumbs from '../../components/ui/Breadcrumbs';
 import logger from '../../utils/logger';
@@ -194,8 +194,7 @@ export default function ResidentMedicationsPage({ embedded = false, variant = 'l
     const [searchParams] = useSearchParams();
     const residentId =
         params.residentId ||
-        searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) ||
-        searchParams.get('resident_id') ||
+        readResidentIdParam(searchParams) ||
         undefined;
     const [currentUser, setCurrentUser] = useState(null);
     const [activeTab, setActiveTab] = useState(() => (variant === 'prn' ? 'prn' : 'scheduled')); // 'scheduled', 'am', 'pm', 'prn'

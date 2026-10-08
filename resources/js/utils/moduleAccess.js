@@ -9,7 +9,10 @@ export const MODULE_MAP = {
   
   // Medications module
   '/medications': 'medications',
-  '/medication-deliveries': 'medications',
+  // Deliveries is gated as PHARMACY server-side (MedicationDeliveryController), not as
+  // MEDICATIONS. Mapping it to 'medications' here offered the nav entry to facilities whose
+  // API then refused it with a 403, so the key must match the backend.
+  '/medication-deliveries': 'pharmacy',
   '/medication-history': 'medications',
   '/medications/residents': 'medications',
   
