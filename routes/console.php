@@ -8,8 +8,8 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Schedule notifications to be generated every hour
-Schedule::command('notifications:generate')->hourly();
+// Schedule notifications to be generated every 15 minutes (medication-due summaries need the finer cadence)
+Schedule::command('notifications:generate')->everyFifteenMinutes()->withoutOverlapping(10);
 
 // Reminders
 Schedule::command('reminders:generate')->everyThirtyMinutes()->withoutOverlapping();
