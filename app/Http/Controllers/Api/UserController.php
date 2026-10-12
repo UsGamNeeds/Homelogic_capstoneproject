@@ -597,6 +597,18 @@ class UserController extends BaseApiController
             ], 422);
         }
 
+        // Staff who have recorded anything clinical keep their history: the model
+        // guard would refuse the delete anyway, but checking here lets us answer
+        // with a useful message instead of an unhandled exception.
+        if ($counts = $user->protectedRecordCounts()) {
+            return response()->json([
+                'message' => 'This user has care records that must be kept, so their account '
+                    .'cannot be deleted. Deactivate them instead - they will no longer be able '
+                    .'to sign in, and their records stay intact.',
+                'records' => $counts,
+            ], 422);
+        }
+
         $user->delete();
 
         return response()->json(['message' => 'User deleted successfully']);

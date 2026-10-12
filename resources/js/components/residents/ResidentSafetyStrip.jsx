@@ -3,6 +3,10 @@ import { AlertTriangle, Utensils, MapPin, ShieldAlert, Stethoscope } from 'lucid
 import { calculateAgeFromPacificBirthDate } from '../../utils/pacificTime';
 import { slideInUp, shouldAnimate } from '../../utils/animationPresets';
 
+// Matches free-text "no allergies" phrasing so it falls through to the neutral
+// "No known allergies" state instead of being displayed as a red allergy alert.
+const NO_ALLERGIES_PATTERN = /^(none|none known|no known allergies|nka|n\/a|not applicable)\.?$/i;
+
 /**
  * Compact clinical context banner shown above tab content on all resident-specific pages.
  * Gives caregivers instant safety context (allergies, diet, code status, room) without
@@ -35,8 +39,12 @@ export default function ResidentSafetyStrip({ resident, isLoading }) {
 
     const allergies = (() => {
         if (!resident.allergies) return [];
-        if (Array.isArray(resident.allergies)) return resident.allergies.filter(Boolean);
-        if (typeof resident.allergies === 'string' && resident.allergies.trim()) return [resident.allergies];
+        if (Array.isArray(resident.allergies)) {
+            return resident.allergies.filter((a) => a && !NO_ALLERGIES_PATTERN.test(String(a).trim()));
+        }
+        if (typeof resident.allergies === 'string' && resident.allergies.trim() && !NO_ALLERGIES_PATTERN.test(resident.allergies.trim())) {
+            return [resident.allergies];
+        }
         return [];
     })();
 

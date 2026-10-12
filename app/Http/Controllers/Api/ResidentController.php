@@ -8,10 +8,12 @@ use App\Http\Requests\Api\Resident\UpdateResidentStatusRequest;
 use App\Http\Resources\Api\ResidentResource;
 use App\Models\Resident;
 use App\Models\ResidentStatusEvent;
+use App\Services\ResidentDeletionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class ResidentController extends BaseApiController
@@ -521,10 +523,39 @@ class ResidentController extends BaseApiController
             }
         }
 
-        $resident = Resident::findOrFail($id);
-        $resident->delete();
+        $resident = Resident::withoutGlobalScope(\App\Models\Scopes\FacilityScope::class)->find($id);
 
-        return $this->success(null, 'Resident deleted successfully');
+        if (! $resident) {
+            return $this->error('Resident not found.', 404);
+        }
+
+        $resident->load('branch');
+
+        if (! $this->checkFacilityAccess($resident, $user)) {
+            return $this->error('You do not have permission to delete this resident.', 403);
+        }
+
+        $residentName = trim(($resident->first_name ?? '').' '.($resident->last_name ?? '')) ?: ($resident->name ?? 'Resident');
+
+        try {
+            app(ResidentDeletionService::class)->delete($resident);
+        } catch (\Throwable $e) {
+            Log::error('Failed to permanently delete resident', [
+                'resident_id' => $resident->id,
+                'user_id' => $user?->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->error('This resident could not be deleted because other records still reference them. Please contact support.', 409);
+        }
+
+        Log::info('Resident permanently deleted', [
+            'resident_id' => $id,
+            'resident_name' => $residentName,
+            'deleted_by' => $user?->id,
+        ]);
+
+        return $this->success(null, 'Resident permanently deleted');
     }
 
     private function syncResidentLifecycleFields(array &$validated): void

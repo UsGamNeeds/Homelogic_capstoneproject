@@ -57,7 +57,7 @@ import {
     canSelectMedicationRowForBulkAdministration,
     getMedicationAdministrations,
 } from '../utils/medicationSchedule';
-import { RESIDENT_CONTEXT_QUERY_KEY } from '../utils/headerResidentSwitcher';
+import { readResidentIdParam } from '../utils/headerResidentSwitcher';
 
 /** Laravel paginator + filtered collections must return JSON arrays; normalize if keys are sparse. */
 function normalizePaginatedList(payload) {
@@ -194,11 +194,7 @@ export default function Medications() {
     const [isBulkAdministering, setIsBulkAdministering] = useState(false);
 
     React.useEffect(() => {
-        const rid =
-            searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) ||
-            searchParams.get('resident_id') ||
-            '';
-        setResidentFilter(rid);
+        setResidentFilter(readResidentIdParam(searchParams));
     }, [searchParams]);
 
     // Fetch current user
@@ -299,8 +295,7 @@ export default function Medications() {
         return role === 'admin';
     }, [currentUser]);
 
-    const clinicalScopedResidentId =
-        searchParams.get(RESIDENT_CONTEXT_QUERY_KEY) || searchParams.get('resident_id') || '';
+    const clinicalScopedResidentId = readResidentIdParam(searchParams);
 
     // Redirect caregivers to the resident picker unless Clinical hub already scoped a resident (?residentId=)
     React.useEffect(() => {
@@ -1112,6 +1107,9 @@ export default function Medications() {
 
     const formatTime = (timeValue) => formatPacificTimeValue(timeValue);
 
+    // Carry the resident already in scope into the create flow, so the user is not asked to pick again.
+    const addMedicationPath = residentFilter ? `/medications/add/${residentFilter}` : '/medications/add';
+
     // Caregivers: Clinical hub /medications?residentId= shows the per-resident MAR here; otherwise redirect to picker
     if (isCaregiver) {
         if (clinicalScopedResidentId) {
@@ -1207,7 +1205,7 @@ export default function Medications() {
                         const canCreate = isSuperAdmin || isAdmin || permissions.includes('create_medications');
                         return canCreate ? (
                             <button
-                                onClick={() => { setEditing(null); setShowForm(true); }}
+                                onClick={() => navigate(addMedicationPath)}
                                 className="flex-shrink-0 w-full sm:w-auto px-6 py-2.5 bg-[var(--theme-primary)] text-[var(--theme-text-on-primary)] rounded-lg hover:bg-[var(--theme-primary-hover)] transition-colors flex items-center justify-center space-x-2 text-sm md:text-base font-semibold shadow-md hover:shadow-lg"
                             >
                                 <Plus className="w-5 h-5" />
@@ -1691,7 +1689,7 @@ function MedicationAdministrationForm({ medication, onClose, onSuccess, inModal 
 }
 
 // Medication Create/Edit Form Component
-function MedicationForm({ record, residents, branches, currentUser, isCaregiver, isFacilityAdmin, isBranchAdmin, onClose, onSuccess, inModal = false }) {
+export function MedicationForm({ record, residents, branches, currentUser, isCaregiver, isFacilityAdmin, isBranchAdmin, onClose, onSuccess, inModal = false, defaultResidentId = '', hideResidentSelect = false }) {
     // Filter branches and residents for caregivers and branch admin users (facility admins see all)
     const filteredBranches = React.useMemo(() => {
         if (isFacilityAdmin) return branches; // Facility admins see all branches
@@ -1719,7 +1717,7 @@ function MedicationForm({ record, residents, branches, currentUser, isCaregiver,
     };
 
     const [formData, setFormData] = useState({
-        resident_id: record?.resident_id || '',
+        resident_id: record?.resident_id || defaultResidentId || '',
         branch_id: record?.branch_id || ((isCaregiver || isBranchAdmin) && currentUser?.assigned_branch_id ? currentUser.assigned_branch_id : ''),
         drug_id: record?.drug_id || '',
         name: record?.name || '',
@@ -1743,6 +1741,19 @@ function MedicationForm({ record, residents, branches, currentUser, isCaregiver,
             setFormData(prev => ({ ...prev, branch_id: currentUser.assigned_branch_id }));
         }
     }, [isCaregiver, isBranchAdmin, currentUser, record]);
+
+    // When arriving via the resident-first "Add Medication" flow, seed both resident + branch
+    React.useEffect(() => {
+        if (record || !defaultResidentId || residents.length === 0) return;
+        const rid = String(defaultResidentId);
+        const resident = residents.find((r) => String(r.id) === rid);
+        if (!resident) return;
+        setFormData((prev) => ({
+            ...prev,
+            resident_id: rid,
+            branch_id: prev.branch_id || resident.branch_id || '',
+        }));
+    }, [record, defaultResidentId, residents]);
 
     // Set default start_date (if not editing existing record)
     // This runs after component mount to ensure server time is available, or uses formatter fallback
@@ -1865,6 +1876,8 @@ function MedicationForm({ record, residents, branches, currentUser, isCaregiver,
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
+                    {!hideResidentSelect && (
+                    <>
                     <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">Branch *</label>
                         <select
@@ -1909,6 +1922,8 @@ function MedicationForm({ record, residents, branches, currentUser, isCaregiver,
                         </select>
                         {errors.resident_id && <p className="text-xs text-red-600 mt-1">{errors.resident_id[0]}</p>}
                     </div>
+                    </>
+                    )}
 
                     <div className="col-span-2">
                         <label className="block text-sm font-medium text-gray-900 mb-2">Drug *</label>

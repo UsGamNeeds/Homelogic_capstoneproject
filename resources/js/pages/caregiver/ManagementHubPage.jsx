@@ -30,8 +30,8 @@ const TILES = [
     },
     {
         id: 'billing',
-        title: 'Billing',
-        description: 'Expense categories, expenses, invoices, and billing reports.',
+        title: 'Expenses',
+        description: 'Expense categories, expenses, invoices, and reports.',
         icon: DollarSign,
         path: '/billing/expense-categories',
         accent: 'text-emerald-600',

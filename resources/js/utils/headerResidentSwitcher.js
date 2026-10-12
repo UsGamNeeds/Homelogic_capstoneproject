@@ -49,7 +49,8 @@ export function isClinicalSectionForSwitcher(pathname) {
 
 /**
  * Whether the compact resident avatar strip should appear in the app header.
- * Clinical hub index (/clinical) keeps cards-only overview without the strip.
+ * /clinical is a cross-resident triage board, so there is no single resident in
+ * context there and the strip stays hidden.
  */
 export function shouldShowHeaderResidentSwitcher(pathname) {
     if (!pathname) return false;
@@ -77,6 +78,29 @@ const RE_APPT_CREATE = /^\/appointments\/create\/([^/]+)/;
 export const RESIDENT_CONTEXT_QUERY_KEY = 'residentId';
 
 /**
+ * Every query key that has ever meant "the resident in scope", canonical first.
+ * Legacy links (`?resident_id=`, `?resident=`) still exist across the app, so readers
+ * must accept all three or the filter is silently dropped.
+ */
+export const RESIDENT_CONTEXT_QUERY_ALIASES = [RESIDENT_CONTEXT_QUERY_KEY, 'resident_id', 'resident'];
+
+/**
+ * Read the resident in scope from a URLSearchParams (i.e. `useSearchParams()`).
+ * Single source of truth for key precedence — do not hand-roll `.get('resident_id')` chains.
+ *
+ * @param {URLSearchParams} searchParams
+ * @returns {string} resident id, or '' when no resident is in scope
+ */
+export function readResidentIdParam(searchParams) {
+    if (!searchParams?.get) return '';
+    for (const key of RESIDENT_CONTEXT_QUERY_ALIASES) {
+        const value = searchParams.get(key);
+        if (value) return String(value);
+    }
+    return '';
+}
+
+/**
  * Compare query strings without treating key order as a change.
  * React Router / the browser may serialize ?a=1&b=2 vs ?b=2&a=1; string compare would loop on setSearchParams.
  */
@@ -101,9 +125,8 @@ export function urlSearchParamsShallowEqual(a, b) {
  */
 export function parseResidentContextId(search, pathname) {
     const sp = new URLSearchParams(search?.startsWith('?') ? search.slice(1) : search || '');
-    // Canonical query key first (matches header switcher), then legacy aliases.
-    const q = sp.get(RESIDENT_CONTEXT_QUERY_KEY) || sp.get('resident_id') || sp.get('resident');
-    if (q) return String(q);
+    const q = readResidentIdParam(sp);
+    if (q) return q;
     return parseResidentIdFromPath(pathname);
 }
 

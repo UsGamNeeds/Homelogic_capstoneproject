@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ResidentResource\Pages;
 use App\Filament\Resources\ResidentResource\RelationManagers;
 use App\Models\Resident;
+use App\Services\ResidentDeletionService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -361,11 +362,24 @@ class ResidentResource extends Resource
                     ->color('info')
                     ->url(fn ($record) => route('filament.admin.pages.medication-history', ['resident' => $record->id]))
                     ->openUrlInNewTab(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->label('Delete Permanently')
+                    ->modalHeading('Permanently delete resident')
+                    ->modalDescription('This removes the resident and every record attached to them. This cannot be undone.')
+                    ->using(fn (Resident $record) => app(ResidentDeletionService::class)->delete($record)),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->label('Delete Permanently')
+                        ->modalDescription('This removes the selected residents and every record attached to them. This cannot be undone.')
+                        ->action(function ($records): void {
+                            $service = app(ResidentDeletionService::class);
+
+                            foreach ($records as $record) {
+                                $service->delete($record);
+                            }
+                        }),
                 ]),
             ])
             ->defaultSort('name');

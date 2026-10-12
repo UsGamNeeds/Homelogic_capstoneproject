@@ -16,10 +16,10 @@ const TABS = [
     { id: 'fax',            label: 'Fax',            icon: Printer,          path: '/fax' },
     // path prefix is for active-tab matching; linkTo is a real route (no /pharmacy or /billing index exists).
     { id: 'pharmacy',       label: 'Pharmacy',       icon: Building2,       path: '/pharmacy',       linkTo: '/pharmacy/dashboard' },
-    { id: 'billing',        label: 'Billing',        icon: DollarSign,      path: '/billing',        linkTo: '/billing/expense-categories' },
+    { id: 'billing',        label: 'Expenses',       icon: DollarSign,      path: '/billing',        linkTo: '/billing/expense-categories' },
     {
         id: 'staff-site',
-        label: 'Staff & site',
+        label: 'Clock-in & visitors',
         icon: UserCheck,
         path: '/check-in-dashboard',
         extraPaths: ['/staff', '/visitors', '/residents/sign-out'],
