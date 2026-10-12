@@ -86,9 +86,13 @@ class PushNotificationService
         $this->sendToUser($user, $notification->title, $notification->message, [
             'tag' => 'notification-' . $notification->id,
             'url' => $actionUrl,
+            // type and residentId let the mobile app open the right screen when
+            // the web URL has no phone equivalent (e.g. "/vitals").
             'data' => [
                 'notificationId' => $notification->id,
                 'url' => $actionUrl,
+                'type' => $notification->type,
+                'residentId' => $notification->metadata['resident_id'] ?? null,
             ],
         ]);
     }
