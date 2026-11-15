@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Mail\AccountDeletionRequestNotification;
 use App\Mail\AppointmentNotification;
 use App\Mail\AssessmentNotification;
 use App\Mail\EmployeeDocumentNotification;
@@ -23,6 +24,7 @@ use App\Mail\SleepRecordNotification;
 use App\Mail\StaffClockInNotification;
 use App\Mail\VisitorNotification;
 use App\Mail\VitalSignNotification;
+use App\Models\AccountDeletionRequest;
 use App\Models\Appointment;
 use App\Models\Assessment;
 use App\Models\EmployeeDocument;
@@ -81,12 +83,16 @@ class NotificationService
     }
 
     /**
-     * Facility-originated mail must not go to platform super admins.
+     * Facility-originated mail must not go to platform super admins or to staff of another facility.
      */
-    protected function filterFacilityMailRecipients($users): \Illuminate\Support\Collection
+    protected function filterFacilityMailRecipients($users, $facility = null): \Illuminate\Support\Collection
     {
-        return collect($users)->filter(function (User $user) {
-            return $user->email && ! $user->isSuperAdmin();
+        return collect($users)->filter(function (User $user) use ($facility) {
+            if (! $user->email || $user->isSuperAdmin()) {
+                return false;
+            }
+
+            return ! $facility || (int) $user->facility_id === (int) $facility->id;
         });
     }
 
@@ -127,7 +133,7 @@ class NotificationService
 
             // If config has recipients, use them; otherwise fall back to existing logic
             if ($configRecipients->isNotEmpty()) {
-                $caregiversToNotify = $this->filterFacilityMailRecipients($configRecipients);
+                $caregiversToNotify = $this->filterFacilityMailRecipients($configRecipients, $facility);
             } else {
                 // Fallback to existing email preference logic
                 $caregiversToNotify = $this->emailPreferenceService->filterUsersForEmail(
@@ -211,7 +217,7 @@ class NotificationService
 
             // If config has recipients, use them; otherwise fall back to existing logic
             if ($configRecipients->isNotEmpty()) {
-                $recipientsToNotify = $this->filterFacilityMailRecipients($configRecipients);
+                $recipientsToNotify = $this->filterFacilityMailRecipients($configRecipients, $facility);
             } else {
                 $recipientsToNotify = $this->emailPreferenceService->filterUsersForEmail(
                     $recipients,
@@ -316,7 +322,7 @@ class NotificationService
 
         // Use a generic notification type since leave requests aren't in preferences yet
         // Default to enabled
-        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients);
+        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients, $facility);
 
         foreach ($recipientsToNotify as $recipient) {
             if ($recipient->email) {
@@ -343,6 +349,44 @@ class NotificationService
     }
 
     /**
+     * Send email notification for account deletion request events
+     */
+    public function sendAccountDeletionRequestEmail(AccountDeletionRequest $deletionRequest, $recipients): void
+    {
+        $facility = $deletionRequest->facility;
+        if ($this->shouldSkipNotificationForFacility($facility)) {
+            Log::info('Account deletion request email skipped - facility missing or deleted', ['account_deletion_request_id' => $deletionRequest->id]);
+
+            return;
+        }
+        $this->mailConfigService->configureForFacility($facility);
+
+        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients, $facility);
+
+        foreach ($recipientsToNotify as $recipient) {
+            if ($recipient->email) {
+                try {
+                    Mail::to($recipient->email)->send(
+                        new AccountDeletionRequestNotification($deletionRequest)
+                    );
+
+                    Log::info('Account deletion request email sent', [
+                        'to' => $recipient->email,
+                        'account_deletion_request_id' => $deletionRequest->id,
+                        'facility_id' => $facility?->id,
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send account deletion request email', [
+                        'to' => $recipient->email,
+                        'error' => $e->getMessage(),
+                        'facility_id' => $facility?->id,
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
      * Send email notification for pharmacy order events
      */
     public function sendPharmacyOrderEmail(PharmacyOrder $order, $recipients, string $eventType): void
@@ -354,7 +398,7 @@ class NotificationService
         }
 
         // Pharmacy notifications - default to enabled for all
-        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients);
+        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients, $facility);
 
         foreach ($recipientsToNotify as $recipient) {
             if ($recipient->email) {
@@ -395,7 +439,7 @@ class NotificationService
             $this->mailConfigService->configureForFacility($facility);
         }
 
-        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients);
+        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients, $facility);
 
         foreach ($recipientsToNotify as $recipient) {
             if ($recipient->email) {
@@ -432,7 +476,7 @@ class NotificationService
             $this->mailConfigService->configureForFacility($facility);
         }
 
-        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients);
+        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients, $facility);
 
         foreach ($recipientsToNotify as $recipient) {
             if ($recipient->email) {
@@ -586,7 +630,7 @@ class NotificationService
         }
         $this->mailConfigService->configureForFacility($facility);
 
-        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients);
+        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients, $facility);
 
         foreach ($recipientsToNotify as $recipient) {
             if ($recipient->email) {
@@ -624,7 +668,7 @@ class NotificationService
         }
         $this->mailConfigService->configureForFacility($facility);
 
-        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients);
+        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients, $facility);
 
         foreach ($recipientsToNotify as $recipient) {
             if ($recipient->email) {
@@ -661,7 +705,7 @@ class NotificationService
             $this->mailConfigService->configureForFacility($facility);
         }
 
-        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients);
+        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients, $facility);
 
         foreach ($recipientsToNotify as $recipient) {
             if ($recipient->email) {
@@ -697,7 +741,7 @@ class NotificationService
             $this->mailConfigService->configureForFacility($facility);
         }
 
-        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients);
+        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients, $facility);
 
         foreach ($recipientsToNotify as $recipient) {
             if ($recipient->email) {
@@ -738,7 +782,7 @@ class NotificationService
 
         $this->mailConfigService->configureForFacility($facility);
 
-        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients);
+        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients, $facility);
 
         foreach ($recipientsToNotify as $recipient) {
             if ($recipient->email) {
@@ -831,7 +875,7 @@ class NotificationService
         }
         $this->mailConfigService->configureForFacility($facility);
 
-        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients);
+        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients, $facility);
 
         foreach ($recipientsToNotify as $recipient) {
             if ($recipient->email) {
@@ -875,7 +919,7 @@ class NotificationService
         }
         $this->mailConfigService->configureForFacility($facility);
 
-        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients);
+        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients, $facility);
 
         foreach ($recipientsToNotify as $recipient) {
             if ($recipient->email) {
@@ -914,7 +958,7 @@ class NotificationService
         }
         $this->mailConfigService->configureForFacility($facility);
 
-        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients);
+        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients, $facility);
 
         foreach ($recipientsToNotify as $recipient) {
             if ($recipient->email) {
@@ -1028,7 +1072,7 @@ class NotificationService
 
         $this->mailConfigService->configureForFacility($facility);
 
-        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients);
+        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients, $facility);
 
         foreach ($recipientsToNotify as $recipient) {
             if ($recipient->email) {
@@ -1064,7 +1108,7 @@ class NotificationService
             $this->mailConfigService->configureForFacility($facility);
         }
 
-        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients);
+        $recipientsToNotify = $this->filterFacilityMailRecipients($recipients, $facility);
 
         foreach ($recipientsToNotify as $recipient) {
             if ($recipient->email) {

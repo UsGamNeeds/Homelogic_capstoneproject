@@ -175,17 +175,20 @@ class CleaningChecklistController extends BaseApiController
 
     private function notifyAdminsOfTaskUpdate(CleaningTask $task, $caregiver, string $scheduledDate, string $status, ?string $notes = null): void
     {
-        // Get admins - try roles relationship first, fallback to role column
+        // Get admins of the caregiver's facility - try roles relationship first, fallback to role column
+        $facilityId = $caregiver->facility_id ?? null;
         $admins = collect();
         
         if (method_exists(User::class, 'roles')) {
-            $admins = User::whereHas('roles', function ($query) {
-                $query->whereIn('name', ['admin', 'administrator']);
-            })->get();
+            $admins = User::where('facility_id', $facilityId ?: 0)
+                ->where('role', '!=', 'super_admin')
+                ->whereHas('roles', function ($query) {
+                    $query->whereIn('name', ['admin', 'administrator']);
+                })->get();
         }
         
         if ($admins->isEmpty()) {
-            $admins = User::whereIn('role', ['admin', 'administrator'])->get();
+            $admins = User::facilityRecipients($facilityId, ['admin', 'administrator'])->get();
         }
 
         $statusLabel = $status === 'completed' ? 'Completed' : 'Skipped';
@@ -197,6 +200,7 @@ class CleaningChecklistController extends BaseApiController
             // Create in-app notification
             Notification::create([
                 'user_id' => $admin->id,
+                'facility_id' => $facilityId,
                 'type' => $type,
                 'title' => "Housekeeping Task {$statusLabel}",
                 'message' => sprintf(

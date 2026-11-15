@@ -23,13 +23,16 @@ class FireDrillObserver
         // Load relationships
         $fireDrill->load(['branch', 'createdBy']);
 
-        // Get all staff in the branch and admins
-        $users = User::where(function($query) use ($fireDrill) {
-            $query->where('assigned_branch_id', $fireDrill->branch_id)
-                ->orWhereIn('role', ['administrator', 'admin', 'manager', 'super_admin']);
-        })
-        ->where('is_active', true)
-        ->get();
+        // Get all staff in the branch and the facility's admins
+        $facilityId = $fireDrill->branch?->facility_id;
+        $users = User::where('facility_id', $facilityId ?: 0)
+            ->where('role', '!=', 'super_admin')
+            ->where(function ($query) use ($fireDrill) {
+                $query->where('assigned_branch_id', $fireDrill->branch_id)
+                    ->orWhereIn('role', ['administrator', 'admin', 'manager']);
+            })
+            ->where('is_active', true)
+            ->get();
 
         foreach ($users as $user) {
             $drillDate = Carbon::parse($fireDrill->scheduled_date)->format('M d, Y');

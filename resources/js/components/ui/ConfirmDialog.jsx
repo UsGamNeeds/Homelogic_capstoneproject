@@ -16,6 +16,7 @@ export default function ConfirmDialog({
     cancelLabel = 'Cancel',
     variant = 'neutral',
     isPending = false,
+    confirmDisabled = false,
     size = 'sm',
     className = '',
     closeOnBackdropClick,
@@ -67,7 +68,7 @@ export default function ConfirmDialog({
                 </button>
                 <button
                     type="button"
-                    disabled={isPending}
+                    disabled={isPending || confirmDisabled}
                     onClick={() => onConfirm?.()}
                     className={`inline-flex items-center justify-center gap-2 min-w-[7rem] ${confirmClasses[variant] || confirmClasses.neutral}`}
                 >

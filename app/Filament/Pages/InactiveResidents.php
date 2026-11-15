@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Filament\Resources\ResidentResource;
 use App\Models\Resident;
+use App\Services\ResidentDeletionService;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Tables\Actions\Action;
@@ -98,6 +99,25 @@ class InactiveResidents extends Page implements HasTable
 
                         Notification::make()
                             ->title('Resident reactivated successfully')
+                            ->success()
+                            ->send();
+
+                        $this->resetTable();
+                    }),
+                Action::make('delete')
+                    ->label('Delete Permanently')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->visible(fn (): bool => auth()->check() && auth()->user()->hasPermission('delete_residents'))
+                    ->requiresConfirmation()
+                    ->modalHeading('Permanently delete resident')
+                    ->modalDescription('This removes the resident and every record attached to them — medications, vitals, assessments, appointments, documents and notes. This cannot be undone.')
+                    ->modalSubmitActionLabel('Yes, delete permanently')
+                    ->action(function (Resident $record): void {
+                        app(ResidentDeletionService::class)->delete($record);
+
+                        Notification::make()
+                            ->title('Resident permanently deleted')
                             ->success()
                             ->send();
 

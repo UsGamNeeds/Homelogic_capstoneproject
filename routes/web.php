@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FacilityRegistrationController;
+use Illuminate\Support\Facades\Route;
 
 // React App Route (serve React frontend)
 Route::get('/app{any?}', function () {
@@ -37,9 +37,11 @@ Route::get('/login', function () {
     return spa_response();
 })->name('login');
 
+// Public privacy policy page (App Store compliance)
+Route::view('/privacy', 'privacy')->name('privacy');
+
 // Catch-all route for React Router - must be last
 // This handles all client-side routes like /login, /features, /dashboard, etc.
 Route::get('{any}', function () {
     return spa_response();
 })->where('any', '.*');
-

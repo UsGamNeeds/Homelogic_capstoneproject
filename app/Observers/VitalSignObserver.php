@@ -27,8 +27,7 @@ class VitalSignObserver
         
         // If no caregivers, notify all admins/managers
         if ($caregivers->isEmpty()) {
-            $caregivers = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                ->where('is_active', true)
+            $caregivers = User::facilityRecipients($vitalSign->resident?->branch?->facility_id)
                 ->get();
         }
 
@@ -103,8 +102,7 @@ class VitalSignObserver
         
         // If critical, also notify all admins immediately
         if ($isCritical) {
-            $admins = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                ->where('is_active', true)
+            $admins = User::facilityRecipients($vitalSign->resident?->branch?->facility_id)
                 ->whereNotIn('id', $caregivers->pluck('id')->toArray())
                 ->get();
             

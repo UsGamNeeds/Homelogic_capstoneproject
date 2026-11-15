@@ -96,8 +96,7 @@ class GenerateNotifications extends Command
             
             // If no caregivers, notify all admins/managers
             if ($caregivers->isEmpty()) {
-                $caregivers = User::whereIn('role', ['administrator', 'admin', 'manager'])
-                    ->where('is_active', true)
+                $caregivers = User::facilityRecipients($appointment->resident?->branch?->facility_id)
                     ->get();
             }
 
@@ -145,95 +144,217 @@ class GenerateNotifications extends Command
     }
 
     /**
-     * Generate notifications for upcoming medication administrations
+     * Minutes ahead of a dose time that its "due" summary is sent.
+     */
+    private const MEDICATION_DUE_LEAD_MINUTES = 15;
+
+    /**
+     * Grace for a late or skipped run: a slot that passed this recently is still sent (dedupe keeps it safe).
+     */
+    private const MEDICATION_DUE_GRACE_MINUTES = 5;
+
+    /** @var array<int|string, mixed> facility admin fallback recipients, memoised per run */
+    private array $facilityRecipientCache = [];
+
+    /**
+     * Statuses that mean a dose slot is already dealt with (same set MarkMissedMedications uses).
+     */
+    private const DOSE_HANDLED_STATUSES = ['completed', 'refused', 'hospital_admission', 'pharmacy_administration_confirm'];
+
+    /**
+     * Same +/- window MarkMissedMedications uses to tie an administration to a scheduled time.
+     */
+    private const DOSE_MATCH_WINDOW_MINUTES = 60;
+
+    /**
+     * One "medications due" notification per caregiver (and facility) per dose time,
+     * sent shortly before the time: for dose times in (now - 5 min, now + 15 min].
+     * Dose times are facility-local wall-clock; the app timezone is the facility
+     * clock everywhere else (MarkMissedMedications, medication API), so use it here.
      */
     private function generateMedicationNotifications(): int
     {
+        $now = Carbon::now(config('app.timezone'));
+        $windowEnd = $now->copy()->addMinutes(self::MEDICATION_DUE_LEAD_MINUTES);
+
+        $this->facilityRecipientCache = [];
+        $groups = $this->collectDueDoses($now, $windowEnd);
         $count = 0;
-        $now = now();
 
-        // Get active medications
-        $medications = Medication::with(['resident.assignments.caregiver', 'drug'])
-            ->where('is_active', true)
-            ->where(function($query) use ($now) {
-                $query->where(function($q) use ($now) {
-                    $q->whereNull('start_date')
-                      ->orWhere('start_date', '<=', $now);
-                })
-                ->where(function($q) use ($now) {
-                    $q->whereNull('end_date')
-                      ->orWhere('end_date', '>=', $now);
-                });
-            })
-            ->get();
-
-        foreach ($medications as $medication) {
-            if (! $medication->resident) {
-                continue;
-            }
-
-            // Get assigned caregivers for this resident
-            $caregivers = $medication->resident->assignments
-                ->where('is_active', true)
-                ->pluck('caregiver')
-                ->filter();
-            
-            // If no caregivers, notify all admins/managers
-            if ($caregivers->isEmpty()) {
-                $caregivers = User::whereIn('role', ['administrator', 'admin', 'manager'])
-                    ->where('is_active', true)
-                    ->get();
-            }
-
-            foreach ($caregivers as $caregiver) {
-                // Get all scheduled administration times for today
-                $adminTimes = $this->getScheduledAdminTimes($medication);
-
-                foreach ($adminTimes as $adminTime) {
-                    // Check if already administered today
-                    $alreadyAdministered = MedicationAdministration::where('medication_id', $medication->id)
-                        ->whereDate('administered_at', $now->toDateString())
-                        ->where('status', 'completed')
-                        ->exists();
-
-                    if (!$alreadyAdministered) {
-                        // Check if notification already exists for this time today
-                        $exists = Notification::where('user_id', $caregiver->id)
-                            ->where('type', 'medication_due')
-                            ->whereJsonContains('metadata->medication_id', $medication->id)
-                            ->whereDate('created_at', $now->toDateString())
-                            ->whereJsonContains('metadata->scheduled_time', $adminTime)
-                            ->exists();
-
-                        if (!$exists) {
-                            $drugName = $medication->drug?->name ?? $medication->name;
-                            
-                            $residentName = trim(($medication->resident->first_name ?? '') . ' ' . ($medication->resident->last_name ?? ''));
-                            
-                            Notification::create([
-                                'user_id' => $caregiver->id,
-                                'facility_id' => $medication->resident?->branch?->facility_id ?? null,
-                                'branch_id' => $medication->branch_id ?? $medication->resident?->branch_id ?? null,
-                                'type' => 'medication_due',
-                                'title' => 'Medication Due',
-                                'message' => "Give {$drugName} to {$residentName} at {$adminTime}",
-                                'icon' => 'pill',
-                                'icon_color' => 'text-red-600',
-                                'action_url' => '/medications',
-                                'metadata' => [
-                                    'medication_id' => $medication->id,
-                                    'resident_id' => $medication->resident_id,
-                                    'scheduled_time' => $adminTime,
-                                ],
-                            ]);
-                            $count++;
-                        }
-                    }
+        foreach ($groups as $group) {
+            try {
+                if ($this->dueNotificationExists($group)) {
+                    continue;
                 }
+                $this->createDueNotification($group);
+                $count++;
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('medication_due notification failed', [
+                    'user_id' => $group['user_id'],
+                    'due' => $group['due']->toDateTimeString(),
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
 
         return $count;
+    }
+
+    /**
+     * Doses due in the window, grouped per (user, facility, date, time).
+     *
+     * @return array<string, array{user_id:int, facility_id:?int, due:Carbon, doses:array}>
+     */
+    private function collectDueDoses(Carbon $now, Carbon $windowEnd): array
+    {
+        $medications = Medication::with(['resident.assignments.caregiver', 'resident.branch', 'drug'])
+            ->where('is_active', true)
+            ->where(fn ($q) => $q->whereNull('start_date')->orWhere('start_date', '<=', $windowEnd->toDateString()))
+            ->where(fn ($q) => $q->whereNull('end_date')->orWhere('end_date', '>=', $now->toDateString()))
+            ->get();
+
+        $groups = [];
+        foreach ($medications as $medication) {
+            if (! $medication->resident) {
+                continue;
+            }
+            foreach ($this->dueTimesInWindow($medication, $now, $windowEnd) as $due) {
+                if ($this->doseAlreadyHandled($medication, $due)) {
+                    continue;
+                }
+                foreach ($this->doseRecipients($medication) as $user) {
+                    $facilityId = $medication->resident->branch?->facility_id;
+                    $key = $user->id.'|'.($facilityId ?? 0).'|'.$due->format('Y-m-d H:i');
+                    $groups[$key]['user_id'] = $user->id;
+                    $groups[$key]['facility_id'] = $facilityId;
+                    $groups[$key]['due'] = $due;
+                    $groups[$key]['doses'][$medication->id] = $medication;
+                }
+            }
+        }
+
+        return $groups;
+    }
+
+    /**
+     * Scheduled datetimes of this medication that fall in (now - grace, windowEnd].
+     * Checks the date of both ends so a window crossing midnight still finds 12:00 AM doses.
+     *
+     * @return list<Carbon>
+     */
+    private function dueTimesInWindow(Medication $medication, Carbon $now, Carbon $windowEnd): array
+    {
+        $earliest = $now->copy()->subMinutes(self::MEDICATION_DUE_GRACE_MINUTES);
+        $dates = array_unique([$earliest->toDateString(), $now->toDateString(), $windowEnd->toDateString()]);
+        $due = [];
+
+        foreach ($dates as $date) {
+            if (($medication->start_date && $medication->start_date->toDateString() > $date)
+                || ($medication->end_date && $medication->end_date->toDateString() < $date)) {
+                continue;
+            }
+            foreach ($this->getScheduledAdminTimes($medication) as $time) {
+                $at = Carbon::parse($date.' '.Carbon::parse($time)->format('H:i'), config('app.timezone'));
+                if ($at->gt($earliest) && $at->lte($windowEnd)) {
+                    $due[$at->format('Y-m-d H:i')] = $at;
+                }
+            }
+        }
+
+        return array_values($due);
+    }
+
+    /**
+     * Is there already an administration for this medication at this scheduled time?
+     * Matches MarkMissedMedications: +/- 60 minutes around the scheduled time.
+     */
+    private function doseAlreadyHandled(Medication $medication, Carbon $due): bool
+    {
+        return MedicationAdministration::where('medication_id', $medication->id)
+            ->whereBetween('administered_at', [
+                $due->copy()->subMinutes(self::DOSE_MATCH_WINDOW_MINUTES),
+                $due->copy()->addMinutes(self::DOSE_MATCH_WINDOW_MINUTES),
+            ])
+            ->whereIn('status', self::DOSE_HANDLED_STATUSES)
+            ->exists();
+    }
+
+    /**
+     * Assigned caregivers, or facility admins/managers when nobody is assigned.
+     */
+    private function doseRecipients(Medication $medication)
+    {
+        $caregivers = $medication->resident->assignments
+            ->where('is_active', true)
+            ->pluck('caregiver')
+            ->filter()
+            ->unique('id');
+
+        if ($caregivers->isEmpty()) {
+            $facilityId = $medication->resident->branch?->facility_id;
+
+            return $this->facilityRecipientCache[$facilityId ?? 0]
+                ??= User::facilityRecipients($facilityId)->get();
+        }
+
+        return $caregivers;
+    }
+
+    private function dueNotificationExists(array $group): bool
+    {
+        $query = Notification::withoutGlobalScopes()
+            ->where('user_id', $group['user_id'])
+            ->where('type', 'medication_due')
+            ->whereJsonContains('metadata->scheduled_date', $group['due']->toDateString())
+            ->whereJsonContains('metadata->scheduled_time', $group['due']->format('H:i'));
+
+        $group['facility_id'] === null
+            ? $query->whereNull('facility_id')
+            : $query->where('facility_id', $group['facility_id']);
+
+        return $query->exists();
+    }
+
+    private function createDueNotification(array $group): void
+    {
+        $doses = collect($group['doses']);
+        $due = $group['due'];
+        $residents = $doses->pluck('resident')->unique('id');
+        $branchIds = $doses->pluck('branch_id')->unique();
+
+        Notification::create([
+            'user_id' => $group['user_id'],
+            'facility_id' => $group['facility_id'],
+            'branch_id' => $branchIds->count() === 1 ? $branchIds->first() : null,
+            'type' => 'medication_due',
+            'title' => 'Medications due at '.$due->format('g:i A'),
+            'message' => $this->dueMessage($doses, $residents),
+            'icon' => 'pill',
+            'icon_color' => 'text-red-600',
+            'action_url' => '/medications',
+            'metadata' => [
+                'scheduled_time' => $due->format('H:i'),
+                'scheduled_date' => $due->toDateString(),
+                'medication_ids' => $doses->pluck('id')->values()->all(),
+                'resident_ids' => $residents->pluck('id')->values()->all(),
+                'count' => $doses->count(),
+            ],
+        ]);
+    }
+
+    private function dueMessage($doses, $residents): string
+    {
+        if ($doses->count() === 1) {
+            $medication = $doses->first();
+            $drug = $medication->drug?->name ?? $medication->name;
+            $resident = trim(($medication->resident->first_name ?? '').' '.($medication->resident->last_name ?? ''));
+
+            return "Give {$drug} to {$resident}";
+        }
+
+        $residentCount = $residents->count();
+
+        return "{$doses->count()} doses for {$residentCount} ".($residentCount === 1 ? 'resident' : 'residents');
     }
 
     /**
@@ -309,12 +430,14 @@ class GenerateNotifications extends Command
 
         foreach ($allDrills as $drill) {
             // Get all staff in the branch and admins
-            $users = User::where(function($query) use ($drill) {
-                $query->where('assigned_branch_id', $drill->branch_id)
-                    ->orWhereIn('role', ['administrator', 'admin', 'manager', 'super_admin']);
-            })
-            ->where('is_active', true)
-            ->get();
+            $users = User::where('facility_id', $drill->branch?->facility_id ?: 0)
+                ->where('role', '!=', 'super_admin')
+                ->where(function ($query) use ($drill) {
+                    $query->where('assigned_branch_id', $drill->branch_id)
+                        ->orWhereIn('role', ['administrator', 'admin', 'manager']);
+                })
+                ->where('is_active', true)
+                ->get();
 
             $drillDate = Carbon::parse($drill->scheduled_date)->format('M d, Y');
             $drillTime = $drill->scheduled_time ? Carbon::parse($drill->scheduled_time)->format('g:i A') : 'TBD';
@@ -420,8 +543,7 @@ class GenerateNotifications extends Command
                                     ->filter();
                                 
                                 if ($caregivers->isEmpty()) {
-                                    $caregivers = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                                        ->where('is_active', true)
+                                    $caregivers = User::facilityRecipients($medication->resident?->branch?->facility_id)
                                         ->get();
                                 }
 
@@ -468,7 +590,7 @@ class GenerateNotifications extends Command
         $now = now();
 
         // Get all active residents
-        $residents = Resident::with(['assignments.caregiver', 'vitalSigns'])
+        $residents = Resident::with(['assignments.caregiver'])
             ->where('is_active', true)
             ->get();
 
@@ -499,8 +621,7 @@ class GenerateNotifications extends Command
                         ->filter();
                     
                     if ($caregivers->isEmpty()) {
-                        $caregivers = User::whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
-                            ->where('is_active', true)
+                        $caregivers = User::facilityRecipients($resident->branch?->facility_id)
                             ->get();
                     }
 

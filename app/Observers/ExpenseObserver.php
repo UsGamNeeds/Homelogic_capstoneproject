@@ -20,7 +20,7 @@ class ExpenseObserver
 
         // Get all administrators and managers for the facility
         $admins = User::where('facility_id', $expense->facility_id)
-            ->whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
+            ->whereIn('role', ['administrator', 'admin', 'manager'])
             ->where('is_active', true)
             ->get();
 
@@ -124,7 +124,7 @@ class ExpenseObserver
 
         // Get all administrators and managers for the facility
         $admins = User::where('facility_id', $expense->facility_id)
-            ->whereIn('role', ['administrator', 'admin', 'manager', 'super_admin'])
+            ->whereIn('role', ['administrator', 'admin', 'manager'])
             ->where('is_active', true)
             ->get();
 

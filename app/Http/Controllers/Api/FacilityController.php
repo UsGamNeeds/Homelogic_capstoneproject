@@ -202,7 +202,11 @@ class FacilityController extends BaseApiController
 
     public function show($id): JsonResponse
     {
-        $facility = Facility::findOrFail($id);
+        // The facility detail page renders "Total Branches" and "Total Users"
+        // from these two counts. Without them the keys are simply absent from
+        // the payload and the frontend's `|| 0` fallback reports zero for every
+        // facility, however many it actually has.
+        $facility = Facility::withCount(['branches', 'users'])->findOrFail($id);
         if (! $this->canAccessFacility($facility, auth()->user())) {
             return response()->json(['message' => 'Not found'], 404);
         }

@@ -4,9 +4,9 @@ namespace App\Filament\Resources\UserResource\Pages;
 
 use App\Filament\Resources\UserResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Filament\Resources\Pages\ViewRecord;
 
 class ViewUser extends ViewRecord
 {
@@ -19,10 +19,14 @@ class ViewUser extends ViewRecord
                 ->label('Edit User')
                 ->color('primary')
                 ->icon('heroicon-o-pencil'),
+            // Hidden for anyone with care records behind them: deleting a user
+            // cascade-deletes the doses they signed and the incidents they
+            // reported. Deactivate those users from the staff list instead.
             Actions\DeleteAction::make()
                 ->label('Delete User')
                 ->color('danger')
-                ->icon('heroicon-o-trash'),
+                ->icon('heroicon-o-trash')
+                ->visible(fn () => ! $this->getRecord()->hasProtectedRecords()),
         ];
     }
 
