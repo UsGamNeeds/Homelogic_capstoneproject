@@ -20,6 +20,9 @@ class DatabaseSeeder extends Seeder
             FacilitySettingsSeeder::class,
             FaxModuleSeeder::class,
             DemoDataBackfillSeeder::class,
+            // Reference data for the AI progress-note medication checker — not
+            // facility-specific, safe to re-run (updateOrCreate by synonym).
+            MedicationSynonymSeeder::class,
         ]);
 
         // Alternative: Use ComprehensiveSeeder for development (creates more test data)

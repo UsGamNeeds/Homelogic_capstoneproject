@@ -19,11 +19,13 @@ import {
     ShieldCheck,
     Clock,
     ExternalLink,
+    Wand2,
 } from 'lucide-react';
 import api from '../../services/api';
 import { safeHref } from '../../utils/safeUrl';
 import Breadcrumbs from '../../components/ui/Breadcrumbs';
 import ResidentDocuments from '../../components/ResidentDocuments';
+import AiProgressNoteDraftsPanel from '../../components/residents/AiProgressNoteDraftsPanel';
 import ResidentSafetyStrip from '../../components/residents/ResidentSafetyStrip';
 import ResidentStatusBadges from '../../components/residents/ResidentStatusBadges';
 import logger from '../../utils/logger';
@@ -39,6 +41,7 @@ const tabs = [
     { id: 'vitals', label: 'Vitals', icon: Heart },
     { id: 'appointments', label: 'Appointments', icon: Calendar },
     { id: 'notes', label: 'T-Logs', icon: FileText },
+    { id: 'ai-drafts', label: 'AI Draft Notes', icon: Wand2 },
     { id: 'documents', label: 'Documents', icon: FileText },
     { id: 'sleep', label: 'Sleep', icon: Moon },
 ];
@@ -836,6 +839,10 @@ export default function ResidentDetailPage() {
 
                 {activeTab === 'notes' && (
                     <ResidentProgressNotes residentId={residentId} />
+                )}
+
+                {activeTab === 'ai-drafts' && (
+                    <AiProgressNoteDraftsPanel residentId={resident?.id || residentId} />
                 )}
 
                 {activeTab === 'documents' && (

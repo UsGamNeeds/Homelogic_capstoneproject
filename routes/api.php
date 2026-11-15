@@ -217,6 +217,16 @@ Route::prefix('v1')->middleware([\App\Http\Middleware\SetFacilityContext::class]
     Route::get('/t-logs/{id}/attachments/{attachmentId}/download', [\App\Http\Controllers\Api\TLogController::class, 'downloadAttachment'])->middleware('auth:sanctum');
     Route::delete('/t-logs/{id}/attachments/{attachmentId}', [\App\Http\Controllers\Api\TLogController::class, 'deleteAttachment'])->middleware('auth:sanctum');
 
+    // AI progress-note drafts (separate module from t-logs above — a draft is
+    // never a real progress note until a reviewer approves it).
+    Route::prefix('residents/{resident}/ai-progress-notes')->middleware('auth:sanctum')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\AiProgressNoteController::class, 'index']);
+        Route::post('/', [\App\Http\Controllers\Api\AiProgressNoteController::class, 'store']);
+        Route::post('/{draft}/approve', [\App\Http\Controllers\Api\AiProgressNoteController::class, 'approve']);
+        Route::post('/{draft}/reject', [\App\Http\Controllers\Api\AiProgressNoteController::class, 'reject']);
+    });
+    Route::get('/ai-progress-notes/queue', [\App\Http\Controllers\Api\AiProgressNoteController::class, 'queue'])->middleware('auth:sanctum');
+
     // Blood glucose reports
     Route::apiResource('blood-glucose-reports', \App\Http\Controllers\Api\BloodGlucoseReportController::class)->middleware('auth:sanctum');
 
