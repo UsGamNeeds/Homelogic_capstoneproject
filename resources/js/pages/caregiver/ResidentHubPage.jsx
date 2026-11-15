@@ -30,6 +30,7 @@ import {
     BarChart3,
     BookOpen,
     Plus,
+    Wand2,
 } from 'lucide-react';
 import api from '../../services/api';
 import { safeHref } from '../../utils/safeUrl';
@@ -37,6 +38,7 @@ import { toast } from 'sonner';
 import Assessments from '../Assessments';
 import TLogForm from '../TLogForm';
 import CaregiverResidentChart from './CaregiverResidentChart';
+import AiProgressNoteDraftsPanel from '../../components/residents/AiProgressNoteDraftsPanel';
 import { hasModuleAccess } from '../../utils/moduleAccess';
 import {
     calculateAgeFromPacificBirthDate,
@@ -60,6 +62,7 @@ const RESIDENT_TAB_BASE = [
     { id: 'appointments', label: 'Appointments', icon: Calendar, kind: 'tab' },
     { id: 'charts', label: 'Charts', icon: BarChart3, kind: 'tab' },
     { id: 'notes', label: 'T-Logs', icon: FileText, kind: 'tab' },
+    { id: 'ai-drafts', label: 'AI Draft Notes', icon: Wand2, kind: 'tab' },
     { id: 'care', label: 'Care Plan', icon: BookOpen, kind: 'tab' },
     { id: 'documents', label: 'Documents', icon: FolderOpen, kind: 'tab' },
     { id: 'profile', label: 'Profile', icon: User, kind: 'tab' },
@@ -422,6 +425,7 @@ export default function ResidentHubPage() {
                 {/* Creating a T-Log isn't restricted to non-caregivers (matches the standalone /t-logs page,
                     which only restricts editing/deleting existing notes for caregivers). */}
                 {activeTab === 'notes'        && <NotesTab residentId={residentId} canAddProgressNotes />}
+                {activeTab === 'ai-drafts'    && <AiProgressNoteDraftsPanel residentId={residentId} />}
                 {activeTab === 'care'         && <CarePlanTab resident={resident} residentId={residentId} currentUser={currentUser} />}
                 {activeTab === 'documents'    && <ResidentDocuments residentId={residentId} />}
                 {activeTab === 'vitals'       && <VitalsTab residentId={residentId} resident={resident} navigate={navigate} />}
